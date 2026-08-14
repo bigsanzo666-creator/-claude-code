@@ -30,10 +30,10 @@
       "state/media/carousel_e37a85248a/5_closing.png"
     ],
     "created_at": "2026-08-14T10:34:45.983094+00:00",
-    "status": "pending",
+    "status": "approved",
     "telegram_message_id": 10,
     "reminded_at": null,
-    "responded_at": null,
+    "responded_at": "2026-08-14T10:39:55.934549+00:00",
     "posted_at": null,
     "instagram_media_id": null
   }
