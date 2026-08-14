@@ -194,9 +194,9 @@ def make_fact_card(number: str, title: str, body: str, out_path: str):
     body_lines = wrap_text(draw, body, body_font, max_w)
     title_line_h, body_line_h = 78, 58
 
-    # 배지 + 제목 + 본문을 한 블록으로 보고, 화면 세로 중앙보다 살짝 위쪽에 오도록 배치
+    # 배지 + 제목 + 본문을 한 블록으로 보고, 화면 하단 쪽에 오도록 배치
     block_h = badge_d + 70 + len(title_lines) * title_line_h + 30 + len(body_lines) * body_line_h
-    by = int(H * 0.5 - block_h / 2)
+    by = min(int(H * 0.68 - block_h / 2), H - block_h - 120)
     bx = 70
 
     draw.ellipse([bx - 6, by - 6, bx + badge_d + 6, by + badge_d + 6], outline=ACCENT, width=5)
