@@ -9,13 +9,12 @@
 
 필요 환경변수:
   NAVER_CLIENT_ID, NAVER_CLIENT_SECRET
+  (NAVER API HUB - https://naverapihub.apigw.ntruss.com 에서 발급받은 Client ID/Secret.
+   2026-07-31부로 기존 개발자센터에서는 신규 발급이 막혔고, NCP 콘솔의
+   NAVER API HUB를 통해서만 발급 가능하다.)
 
-주의(2026-08 기준): 검색/데이터랩(검색어트렌드) API는 기존 개발자센터에서
-NAVER API HUB(네이버클라우드플랫폼, NCP)로 이관되었다. 이 스크립트의 인증 방식
-(X-Naver-Client-Id / X-Naver-Client-Secret 헤더)은 기존 개발자센터 방식이다.
-NAVER API HUB가 동일한 방식을 유지하는지, 아니면 NCP식 액세스키/시크릿키
-서명(HMAC) 방식을 요구하는지 실제 발급받은 문서를 보고 확인 후 필요하면
-_headers()/엔드포인트를 수정해야 한다.
+인증 방식: NAVER API HUB는 요청 헤더에 X-NCP-APIGW-API-KEY-ID(Client ID),
+X-NCP-APIGW-API-KEY(Client Secret)를 그대로 실어 보내는 방식이다 (HMAC 서명 불필요).
 """
 from __future__ import annotations
 
@@ -27,8 +26,9 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 
-NAVER_SEARCH_URL = "https://openapi.naver.com/v1/search/news.json"
-NAVER_DATALAB_URL = "https://openapi.naver.com/v1/datalab/search"
+NAVER_API_HUB_BASE = "https://naverapihub.apigw.ntruss.com"
+NAVER_SEARCH_URL = f"{NAVER_API_HUB_BASE}/search/v1/news"
+NAVER_DATALAB_URL = f"{NAVER_API_HUB_BASE}/search-trend/v1/search"
 
 # 카테고리 -> 검색 쿼리(들). 네이버 뉴스 검색 API는 카테고리 필터가 없어서
 # 대표 키워드로 검색해 근사한다.
@@ -59,7 +59,7 @@ def _strip_tags(s: str) -> str:
 def _headers() -> dict:
     cid = os.environ["NAVER_CLIENT_ID"]
     csec = os.environ["NAVER_CLIENT_SECRET"]
-    return {"X-Naver-Client-Id": cid, "X-Naver-Client-Secret": csec}
+    return {"X-NCP-APIGW-API-KEY-ID": cid, "X-NCP-APIGW-API-KEY": csec}
 
 
 def search_news(query: str, display: int = 10, sort: str = "sim") -> list[dict]:
