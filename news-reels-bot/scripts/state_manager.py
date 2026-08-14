@@ -45,7 +45,9 @@ class ReelItem:
     headline: str
     summary: str
     source: str             # 예: "네이버뉴스 - OOO일보"
-    media_path: str         # state/media/<id>.mp4 (repo 상대경로)
+    media_path: str         # state/media/<id>.mp4 (repo 상대경로). 캐러셀이면 표지(첫 장) 경로
+    post_type: str = "reels"  # reels(영상 1개) | carousel(이미지 여러 장)
+    media_paths: Optional[list[str]] = None  # post_type == "carousel"일 때 전체 슬라이드 경로 (순서대로)
     created_at: str = field(default_factory=lambda: _iso(_now()))
     status: str = "pending"  # pending|approved|rejected|posted|deleted
     telegram_message_id: Optional[int] = None

@@ -102,6 +102,56 @@ def send_preview(item: dict, media_path: str) -> int:
     return resp["result"]["message_id"]
 
 
+def send_carousel_preview(item: dict, media_paths: list[str]) -> int:
+    """캐러셀(이미지 여러 장) 미리보기. sendMediaGroup 은 reply_markup 을 지원하지 않으므로
+    앨범을 먼저 보내고, 승인/거부 버튼은 뒤이은 별도 텍스트 메시지로 보낸다.
+    반환값은 (버튼이 달린) 텍스트 메시지의 message_id.
+    """
+    caption = (
+        f"[{item['category']}] {item['headline']}\n\n"
+        f"{item['summary']}\n\n"
+        f"출처: {item['source']}\n"
+        f"ID: {item['id']}"
+    )
+    media = []
+    files = {}
+    for i, path in enumerate(media_paths):
+        field = f"photo{i}"
+        entry = {"type": "photo", "media": f"attach://{field}"}
+        if i == 0:
+            entry["caption"] = caption
+        media.append(entry)
+        files[field] = path
+
+    resp = _call(
+        "sendMediaGroup",
+        payload={"chat_id": _chat_id(), "media": json.dumps(media)},
+        files=files,
+    )
+    if not resp.get("ok"):
+        raise RuntimeError(f"텔레그램 앨범 전송 실패: {resp}")
+
+    keyboard = {
+        "inline_keyboard": [
+            [
+                {"text": "✅ 승인(게시)", "callback_data": f"approve:{item['id']}"},
+                {"text": "❌ 거부", "callback_data": f"reject:{item['id']}"},
+            ]
+        ]
+    }
+    btn_resp = _call(
+        "sendMessage",
+        payload={
+            "chat_id": _chat_id(),
+            "text": f"위 {len(media_paths)}장 캐러셀을 게시할까요? (ID: {item['id']})",
+            "reply_markup": json.dumps(keyboard),
+        },
+    )
+    if not btn_resp.get("ok"):
+        raise RuntimeError(f"텔레그램 버튼 메시지 전송 실패: {btn_resp}")
+    return btn_resp["result"]["message_id"]
+
+
 def send_text(text: str) -> None:
     resp = _call("sendMessage", payload={"chat_id": _chat_id(), "text": text})
     if not resp.get("ok"):
