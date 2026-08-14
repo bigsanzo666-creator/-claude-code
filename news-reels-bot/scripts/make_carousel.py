@@ -187,25 +187,33 @@ def make_fact_card(number: str, title: str, body: str, out_path: str):
     draw = ImageDraw.Draw(img)
 
     badge_d = 130
-    bx, by = 70, 130
+    title_font = font(FONT_BOLD, 62)
+    body_font = font(FONT_REGULAR, 40)
+    max_w = W - 140
+    title_lines = wrap_text(draw, title, title_font, max_w)
+    body_lines = wrap_text(draw, body, body_font, max_w)
+    title_line_h, body_line_h = 78, 58
+
+    # 배지 + 제목 + 본문을 한 블록으로 보고, 화면 세로 중앙보다 살짝 위쪽에 오도록 배치
+    block_h = badge_d + 70 + len(title_lines) * title_line_h + 30 + len(body_lines) * body_line_h
+    by = int(H * 0.5 - block_h / 2)
+    bx = 70
+
     draw.ellipse([bx - 6, by - 6, bx + badge_d + 6, by + badge_d + 6], outline=ACCENT, width=5)
     draw.ellipse([bx, by, bx + badge_d, by + badge_d], fill=(235, 235, 231))
     num_font = font(FONT_BOLD, 64)
     tw = draw.textlength(number, font=num_font)
     draw.text((bx + (badge_d - tw) / 2, by + (badge_d - 78) / 2), number, font=num_font, fill=(40, 40, 40))
 
-    title_font = font(FONT_BOLD, 62)
     ty = by + badge_d + 70
-    max_w = W - 140
-    for line in wrap_text(draw, title, title_font, max_w):
+    for line in title_lines:
         draw.text((70, ty), line, font=title_font, fill=(20, 20, 20))
-        ty += 78
+        ty += title_line_h
 
-    body_font = font(FONT_REGULAR, 40)
     ty += 30
-    for line in wrap_text(draw, body, body_font, max_w):
+    for line in body_lines:
         draw.text((70, ty), line, font=body_font, fill=(90, 90, 90))
-        ty += 58
+        ty += body_line_h
 
     img.save(out_path)
 
