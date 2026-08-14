@@ -186,7 +186,7 @@ def make_fact_card(number: str, title: str, body: str, out_path: str):
     img = Image.new("RGB", (W, H), (247, 247, 245))
     draw = ImageDraw.Draw(img)
 
-    badge_d = 130
+    badge_d = 88
     title_font = font(FONT_BOLD, 62)
     body_font = font(FONT_REGULAR, 40)
     max_w = W - 140
@@ -195,17 +195,20 @@ def make_fact_card(number: str, title: str, body: str, out_path: str):
     title_line_h, body_line_h = 78, 58
 
     # 배지 + 제목 + 본문을 한 블록으로 보고, 화면 하단 쪽에 오도록 배치
-    block_h = badge_d + 70 + len(title_lines) * title_line_h + 30 + len(body_lines) * body_line_h
-    by = min(int(H * 0.68 - block_h / 2), H - block_h - 120)
+    block_h = badge_d + 60 + len(title_lines) * title_line_h + 30 + len(body_lines) * body_line_h
+    by = min(int(H * 0.78 - block_h / 2), H - block_h - 100)
     bx = 70
 
-    draw.ellipse([bx - 6, by - 6, bx + badge_d + 6, by + badge_d + 6], outline=ACCENT, width=5)
+    draw.ellipse([bx - 5, by - 5, bx + badge_d + 5, by + badge_d + 5], outline=ACCENT, width=4)
     draw.ellipse([bx, by, bx + badge_d, by + badge_d], fill=(235, 235, 231))
-    num_font = font(FONT_BOLD, 64)
-    tw = draw.textlength(number, font=num_font)
-    draw.text((bx + (badge_d - tw) / 2, by + (badge_d - 78) / 2), number, font=num_font, fill=(40, 40, 40))
+    num_font = font(FONT_BOLD, 46)
+    # textbbox로 실제 글리프 경계를 구해서 배지 중심에 정확히 맞춘다
+    l, t, r, b = draw.textbbox((0, 0), number, font=num_font)
+    num_x = bx + (badge_d - (r - l)) / 2 - l
+    num_y = by + (badge_d - (b - t)) / 2 - t
+    draw.text((num_x, num_y), number, font=num_font, fill=(40, 40, 40))
 
-    ty = by + badge_d + 70
+    ty = by + badge_d + 60
     for line in title_lines:
         draw.text((70, ty), line, font=title_font, fill=(20, 20, 20))
         ty += title_line_h
