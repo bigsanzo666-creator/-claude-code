@@ -15,17 +15,22 @@ for r in poll_callback_responses():
 ## 2. 승인된 건 게시
 `state/pending.json`에서 `status == "approved"` 이고 아직 `posted_at`이 없는 항목마다:
 
-1. 영상 파일을 공개 URL로 접근 가능하게 만든다. 저장소가 public이면
-   `https://raw.githubusercontent.com/<owner>/<repo>/<branch>/news-reels-bot/state/media/<id>.mp4`
+1. 미디어 파일(들)을 공개 URL로 접근 가능하게 만든다. 저장소가 public이면
+   `https://raw.githubusercontent.com/<owner>/<repo>/<branch>/news-reels-bot/state/media/<경로>`
    를 그대로 쓸 수 있다 (직전 단계에서 이미 git push 되어 있어야 함). private 저장소이거나
    다른 호스팅을 쓰기로 했다면 README의 "미디어 호스팅" 절차를 따른다.
 2. 캡션은 헤드라인 + 요약 + 해시태그(카테고리 기반) 정도로 구성한다.
-3. 게시:
+3. `item["post_type"]`에 따라 분기해서 게시:
 ```python
-from scripts.instagram_publish import publish_reel
+from scripts.instagram_publish import publish_reel, publish_carousel
 from scripts.state_manager import mark_posted
 
-media_id = publish_reel(video_url, caption)
+if item["post_type"] == "carousel":
+    image_urls = [raw_url(p) for p in item["media_paths"]]  # 표지가 첫 번째
+    media_id = publish_carousel(image_urls, caption)
+else:  # "reels"
+    media_id = publish_reel(raw_url(item["media_path"]), caption)
+
 mark_posted(item["id"], media_id)
 ```
 4. 거부(`status == "rejected"`)된 건은 게시하지 않고 그대로 둔다 (5일 규칙에 따라
