@@ -156,13 +156,19 @@ def poll_callback_responses() -> list[dict]:
         action, item_id = data.split(":", 1)
         if action in ("approve", "reject"):
             results.append({"item_id": item_id, "approved": action == "approve"})
-            _call(
-                "answerCallbackQuery",
-                payload={
-                    "callback_query_id": cq["id"],
-                    "text": "승인 처리됨" if action == "approve" else "거부 처리됨",
-                },
-            )
+            try:
+                _call(
+                    "answerCallbackQuery",
+                    payload={
+                        "callback_query_id": cq["id"],
+                        "text": "승인 처리됨" if action == "approve" else "거부 처리됨",
+                    },
+                )
+            except Exception:
+                # 콜백 쿼리가 만료(400)됐거나 일시적으로 실패해도, 버튼 응답 자체는
+                # 이미 확보했으니 상태 반영은 계속 진행한다 (사용자 화면의 로딩
+                # 스피너만 늦게 풀리거나 안 풀릴 뿐, 기능에는 영향 없음).
+                pass
 
     if max_update_id >= offset:
         _save_offset(max_update_id + 1)
