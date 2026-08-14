@@ -8,7 +8,14 @@
       (원문 문장을 그대로 복사하지 말 것 - 저작권).
 
 필요 환경변수:
-  NAVER_CLIENT_ID, NAVER_CLIENT_SECRET   (검색 API - developers.naver.com)
+  NAVER_CLIENT_ID, NAVER_CLIENT_SECRET
+
+주의(2026-08 기준): 검색/데이터랩(검색어트렌드) API는 기존 개발자센터에서
+NAVER API HUB(네이버클라우드플랫폼, NCP)로 이관되었다. 이 스크립트의 인증 방식
+(X-Naver-Client-Id / X-Naver-Client-Secret 헤더)은 기존 개발자센터 방식이다.
+NAVER API HUB가 동일한 방식을 유지하는지, 아니면 NCP식 액세스키/시크릿키
+서명(HMAC) 방식을 요구하는지 실제 발급받은 문서를 보고 확인 후 필요하면
+_headers()/엔드포인트를 수정해야 한다.
 """
 from __future__ import annotations
 

@@ -47,10 +47,19 @@ news-reels-bot/
 
 ## 시작 전 준비 체크리스트
 
-### 1. 네이버 API 키 (5분, 무료)
-1. https://developers.naver.com 접속 → 애플리케이션 등록
-2. 사용 API: **검색**, **데이터랩(검색어트렌드)** 둘 다 체크
-3. 발급된 Client ID / Client Secret을 `.env` 의 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` 에 입력
+### 1. 네이버 API 키 (NAVER API HUB 경유, 무료)
+2026-06-29부로 검색/데이터랩(검색어트렌드) API가 기존 개발자센터에서
+**NAVER API HUB(네이버클라우드플랫폼, NCP)** 로 이관되었고, 2026-07-31부터
+기존 개발자센터에서는 신규 신청이 막혔습니다. 아래 경로로 진행하세요.
+1. https://www.ncloud.com 에서 NCP 계정 가입 (기존 네이버 계정과 별개일 수 있음)
+2. **NAVER API HUB** 포털에서 Search API, Search Trend API 이용 신청 → Client ID/Key 발급
+3. 발급된 값을 `.env` 의 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` 에 입력
+4. ⚠️ 인증 방식이 예전 개발자센터(단순 헤더)와 동일한지 확인 필요 — NCP 계열 API는
+   보통 액세스키/시크릿키 서명(HMAC) 방식을 쓰기도 합니다. API HUB의 Search API
+   사용 가이드 페이지를 확인해서 `scripts/naver_news.py` 의 인증 로직을 그에 맞게
+   업데이트해야 할 수 있습니다 (현재 스크립트는 기존 개발자센터 방식 기준으로 작성됨).
+5. 현재는 무료 요금제만 제공되지만 추후 유료 요금제가 도입될 예정이라고 공지되어
+   있으니, 나중에 사용량/과금 여부를 한 번씩 확인하세요.
 
 ### 2. 텔레그램 봇 (10분, 무료, 사업자등록 불필요)
 1. 텔레그램에서 `@BotFather` 검색 → `/newbot` → 이름 지정 → 토큰 발급받아
