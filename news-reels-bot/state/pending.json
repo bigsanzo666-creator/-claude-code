@@ -7,10 +7,10 @@
     "source": "네이버뉴스 - 스포티비뉴스(SPOTV NEWS)",
     "media_path": "state/media/e37a85248a.png",
     "created_at": "2026-08-14T08:15:02.235324+00:00",
-    "status": "pending",
+    "status": "approved",
     "telegram_message_id": 4,
     "reminded_at": null,
-    "responded_at": null,
+    "responded_at": "2026-08-14T08:22:21.554201+00:00",
     "posted_at": null,
     "instagram_media_id": null
   }
