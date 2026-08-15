@@ -48,6 +48,8 @@ class ReelItem:
     media_path: str         # state/media/<id>.mp4 (repo 상대경로). 캐러셀이면 표지(첫 장) 경로
     post_type: str = "reels"  # reels(영상 1개) | carousel(이미지 여러 장)
     media_paths: Optional[list[str]] = None  # post_type == "carousel"일 때 전체 슬라이드 경로 (순서대로)
+    caption: Optional[str] = None  # 인스타 게시용 캡션. None이면 게시 단계에서 headline+summary로 자동 생성
+
     created_at: str = field(default_factory=lambda: _iso(_now()))
     status: str = "pending"  # pending|approved|rejected|posted|deleted
     telegram_message_id: Optional[int] = None

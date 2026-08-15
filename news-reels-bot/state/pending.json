@@ -59,5 +59,29 @@
     "responded_at": null,
     "posted_at": null,
     "instagram_media_id": null
+  },
+  {
+    "id": "8fe9ef30b7",
+    "category": "스포츠",
+    "headline": "백인천 전 감독 별세, 향년 83세",
+    "summary": "한국 프로야구 유일의 4할 타자 백인천 전 감독이 15일 오전 6시 41분 충남 천안 단국대병원에서 별세했습니다. 향년 83세. 1982년 MBC 청룡에서 감독 겸 선수로 뛰며 타율 0.412를 남겼고, 그에 앞서 일본 프로야구에서 19년간 활약하며 1975년 퍼시픽리그 타격왕에 올랐습니다. KBO는 고인의 공적을 기려 역대 두 번째 KBO장으로 장례를 치릅니다.",
+    "source": "네이버뉴스 - SBS, JTBC, 연합뉴스 등",
+    "media_path": "state/media/memorial_baek_20260815/1_cover.png",
+    "post_type": "carousel",
+    "media_paths": [
+      "state/media/memorial_baek_20260815/1_cover.png",
+      "state/media/memorial_baek_20260815/2_average.png",
+      "state/media/memorial_baek_20260815/3_1982.png",
+      "state/media/memorial_baek_20260815/4_japan.png",
+      "state/media/memorial_baek_20260815/5_closing.png"
+    ],
+    "caption": null,
+    "created_at": "2026-08-15T12:23:31.727789+00:00",
+    "status": "pending",
+    "telegram_message_id": 22,
+    "reminded_at": null,
+    "responded_at": null,
+    "posted_at": null,
+    "instagram_media_id": null
   }
 ]
