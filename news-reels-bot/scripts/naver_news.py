@@ -37,8 +37,75 @@ CATEGORY_QUERIES = {
     "사회": ["사회 사건사고", "사회 이슈"],
     "경제": ["경제 증시", "부동산", "금리"],
     "연예": ["연예 이슈", "아이돌 컴백"],
-    "스포츠": ["프로야구", "축구 국가대표", "스포츠 이슈"],
+    "스포츠": ["KBO 프로야구", "K리그", "축구 국가대표"],
 }
+
+# --- 국내 관심사 필터링 -------------------------------------------------
+# 한국 독자 대상 계정이라, 국내 인물/팀이 얽히지 않은 순수 해외 기사는
+# 관심도가 떨어진다. 아래 두 목록으로 "국내 연관성"을 근사한다.
+#
+# 판정 규칙:
+#   - 국내 신호가 하나라도 있으면 가점 (해외 신호가 같이 있어도 상관없음.
+#     예: "이정후, MLB 데뷔전" 은 MLB가 있어도 국내 관심사다)
+#   - 국내 신호가 전혀 없고 해외 신호만 있으면 감점 + '해외 전용'으로 표시
+#     (예: "우에다 아야세, 페예노르트 이적설")
+
+DOMESTIC_MARKERS = (
+    # 국가/지역
+    "한국", "대한민국", "국내", "우리나라", "서울", "부산", "대구", "인천",
+    # '대전'은 "맨유-리버풀 대전"처럼 경기를 뜻하는 말로도 쓰여서 '대전시'로 좁힘
+    "광주", "대전시", "울산", "세종", "경기도", "강원", "충청", "전라", "경상", "제주",
+    # 정치/기관 ('정부'는 "일본 정부"에도 걸려서 뺐다)
+    "대통령실", "국회", "여의도", "청와대", "기획재정부", "한국은행",
+    "검찰", "경찰청", "헌법재판소", "더불어민주당", "국민의힘",
+    # 프로야구(KBO) 10구단
+    "KBO", "프로야구", "삼성 라이온즈", "LG 트윈스", "두산 베어스", "KIA 타이거즈",
+    "기아 타이거즈", "롯데 자이언츠", "SSG 랜더스", "NC 다이노스", "키움 히어로즈",
+    "한화 이글스", "KT 위즈",
+    # 축구 (아래 AMBIGUOUS_DOMESTIC 참고 - '대표팀' 류는 여기 넣지 말 것)
+    "K리그", "대한축구협회", "태극전사",
+    # 해외에서 뛰는 한국 선수 (해외 리그 기사라도 국내 관심사)
+    "손흥민", "이강인", "김민재", "황희찬", "이재성",
+    "이정후", "김하성", "류현진", "김혜성", "고우석", "배지환",
+    # 연예/문화
+    "K팝", "케이팝", "한류", "가요", "방송인", "국내 가수",
+)
+
+FOREIGN_TEAMS_LEAGUES = (
+    # 해외 리그/대회
+    "프리미어리그", "EPL", "라리가", "분데스리가", "세리에", "리그앙",
+    "에레디비시", "챔피언스리그", "유로파리그", "MLB", "메이저리그",
+    "NBA", "NFL", "NHL", "J리그", "NPB", "일본프로야구", "슈퍼리그",
+    # 해외 구단
+    "맨체스터", "맨유", "리버풀", "첼시", "아스널", "토트넘", "뉴캐슬",
+    "레알 마드리드", "바르셀로나", "아틀레티코", "바이에른", "도르트문트",
+    "유벤투스", "AC밀란", "인터밀란", "나폴리", "파리 생제르맹", "PSG",
+    "페예노르트", "아약스", "PSV", "셀틱",
+    "다저스", "양키스", "레드삭스", "샌디에이고", "샌프란시스코", "애틀랜타",
+    "요미우리", "한신 타이거스", "소프트뱅크",
+)
+
+FOREIGN_NATIONS = (
+    "일본", "중국", "미국", "영국", "프랑스", "독일", "스페인", "이탈리아",
+    "네덜란드", "포르투갈", "브라질", "아르헨티나", "러시아", "대만", "베트남",
+    "호주", "멕시코", "사우디", "카타르",
+)
+
+# 국가명도 해외 신호에 포함시킨다. 단 이건 국내 신호가 하나도 없을 때만
+# 감점 근거가 된다 ("한미 정상회담"은 미국이 나와도 대통령실이 같이 잡히므로 국내 기사)
+FOREIGN_MARKERS = FOREIGN_TEAMS_LEAGUES + FOREIGN_NATIONS
+
+# '국가대표', '축구대표팀'은 그 자체로는 국적을 알 수 없는 일반 명사다.
+# 실제로 "일본 축구대표팀 우에다 아야세" 기사가 국내 기사로 잘못 분류된 적이 있어서,
+# 앞에 해외 국가명이 붙은 경우(아래 정규식)에는 국내 신호로 치지 않는다.
+AMBIGUOUS_DOMESTIC = ("국가대표", "축구대표팀", "야구대표팀", "대표팀")
+
+_FOREIGN_TEAM_RE = re.compile(
+    r"(?:{})\s*(?:축구|야구|배구|농구)?\s*(?:국가)?대표팀?".format("|".join(FOREIGN_NATIONS))
+)
+
+DOMESTIC_BONUS = 12.0
+FOREIGN_PENALTY = 15.0
 
 
 @dataclass
@@ -50,6 +117,9 @@ class Article:
     source_hint: str
     pub_date: str
     score: float = 0.0
+    # 국내 신호 없이 해외 신호만 잡힌 기사 (한국 독자 관심도가 낮다고 본 것)
+    foreign_only: bool = False
+    matched_markers: tuple[str, ...] = ()
 
 
 def _strip_tags(s: str) -> str:
@@ -122,19 +192,63 @@ def trending_keywords(keyword_groups: list[dict], start: str, end: str) -> dict:
     return out
 
 
+def _matches(text: str, markers: tuple[str, ...]) -> list[str]:
+    return [m for m in markers if m in text]
+
+
+def domestic_affinity(title: str, summary: str) -> tuple[float, bool, tuple[str, ...]]:
+    """제목+요약에서 국내 연관성을 판정한다.
+
+    반환: (점수 가감치, 해외 전용 여부, 매칭된 키워드들)
+
+    국내 신호가 하나라도 있으면 해외 신호가 같이 있어도 가점만 준다.
+    ("김민재, 바이에른 잔류" 는 바이에른이 있어도 국내 관심사)
+    """
+    text = f"{title} {summary}"
+    domestic = _matches(text, DOMESTIC_MARKERS)
+    # 확실한 국내 신호가 없을 때만 '대표팀' 같은 모호한 표현을 본다.
+    # 단 "일본 축구대표팀"처럼 해외 국가가 수식하고 있으면 그것도 국내 신호가 아니다.
+    if not domestic and not _FOREIGN_TEAM_RE.search(text):
+        domestic = _matches(text, AMBIGUOUS_DOMESTIC)
+    foreign = _matches(text, FOREIGN_MARKERS)
+
+    if domestic:
+        return DOMESTIC_BONUS, False, tuple(domestic)
+    if foreign:
+        return -FOREIGN_PENALTY, True, tuple(foreign)
+    return 0.0, False, ()
+
+
 def score_articles(articles: list[Article], trend_scores: dict[str, float]) -> list[Article]:
     """카테고리 트렌드 지수 + 제목 길이/키워드 자극도 같은 단순 휴리스틱으로 점수화.
     실제 조회수를 알 방법은 없으므로 '참고용 우선순위'로만 사용한다.
+
+    여기에 더해 '국내 관심사인가'를 가장 크게 반영한다 — 한국 독자 대상 계정이라
+    국내 인물/팀이 얽히지 않은 해외 기사는 반응이 나오지 않기 때문.
     """
     punchy_markers = ["단독", "속보", "긴급", "충격", "논란", "결국", "파장"]
     for a in articles:
         score = trend_scores.get(a.category, 0.0)
         score += sum(3.0 for m in punchy_markers if m in a.title)
+
+        delta, foreign_only, matched = domestic_affinity(a.title, a.summary)
+        score += delta
+        a.foreign_only = foreign_only
+        a.matched_markers = matched
+
         a.score = score
     return sorted(articles, key=lambda a: a.score, reverse=True)
 
 
-def pick_top_per_category(max_per_category: int = 2) -> dict[str, list[Article]]:
+def pick_top_per_category(
+    max_per_category: int = 2, exclude_foreign_only: bool = True
+) -> dict[str, list[Article]]:
+    """카테고리별 상위 기사를 고른다.
+
+    exclude_foreign_only=True(기본)면 국내 신호가 전혀 없는 해외 기사는 아예 후보에서
+    뺀다. 그날 해당 카테고리에 국내 기사가 없으면 그 카테고리는 빈 리스트가 될 수
+    있는데, 이건 의도된 동작이다 — 반응 안 나올 걸 알면서 올리느니 그날은 건너뛴다.
+    """
     from datetime import date, timedelta as _td
 
     end = date.today()
@@ -149,6 +263,8 @@ def pick_top_per_category(max_per_category: int = 2) -> dict[str, list[Article]]
     for category in CATEGORY_QUERIES:
         candidates = fetch_category_candidates(category)
         ranked = score_articles(candidates, trend)
+        if exclude_foreign_only:
+            ranked = [a for a in ranked if not a.foreign_only]
         result[category] = ranked[:max_per_category]
     return result
 
@@ -157,5 +273,9 @@ if __name__ == "__main__":
     picks = pick_top_per_category()
     for cat, arts in picks.items():
         print(f"## {cat}")
+        if not arts:
+            print("  (국내 관심사로 볼 만한 기사 없음 - 오늘은 건너뜀)")
+            continue
         for a in arts:
-            print(f"  [{a.score:.1f}] {a.title}  ({a.source_hint})")
+            hit = ",".join(a.matched_markers[:3]) or "-"
+            print(f"  [{a.score:.1f}] {a.title}  ({a.source_hint})  <{hit}>")
