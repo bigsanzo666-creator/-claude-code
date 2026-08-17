@@ -10,21 +10,22 @@
 
 ---
 
-## ✅ 백인천 캐러셀 게시 완료 — 인스타 첫 실게시 성공 (2026-08-17)
+## ✅ 게시 2건 성공 — 텔레그램 승인 루프까지 전 구간 검증 완료 (2026-08-17)
 
-**지금까지 한 번도 성공한 적 없던 인스타그램 실게시가 처음으로 성공했다.**
+**2026-08-17 하루에 2건을 게시했고, 두 번째 건으로 텔레그램 버튼 승인까지 실제로 돌렸다.**
 
-| 항목 | 값 |
-|---|---|
-| 아이템 id | `8fe9ef30b7` (백인천 전 감독 추모 캐러셀, 5장) |
-| 게시 시각 | 2026-08-17T03:05:02+0000 |
-| `instagram_media_id` | `18111214907077260` |
-| 링크 | https://www.instagram.com/p/DcIB_AdFp_q/ |
-| 형식 | `CAROUSEL_ALBUM` / `FEED` |
-| `pending.json` 상태 | `status: posted`, `posted_at`·`instagram_media_id` 기록됨 |
+| # | 아이템 id | 내용 | 승인 방식 | 링크 |
+|---|---|---|---|---|
+| 1 | `8fe9ef30b7` | 백인천 전 감독 추모 (5장) | 사용자가 채팅으로 지시 | https://www.instagram.com/p/DcIB_AdFp_q/ |
+| 2 | `6175b2796f` | KBO 선두 경쟁 (5장) | ✅ **텔레그램 버튼 클릭** | https://www.instagram.com/p/DcID8cMFqA_/ |
 
-이제 파이프라인 전체(기사 → 카드 생성 → 텔레그램 → 승인 → 인스타 게시)가
-**끝까지 한 번 돌아간 것이 실증됐다.** 이전 인수인계의 "실게시 미검증" 상태는 해소됐다.
+- 1번 `instagram_media_id` `18111214907077260`, 게시 2026-08-17T03:05:02+0000
+- 2번 `instagram_media_id` `18133308352715365`, 게시 2026-08-17T03:22:12+0000
+- 둘 다 `CAROUSEL_ALBUM` / `FEED`, `pending.json`에 `status: posted` 기록됨
+
+**이제 파이프라인 전 구간이 실증됐다:**
+기사 수집(네이버) → 카드 렌더링(Playwright) → 텔레그램 전송 → **버튼 승인** → 인스타 게시 → 상태 기록 → 텔레그램 완료 알림.
+1번은 승인 버튼을 건너뛰었으므로, **승인 루프가 실제로 도는 걸 확인한 건 2번이 처음이다.**
 
 ### 이번에 실제로 통한 게시 절차 (다음 건도 이대로 하면 된다)
 
@@ -45,11 +46,37 @@ cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
   update('<아이템id>', caption=open('/tmp/caption.txt', encoding='utf-8').read().strip())"
 ```
 
-**3단계 — 승인.** 텔레그램 버튼을 안 눌렀어도, 사용자가 "게시해줘"라고 직접 말하면 승인으로 친다.
+**3단계 — 텔레그램으로 보내고 승인을 받는다.** ← 정상 경로. 2026-08-17에 실제로 돌려봤다.
 ```bash
 cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
-  from state_manager import mark_responded; mark_responded('<아이템id>', True)"
+  from state_manager import find, set_telegram_message_id; \
+  from telegram_bot import send_carousel_preview; \
+  it=find('<아이템id>'); \
+  set_telegram_message_id(it['id'], send_carousel_preview(it, it['media_paths']))"
 ```
+⚠️ **캡션을 먼저 넣고(2단계) 보낼 것.** 버튼 메시지에 실제 인스타 캡션이 같이 붙어서,
+사용자가 무엇을 승인하는지 보고 누를 수 있다. 캡션이 없으면 경고 문구가 대신 붙는다.
+
+그다음 버튼이 눌릴 때까지 **폴링한다.** `getUpdates`는 즉시 반환이라 반복 호출해야 한다.
+사용자를 기다리는 동안 `sleep`으로 붙잡지 말고, 아래를 백그라운드로 돌려두는 게 낫다:
+```bash
+cd news-reels-bot && python3 -c "
+import sys, time; sys.path.insert(0,'scripts')
+from state_manager import mark_responded
+from telegram_bot import poll_callback_responses
+TARGET='<아이템id>'
+deadline=time.time()+25*60
+while time.time()<deadline:
+    for r in poll_callback_responses():
+        mark_responded(r['item_id'], r['approved'])
+        print('버튼:', r['item_id'], '승인' if r['approved'] else '거부', flush=True)
+        if r['item_id']==TARGET: raise SystemExit(0)
+    time.sleep(10)
+print('시간 초과')
+"
+```
+버튼을 안 누르고 사용자가 채팅으로 "게시해줘"라고 하면 그것도 승인으로 친다:
+`mark_responded('<아이템id>', True)`
 
 **4단계 — 게시.** `BASE`는 **이미지가 실제로 올라가 있는 브랜치**여야 한다.
 ```bash
@@ -66,11 +93,14 @@ mark_posted(it['id'], mid); print('게시 완료:', mid)
 "
 ```
 
-**5단계 — 링크 확인 후 사용자에게 한 줄로 보고.**
+**5단계 — 링크 확인 → 텔레그램에 완료 알림 → 사용자에게 한 줄로 보고.**
 ```bash
 cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
   from instagram_publish import _get; \
   print(_get('<media_id>', {'fields':'permalink,media_type,timestamp'}))"
+
+cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
+  from telegram_bot import send_text; send_text('✅ 게시 완료\n<permalink>')"
 ```
 
 ### 여기서 배운 것 (다음에 또 걸린다)
@@ -82,10 +112,23 @@ cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
    "캡션은 이거야: (캡션 내용)"이라고 보냈는데 `(캡션 내용)`이 글자 그대로였다.
    → 괄호로 감싼 자리표시자처럼 보이면 실제 캡션이 아니다. 다시 받을 것. 임의 작성 금지.
 3. 캐러셀은 자식 컨테이너에 캡션이 안 붙고 **부모 컨테이너에만** 붙는다 (코드에 이미 반영돼 있음).
+4. **카드 크기는 1080x1350(4:5)이어야 한다.** 인스타 캐러셀은 비율 0.8~1.91만 받는다.
+   `make_carousel_html.py`가 쓰던 1080x1920(9:16)은 0.5625라 **게시가 거부된다.**
+   → 일반 뉴스는 `make_cards_news.py`(4:5), 부고는 `make_cards_memorial.py`(4:5)를 쓸 것.
+   `make_carousel_html.py`는 크기 때문에 사실상 못 쓴다. 참고용으로만 남겨둔 상태다.
+5. **`playwright install` 하지 말 것.** `pip install playwright`로 받은 버전이 최신이면
+   자기가 기대하는 크로미움 빌드번호(예: 1234)를 찾다가 실패하는데, 환경에는 다른 번호
+   (예: 1194)가 이미 깔려 있다. `executable_path`로 직접 넘기면 된다.
+   `make_cards_news.py`의 `chrome_path()`가 그 처리를 한다 — 새 렌더러를 만들면 이걸 재사용할 것.
+6. **한글이 두부(□)로 나오면 CJK 폰트가 없는 것이다.** `apt-get install -y fonts-noto-cjk`.
+   세션마다 새로 깔아야 한다.
+7. **네이버 API가 간헐적으로 `Connection reset by peer`를 낸다.** 코드 문제가 아니라 일시적이다.
+   2026-08-17에 첫 호출이 죽고 바로 재시도하니 정상 동작했다. 그냥 다시 돌리면 된다.
 
 ### 이미 검증 끝난 것 (다시 확인하지 말 것 — 시간 낭비다)
 - **IG 토큰 살아있음** (2026-08-17, `neulbomlife` 응답 확인)
-- **실게시 성공** (2026-08-17, media_id `18111214907077260`)
+- **실게시 성공 2건** (2026-08-17, media_id `18111214907077260` / `18133308352715365`)
+- **텔레그램 버튼 승인 → 자동 게시 루프 동작 확인** (2026-08-17, 아이템 `6175b2796f`)
 - raw URL 5장 전부 200, 바이트 수 로컬과 일치
   (2026-08-17에 `claude/baek-incheon-carousel-post-e4bmi2` 브랜치 기준으로 다시 확인함)
 - 1080x1350, 비율 0.800 (IG 허용 0.8~1.91), PNG, 최대 14K (8MB 제한 여유), 5장 (허용 2~10)
@@ -95,19 +138,26 @@ cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
 
 ---
 
-## ⛔ 지금 막힌 것 하나 — 다음에 뭘 올릴지 안 정했다
+## ⛔ 지금 막힌 것 하나 — 운영 규칙을 안 정했다 (기술 블로커 없음)
 
-게시 파이프라인은 뚫렸다. **막힌 건 기술이 아니라 콘텐츠 쪽이다.**
+파이프라인은 전 구간 뚫렸다. **막힌 건 기술이 아니라 "어떻게 굴릴지"다.**
 
-| 필요한 것 | 누가 | 상태 |
+| 정해야 할 것 | 누가 | 상태 |
 |---|---|---|
-| 다음에 올릴 소재 | 사용자와 상의 | 안 정함 |
+| 게시 주기 (매일 1건? 이슈 있을 때만?) | 사용자 결정 | 안 정함 |
+| 캡션을 사용자가 계속 직접 쓸지, 초안을 클로드가 쓸지 | 사용자 결정 | 안 정함 |
 | 기존 테스트 3건(우에다 아야세) 정리 여부 | 사용자 결정 | 안 정함 |
-| 게시 주기 (매일? 이슈 있을 때만?) | 사용자 결정 | 안 정함 |
+| 자동 실행(크론) 붙일지 | 사용자 결정 | 안 정함 |
 
-권하는 순서: ① 우에다 아야세 테스트 3건을 `pending.json`에서 지운다(실게시 안 할 것들이다)
-② `python scripts/naver_news.py`를 돌려 국내 필터가 실제 기사에 어떻게 걸리는지 본다(7번 열린 질문)
-③ 거기서 나온 국내 소재로 다음 캐러셀을 만든다.
+**캡션 관련 — 2026-08-17에 방식이 갈렸다. 다음 세션에서 확인할 것.**
+- 백인천 건(`8fe9ef30b7`): 부고라서 **사용자가 캡션 전문을 직접 써서 줬다.**
+- KBO 건(`6175b2796f`): **클로드가 초안을 쓰고, 텔레그램 버튼 메시지에 그 캡션을 붙여 보냈다.**
+  사용자가 캡션까지 보고 승인 버튼을 눌렀다. → 이 방식이 통했다.
+- 규칙은 그대로다: 민감한 소재(부고·사고)는 사용자가 직접 쓴다.
+  일반 소재는 초안을 만들되 **반드시 승인 화면에 캡션을 보여주고** 승인을 받는다.
+
+권하는 순서: ① 게시 주기부터 정한다 ② 우에다 아야세 테스트 3건을 `pending.json`에서 지운다
+③ 주기가 정해지면 `runbooks/daily_generation.md`를 실제 절차에 맞게 고친다.
 
 ### 주의 (계속 유효)
 - 부고·사고 등 민감한 소재는 자극적 표현·낚시성 문구 금지.
@@ -192,10 +242,20 @@ news-reels-bot/
                                네트워크·시크릿 불필요. 필터 손보면 먼저 돌릴 것:
                                  python scripts/test_domestic_filter.py
     telegram_bot.py            send_preview(단일) + send_carousel_preview(앨범)
+                              [2026-08-17 수정] 승인 버튼 메시지에 실제 인스타 캡션을 첨부.
+                               기존엔 headline/summary 요약만 보여서 무엇을 승인하는지
+                               알 수 없었다. 캡션이 없으면 경고 문구가 대신 붙는다.
     state_manager.py           ReelItem에 post_type, media_paths
-    instagram_publish.py       캐러셀 게시 함수. [2026-08-17] 실게시 성공 검증 완료
+    instagram_publish.py       캐러셀 게시 함수. [2026-08-17] 실게시 2건 성공 검증 완료
     make_carousel.py           PIL 버전 (구버전, 참고용)
-    make_carousel_html.py      최종 채택. HTML/CSS + Playwright
+    make_carousel_html.py      ⚠️ 1080x1920(9:16). 인스타 캐러셀 비율 제한에 걸려 못 쓴다.
+                               참고용으로만 남겨둠. 실제로는 아래 두 개를 쓴다.
+    make_cards_memorial.py     부고 전용 카드. 1080x1350. 검정 바탕 + 명조체
+    make_cards_news.py        [2026-08-17 신규] 일반 뉴스 카드. 1080x1350.
+                               표지/마무리 짙은 남색 + 본문 밝은 바탕, 브랜드 골드 액센트
+                               cover / big_number / stat_list / closing 4종 레이아웃
+                               chrome_path()로 환경에 깔린 크로미움을 직접 찾는다
+                               다음 게시물은 맨 아래 CARDS만 고쳐 쓰면 된다
     make_blog_header.py        블로그 헤더 배너 (16:9, SVG 야구공)
   runbooks/
     daily_generation.md
@@ -208,6 +268,8 @@ news-reels-bot/
       carousel_e37a85248a/                   PIL 버전 카드 5장
       carousel_e37a85248a_html/              최종 HTML/CSS 버전 카드 5장
       blog_kbo_20260814/header.png           블로그용 KBO 헤더 배너
+      memorial_baek_20260815/                백인천 추모 카드 5장 (게시됨)
+      kbo_race_20260817/                     KBO 선두 경쟁 카드 5장 (게시됨)
 ```
 
 **저장소 밖 산출물**: 늘봄이야기 소개 랜딩 페이지(아티팩트)
@@ -233,9 +295,12 @@ https://claude.ai/code/artifact/4e74d4d9-67e9-4275-bd32-3ef0ecc443f9
 | `78a37a2a7e` | carousel (PIL) | **approved** | 텔레그램 승인 완료, 실게시 안 함 |
 | `ca82c8a121` | carousel (HTML/CSS) | **pending** | 텔레그램 전송했으나 승인/거부 버튼 안 누름 |
 | `8fe9ef30b7` | carousel (HTML/CSS) | ✅ **posted** | **백인천 추모. 2026-08-17 실게시 성공** |
+| `6175b2796f` | carousel (make_cards_news) | ✅ **posted** | **KBO 선두 경쟁. 텔레그램 버튼 승인 거쳐 게시** |
 
 - `8fe9ef30b7`: `posted_at 2026-08-17T03:05:07Z`, `instagram_media_id 18111214907077260`,
   https://www.instagram.com/p/DcIB_AdFp_q/
+- `6175b2796f`: `posted_at 2026-08-17T03:22Z`, `instagram_media_id 18133308352715365`,
+  https://www.instagram.com/p/DcID8cMFqA_/, 텔레그램 버튼 메시지 id 29
 - 위 3건은 여전히 인스타 실게시 이력 없음 (`posted_at: null`, `instagram_media_id: null`)
 - **3건 다 우에다 아야세(일본 선수) 기사 기반** — 이제 새 필터라면 애초에 걸러졌을 소재다.
   실제 운영 게시물로 쓸 것이 아니므로, **정리하고 국내 소재로 새로 만드는 쪽을 권한다.**
@@ -335,9 +400,14 @@ Claude Code 환경 설정에 등록되어 있다.
 
 ## 7. 열린 질문
 
-- **국내 필터를 실제 네이버 API 응답으로 검증 못 했다.** 오프라인 10케이스만 통과한 상태.
-  클라우드 세션에서 `python scripts/naver_news.py`를 돌려 실제 기사에 어떻게 걸리는지
-  보고 키워드 목록을 다듬어야 한다. 특히 정치·사회·경제 카테고리는 케이스가 없다.
+- ~~**국내 필터를 실제 네이버 API 응답으로 검증 못 했다.**~~
+  ✅ **2026-08-17에 처음으로 실제 API로 돌려봤다.** 5개 카테고리 전부 결과가 나왔고
+  해외 전용 기사는 걸러졌다. 다만 **오탐을 하나 발견했다:**
+  "차별화 상품 앞세운 편의점…역성장 끊고 성장 궤도" 기사가 **스포츠 카테고리 2위로 올라왔다**
+  (`<KBO,프로야구>` 마커에 걸림 — 본문/요약에 KBO 관련 문구가 섞여 있었던 것으로 보인다).
+  → 제목과 요약의 가중치를 다르게 주거나, 카테고리별로 필수 키워드를 두는 식의 보완이 필요하다.
+  지금은 사람이 보고 고르니 문제가 안 되지만, **자동화하면 이게 그대로 나간다.**
+  정치·사회·경제 카테고리의 오탐 여부는 아직 안 봤다.
 - AI 이미지 의존도에 대한 사용자의 유보적 반응 있었음 ("이런 AI를 많이 써야 될까 싶기도 하고").
   이미지 스타일 방향 재확인 필요할 수 있다.
 - 캐러셀이 최종인지, 릴스(영상)도 병행할지 재확인 필요. 영상은 유료 플랜 없이는
