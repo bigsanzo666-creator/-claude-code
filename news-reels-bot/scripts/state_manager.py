@@ -130,11 +130,16 @@ def items_needing_reminder() -> list[dict]:
 
 
 def items_to_delete() -> list[dict]:
-    """생성된 지 5일이 지난 pending/rejected 아이템 (확인 여부 무관하게 삭제 대상)."""
+    """생성된 지 5일이 지난 pending/rejected 아이템.
+
+    approved는 제외한다. 게시 API가 실패한 건은 approved로 남겨두고 다음 실행에서
+    재시도하는 규칙(runbooks/approval_check.md 6번)인데, 여기에 포함시키면
+    재시도를 기다리던 건이 5일째에 조용히 지워진다.
+    """
     out = []
     now = _now()
     for i in load():
-        if i["status"] in ("posted", "deleted"):
+        if i["status"] in ("posted", "deleted", "approved"):
             continue
         if now - _parse(i["created_at"]) >= DELETE_AFTER:
             out.append(i)
@@ -142,12 +147,20 @@ def items_to_delete() -> list[dict]:
 
 
 def mark_deleted(item_id: str) -> Optional[dict]:
-    """미디어 파일도 함께 지우고 상태만 deleted로 남긴다 (레코드 자체는 보관, 감사용)."""
+    """미디어 파일도 함께 지우고 상태만 deleted로 남긴다 (레코드 자체는 보관, 감사용).
+
+    캐러셀은 media_path(표지 1장) 말고 media_paths(전체 슬라이드)에 파일이 들어 있다.
+    예전에는 media_path만 지워서 나머지 카드가 저장소에 계속 남았다.
+    """
     item = find(item_id)
     if item:
-        media_file = STATE_DIR.parent / item["media_path"]
-        if media_file.exists():
-            media_file.unlink()
+        paths = list(item.get("media_paths") or [])
+        if item.get("media_path"):
+            paths.append(item["media_path"])
+        for rel in dict.fromkeys(paths):
+            media_file = STATE_DIR.parent / rel
+            if media_file.exists():
+                media_file.unlink()
     return update(item_id, status="deleted")
 
 

@@ -1,70 +1,71 @@
-# 승인 체크 러너 (하루 여러 번, 예: 매시 정각 실행)
+# 승인 체크 러너
 
-이 문서는 예약된 Routine이 주기적으로 실행시키는 Claude Code 세션이 그대로 따라야 할
-작업 지시서다. 목적: 텔레그램 버튼 응답 반영 → 승인건 게시 → 리마인드 → 만료 삭제.
+목적: 텔레그램 버튼 응답 반영 → 승인건 게시 → 리마인드 → 만료 삭제.
 
-## 1. 텔레그램 응답 수집
-```python
-from scripts.telegram_bot import poll_callback_responses
-from scripts.state_manager import mark_responded
+**2026-08-17부터 이 절차는 전부 `scripts/approval_runner.py`에 들어 있다.**
+예전에는 이 문서에 파이썬 조각을 적어두고 세션마다 손으로 붙여넣었는데, 그러다
+캡션을 빠뜨리거나 푸시 전에 게시해서 raw URL 404를 맞는 사고가 반복됐다.
+이제는 아래 명령만 쓰면 된다.
 
-for r in poll_callback_responses():
-    mark_responded(r["item_id"], r["approved"])
+## 하루 운영 순서
+
+```bash
+cd news-reels-bot
+
+# 1. 지금 상태 확인
+python scripts/approval_runner.py status
+
+# 2. (캡션이 없으면) 캡션 넣기 — 셸에 직접 붙여넣지 말고 파일로 넘긴다
+python scripts/approval_runner.py caption <아이템id> /tmp/caption.txt
+
+# 3. 카드 이미지를 먼저 푸시한다 ← 이 순서를 지켜야 한다
+git add -A && git commit -m "feat: 카드 생성" && git push -u origin <브랜치>
+
+# 4. 텔레그램으로 승인 요청 전송
+python scripts/approval_runner.py send <아이템id>
+
+# 5. 버튼을 기다린다. 승인이 눌리면 그 자리에서 게시까지 한다
+python scripts/approval_runner.py watch <아이템id> --minutes 25
+
+# 6. 상태 파일 커밋
+git add news-reels-bot/state && git commit -m "chore: 게시 상태 기록" && git push
 ```
 
-## 2. 승인된 건 게시
-`state/pending.json`에서 `status == "approved"` 이고 아직 `posted_at`이 없는 항목마다:
+`watch`는 오래 걸리므로 백그라운드로 돌리고 다른 일을 해도 된다.
+시간이 초과돼도 상태는 안 잃는다 — 다시 실행하면 이어서 기다린다.
 
-1. 미디어 파일(들)을 공개 URL로 접근 가능하게 만든다. 저장소가 public이면
-   `https://raw.githubusercontent.com/<owner>/<repo>/<branch>/news-reels-bot/state/media/<경로>`
-   를 그대로 쓸 수 있다 (직전 단계에서 이미 git push 되어 있어야 함). private 저장소이거나
-   다른 호스팅을 쓰기로 했다면 README의 "미디어 호스팅" 절차를 따른다.
-2. 캡션은 헤드라인 + 요약 + 해시태그(카테고리 기반) 정도로 구성한다.
-3. `item["post_type"]`에 따라 분기해서 게시:
-```python
-from scripts.instagram_publish import publish_reel, publish_carousel
-from scripts.state_manager import mark_posted
+## 그 밖의 명령
 
-if item["post_type"] == "carousel":
-    image_urls = [raw_url(p) for p in item["media_paths"]]  # 표지가 첫 번째
-    media_id = publish_carousel(image_urls, caption)
-else:  # "reels"
-    media_id = publish_reel(raw_url(item["media_path"]), caption)
+| 명령 | 언제 쓰나 |
+|---|---|
+| `approve <id>` | 사용자가 버튼 대신 채팅으로 "게시해줘"라고 했을 때. 승인 + 게시까지 한다 |
+| `reject <id>` | 채팅으로 거부했을 때 |
+| `publish <id>` | 이미 승인된 건을 다시 게시 시도할 때 (API 실패 후 재시도) |
+| `maintain` | 2일 리마인드 + 5일 만료 삭제. 주기 실행용 |
 
-mark_posted(item["id"], media_id)
+## 실행기가 대신 막아주는 것
+
+게시 전에 아래를 자동으로 확인한다. 하나라도 걸리면 게시하지 않고 한국어로 이유를 찍는다.
+
+1. **캡션이 비어 있으면 게시 금지** (CLAUDE.md 규칙). `(캡션 내용)` 같은 자리표시자도 거른다.
+2. **카드 5~10장**인지 확인 (운영 규칙. 인스타 캐러셀 상한이 10장).
+3. **카드 파일이 실제로 있는지** 확인.
+4. **raw URL이 열리는지(200)** 확인 — 푸시를 안 했으면 여기서 잡힌다.
+   Graph API는 로컬 파일을 안 받고 공개 HTTPS URL만 받는다.
+5. **이미 게시된 건인지** 확인 (중복 게시 방지).
+6. raw URL은 지금 체크아웃된 **브랜치에서 자동으로 만든다.** 브랜치명을 손으로 적지 않는다.
+
+## 실패했을 때
+
+- 게시 API가 실패하면 아이템은 `approved` 상태로 남고, 텔레그램으로 오류를 알린다.
+  다음에 `publish <id>`로 재시도하면 된다.
+- `approved` 상태는 5일 만료 삭제 대상에서 **제외**된다 (재시도를 기다리는 중이므로).
+- 인스타 토큰이 죽으면 모든 호출이 `Cannot call API for app ...`으로 실패한다.
+  → 토큰 재발급 후 **새 세션**에서 확인할 것 (세션은 옛 시크릿을 계속 쓴다).
+
+## 코드를 손봤다면
+
+```bash
+python scripts/test_approval_runner.py     # 게시 가드 테스트 (네트워크·시크릿 불필요)
+python scripts/test_domestic_filter.py     # 기사 필터 테스트
 ```
-4. 거부(`status == "rejected"`)된 건은 게시하지 않고 그대로 둔다 (5일 규칙에 따라
-   자연히 삭제 대상이 된다).
-
-## 3. 2일 경과 리마인드
-```python
-from scripts.state_manager import items_needing_reminder, mark_reminded
-from scripts.telegram_bot import send_reminder
-
-for item in items_needing_reminder():
-    send_reminder(item)
-    mark_reminded(item["id"])
-```
-
-## 4. 5일 경과 자동 삭제
-확인 여부와 무관하게, 생성된 지 5일이 지났고 아직 게시되지 않은 건은 삭제한다.
-```python
-from scripts.state_manager import items_to_delete, mark_deleted
-from scripts.telegram_bot import send_deletion_notice
-
-for item in items_to_delete():
-    send_deletion_notice(item)
-    mark_deleted(item["id"])  # 미디어 파일 삭제 + 상태만 'deleted'로 보관
-```
-
-## 5. 커밋 & 푸시
-```
-git add news-reels-bot/state
-git commit -m "chore: 승인 처리/리마인드/만료 정리"
-git push
-```
-
-## 6. 오류 처리
-- 인스타그램 게시 API가 실패하면(토큰 만료 등) 텔레그램으로 즉시 오류 내용을 한글로
-  알리고, 해당 아이템은 `approved` 상태로 남겨서 다음 실행에 재시도한다.
-- 반복 실패(3회 이상)하는 아이템은 사람이 볼 수 있게 텔레그램에 명시적으로 보고한다.

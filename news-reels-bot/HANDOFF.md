@@ -8,6 +8,54 @@
 ⚠️ **답변 방식은 저장소 루트 `CLAUDE.md`를 먼저 읽고 그대로 따를 것.**
 사용자는 개발 전문가가 아니다. 길게 설명하지 말고 된다/안 된다 + 방법만 말한다.
 
+⚠️ **`AskUserQuestion`(선택지 카드)을 절대 쓰지 말 것.** 2026-08-17에 이것 때문에
+세션 하나가 완전히 멈췄다. 확인이 필요하면 가정을 정해서 "가정: ~" 한 줄로 밝히고 진행한다.
+
+---
+
+## 🟢 지금 막힌 것 — 없음 (2026-08-17 갱신)
+
+승인 대기 중인 건이 **0건**이다. 마지막 건(빅뱅 20주년, `dae097c50a`)은 텔레그램에서
+**거부** 버튼이 눌려 종료됐다. 기다리는 사람도, 기다리는 작업도 없다.
+
+**다음 세션이 할 일: 오늘의 소재를 골라 새 캐러셀 1건을 만드는 것.**
+
+```bash
+cd news-reels-bot
+python scripts/naver_news.py                      # 오늘 후보 기사 (연예/스포츠/정치)
+# 소재를 고르고 make_cards_news.py 맨 아래 SPEC 을 고쳐서 카드 5~10장 렌더
+python scripts/approval_runner.py status          # 상태 확인
+```
+그다음은 `runbooks/approval_check.md`의 "하루 운영 순서"를 그대로 따르면 된다.
+
+---
+
+## 🆕 승인→게시가 명령 하나로 돌아간다 (2026-08-17 추가)
+
+**`scripts/approval_runner.py`** 를 새로 만들었다. 예전엔 이 구간을 세션마다
+`python3 -c "..."` 긴 명령으로 손으로 붙여넣어야 했고, 그러다 사고가 반복됐다.
+
+```bash
+cd news-reels-bot
+python scripts/approval_runner.py status            # 상태 한눈에
+python scripts/approval_runner.py caption <id> /tmp/caption.txt
+python scripts/approval_runner.py send <id>         # 텔레그램 앨범 + 승인 버튼
+python scripts/approval_runner.py watch <id>        # 버튼 기다렸다가 승인되면 자동 게시
+python scripts/approval_runner.py approve <id>      # 채팅으로 승인받았을 때
+python scripts/approval_runner.py publish <id>      # 실패한 건 재시도
+python scripts/approval_runner.py maintain          # 리마인드 + 만료 삭제
+```
+
+게시 전에 자동으로 막아주는 것 — **아래는 이제 다시 확인 안 해도 된다:**
+1. 캡션 없으면 게시 금지 (`(캡션 내용)` 같은 자리표시자도 거른다)
+2. 카드 5~10장인지
+3. 카드 파일이 실제로 있는지
+4. **raw URL이 200으로 열리는지** ← 푸시 안 하고 게시하던 사고를 여기서 잡는다
+5. 이미 게시된 건인지 (중복 방지)
+6. raw URL의 브랜치명을 **git에서 자동으로** 가져온다 (손으로 안 적는다)
+
+`watch`는 오래 걸리니 백그라운드로 돌려도 된다. 시간 초과돼도 상태는 안 잃는다.
+
 ---
 
 ## ✅ 게시 2건 성공 — 텔레그램 승인 루프까지 전 구간 검증 완료 (2026-08-17)
@@ -174,8 +222,9 @@ cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
 
 | 정해야 할 것 | 상태 |
 |---|---|
-| 기존 테스트 3건(우에다 아야세) 정리 | 안 함 |
-| 자동 실행(크론) 붙일지 | 안 정함 |
+| 기존 테스트 3건(우에다 아야세) 정리 | ✅ **2026-08-17 완료** (`deleted` 처리 + 이미지 삭제) |
+| 승인→게시 자동 실행 스크립트 | ✅ **2026-08-17 완료** (`scripts/approval_runner.py`) |
+| 자동 실행(크론) 붙일지 | 안 정함. 붙인다면 `approval_runner.py maintain`을 하루 1회 돌리는 게 시작점 |
 | 블로그를 실제로 워크로 옮기기 | 안 함 |
 | 수익화 방향 | 논의 시작 안 함 |
 
@@ -281,7 +330,19 @@ news-reels-bot/
                               [2026-08-17 수정] 승인 버튼 메시지에 실제 인스타 캡션을 첨부.
                                기존엔 headline/summary 요약만 보여서 무엇을 승인하는지
                                알 수 없었다. 캡션이 없으면 경고 문구가 대신 붙는다.
+    approval_runner.py        [2026-08-17 신규] 승인→게시 실행기. 위 "🆕" 절 참고.
+                               status/caption/send/watch/approve/reject/publish/maintain
+                               게시 가드(캡션·카드수·파일·raw URL 200·중복)를 전부 여기서 건다
+    test_approval_runner.py   [2026-08-17 신규] 위 가드 테스트 10케이스.
+                               네트워크·시크릿 불필요. 가드를 손보면 먼저 돌릴 것:
+                                 python scripts/test_approval_runner.py
     state_manager.py           ReelItem에 post_type, media_paths
+                              [2026-08-17 버그 2건 수정]
+                               - mark_deleted()가 media_path(표지 1장)만 지우고 캐러셀
+                                 나머지 카드를 저장소에 남기던 문제 → media_paths 전부 삭제
+                               - items_to_delete()가 approved까지 삭제 대상으로 잡아서,
+                                 게시 실패 후 재시도를 기다리던 건이 5일째 조용히
+                                 지워지던 문제 → approved 제외
     instagram_publish.py       캐러셀 게시 함수. [2026-08-17] 실게시 2건 성공 검증 완료
     make_carousel.py           PIL 버전 (구버전, 참고용)
     make_carousel_html.py      ⚠️ 1080x1920(9:16). 인스타 캐러셀 비율 제한에 걸려 못 쓴다.
@@ -296,7 +357,8 @@ news-reels-bot/
     make_blog_header.py        블로그 헤더 배너 (16:9, SVG 야구공)
   runbooks/
     daily_generation.md
-    approval_check.md          post_type별 publish_reel/publish_carousel 분기
+    approval_check.md         [2026-08-17 전면 교체] 파이썬 조각 붙여넣기 대신
+                               approval_runner.py 명령 순서로 다시 씀
     blog_post.md              [2026-08-15 신규] 블로그 스타일 가이드 + 생성 프롬프트
   state/
     pending.json               테스트 아이템 3건 (아래 3번)
@@ -307,6 +369,8 @@ news-reels-bot/
       blog_kbo_20260814/header.png           블로그용 KBO 헤더 배너
       memorial_baek_20260815/                백인천 추모 카드 5장 (게시됨)
       kbo_race_20260817/                     KBO 선두 경쟁 카드 5장 (게시됨)
+      bigbang_20th_20260817/                 빅뱅 20주년 카드 10장 (거부됨)
+      ⚠️ carousel_e37a85248a/ 와 carousel_e37a85248a_html/ 은 2026-08-17에 삭제됨
 ```
 
 **저장소 밖 산출물**: 늘봄이야기 소개 랜딩 페이지(아티팩트)
@@ -328,19 +392,20 @@ https://claude.ai/code/artifact/4e74d4d9-67e9-4275-bd32-3ef0ecc443f9
 
 | id | post_type | status | 비고 |
 |---|---|---|---|
-| `e37a85248a` | reels | **approved** | 가장 초기 테스트. 실게시 안 함 |
-| `78a37a2a7e` | carousel (PIL) | **approved** | 텔레그램 승인 완료, 실게시 안 함 |
-| `ca82c8a121` | carousel (HTML/CSS) | **pending** | 텔레그램 전송했으나 승인/거부 버튼 안 누름 |
+| `e37a85248a` | reels | ~~approved~~ **deleted** | 초기 테스트. 2026-08-17 정리됨 |
+| `78a37a2a7e` | carousel (PIL) | ~~approved~~ **deleted** | 2026-08-17 정리됨 |
+| `ca82c8a121` | carousel (HTML/CSS) | ~~pending~~ **deleted** | 2026-08-17 정리됨 |
 | `8fe9ef30b7` | carousel (HTML/CSS) | ✅ **posted** | **백인천 추모. 2026-08-17 실게시 성공** |
 | `6175b2796f` | carousel (make_cards_news) | ✅ **posted** | **KBO 선두 경쟁. 텔레그램 버튼 승인 거쳐 게시** |
+| `dae097c50a` | carousel (make_cards_news, 10장) | ❌ **rejected** | 빅뱅 20주년. 텔레그램 거부 버튼 |
 
 - `8fe9ef30b7`: `posted_at 2026-08-17T03:05:07Z`, `instagram_media_id 18111214907077260`,
   https://www.instagram.com/p/DcIB_AdFp_q/
 - `6175b2796f`: `posted_at 2026-08-17T03:22Z`, `instagram_media_id 18133308352715365`,
   https://www.instagram.com/p/DcID8cMFqA_/, 텔레그램 버튼 메시지 id 29
-- 위 3건은 여전히 인스타 실게시 이력 없음 (`posted_at: null`, `instagram_media_id: null`)
-- **3건 다 우에다 아야세(일본 선수) 기사 기반** — 이제 새 필터라면 애초에 걸러졌을 소재다.
-  실제 운영 게시물로 쓸 것이 아니므로, **정리하고 국내 소재로 새로 만드는 쪽을 권한다.**
+- **우에다 아야세(일본 선수) 테스트 3건은 2026-08-17에 정리했다.** 상태는 `deleted`로
+  남기고(감사용) 카드 이미지 파일은 지웠다. 되살릴 일이 있으면 git 이력에 남아 있다.
+- `dae097c50a`(거부)는 5일 뒤 `maintain` 명령이 자동으로 지운다. 그냥 두면 된다.
 
 ---
 
@@ -378,6 +443,11 @@ Claude Code 환경 설정에 등록되어 있다.
    반환하면 함수 전체가 죽어 offset 저장도 결과도 유실되던 버그. try/except로 해결 (`5f35ec9`).
 2. `make_carousel.py`의 `add_glow()` — GaussianBlur를 실제로 적용 안 하는 no-op 버그 (`6d6f68f`).
 3. `wrap_text()` — 글자 단위 줄바꿈이라 영어 단어가 중간에 끊기던 문제 → 단어 단위로 변경.
+5. **[2026-08-17]** `state_manager.mark_deleted()`가 `media_path`(표지 1장)만 지워서
+   캐러셀의 나머지 카드 4~9장이 저장소에 계속 남았다. → `media_paths` 전부 지우도록 수정.
+6. **[2026-08-17]** `state_manager.items_to_delete()`가 `approved`까지 삭제 대상에 넣었다.
+   게시 API 실패 시 `approved`로 남겨 재시도하는 규칙과 충돌해서, 재시도를 기다리던 건이
+   5일째에 조용히 지워질 수 있었다. → `approved` 제외.
 4. **[2026-08-15]** 국내 필터 초기 구현에서 `"일본 축구대표팀"`이 국내 기사로 잘못 분류됐다.
    `축구대표팀`/`국가대표`가 국적을 알 수 없는 일반 명사이기 때문. 앞에 해외 국가명이
    붙으면 국내 신호로 치지 않도록 수정. substring 오탐도 함께 제거:
