@@ -25,6 +25,7 @@ import re
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+from typing import Optional
 
 NAVER_API_HUB_BASE = "https://naverapihub.apigw.ntruss.com"
 NAVER_SEARCH_URL = f"{NAVER_API_HUB_BASE}/search/v1/news"
@@ -129,6 +130,8 @@ _FOREIGN_TEAM_RE = re.compile(
 
 DOMESTIC_BONUS = 12.0
 FOREIGN_PENALTY = 15.0
+# 제목이 그 카테고리 주제와 맞을 때 주는 가점 (category_relevance 참고)
+TOPIC_BONUS = 8.0
 
 
 @dataclass
@@ -143,6 +146,9 @@ class Article:
     # 국내 신호 없이 해외 신호만 잡힌 기사 (한국 독자 관심도가 낮다고 본 것)
     foreign_only: bool = False
     matched_markers: tuple[str, ...] = ()
+    # 검색어에는 걸렸지만 제목을 보면 그 카테고리 기사가 아닌 것
+    # (예: "편의점 매출" 기사가 본문에 KBO 카드 얘기가 있어서 스포츠로 잡힘)
+    off_topic: bool = False
 
 
 def _strip_tags(s: str) -> str:
@@ -243,6 +249,91 @@ def domestic_affinity(title: str, summary: str) -> tuple[float, bool, tuple[str,
     return 0.0, False, ()
 
 
+# --- 카테고리 적합성 (제목 기준) ---------------------------------------
+# 2026-08-17에 발견한 오탐 때문에 넣었다.
+#   "차별화 상품 앞세운 편의점…역성장 끊고 성장 궤도"  → 스포츠 2위로 올라옴
+#   본문에 "2026 KBO 오피셜 컬렉션 카드 380만 개 판매" 라는 문장이 있어서
+#   'KBO','프로야구' 마커에 걸렸다. 편의점 매출 기사인데 스포츠 기사로 분류된 것이다.
+#
+# 원인은 국내 필터가 제목+요약을 **통째로** 보는 데 있다. 요약(본문 일부)에 단어가
+# 스쳐 지나가기만 해도 걸린다. 그래서 "이 기사가 정말 그 카테고리 기사인가"는
+# **제목만** 보고 따로 판정한다. 제목은 기사의 주제를 압축한 것이라 훨씬 정확하다.
+CATEGORY_CORE_TERMS = {
+    "정치": (
+        "정치", "국회", "대통령", "여당", "야당", "국민의힘", "더불어민주당", "민주당",
+        "조국혁신당", "개혁신당", "정의당", "무소속",
+        "의원", "장관", "총리", "청문회", "개헌", "총선", "대선", "공천", "당대표",
+        "원내대표", "국정감사", "탄핵", "특검", "내각", "대통령실", "청와대",
+        # 당내 갈등·징계 기사가 통째로 빠지던 문제 때문에 추가 (2026-08-17)
+        "윤리위", "제명", "징계", "최고위", "비대위", "경선", "당권", "제소",
+        "정부", "여야", "법안", "표결", "본회의", "상임위", "외교", "안보", "국방",
+    ),
+    "사회": (
+        "경찰", "검찰", "법원", "재판", "구속", "기소", "선고", "사고", "화재", "참사",
+        "사망", "부상", "실종", "폭행", "성범죄", "학교", "교육", "노조", "파업", "집회",
+        "판결", "수사", "고발", "피해자", "유족", "산불", "지진", "태풍", "폭우",
+    ),
+    "경제": (
+        "경제", "증시", "코스피", "코스닥", "주가", "환율", "금리", "물가", "부동산",
+        "아파트", "분양", "집값", "전세", "수출", "무역", "반도체", "실적", "영업이익",
+        "매출", "투자", "펀드", "채권", "은행", "대출", "세금", "예산", "기업", "인수",
+    ),
+    "연예": (
+        "가수", "배우", "아이돌", "그룹", "컴백", "신곡", "앨범", "데뷔", "드라마", "영화",
+        "예능", "방송", "출연", "결혼", "열애", "이혼", "소속사", "콘서트", "팬미팅",
+        "무대", "차트", "빌보드", "시청률", "개봉", "캐스팅", "논란", "해명",
+    ),
+    "스포츠": (
+        "야구", "축구", "농구", "배구", "골프", "KBO", "K리그", "프로야구", "프로축구",
+        "국가대표", "감독", "선수", "리그", "구단", "이적", "우승", "승리", "패배",
+        "홈런", "타율", "타자", "투수", "선발", "골키퍼", "득점", "경기", "시즌",
+        "포스트시즌", "올림픽", "월드컵", "MVP", "은퇴", "부상",
+    ),
+}
+
+
+# 순위 기사는 팀 이름만 나열하고 '야구/축구' 같은 단어가 아예 없는 경우가 많다.
+#   "kt·삼성 2강에 LG·KIA·두산 3중…한화는 6위마저 위태롭다"  ← 핵심어가 하나도 없다
+# 그런데 팀 약칭(삼성, LG, KIA, 롯데…)은 기업명이기도 해서 하나만으로는 못 믿는다.
+# 그래서 **팀 이름이 2개 이상** 나오면 스포츠 기사로 본다. 기업 기사가 팀 약칭을
+# 두 개 이상 제목에 담는 경우는 드물다.
+SPORTS_TEAMS = (
+    # KBO
+    "kt", "KT", "삼성", "LG", "KIA", "두산", "한화", "SSG", "NC", "롯데", "키움",
+    "위즈", "라이온즈", "트윈스", "타이거즈", "베어스", "이글스", "랜더스",
+    "다이노스", "자이언츠", "히어로즈",
+    # K리그
+    "울산", "전북", "포항", "서울", "수원", "인천", "대구", "광주", "강원", "제주",
+    "현대", "스틸러스", "하이파이브",
+)
+MIN_TEAM_HITS = 2
+
+
+def category_relevance(category: str, title: str) -> tuple[bool, tuple[str, ...]]:
+    """제목만 보고 이 기사가 해당 카테고리 기사인지 판정한다.
+
+    반환: (적합한가, 제목에서 걸린 핵심어들)
+
+    카테고리에 핵심어 목록이 없으면(새 카테고리 등) 무조건 통과시킨다 —
+    목록을 안 만들었다는 이유로 기사를 다 버리는 건 더 나쁘다.
+
+    ⚠️ 키워드 방식이라 완벽하지 않다. 새 오탐/누락을 발견하면
+    `test_domestic_filter.py`에 케이스를 추가하고 목록을 손볼 것.
+    """
+    terms = CATEGORY_CORE_TERMS.get(category)
+    if not terms:
+        return True, ()
+    hits = tuple(t for t in terms if t in title)
+    if hits:
+        return True, hits
+    if category == "스포츠":
+        teams = tuple(t for t in SPORTS_TEAMS if t in title)
+        # 같은 팀의 약칭과 별칭이 함께 잡히는 경우가 있어 중복은 하나로 센다
+        if len(set(teams)) >= MIN_TEAM_HITS:
+            return True, teams
+    return False, ()
+
+
 def score_articles(articles: list[Article], trend_scores: dict[str, float]) -> list[Article]:
     """카테고리 트렌드 지수 + 제목 길이/키워드 자극도 같은 단순 휴리스틱으로 점수화.
     실제 조회수를 알 방법은 없으므로 '참고용 우선순위'로만 사용한다.
@@ -260,41 +351,81 @@ def score_articles(articles: list[Article], trend_scores: dict[str, float]) -> l
         a.foreign_only = foreign_only
         a.matched_markers = matched
 
+        on_topic, topic_hits = category_relevance(a.category, a.title)
+        a.off_topic = not on_topic
+        if on_topic:
+            score += TOPIC_BONUS
+            a.matched_markers = matched + topic_hits
+
         a.score = score
     return sorted(articles, key=lambda a: a.score, reverse=True)
 
 
 def pick_top_per_category(
-    max_per_category: int = 2, exclude_foreign_only: bool = True
+    max_per_category: int = 2,
+    exclude_foreign_only: bool = True,
+    exclude_off_topic: bool = True,
+    categories: Optional[list[str]] = None,
 ) -> dict[str, list[Article]]:
     """카테고리별 상위 기사를 고른다.
 
     exclude_foreign_only=True(기본)면 국내 신호가 전혀 없는 해외 기사는 아예 후보에서
     뺀다. 그날 해당 카테고리에 국내 기사가 없으면 그 카테고리는 빈 리스트가 될 수
     있는데, 이건 의도된 동작이다 — 반응 안 나올 걸 알면서 올리느니 그날은 건너뛴다.
+
+    exclude_off_topic=True(기본)면 제목이 그 카테고리 주제와 안 맞는 기사를 뺀다.
+    검색어에는 걸렸지만 실제로는 다른 분야 기사인 경우를 막는다 (category_relevance 참고).
+
+    categories 를 주면 그 카테고리만 수집한다. 예: ["연예", "스포츠", "정치"]
     """
     from datetime import date, timedelta as _td
 
+    wanted = categories or list(CATEGORY_QUERIES)
+    unknown = [c for c in wanted if c not in CATEGORY_QUERIES]
+    if unknown:
+        raise ValueError(f"모르는 카테고리: {unknown} (가능: {list(CATEGORY_QUERIES)})")
+
     end = date.today()
     start = end - _td(days=7)
-    groups = [{"groupName": cat, "keywords": qs} for cat, qs in CATEGORY_QUERIES.items()]
+    groups = [{"groupName": cat, "keywords": CATEGORY_QUERIES[cat]} for cat in wanted]
     try:
         trend = trending_keywords(groups, start.isoformat(), end.isoformat())
     except Exception:
         trend = {}
 
     result = {}
-    for category in CATEGORY_QUERIES:
+    for category in wanted:
         candidates = fetch_category_candidates(category)
         ranked = score_articles(candidates, trend)
         if exclude_foreign_only:
             ranked = [a for a in ranked if not a.foreign_only]
+        if exclude_off_topic:
+            ranked = [a for a in ranked if not a.off_topic]
         result[category] = ranked[:max_per_category]
     return result
 
 
+# 실제로 올리는 카테고리. 2026-08-17에 사용자가 이 셋으로 정했다.
+# 나머지(사회·경제)는 CATEGORY_QUERIES에 남겨두되 기본 수집에서는 뺀다.
+ACTIVE_CATEGORIES = ["연예", "스포츠", "정치"]
+
+
 if __name__ == "__main__":
-    picks = pick_top_per_category()
+    import sys
+
+    # 인자로 카테고리를 주면 그것만 본다. 없으면 ACTIVE_CATEGORIES.
+    #   python scripts/naver_news.py            → 연예·스포츠·정치
+    #   python scripts/naver_news.py 경제 사회   → 지정한 것만
+    #   python scripts/naver_news.py all        → 전체
+    args = sys.argv[1:]
+    if not args:
+        wanted = ACTIVE_CATEGORIES
+    elif args == ["all"]:
+        wanted = list(CATEGORY_QUERIES)
+    else:
+        wanted = args
+
+    picks = pick_top_per_category(max_per_category=5, categories=wanted)
     for cat, arts in picks.items():
         print(f"## {cat}")
         if not arts:

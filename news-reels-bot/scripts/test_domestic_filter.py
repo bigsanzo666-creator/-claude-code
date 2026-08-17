@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault("NAVER_CLIENT_ID", "dummy")
 os.environ.setdefault("NAVER_CLIENT_SECRET", "dummy")
 
-from naver_news import domestic_affinity  # noqa: E402
+from naver_news import category_relevance, domestic_affinity  # noqa: E402
 
 # (제목, 요약, 해외전용으로 걸러져야 하는가)
 CASES = [
@@ -75,9 +75,32 @@ CASES = [
      False),
 ]
 
+# --- 카테고리 적합성 (제목 기준) 케이스 --------------------------------
+# 2026-08-17에 실제 네이버 응답에서 나온 오탐/누락을 그대로 넣었다.
+# (카테고리, 제목, 이 카테고리 기사가 맞는가)
+TOPIC_CASES = [
+    # 오탐: 검색어에는 걸렸지만 다른 분야 기사
+    ("스포츠", "차별화 상품 앞세운 편의점…역성장 끊고 성장 궤도 [똑똑! 스마슈머]", False),
+    ("스포츠", "삼성전자, 3분기 영업이익 발표", False),
+    ("정치", "편의점 매출 반등", False),
+
+    # 누락 방지: 팀 이름만 나열된 순위 기사도 스포츠다
+    ("스포츠", "kt·삼성 2강에 LG·KIA·두산 3중…한화는 6위마저 위태롭다", True),
+    ("스포츠", "두산 제친 KIA, 나흘 만에 4위 탈환…올러, 시즌 11승 다승 선두", True),
+    ("스포츠", "[단독]포옛, 임시 감독 탈락! 서류 전형서 고배...KFA, 이메일로 통보", True),
+
+    # 누락 방지: 당내 징계·지방의원 기사도 정치다
+    ("정치", "[단독] 5·18 논란 이진숙, 당 윤리위 제소됐다", True),
+    ("정치", "유호준 경기도의원, 홈플러스 정상화 촉구", True),
+
+    ("연예", "BTS 지민, 美 한복판서 태극기 무대의상", True),
+    ("연예", "무지·무식·교만 현직 변호사가 본 하영 논란", True),
+]
+
 
 def main() -> int:
     fails = 0
+    print("[1] 국내/해외 판정")
     for title, summary, expect_foreign in CASES:
         delta, foreign, matched = domestic_affinity(title, summary)
         ok = foreign == expect_foreign
@@ -87,6 +110,18 @@ def main() -> int:
         mark = "OK  " if ok else "FAIL"
         hit = ",".join(matched[:3]) or "-"
         print(f"{mark} | {verdict:12} {delta:+6.1f} | {title[:30]:32} <- {hit}")
+
+    print()
+    print("[2] 카테고리 적합성 (제목만 본다)")
+    for category, title, expect_on_topic in TOPIC_CASES:
+        on_topic, hits = category_relevance(category, title)
+        ok = on_topic == expect_on_topic
+        if not ok:
+            fails += 1
+        verdict = "채택" if on_topic else "제외(주제불일치)"
+        mark = "OK  " if ok else "FAIL"
+        hit = ",".join(hits[:3]) or "-"
+        print(f"{mark} | [{category}] {verdict:14} | {title[:30]:32} <- {hit}")
 
     print()
     print("모든 케이스 통과" if fails == 0 else f"{fails}건 실패")
