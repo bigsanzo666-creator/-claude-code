@@ -1,57 +1,66 @@
-# 인수인계 — news-reels-bot 진행 상황 (2026-08-15 기준)
+# 인수인계 — news-reels-bot 진행 상황 (2026-08-17 기준)
 
 다음 세션이 이어받을 때 이 문서부터 읽을 것.
-브랜치: `claude/baek-memorial-carousel-approval-nz8t6z` (PR #3) ← 최신 작업은 여기
-그 이전 브랜치: `claude/news-reels-bot-progress-test-8kyo5c` (PR #2, open)
+브랜치: `claude/baek-incheon-carousel-post-e4bmi2` ← 최신 작업은 여기
+그 이전 브랜치: `claude/baek-memorial-carousel-approval-nz8t6z` (PR #3),
+`claude/news-reels-bot-progress-test-8kyo5c` (PR #2, open)
 
 ⚠️ **답변 방식은 저장소 루트 `CLAUDE.md`를 먼저 읽고 그대로 따를 것.**
 사용자는 개발 전문가가 아니다. 길게 설명하지 말고 된다/안 된다 + 방법만 말한다.
 
 ---
 
-## ⛔ 지금 막힌 것 하나 — 백인천 캐러셀 게시
+## ⛔ 지금 막힌 것 하나 — 백인천 캐러셀 게시 (캡션 하나만 남음)
 
-**남은 건 딱 두 개다. 둘 다 사용자가 주면 바로 끝난다.**
+**2026-08-17 확인: 토큰은 살아났다. 이제 막고 있는 건 캡션 하나뿐이다.**
 
 | 필요한 것 | 누가 | 상태 |
 |---|---|---|
-| 새 `IG_ACCESS_TOKEN` | 사용자가 환경변수에 등록 | 2026-08-15 발급 진행 중이었음 |
-| 캡션 | 사용자가 채팅으로 준다 | 아직 못 받음 |
+| 새 `IG_ACCESS_TOKEN` | 사용자가 환경변수에 등록 | ✅ **2026-08-17 확인 완료 — 살아있음** |
+| 캡션 | 사용자가 채팅으로 준다 | ⛔ **아직 못 받음** |
+
+### 캡션 관련 주의 (2026-08-17에 실제로 겪은 일)
+
+사용자가 "캡션은 이거야: **(캡션 내용)**" 이라고 보냈는데,
+`(캡션 내용)`이 **글자 그대로 자리표시자**였다. 실제 문구가 아니다.
+→ 캡션을 받았다고 넘겨짚지 말 것. **괄호로 감싼 자리표시자처럼 보이면 실제 캡션이 아니다.**
+부고라서 임의 작성 금지. 반드시 사용자에게 실제 문구를 다시 받아서 넣는다.
 
 ### 이 세션에서 할 일 (순서대로)
 
-**1단계 — 토큰이 살았는지 먼저 확인한다. 이거 통과 못 하면 나머지 하지 말 것.**
+**1단계 — 토큰 확인. ✅ 2026-08-17 통과함.**
 ```bash
 cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
   from instagram_publish import _get, _ig_user_id; \
   print(_get(_ig_user_id(), {'fields':'id,username'}))"
 ```
-- `{'id': ..., 'username': 'neulbomlife'}` 나오면 → 통과. 2단계로.
-- `Cannot call API for app ...` 나오면 → 토큰이 아직 죽어 있다.
+- 2026-08-17 실제 출력: `{'id': '17841439122652165', 'username': 'neulbomlife'}` → **통과.**
+- `Cannot call API for app ...` 나오면 → 토큰이 다시 죽은 것이다.
   사용자에게 "토큰이 아직 반영이 안 됐습니다. 환경변수에 새로 넣으셨나요?"라고 묻는다.
   **이미 넣었다고 하면, 이 세션이 옛날 값을 쓰는 것이니 새 세션을 열어달라고 한다** (0번 캐싱 함정).
 
-**2단계 — 캡션을 pending.json에 넣는다.**
+**2단계 — 캡션을 pending.json에 넣는다.** ← ⛔ **여기서 막혀 있다**
 ```bash
 cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
   from state_manager import update; update('8fe9ef30b7', caption='''(사용자가 준 캡션)''')"
 ```
 
-**3단계 — 텔레그램 승인 여부 확인.** (버튼을 이미 눌렀을 수 있다. offset에 쌓여 있어 나중에도 잡힌다)
+**3단계 — 텔레그램 승인 여부 확인.** ✅ 2026-08-17 실행함 (응답 0건 — 버튼 안 눌렀음).
 ```bash
 cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
   from telegram_bot import poll_callback_responses; from state_manager import mark_responded; \
   [mark_responded(r['item_id'], r['approved']) for r in poll_callback_responses()] "
 ```
 사용자가 "게시해줘"라고 직접 말하면 그것도 승인으로 친다. 버튼을 굳이 기다리지 말 것.
+→ **2026-08-17에 사용자가 "게시할 차례야"라고 직접 말했다. 승인은 이미 받은 것으로 친다.**
 
-**4단계 — 게시.**
+**4단계 — 게시.** (BASE를 현재 브랜치로 바꿔둠. ✅ 5장 전부 raw URL 200 + 바이트 일치 확인 2026-08-17)
 ```bash
 cd news-reels-bot && python3 -c "
 import sys; sys.path.insert(0,'scripts')
 from state_manager import find, mark_posted
 from instagram_publish import publish_carousel
-BASE='https://raw.githubusercontent.com/bigsanzo666-creator/-claude-code/claude/news-reels-bot-progress-test-8kyo5c/news-reels-bot/'
+BASE='https://raw.githubusercontent.com/bigsanzo666-creator/-claude-code/claude/baek-incheon-carousel-post-e4bmi2/news-reels-bot/'
 it=find('8fe9ef30b7')
 assert it['caption'], '캡션 없음 - 게시 금지'
 urls=[BASE+p for p in it['media_paths']]
@@ -62,7 +71,9 @@ mark_posted(it['id'], mid); print('게시 완료:', mid)
 **5단계 — 커밋/푸시하고, 사용자에게 한 줄로 "게시 완료됐습니다" + 인스타 링크를 준다.**
 
 ### 이미 검증 끝난 것 (다시 확인하지 말 것 — 시간 낭비다)
+- **IG 토큰 살아있음** (2026-08-17, `neulbomlife` 응답 확인)
 - raw URL 5장 전부 200, 바이트 수 로컬과 일치
+  (2026-08-17에 `claude/baek-incheon-carousel-post-e4bmi2` 브랜치 기준으로 다시 확인함)
 - 1080x1350, 비율 0.800 (IG 허용 0.8~1.91), PNG, 최대 14K (8MB 제한 여유), 5장 (허용 2~10)
 - 텔레그램 전송 정상 (앨범 + 버튼 메시지 ID 22 발송 완료)
 - 카드에 적힌 기록(타율 .412, 250타수 103안타 19홈런 64타점, 일본 19년 1,831안타 209홈런,
@@ -241,8 +252,12 @@ Claude Code 환경 설정에 등록되어 있다.
 
 ## 6. 다음에 할 일
 
-1. **🔴 인스타그램 토큰부터 살려야 한다** ← 새로운 1순위 (2026-08-15 확인)
-   **`IG_ACCESS_TOKEN`이 현재 죽어 있다. 이걸 고치기 전에는 실게시가 불가능하다.**
+1. ~~**🔴 인스타그램 토큰부터 살려야 한다** ← 새로운 1순위 (2026-08-15 확인)~~
+   ✅ **2026-08-17 해결됨. 사용자가 재발급한 토큰이 새 세션에서 정상 동작했다.**
+   (`{'id': '17841439122652165', 'username': 'neulbomlife'}`)
+   아래는 다시 죽었을 때를 위한 기록으로 남긴다.
+
+   ~~**`IG_ACCESS_TOKEN`이 현재 죽어 있다. 이걸 고치기 전에는 실게시가 불가능하다.**~~
 
    증상 — 모든 호출이 동일하게 실패한다:
    ```
@@ -270,6 +285,7 @@ Claude Code 환경 설정에 등록되어 있다.
    `{'id': ..., 'username': 'neulbomlife'}` 가 나오면 게시 가능한 상태다.
 
 2. **인스타그램 실게시 1회 성공시키기** (아직 한 번도 성공한 적 없다)
+   - 2026-08-17 기준 **캡션 하나만 받으면 바로 게시된다.** 토큰·이미지·승인 전부 통과.
    - 토큰만 살아나면 나머지는 준비 끝이다. 2026-08-15에 전부 검증해뒀다:
      raw URL 5개 200 + 바이트 일치 / 1080x1350 (비율 0.800, IG 허용 0.8~1.91) /
      PNG 최대 14K (8MB 제한 여유) / 5장 (허용 2~10) / 텔레그램 정상
