@@ -107,5 +107,34 @@
     "responded_at": "2026-08-17T03:21:28.347439+00:00",
     "posted_at": "2026-08-17T03:22:21.111540+00:00",
     "instagram_media_id": "18133308352715365"
+  },
+  {
+    "id": "dae097c50a",
+    "category": "연예",
+    "headline": "빅뱅 데뷔 20주년 컴백, 19개 도시 33회 월드투어",
+    "summary": "빅뱅이 데뷔 20주년을 맞아 신곡 'BiiiG'를 8월 19일 공개하고 월드투어 'BIGBANG 2026-2027 WORLD TOUR <XX : COSMOS>'에 돌입합니다. 8월 21일부터 23일까지 고양종합운동장 주경기장 공연을 시작으로 아시아, 북미, 유럽, 오세아니아 등 전 세계 19개 도시에서 총 33회 공연을 펼칩니다.",
+    "source": "네이버뉴스 - 스포츠조선, 마이데일리 등",
+    "media_path": "state/media/bigbang_20th_20260817/01_cover.png",
+    "post_type": "carousel",
+    "media_paths": [
+      "state/media/bigbang_20th_20260817/01_cover.png",
+      "state/media/bigbang_20th_20260817/02_years.png",
+      "state/media/bigbang_20th_20260817/03_cities.png",
+      "state/media/bigbang_20th_20260817/04_shows.png",
+      "state/media/bigbang_20th_20260817/05_tour.png",
+      "state/media/bigbang_20th_20260817/06_single.png",
+      "state/media/bigbang_20th_20260817/07_members.png",
+      "state/media/bigbang_20th_20260817/08_start.png",
+      "state/media/bigbang_20th_20260817/09_regions.png",
+      "state/media/bigbang_20th_20260817/10_closing.png"
+    ],
+    "caption": "빅뱅이 데뷔 20주년 컴백에 나섭니다.\n\n신곡 'BiiiG'가 8월 19일 공개됩니다.\n이어서 20주년 월드투어 'BIGBANG 2026-2027 WORLD TOUR <XX : COSMOS>'가 시작됩니다.\n\n첫 무대는 한국입니다.\n8월 21일부터 23일까지 고양종합운동장 주경기장에서 투어의 막을 엽니다.\n\n이후 아시아와 북미, 유럽, 오세아니아까지\n전 세계 19개 도시에서 모두 33회 공연이 이어집니다.\n\n출처: 네이버뉴스 (스포츠조선, 마이데일리 등)\n\n#빅뱅 #BIGBANG #지드래곤 #태양 #대성 #월드투어 #컴백",
+    "created_at": "2026-08-17T04:00:03.281125+00:00",
+    "status": "pending",
+    "telegram_message_id": null,
+    "reminded_at": null,
+    "responded_at": null,
+    "posted_at": null,
+    "instagram_media_id": null
   }
 ]
