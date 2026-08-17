@@ -83,5 +83,29 @@
     "responded_at": "2026-08-17T03:04:39.220522+00:00",
     "posted_at": "2026-08-17T03:05:07.060201+00:00",
     "instagram_media_id": "18111214907077260"
+  },
+  {
+    "id": "6175b2796f",
+    "category": "스포츠",
+    "headline": "KBO 선두 경쟁, KT와 삼성 1경기 차",
+    "summary": "2026 신한 SOL 뱅크 KBO리그 선두 경쟁이 1경기 차로 좁혀졌습니다. 8월 16일 경기 종료 기준 KT 위즈가 62승 2무 39패(승률 .614)로 1위, 삼성 라이온즈가 62승 2무 41패(승률 .602)로 2위입니다. 승수는 같고 패수만 2개 차이입니다. 3~5위는 LG, KIA, 두산이 경쟁 중이며 팀당 30~40경기가 남았습니다.",
+    "source": "네이버뉴스 - 스포츠조선, 연합뉴스 등",
+    "media_path": "state/media/kbo_race_20260817/1_cover.png",
+    "post_type": "carousel",
+    "media_paths": [
+      "state/media/kbo_race_20260817/1_cover.png",
+      "state/media/kbo_race_20260817/2_gap.png",
+      "state/media/kbo_race_20260817/3_standings.png",
+      "state/media/kbo_race_20260817/4_samsung.png",
+      "state/media/kbo_race_20260817/5_closing.png"
+    ],
+    "caption": "KBO 선두 경쟁이 1경기 차로 좁혀졌습니다.\n\n8월 16일 경기 종료 기준, KT 위즈가 62승 2무 39패로 1위입니다. 승률 .614.\n삼성 라이온즈는 62승 2무 41패로 2위입니다. 승률 .602.\n\n승수는 62승으로 똑같습니다. 패수만 2개 차이입니다.\n\n3위부터 5위까지는 LG와 KIA, 두산이 경쟁하고 있습니다.\n팀당 남은 경기는 30~40경기입니다.\n\n출처: 네이버뉴스 (스포츠조선, 연합뉴스 등)\n\n#KBO #프로야구 #KT위즈 #삼성라이온즈 #야구",
+    "created_at": "2026-08-17T03:17:48.292663+00:00",
+    "status": "pending",
+    "telegram_message_id": null,
+    "reminded_at": null,
+    "responded_at": null,
+    "posted_at": null,
+    "instagram_media_id": null
   }
 ]

@@ -139,11 +139,26 @@ def send_carousel_preview(item: dict, media_paths: list[str]) -> int:
             ]
         ]
     }
+    # 승인 버튼 옆에 **실제로 게시될 인스타 캡션**을 그대로 붙인다.
+    # 앨범 캡션(위)은 headline/summary 요약이라 인스타에 올라갈 문구와 다르다.
+    # 이걸 안 보여주면 사용자가 무엇을 승인하는지 모르는 채로 버튼을 누르게 된다.
+    ig_caption = (item.get("caption") or "").strip()
+    if ig_caption:
+        confirm = (
+            f"위 {len(media_paths)}장을 아래 캡션으로 게시할까요? (ID: {item['id']})\n"
+            f"――――――――――\n{ig_caption}"
+        )
+    else:
+        confirm = (
+            f"위 {len(media_paths)}장 캐러셀을 게시할까요? (ID: {item['id']})\n"
+            f"⚠️ 캡션이 아직 없습니다. 승인해도 캡션을 넣기 전에는 게시되지 않습니다."
+        )
+
     btn_resp = _call(
         "sendMessage",
         payload={
             "chat_id": _chat_id(),
-            "text": f"위 {len(media_paths)}장 캐러셀을 게시할까요? (ID: {item['id']})",
+            "text": confirm,
             "reply_markup": json.dumps(keyboard),
         },
     )
