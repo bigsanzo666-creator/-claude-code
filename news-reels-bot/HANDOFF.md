@@ -1,7 +1,77 @@
 # 인수인계 — news-reels-bot 진행 상황 (2026-08-15 기준)
 
-다음 세션이 이어받을 때 이 문서부터 읽을 것. 브랜치: `claude/news-reels-bot-progress-test-8kyo5c`
-(PR #2, open: https://github.com/bigsanzo666-creator/-claude-code/pull/2)
+다음 세션이 이어받을 때 이 문서부터 읽을 것.
+브랜치: `claude/baek-memorial-carousel-approval-nz8t6z` (PR #3) ← 최신 작업은 여기
+그 이전 브랜치: `claude/news-reels-bot-progress-test-8kyo5c` (PR #2, open)
+
+⚠️ **답변 방식은 저장소 루트 `CLAUDE.md`를 먼저 읽고 그대로 따를 것.**
+사용자는 개발 전문가가 아니다. 길게 설명하지 말고 된다/안 된다 + 방법만 말한다.
+
+---
+
+## ⛔ 지금 막힌 것 하나 — 백인천 캐러셀 게시
+
+**남은 건 딱 두 개다. 둘 다 사용자가 주면 바로 끝난다.**
+
+| 필요한 것 | 누가 | 상태 |
+|---|---|---|
+| 새 `IG_ACCESS_TOKEN` | 사용자가 환경변수에 등록 | 2026-08-15 발급 진행 중이었음 |
+| 캡션 | 사용자가 채팅으로 준다 | 아직 못 받음 |
+
+### 이 세션에서 할 일 (순서대로)
+
+**1단계 — 토큰이 살았는지 먼저 확인한다. 이거 통과 못 하면 나머지 하지 말 것.**
+```bash
+cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
+  from instagram_publish import _get, _ig_user_id; \
+  print(_get(_ig_user_id(), {'fields':'id,username'}))"
+```
+- `{'id': ..., 'username': 'neulbomlife'}` 나오면 → 통과. 2단계로.
+- `Cannot call API for app ...` 나오면 → 토큰이 아직 죽어 있다.
+  사용자에게 "토큰이 아직 반영이 안 됐습니다. 환경변수에 새로 넣으셨나요?"라고 묻는다.
+  **이미 넣었다고 하면, 이 세션이 옛날 값을 쓰는 것이니 새 세션을 열어달라고 한다** (0번 캐싱 함정).
+
+**2단계 — 캡션을 pending.json에 넣는다.**
+```bash
+cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
+  from state_manager import update; update('8fe9ef30b7', caption='''(사용자가 준 캡션)''')"
+```
+
+**3단계 — 텔레그램 승인 여부 확인.** (버튼을 이미 눌렀을 수 있다. offset에 쌓여 있어 나중에도 잡힌다)
+```bash
+cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
+  from telegram_bot import poll_callback_responses; from state_manager import mark_responded; \
+  [mark_responded(r['item_id'], r['approved']) for r in poll_callback_responses()] "
+```
+사용자가 "게시해줘"라고 직접 말하면 그것도 승인으로 친다. 버튼을 굳이 기다리지 말 것.
+
+**4단계 — 게시.**
+```bash
+cd news-reels-bot && python3 -c "
+import sys; sys.path.insert(0,'scripts')
+from state_manager import find, mark_posted
+from instagram_publish import publish_carousel
+BASE='https://raw.githubusercontent.com/bigsanzo666-creator/-claude-code/claude/news-reels-bot-progress-test-8kyo5c/news-reels-bot/'
+it=find('8fe9ef30b7')
+assert it['caption'], '캡션 없음 - 게시 금지'
+urls=[BASE+p for p in it['media_paths']]
+mid=publish_carousel(urls, it['caption'])
+mark_posted(it['id'], mid); print('게시 완료:', mid)
+"
+```
+**5단계 — 커밋/푸시하고, 사용자에게 한 줄로 "게시 완료됐습니다" + 인스타 링크를 준다.**
+
+### 이미 검증 끝난 것 (다시 확인하지 말 것 — 시간 낭비다)
+- raw URL 5장 전부 200, 바이트 수 로컬과 일치
+- 1080x1350, 비율 0.800 (IG 허용 0.8~1.91), PNG, 최대 14K (8MB 제한 여유), 5장 (허용 2~10)
+- 텔레그램 전송 정상 (앨범 + 버튼 메시지 ID 22 발송 완료)
+- 카드에 적힌 기록(타율 .412, 250타수 103안타 19홈런 64타점, 일본 19년 1,831안타 209홈런,
+  1975년 퍼시픽리그 타격왕, 역대 두 번째 KBO장, 향년 83세)은 네이버 뉴스로 전부 대조 완료
+- **즉, 토큰과 캡션 말고는 막힌 게 없다.**
+
+### 주의
+- 부고다. 자극적 표현·낚시성 문구 금지. 캡션을 임의로 지어내지 말 것 — 사용자가 준다.
+- `caption`이 `null`이면 절대 게시하지 말 것.
 
 ---
 
@@ -135,8 +205,15 @@ https://claude.ai/code/artifact/4e74d4d9-67e9-4275-bd32-3ef0ecc443f9
 Claude Code 환경 설정에 등록되어 있다.
 - 인스타: `IG_BUSINESS_ACCOUNT_ID=17841439122652165` (@neulbomlife).
   ~~토큰은 장기 사용자 토큰에서 파생된 Page 토큰이라 사실상 만료 안 됨.~~
-  🔴 **2026-08-15 정정: 이 가정은 틀렸다. `IG_ACCESS_TOKEN`은 현재 죽어 있다.**
-  만료가 아니라 앱 단위 거부(OAuthException code 200)다. 6번 1항 참고.
+  🔴 **2026-08-15 정정: 이 가정은 틀렸다. 그날 `IG_ACCESS_TOKEN`은 죽어 있었다.**
+  만료가 아니라 앱 단위 거부(OAuthException code 200)였다. 6번 1항 참고.
+  **앱 자체는 정상이다** — 대시보드에서 확인함: 앱 `늘봄라이프`(1555194369405575) 존재,
+  모드 `개발 중`, 사용자 역할 `관리자`. 즉 앱을 다시 만들 필요는 없고 **토큰만 새로 발급**하면 된다.
+  발급 경로: Graph API Explorer → 앱 `늘봄라이프` 선택 → 페이지 액세스 토큰 →
+  권한 `instagram_basic`, `instagram_content_publish`, `pages_show_list`,
+  `pages_read_engagement` → 액세스 토큰 생성.
+  (사용자가 2026-08-15에 이 발급을 진행했다. 실제로 환경변수에 반영됐는지는 **확인 안 함** —
+   새 세션에서 맨 위 "지금 막힌 것" 1단계로 검증할 것)
   ⚠️ 이 항목의 다른 키들도 "등록돼 있다"는 것만 확인됐지, 실제로 살아있는지는
   호출해봐야 안다. 인스타 토큰이 정확히 그렇게 죽어 있었다.
 - 네이버: NAVER API HUB 경유, 문서와 인증 방식 일치 검증 완료.
