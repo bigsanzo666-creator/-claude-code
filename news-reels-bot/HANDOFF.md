@@ -10,78 +10,108 @@
 
 ---
 
-## ⛔ 지금 막힌 것 하나 — 백인천 캐러셀 게시 (캡션 하나만 남음)
+## ✅ 백인천 캐러셀 게시 완료 — 인스타 첫 실게시 성공 (2026-08-17)
 
-**2026-08-17 확인: 토큰은 살아났다. 이제 막고 있는 건 캡션 하나뿐이다.**
+**지금까지 한 번도 성공한 적 없던 인스타그램 실게시가 처음으로 성공했다.**
 
-| 필요한 것 | 누가 | 상태 |
-|---|---|---|
-| 새 `IG_ACCESS_TOKEN` | 사용자가 환경변수에 등록 | ✅ **2026-08-17 확인 완료 — 살아있음** |
-| 캡션 | 사용자가 채팅으로 준다 | ⛔ **아직 못 받음** |
+| 항목 | 값 |
+|---|---|
+| 아이템 id | `8fe9ef30b7` (백인천 전 감독 추모 캐러셀, 5장) |
+| 게시 시각 | 2026-08-17T03:05:02+0000 |
+| `instagram_media_id` | `18111214907077260` |
+| 링크 | https://www.instagram.com/p/DcIB_AdFp_q/ |
+| 형식 | `CAROUSEL_ALBUM` / `FEED` |
+| `pending.json` 상태 | `status: posted`, `posted_at`·`instagram_media_id` 기록됨 |
 
-### 캡션 관련 주의 (2026-08-17에 실제로 겪은 일)
+이제 파이프라인 전체(기사 → 카드 생성 → 텔레그램 → 승인 → 인스타 게시)가
+**끝까지 한 번 돌아간 것이 실증됐다.** 이전 인수인계의 "실게시 미검증" 상태는 해소됐다.
 
-사용자가 "캡션은 이거야: **(캡션 내용)**" 이라고 보냈는데,
-`(캡션 내용)`이 **글자 그대로 자리표시자**였다. 실제 문구가 아니다.
-→ 캡션을 받았다고 넘겨짚지 말 것. **괄호로 감싼 자리표시자처럼 보이면 실제 캡션이 아니다.**
-부고라서 임의 작성 금지. 반드시 사용자에게 실제 문구를 다시 받아서 넣는다.
+### 이번에 실제로 통한 게시 절차 (다음 건도 이대로 하면 된다)
 
-### 이 세션에서 할 일 (순서대로)
-
-**1단계 — 토큰 확인. ✅ 2026-08-17 통과함.**
+**1단계 — 토큰 확인.**
 ```bash
 cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
   from instagram_publish import _get, _ig_user_id; \
   print(_get(_ig_user_id(), {'fields':'id,username'}))"
 ```
-- 2026-08-17 실제 출력: `{'id': '17841439122652165', 'username': 'neulbomlife'}` → **통과.**
-- `Cannot call API for app ...` 나오면 → 토큰이 다시 죽은 것이다.
-  사용자에게 "토큰이 아직 반영이 안 됐습니다. 환경변수에 새로 넣으셨나요?"라고 묻는다.
-  **이미 넣었다고 하면, 이 세션이 옛날 값을 쓰는 것이니 새 세션을 열어달라고 한다** (0번 캐싱 함정).
+`{'id': '17841439122652165', 'username': 'neulbomlife'}` 나오면 통과.
+`Cannot call API for app ...` 나오면 토큰이 죽은 것 — 재발급 후 **새 세션**에서 확인 (0번 캐싱 함정).
 
-**2단계 — 캡션을 pending.json에 넣는다.** ← ⛔ **여기서 막혀 있다**
+**2단계 — 캡션을 pending.json에 넣는다.**
+캡션에 줄바꿈·따옴표가 많으므로 **셸에 직접 붙여넣지 말고 파일로 넘기는 편이 안전하다.**
 ```bash
 cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
-  from state_manager import update; update('8fe9ef30b7', caption='''(사용자가 준 캡션)''')"
+  from state_manager import update; \
+  update('<아이템id>', caption=open('/tmp/caption.txt', encoding='utf-8').read().strip())"
 ```
 
-**3단계 — 텔레그램 승인 여부 확인.** ✅ 2026-08-17 실행함 (응답 0건 — 버튼 안 눌렀음).
+**3단계 — 승인.** 텔레그램 버튼을 안 눌렀어도, 사용자가 "게시해줘"라고 직접 말하면 승인으로 친다.
 ```bash
 cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
-  from telegram_bot import poll_callback_responses; from state_manager import mark_responded; \
-  [mark_responded(r['item_id'], r['approved']) for r in poll_callback_responses()] "
+  from state_manager import mark_responded; mark_responded('<아이템id>', True)"
 ```
-사용자가 "게시해줘"라고 직접 말하면 그것도 승인으로 친다. 버튼을 굳이 기다리지 말 것.
-→ **2026-08-17에 사용자가 "게시할 차례야"라고 직접 말했다. 승인은 이미 받은 것으로 친다.**
 
-**4단계 — 게시.** (BASE를 현재 브랜치로 바꿔둠. ✅ 5장 전부 raw URL 200 + 바이트 일치 확인 2026-08-17)
+**4단계 — 게시.** `BASE`는 **이미지가 실제로 올라가 있는 브랜치**여야 한다.
 ```bash
 cd news-reels-bot && python3 -c "
 import sys; sys.path.insert(0,'scripts')
 from state_manager import find, mark_posted
 from instagram_publish import publish_carousel
 BASE='https://raw.githubusercontent.com/bigsanzo666-creator/-claude-code/claude/baek-incheon-carousel-post-e4bmi2/news-reels-bot/'
-it=find('8fe9ef30b7')
+it=find('<아이템id>')
 assert it['caption'], '캡션 없음 - 게시 금지'
 urls=[BASE+p for p in it['media_paths']]
 mid=publish_carousel(urls, it['caption'])
 mark_posted(it['id'], mid); print('게시 완료:', mid)
 "
 ```
-**5단계 — 커밋/푸시하고, 사용자에게 한 줄로 "게시 완료됐습니다" + 인스타 링크를 준다.**
+
+**5단계 — 링크 확인 후 사용자에게 한 줄로 보고.**
+```bash
+cd news-reels-bot && python3 -c "import sys; sys.path.insert(0,'scripts'); \
+  from instagram_publish import _get; \
+  print(_get('<media_id>', {'fields':'permalink,media_type,timestamp'}))"
+```
+
+### 여기서 배운 것 (다음에 또 걸린다)
+
+1. **게시 전에 브랜치를 먼저 푸시해야 한다.** Graph API는 로컬 파일을 안 받고 공개 HTTPS URL만 받는다.
+   `BASE`가 가리키는 브랜치에 이미지가 push돼 있지 않으면 raw URL이 404이고 게시가 실패한다.
+   → **push → raw URL 200 확인 → 게시** 순서를 지킬 것.
+2. **캡션이 자리표시자로 오는 경우가 있다.** 2026-08-17에 사용자가
+   "캡션은 이거야: (캡션 내용)"이라고 보냈는데 `(캡션 내용)`이 글자 그대로였다.
+   → 괄호로 감싼 자리표시자처럼 보이면 실제 캡션이 아니다. 다시 받을 것. 임의 작성 금지.
+3. 캐러셀은 자식 컨테이너에 캡션이 안 붙고 **부모 컨테이너에만** 붙는다 (코드에 이미 반영돼 있음).
 
 ### 이미 검증 끝난 것 (다시 확인하지 말 것 — 시간 낭비다)
 - **IG 토큰 살아있음** (2026-08-17, `neulbomlife` 응답 확인)
+- **실게시 성공** (2026-08-17, media_id `18111214907077260`)
 - raw URL 5장 전부 200, 바이트 수 로컬과 일치
   (2026-08-17에 `claude/baek-incheon-carousel-post-e4bmi2` 브랜치 기준으로 다시 확인함)
 - 1080x1350, 비율 0.800 (IG 허용 0.8~1.91), PNG, 최대 14K (8MB 제한 여유), 5장 (허용 2~10)
 - 텔레그램 전송 정상 (앨범 + 버튼 메시지 ID 22 발송 완료)
 - 카드에 적힌 기록(타율 .412, 250타수 103안타 19홈런 64타점, 일본 19년 1,831안타 209홈런,
   1975년 퍼시픽리그 타격왕, 역대 두 번째 KBO장, 향년 83세)은 네이버 뉴스로 전부 대조 완료
-- **즉, 토큰과 캡션 말고는 막힌 게 없다.**
 
-### 주의
-- 부고다. 자극적 표현·낚시성 문구 금지. 캡션을 임의로 지어내지 말 것 — 사용자가 준다.
+---
+
+## ⛔ 지금 막힌 것 하나 — 다음에 뭘 올릴지 안 정했다
+
+게시 파이프라인은 뚫렸다. **막힌 건 기술이 아니라 콘텐츠 쪽이다.**
+
+| 필요한 것 | 누가 | 상태 |
+|---|---|---|
+| 다음에 올릴 소재 | 사용자와 상의 | 안 정함 |
+| 기존 테스트 3건(우에다 아야세) 정리 여부 | 사용자 결정 | 안 정함 |
+| 게시 주기 (매일? 이슈 있을 때만?) | 사용자 결정 | 안 정함 |
+
+권하는 순서: ① 우에다 아야세 테스트 3건을 `pending.json`에서 지운다(실게시 안 할 것들이다)
+② `python scripts/naver_news.py`를 돌려 국내 필터가 실제 기사에 어떻게 걸리는지 본다(7번 열린 질문)
+③ 거기서 나온 국내 소재로 다음 캐러셀을 만든다.
+
+### 주의 (계속 유효)
+- 부고·사고 등 민감한 소재는 자극적 표현·낚시성 문구 금지.
+- **캡션을 임의로 지어내지 말 것 — 사용자가 준다.**
 - `caption`이 `null`이면 절대 게시하지 말 것.
 
 ---
@@ -163,7 +193,7 @@ news-reels-bot/
                                  python scripts/test_domestic_filter.py
     telegram_bot.py            send_preview(단일) + send_carousel_preview(앨범)
     state_manager.py           ReelItem에 post_type, media_paths
-    instagram_publish.py       캐러셀 게시 함수 (mock 검증만, 실게시 안 해봄)
+    instagram_publish.py       캐러셀 게시 함수. [2026-08-17] 실게시 성공 검증 완료
     make_carousel.py           PIL 버전 (구버전, 참고용)
     make_carousel_html.py      최종 채택. HTML/CSS + Playwright
     make_blog_header.py        블로그 헤더 배너 (16:9, SVG 야구공)
@@ -195,16 +225,19 @@ https://claude.ai/code/artifact/4e74d4d9-67e9-4275-bd32-3ef0ecc443f9
 
 ---
 
-## 3. `state/pending.json` 현재 상태 (2026-08-14 이후 변동 없음)
+## 3. `state/pending.json` 현재 상태 (2026-08-17 갱신)
 
 | id | post_type | status | 비고 |
 |---|---|---|---|
 | `e37a85248a` | reels | **approved** | 가장 초기 테스트. 실게시 안 함 |
 | `78a37a2a7e` | carousel (PIL) | **approved** | 텔레그램 승인 완료, 실게시 안 함 |
 | `ca82c8a121` | carousel (HTML/CSS) | **pending** | 텔레그램 전송했으나 승인/거부 버튼 안 누름 |
+| `8fe9ef30b7` | carousel (HTML/CSS) | ✅ **posted** | **백인천 추모. 2026-08-17 실게시 성공** |
 
-- 셋 다 인스타 실게시 이력 없음 (`posted_at: null`, `instagram_media_id: null`)
-- **셋 다 우에다 아야세(일본 선수) 기사 기반** — 이제 새 필터라면 애초에 걸러졌을 소재다.
+- `8fe9ef30b7`: `posted_at 2026-08-17T03:05:07Z`, `instagram_media_id 18111214907077260`,
+  https://www.instagram.com/p/DcIB_AdFp_q/
+- 위 3건은 여전히 인스타 실게시 이력 없음 (`posted_at: null`, `instagram_media_id: null`)
+- **3건 다 우에다 아야세(일본 선수) 기사 기반** — 이제 새 필터라면 애초에 걸러졌을 소재다.
   실제 운영 게시물로 쓸 것이 아니므로, **정리하고 국내 소재로 새로 만드는 쪽을 권한다.**
 
 ---
@@ -284,21 +317,19 @@ Claude Code 환경 설정에 등록되어 있다.
    ```
    `{'id': ..., 'username': 'neulbomlife'}` 가 나오면 게시 가능한 상태다.
 
-2. **인스타그램 실게시 1회 성공시키기** (아직 한 번도 성공한 적 없다)
-   - 2026-08-17 기준 **캡션 하나만 받으면 바로 게시된다.** 토큰·이미지·승인 전부 통과.
-   - 토큰만 살아나면 나머지는 준비 끝이다. 2026-08-15에 전부 검증해뒀다:
-     raw URL 5개 200 + 바이트 일치 / 1080x1350 (비율 0.800, IG 허용 0.8~1.91) /
-     PNG 최대 14K (8MB 제한 여유) / 5장 (허용 2~10) / 텔레그램 정상
-   - 대기 중인 건: **백인천 전 감독 추모 캐러셀** (id `8fe9ef30b7`, `status: pending`)
-     - `state/media/memorial_baek_20260815/` 5장, PR #3
-     - **캡션은 사용자가 직접 준다.** `pending.json`의 `caption`이 `null`이면 게시하지 말 것
-     - 부고라서 자극적 표현·낚시성 문구 금지. 카드 문구의 기록은 네이버 뉴스로 대조 완료
-   - 기존 테스트 3건(우에다 아야세)은 여전히 정리 대상
-2. **블로그 미확정 4항목 결정** (`runbooks/blog_post.md` 4번 체크리스트)
+2. ~~**인스타그램 실게시 1회 성공시키기** (아직 한 번도 성공한 적 없다)~~
+   ✅ **2026-08-17 완료.** 백인천 추모 캐러셀(`8fe9ef30b7`) 게시 성공.
+   media_id `18111214907077260` / https://www.instagram.com/p/DcIB_AdFp_q/
+   상세 절차와 주의점은 문서 맨 위 "게시 완료" 절 참고.
+3. **다음 게시물 소재 정하기** ← 새로운 1순위
+   - 기존 테스트 3건(우에다 아야세)은 여전히 정리 대상. 실게시 안 할 것들이니 지우는 편이 낫다.
+   - `python scripts/naver_news.py`로 국내 필터를 실제 기사에 돌려보고, 거기서 소재를 뽑는다.
+   - 게시 주기(매일 / 이슈 있을 때만)를 사용자와 정할 것. 아직 안 정했다.
+4. **블로그 미확정 4항목 결정** (`runbooks/blog_post.md` 4번 체크리스트)
    - 분량을 1,000자 이상으로 늘릴지 / 소제목 넣을지 / 본문 이미지 수 /
      정치·경제 기사에도 같은 4문단 골격을 쓸지
-3. **수익화 방향 논의** (아직 시작 안 함)
-4. **Supabase 용도 결정** — 정하거나, 안 쓸 거면 명시적으로 접자
+5. **수익화 방향 논의** (아직 시작 안 함)
+6. **Supabase 용도 결정** — 정하거나, 안 쓸 거면 명시적으로 접자
 
 ---
 
