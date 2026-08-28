@@ -1,0 +1,276 @@
+<title>만세력 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+:root{
+  --paper:#E8EAED; --surface:#F6F7F9; --surface-2:#FDFDFE;
+  --ink:#16191D; --ink-2:#575E66; --ink-3:#828A93;
+  --rule:#C6CBD1; --rule-soft:#DCE0E5;
+  --seal:#A8321E; --seal-soft:#EADDD9;
+  --wood:#3E7C59; --fire:#B2321F; --earth:#8A6D33; --metal:#5E6A75; --water:#2F5578;
+  --field:#FFFFFF;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#131619; --surface:#1B1F24; --surface-2:#22272D;
+    --ink:#E4E7EA; --ink-2:#98A1AB; --ink-3:#727C87;
+    --rule:#2E343B; --rule-soft:#242A30;
+    --seal:#D8664C; --seal-soft:#33221E;
+    --wood:#6FB58C; --fire:#E0664F; --earth:#C9A863; --metal:#A3AEB8; --water:#6D9BC9;
+    --field:#12161A;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131619; --surface:#1B1F24; --surface-2:#22272D;
+  --ink:#E4E7EA; --ink-2:#98A1AB; --ink-3:#727C87;
+  --rule:#2E343B; --rule-soft:#242A30;
+  --seal:#D8664C; --seal-soft:#33221E;
+  --wood:#6FB58C; --fire:#E0664F; --earth:#C9A863; --metal:#A3AEB8; --water:#6D9BC9;
+  --field:#12161A;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;
+  font-weight:300; font-size:16px; line-height:1.7; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:940px;margin:0 auto;padding:0 20px}
+h1,h2,.glyph{font-family:"Nanum Myeongjo",Georgia,serif;text-wrap:balance}
+h1{font-size:clamp(1.7rem,4vw,2.4rem);font-weight:800;letter-spacing:-.02em;margin:0}
+h2{font-size:1.05rem;font-weight:700;margin:0 0 .9rem;letter-spacing:-.01em}
+.label{font-family:"IBM Plex Mono",monospace;font-size:.7rem;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+.mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+
+header{background:var(--surface);border-bottom:1px solid var(--rule);padding:2.2rem 0 1.9rem}
+.seal{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1.5px solid var(--seal);border-radius:3px;color:var(--seal);font-family:"Nanum Myeongjo",serif;font-weight:700;flex:none}
+.kick{display:flex;gap:1rem;align-items:center;margin-bottom:1rem}
+header p{margin:.7rem 0 0;color:var(--ink-2);max-width:60ch;font-size:.95rem}
+
+main{padding:1.9rem 0 3.5rem;display:grid;gap:1.6rem}
+
+/* form */
+.panel{background:var(--surface);border:1px solid var(--rule-soft)}
+.panel-in{padding:1.3rem 1.35rem}
+.grid{display:grid;gap:1rem 1.15rem;grid-template-columns:repeat(auto-fit,minmax(165px,1fr))}
+.f{display:flex;flex-direction:column;gap:.35rem;min-width:0}
+.f > .label{color:var(--ink-2)}
+input,select{
+  font:inherit;font-size:.93rem;font-weight:400;color:var(--ink);background:var(--field);
+  border:1px solid var(--rule);border-radius:2px;padding:.5rem .6rem;width:100%;
+  font-family:"IBM Plex Mono",monospace;
+}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--seal);outline-offset:1px}
+input[type=checkbox],input[type=radio]{width:auto;accent-color:var(--seal);margin:0}
+.opt{display:flex;align-items:center;gap:.45rem;font-size:.86rem;color:var(--ink-2);cursor:pointer;font-weight:400}
+.opts{display:flex;flex-wrap:wrap;gap:.45rem 1.2rem;margin-top:1.05rem;padding-top:1.05rem;border-top:1px solid var(--rule-soft)}
+
+/* 명식 */
+.chart{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule);background:var(--rule-soft);gap:1px}
+.col{background:var(--surface);display:flex;flex-direction:column;align-items:center;padding:.85rem .3rem 1rem;gap:.1rem;min-width:0}
+.col .pos{font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.1em;color:var(--ink-3);text-transform:uppercase}
+.cell{display:flex;flex-direction:column;align-items:center;margin-top:.5rem}
+.glyph{font-size:clamp(2rem,7vw,2.9rem);font-weight:700;line-height:1.05}
+.rd{font-size:.76rem;color:var(--ink-3);margin-top:.1rem}
+.col.self{background:var(--surface-2);box-shadow:inset 0 0 0 2px var(--seal)}
+.col.self .pos{color:var(--seal)}
+.e-목{color:var(--wood)} .e-화{color:var(--fire)} .e-토{color:var(--earth)}
+.e-금{color:var(--metal)} .e-수{color:var(--water)}
+.empty{color:var(--ink-3);font-size:1.6rem;margin-top:1.4rem}
+
+/* 오행 */
+.bars{display:grid;gap:.5rem}
+.bar{display:grid;grid-template-columns:2.2rem 1fr 1.6rem;align-items:center;gap:.6rem;font-size:.86rem}
+.track{height:8px;background:var(--rule-soft);border-radius:1px;overflow:hidden}
+.fill{height:100%;border-radius:1px;transition:width .35s cubic-bezier(.2,.7,.3,1)}
+.bar .n{text-align:right;font-family:"IBM Plex Mono",monospace;color:var(--ink-2);font-size:.8rem}
+
+/* 근거 */
+dl.meta{margin:0;display:grid;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft)}
+dl.meta > div{background:var(--surface);padding:.6rem .9rem;display:grid;grid-template-columns:1fr;gap:.1rem}
+@media(min-width:560px){dl.meta > div{grid-template-columns:9.5rem 1fr;gap:1rem;align-items:baseline}}
+dl.meta dt{font-family:"IBM Plex Mono",monospace;font-size:.72rem;letter-spacing:.05em;color:var(--ink-3)}
+dl.meta dd{margin:0;font-size:.88rem;color:var(--ink)}
+dl.meta dd .sub{color:var(--ink-3);font-size:.8rem}
+.flag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.08em;padding:.08rem .4rem;border-radius:2px;background:var(--seal-soft);color:var(--seal);margin-left:.35rem}
+
+.err{background:var(--seal-soft);color:var(--seal);padding:.7rem .95rem;font-size:.88rem;border-left:3px solid var(--seal)}
+.note{color:var(--ink-3);font-size:.82rem;line-height:1.65;margin:0}
+footer{border-top:1px solid var(--rule);background:var(--surface);padding:1.7rem 0 2.6rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header>
+  <div class="wrap">
+    <div class="kick"><span class="seal" aria-hidden="true">命</span><span class="label">만세력 · 명식 계산</span></div>
+    <h1>만세력 계산기</h1>
+    <p>생년월일시를 사주 여덟 글자로 환산합니다. 절기 시각을 천문 계산으로 직접 구하고, 표준자오선 변천·서머타임·진태양시를 모두 보정합니다. <strong>왜 그렇게 나왔는지 계산 근거를 함께 보여줍니다.</strong></p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="panel"><div class="panel-in">
+    <h2>출생 정보</h2>
+    <div class="grid">
+      <div class="f"><label class="label" for="date">생년월일 (양력)</label><input type="date" id="date" value="1990-05-15" min="1900-01-01" max="2100-12-31"></div>
+      <div class="f"><label class="label" for="time">출생 시각</label><input type="time" id="time" value="14:30"></div>
+      <div class="f"><label class="label" for="place">출생 지역</label>
+        <select id="place">
+          <option value="126.978" selected>서울</option>
+          <option value="126.705">인천</option>
+          <option value="127.385">대전</option>
+          <option value="126.851">광주</option>
+          <option value="128.601">대구</option>
+          <option value="129.075">부산</option>
+          <option value="129.311">울산</option>
+          <option value="127.729">춘천</option>
+          <option value="128.896">강릉</option>
+          <option value="127.148">전주</option>
+          <option value="129.365">포항</option>
+          <option value="126.531">제주</option>
+        </select>
+      </div>
+      <div class="f"><label class="label" for="yaja">자시(子時) 처리</label>
+        <select id="yaja">
+          <option value="midnight" selected>00시 기준 (현대 통용)</option>
+          <option value="yaja">야자시 — 23시부터 다음날</option>
+        </select>
+      </div>
+    </div>
+    <div class="opts">
+      <label class="opt"><input type="checkbox" id="notime"> 출생 시각을 모름</label>
+      <label class="opt"><input type="checkbox" id="tst" checked> 진태양시 보정</label>
+      <label class="opt"><input type="checkbox" id="eot" checked> 균시차까지 반영</label>
+    </div>
+  </div></section>
+
+  <section id="out"></section>
+
+</main>
+
+<footer><div class="wrap">
+  <p class="note">계산은 전부 이 브라우저 안에서 이뤄지며, 입력한 생년월일은 어디로도 전송되지 않습니다.<br>
+  절기 시각은 VSOP87 절단 급수로 계산하며 공표된 분점·지점 시각과 1분 이내로 일치합니다. 자시 처리는 유파마다 견해가 갈리는 영역이라 선택지로 두었습니다.</p>
+</div></footer>
+
+<script>/*__ENGINE__*/</script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const out = $('out');
+  const ELS = ['목', '화', '토', '금', '수'];
+  const VAR = { 목: 'wood', 화: 'fire', 토: 'earth', 금: 'metal', 수: 'water' };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  function pillarColumn(pillar, position, isSelf) {
+    if (!pillar) {
+      return '<div class="col"><span class="pos">' + position + '</span>' +
+        '<div class="empty" aria-label="시주 없음">—</div>' +
+        '<span class="rd" style="margin-top:1.1rem">시각 미상</span></div>';
+    }
+    return '<div class="col' + (isSelf ? ' self' : '') + '">' +
+      '<span class="pos">' + position + '</span>' +
+      '<div class="cell"><span class="glyph e-' + pillar.element.stem + '">' + pillar.stemHanja + '</span>' +
+        '<span class="rd">' + pillar.stem + ' · ' + pillar.element.stem + '</span></div>' +
+      '<div class="cell"><span class="glyph e-' + pillar.element.branch + '">' + pillar.branchHanja + '</span>' +
+        '<span class="rd">' + pillar.branch + ' · ' + pillar.element.branch + '</span></div>' +
+      '</div>';
+  }
+
+  function elementBars(ms) {
+    const counts = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 };
+    let total = 0;
+    for (const p of [ms.year, ms.month, ms.day, ms.hour]) {
+      if (!p) continue;
+      counts[p.element.stem]++; counts[p.element.branch]++; total += 2;
+    }
+    return ELS.map((el) => {
+      const n = counts[el];
+      const pct = total ? (n / total) * 100 : 0;
+      return '<div class="bar"><span class="e-' + el + '" style="font-weight:500">' + el + '</span>' +
+        '<div class="track"><div class="fill" style="width:' + pct.toFixed(1) + '%;background:var(--' + VAR[el] + ')"></div></div>' +
+        '<span class="n">' + n + '</span></div>';
+    }).join('');
+  }
+
+  function metaList(m) {
+    const rows = [];
+    const push = (k, v) => rows.push('<div><dt>' + k + '</dt><dd>' + v + '</dd></div>');
+
+    push('적용 절기', esc(m.monthTermName) + ' <span class="sub">' + esc(m.monthTermHanja) + '</span>');
+    const h = Math.floor(Math.abs(m.minutesFromMonthTerm) / 60);
+    const mm = Math.abs(m.minutesFromMonthTerm) % 60;
+    const days = Math.floor(h / 24);
+    const elapsed = days > 0 ? days + '일 ' + (h % 24) + '시간' : h + '시간 ' + mm + '분';
+    push('절입 시각', esc(m.monthTermEnteredAt) +
+      ' <span class="sub">— 출생은 그로부터 ' + elapsed + ' ' + (m.minutesFromMonthTerm >= 0 ? '뒤' : '앞') + '</span>');
+    push('입춘 기준 연도', m.solarYear + '년 <span class="sub">(' + esc(m.ipchunAt) + ' 입춘)</span>');
+
+    if (m.inputTime) {
+      const changed = m.correctedTime !== m.inputTime;
+      push('시각 보정',
+        '<span class="mono">' + esc(m.inputTime) + '</span> → <span class="mono">' + esc(m.correctedTime) + '</span>' +
+        ' <span class="sub">(' + (m.solarTimeOffsetMin >= 0 ? '+' : '') + m.solarTimeOffsetMin.toFixed(1) + '분)</span>' +
+        (changed && m.correctedDate ? ' <span class="sub">· 기준일 ' + esc(m.correctedDate) + '</span>' : ''));
+    }
+    push('표준자오선', '동경 ' + m.standardMeridian + '°' +
+      (m.standardMeridian === 127.5 ? '<span class="flag">당시 UTC+8:30</span>' : ''));
+    if (m.dstApplied) push('서머타임', '시행 기간에 해당 <span class="flag">−60분 보정</span>');
+    if (m.isYajaHour) push('야자시 구간', '23시대 출생 <span class="flag">' +
+      (m.yajaMode === 'yaja' ? '익일 일주 적용' : '당일 일주 유지') + '</span>');
+    push('태양 황경', '<span class="mono">' + m.solarLongitude.toFixed(4) + '°</span>');
+
+    return '<dl class="meta">' + rows.join('') + '</dl>';
+  }
+
+  function render() {
+    const noTime = $('notime').checked;
+    $('time').disabled = noTime;
+    $('yaja').disabled = noTime;
+
+    let ms;
+    try {
+      ms = MS.calculate({
+        date: $('date').value,
+        time: noTime ? null : $('time').value,
+        longitude: parseFloat($('place').value),
+        yajaMode: $('yaja').value,
+        applyTrueSolarTime: $('tst').checked,
+        applyEquationOfTime: $('eot').checked,
+      });
+    } catch (e) {
+      out.innerHTML = '<div class="err">' + esc(e.message) + '</div>';
+      return;
+    }
+
+    out.innerHTML =
+      '<div class="panel" style="margin-bottom:1.6rem"><div class="panel-in">' +
+        '<h2>명식</h2>' +
+        '<div class="chart">' +
+          pillarColumn(ms.hour, '시주', false) +
+          pillarColumn(ms.day, '일주 · 나', true) +
+          pillarColumn(ms.month, '월주', false) +
+          pillarColumn(ms.year, '연주', false) +
+        '</div>' +
+        '<p class="note" style="margin-top:.9rem">일간(日干) <strong class="e-' + ms.day.element.stem + '">' +
+          ms.day.stemHanja + ' ' + ms.day.stem + '</strong>이 이 명식의 주체입니다. 나머지 일곱 글자는 이 글자와의 관계로 읽습니다.</p>' +
+      '</div></div>' +
+
+      '<div class="panel" style="margin-bottom:1.6rem"><div class="panel-in">' +
+        '<h2>오행 분포</h2><div class="bars">' + elementBars(ms) + '</div>' +
+      '</div></div>' +
+
+      '<div class="panel"><div class="panel-in">' +
+        '<h2>계산 근거</h2>' + metaList(ms.meta) +
+      '</div></div>';
+  }
+
+  for (const id of ['date', 'time', 'place', 'yaja', 'notime', 'tst', 'eot']) {
+    $(id).addEventListener('input', render);
+    $(id).addEventListener('change', render);
+  }
+  render();
+})();
+</script>
