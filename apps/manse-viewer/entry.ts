@@ -4,3 +4,4 @@ export {
   analyze, GOD_MEANING,
   calculateDaeun, currentDaeun, annualLuck, dailyLuck,
 } from '../../packages/saju-rules/src/index.ts';
+export { compatibility } from '../../packages/saju-rules/src/index.ts';

@@ -154,6 +154,37 @@ ul.why li::before{content:"·";position:absolute;left:.15rem}
 .today{display:flex;gap:1.1rem;align-items:center;flex-wrap:wrap}
 .today .big{font-family:"Nanum Myeongjo",serif;font-size:2.5rem;font-weight:800;line-height:1;color:var(--fv)}
 .today .meta2{font-size:.86rem;color:var(--ink-2);line-height:1.6}
+
+/* 모드 탭 */
+.tabs{display:flex;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft);margin-bottom:1.6rem;width:fit-content}
+.tab{font:inherit;font-size:.9rem;font-weight:400;color:var(--ink-2);background:var(--surface);border:0;padding:.55rem 1.4rem;cursor:pointer}
+.tab.on{background:var(--surface-2);color:var(--seal);font-weight:600;box-shadow:inset 0 -2px 0 var(--seal)}
+
+.pair-only{display:none}
+body.pair .pair-only{display:flex}
+#panelB{display:none}
+body.pair #panelB{display:block}
+body.pair #panelA .who::after{content:"  ·  첫 번째 사람"}
+.who{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.13em;text-transform:uppercase;color:var(--seal);margin:0 0 .8rem;display:none}
+body.pair .who{display:block}
+
+/* 궁합 결과 */
+.verd{display:flex;align-items:baseline;gap:.9rem;flex-wrap:wrap;margin-bottom:.9rem}
+.verd .num{font-family:"Nanum Myeongjo",serif;font-size:3rem;font-weight:800;line-height:1;color:var(--seal);font-variant-numeric:tabular-nums}
+.verd .gr{font-family:"Nanum Myeongjo",serif;font-size:1.3rem;font-weight:700}
+.axes{display:grid;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft)}
+.ax{background:var(--surface);padding:.8rem .95rem;display:grid;grid-template-columns:1fr auto;gap:.15rem .8rem;align-items:baseline}
+.ax .an{font-weight:500;font-size:.92rem}
+.ax .as{font-family:"IBM Plex Mono",monospace;font-size:.86rem;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ax .abar{grid-column:1/-1;height:5px;background:var(--rule-soft);border-radius:1px;overflow:hidden;margin:.3rem 0 .35rem}
+.ax .abar i{display:block;height:100%;background:var(--fv)}
+.ax .ar{grid-column:1/-1;font-size:.85rem;line-height:1.6;color:var(--ink-3)}
+.ax.hi{--fv:var(--wood)} .ax.mid{--fv:var(--ink-3)} .ax.lo{--fv:var(--seal)}
+
+.mini{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft)}
+.mini .c{background:var(--surface);text-align:center;padding:.5rem .2rem .6rem}
+.mini .c .p{font-family:"IBM Plex Mono",monospace;font-size:.6rem;color:var(--ink-3);letter-spacing:.06em}
+.mini .c .g{font-family:"Nanum Myeongjo",serif;font-size:1.3rem;font-weight:700;line-height:1.15}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -167,9 +198,16 @@ ul.why li::before{content:"·";position:absolute;left:.15rem}
 
 <main class="wrap">
 
-  <section class="panel"><div class="panel-in">
+  <div class="tabs" role="tablist">
+    <button class="tab on" id="tabSolo" type="button" role="tab" aria-selected="true">나의 사주</button>
+    <button class="tab" id="tabPair" type="button" role="tab" aria-selected="false">궁합</button>
+  </div>
+
+  <section class="panel" id="panelA"><div class="panel-in">
+    <p class="who">A</p>
     <h2>출생 정보</h2>
     <div class="grid">
+      <div class="f pair-only"><label class="label" for="name">이름 <span style="text-transform:none;letter-spacing:0">— 선택</span></label><input type="text" id="name" value="" placeholder="A" maxlength="10"></div>
       <div class="f"><label class="label" for="date">생년월일 (양력)</label><input type="date" id="date" value="1990-05-15" min="1900-01-01" max="2100-12-31"></div>
       <div class="f"><label class="label" for="time">출생 시각</label><input type="time" id="time" value="14:30"></div>
       <div class="f"><label class="label" for="place">출생 지역</label>
@@ -205,6 +243,34 @@ ul.why li::before{content:"·";position:absolute;left:.15rem}
     </div>
   </div></section>
 
+  <div style="height:1.2rem"></div>
+  <section class="panel" id="panelB"><div class="panel-in">
+    <p class="who" style="display:block">B &nbsp;·&nbsp; 두 번째 사람</p>
+    <h2>상대의 출생 정보</h2>
+    <div class="grid">
+      <div class="f"><label class="label" for="b-name">이름 <span style="text-transform:none;letter-spacing:0">— 선택</span></label><input type="text" id="b-name" value="" placeholder="B" maxlength="10"></div>
+      <div class="f"><label class="label" for="b-date">생년월일 (양력)</label><input type="date" id="b-date" value="1993-11-03" min="1900-01-01" max="2100-12-31"></div>
+      <div class="f"><label class="label" for="b-time">출생 시각</label><input type="time" id="b-time" value="09:20"></div>
+      <div class="f"><label class="label" for="b-place">출생 지역</label>
+        <select id="b-place">
+          <option value="126.978" selected>서울</option><option value="126.705">인천</option>
+          <option value="127.385">대전</option><option value="126.851">광주</option>
+          <option value="128.601">대구</option><option value="129.075">부산</option>
+          <option value="129.311">울산</option><option value="127.729">춘천</option>
+          <option value="128.896">강릉</option><option value="127.148">전주</option>
+          <option value="129.365">포항</option><option value="126.531">제주</option>
+        </select>
+      </div>
+      <div class="f"><label class="label" for="b-gender">성별</label>
+        <select id="b-gender"><option value="여" selected>여</option><option value="남">남</option></select>
+      </div>
+    </div>
+    <div class="opts">
+      <label class="opt"><input type="checkbox" id="b-notime"> 출생 시각을 모름</label>
+    </div>
+  </div></section>
+
+  <div style="height:1.6rem"></div>
   <section id="out"></section>
 
 </main>
@@ -362,6 +428,55 @@ ul.why li::before{content:"·";position:absolute;left:.15rem}
       '<p class="note" style="margin-top:.9rem">일진은 매일 바뀝니다. 명식은 그대로인데 오늘의 간지와 맺는 관계만 달라집니다.</p>';
   }
 
+  function miniChart(ms) {
+    const c = (p, pos) => '<div class="c"><span class="p">' + pos + '</span><br>' +
+      (p ? '<span class="g e-' + p.element.stem + '">' + p.stemHanja + '</span><br>' +
+           '<span class="g e-' + p.element.branch + '">' + p.branchHanja + '</span>'
+         : '<span class="g" style="color:var(--ink-3)">—</span>') + '</div>';
+    return '<div class="mini">' + c(ms.hour, '시') + c(ms.day, '일') + c(ms.month, '월') + c(ms.year, '연') + '</div>';
+  }
+
+  function compatPanels(msA, msB, nameA, nameB, cp) {
+    const cls = (v) => v >= 70 ? 'hi' : v >= 55 ? 'mid' : 'lo';
+    const axes = cp.axes.map((x) =>
+      '<div class="ax ' + cls(x.score) + '">' +
+        '<span class="an">' + esc(x.name) + ' <span class="label" style="font-family:\'IBM Plex Mono\',monospace">' + x.weight + '%</span></span>' +
+        '<span class="as">' + x.score.toFixed(0) + ' · ' + esc(x.verdict) + '</span>' +
+        '<span class="abar"><i style="width:' + x.score + '%"></i></span>' +
+        '<span class="ar">' + esc(x.reasoning) + '</span>' +
+      '</div>').join('');
+
+    const list = (items, cls2) => items.length
+      ? '<ul class="hl"' + (cls2 ? ' style="--seal-x:1"' : '') + '>' +
+        items.map((t) => '<li>' + esc(t) + '</li>').join('') + '</ul>'
+      : '<p class="note">해당 없음.</p>';
+
+    return panel('궁합',
+        '<div class="verd"><span class="num">' + cp.score.toFixed(0) + '</span>' +
+          '<span class="gr">' + esc(cp.grade) + '</span>' +
+          '<span class="note" style="margin:0">' + esc(nameA) + ' · ' + esc(nameB) + '</span></div>' +
+        '<div class="two" style="gap:1.1rem;margin:1.1rem 0">' +
+          '<div><p class="label" style="margin:0 0 .4rem">' + esc(nameA) + '</p>' + miniChart(msA) + '</div>' +
+          '<div><p class="label" style="margin:0 0 .4rem">' + esc(nameB) + '</p>' + miniChart(msB) + '</div>' +
+        '</div>' +
+        '<p class="note">' + esc(cp.disclaimer) + '</p>') +
+
+      '<div style="height:1.6rem"></div>' +
+      panel('다섯 갈래로 본 상성', '<div class="axes">' + axes + '</div>' +
+        '<p class="note" style="margin-top:.9rem">비중이 가장 큰 축은 <strong>용신 보완</strong>입니다. ' +
+        '띠만 보는 궁합과 결과가 자주 갈리는 지점이고, 실제로 가장 무겁게 보는 부분입니다.</p>') +
+
+      '<div style="height:1.6rem"></div>' +
+      '<div class="two">' +
+        panel('강점', list(cp.strengths)) +
+        panel('주의할 점', list(cp.cautions)) +
+      '</div>' +
+
+      '<div style="height:1.6rem"></div>' +
+      panel('어떻게 하면 좋은가', '<ul class="hl">' +
+        cp.advice.map((t) => '<li>' + esc(t) + '</li>').join('') + '</ul>');
+  }
+
   function metaList(m) {
     const rows = [];
     const push = (k, v) => rows.push('<div><dt>' + k + '</dt><dd>' + v + '</dd></div>');
@@ -386,7 +501,40 @@ ul.why li::before{content:"·";position:absolute;left:.15rem}
     return '<dl class="meta">' + rows.join('') + '</dl>';
   }
 
+  let mode = 'solo';
+
+  function readPerson(prefix) {
+    const g = (id) => $(prefix ? prefix + '-' + id : id);
+    const noTime = g('notime').checked;
+    g('time').disabled = noTime;
+    return {
+      date: g('date').value,
+      time: noTime ? null : g('time').value,
+      longitude: parseFloat(g('place').value),
+      yajaMode: $('yaja').value,
+      applyTrueSolarTime: $('tst').checked,
+      applyEquationOfTime: $('eot').checked,
+    };
+  }
+
+  function renderPair() {
+    let msA, msB, cp;
+    const nameA = ($('name').value || 'A').trim();
+    const nameB = ($('b-name').value || 'B').trim();
+    try {
+      msA = MS.calculate(readPerson(''));
+      msB = MS.calculate(readPerson('b'));
+      cp = MS.compatibility(msA, msB, nameA, nameB);
+    } catch (e) {
+      out.innerHTML = '<div class="err">' + esc(e.message) + '</div>';
+      return;
+    }
+    out.innerHTML = compatPanels(msA, msB, nameA, nameB, cp);
+  }
+
   function render() {
+    if (mode === 'pair') { renderPair(); return; }
+
     const noTime = $('notime').checked;
     $('time').disabled = noTime;
     $('yaja').disabled = noTime;
@@ -467,10 +615,27 @@ ul.why li::before{content:"·";position:absolute;left:.15rem}
       panel('계산 근거', metaList(ms.meta));
   }
 
-  for (const id of ['date', 'time', 'place', 'gender', 'yaja', 'notime', 'tst', 'eot']) {
-    $(id).addEventListener('input', render);
-    $(id).addEventListener('change', render);
+  const IDS = ['name', 'date', 'time', 'place', 'gender', 'yaja', 'notime', 'tst', 'eot',
+               'b-name', 'b-date', 'b-time', 'b-place', 'b-gender', 'b-notime'];
+  for (const id of IDS) {
+    const el = $(id);
+    if (!el) continue;
+    el.addEventListener('input', render);
+    el.addEventListener('change', render);
   }
+
+  function setMode(next) {
+    mode = next;
+    document.body.classList.toggle('pair', next === 'pair');
+    $('tabSolo').classList.toggle('on', next === 'solo');
+    $('tabPair').classList.toggle('on', next === 'pair');
+    $('tabSolo').setAttribute('aria-selected', String(next === 'solo'));
+    $('tabPair').setAttribute('aria-selected', String(next === 'pair'));
+    render();
+  }
+  $('tabSolo').addEventListener('click', () => setMode('solo'));
+  $('tabPair').addEventListener('click', () => setMode('pair'));
+
   render();
 })();
 </script>
