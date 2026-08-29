@@ -11,6 +11,7 @@ import type { Myeongsik } from '../manseryeok/src/index.ts';
 import {
   analyze, formatAnalysis, tenGodOf, twelveStage, HIDDEN_STEMS,
   findRelations, findSinsal, elementWeights,
+  calculateDaeun, currentDaeun, annualLuck, dailyLuck, dailyLuckRange,
 } from './src/index.ts';
 
 let passed = 0, failed = 0;
@@ -194,6 +195,106 @@ check('같은 생년월일시 → 동일한 분석 결과', a1 === a2);
 
 const noTime = analyze(calculate({ date: '1990-05-15', time: null }));
 check('시각 미상이어도 분석됨', noTime.pillars.length === 3, `${noTime.pillars.length}주`);
+
+// ── J. 대운 ────────────────────────────────────────────────────
+section('J. 대운 — 방향과 대운수');
+
+const base1990 = calculate({ date: '1990-05-15', time: '14:30' });
+const an1990 = analyze(base1990);
+
+const male = calculateDaeun(base1990, '남', an1990.yongsin);
+const female = calculateDaeun(base1990, '여', an1990.yongsin);
+
+check('연간 경(양) + 남 → 순행', male.direction === '순행', male.direction);
+check('연간 경(양) + 여 → 역행', female.direction === '역행', female.direction);
+
+// 음간 해로 뒤집어 확인 (1985년 을축년 — 을은 음간)
+const base1985 = calculate({ date: '1985-05-15', time: '14:30' });
+const an1985 = analyze(base1985);
+check('연간 을(음) + 남 → 역행',
+  calculateDaeun(base1985, '남', an1985.yongsin).direction === '역행');
+check('연간 을(음) + 여 → 순행',
+  calculateDaeun(base1985, '여', an1985.yongsin).direction === '순행');
+
+// 대운수: 순행은 다음 절까지, 역행은 이전 절부터
+const toNext = base1990.meta.minutesToNextTerm / 1440;
+const fromPrev = base1990.meta.minutesFromMonthTerm / 1440;
+check('순행 대운수는 다음 절까지 / 3',
+  Math.abs(male.startAgeExact - toNext / 3) < 1e-9,
+  `${male.startAgeExact.toFixed(2)}년 → 대운수 ${male.startAge}`);
+check('역행 대운수는 이전 절부터 / 3',
+  Math.abs(female.startAgeExact - fromPrev / 3) < 1e-9,
+  `${female.startAgeExact.toFixed(2)}년 → 대운수 ${female.startAge}`);
+check('두 방향의 대운수가 서로 다름', male.startAge !== female.startAge);
+
+// 간지 진행
+check('순행 첫 대운은 월주 다음 간지',
+  male.periods[0].pillar.sexagenary === (base1990.month.sexagenary + 1) % 60,
+  `월주 ${base1990.month.stem}${base1990.month.branch} → ${male.periods[0].pillar.stem}${male.periods[0].pillar.branch}`);
+check('역행 첫 대운은 월주 이전 간지',
+  female.periods[0].pillar.sexagenary === (base1990.month.sexagenary + 59) % 60,
+  `월주 ${base1990.month.stem}${base1990.month.branch} → ${female.periods[0].pillar.stem}${female.periods[0].pillar.branch}`);
+
+let seqOk = true;
+for (let i = 1; i < male.periods.length; i++) {
+  if (male.periods[i].pillar.sexagenary !== (male.periods[i - 1].pillar.sexagenary + 1) % 60) seqOk = false;
+  if (male.periods[i].startAge !== male.periods[i - 1].startAge + 10) seqOk = false;
+}
+check('대운이 10년 간격으로 1갑자씩 진행', seqOk);
+check('대운 10개 생성', male.periods.length === 10);
+
+const cur = currentDaeun(male, 35);
+check('35세의 대운을 찾음', !!cur && 35 >= cur.startAge && 35 <= cur.endAge,
+  cur ? `${cur.index}운 ${cur.pillar.stem}${cur.pillar.branch} (${cur.startAge}~${cur.endAge}세)` : '(없음)');
+check('대운수 이전 나이는 대운 없음', currentDaeun(male, male.startAge - 1) === null);
+
+// ── K. 세운 · 일진 ─────────────────────────────────────────────
+section('K. 세운 · 일진');
+
+const years = annualLuck(base1990, an1990.yongsin, 2024, 5);
+check('세운 5년 생성', years.length === 5);
+check('2024년은 갑진년', years[0].pillar.stem === '갑' && years[0].pillar.branch === '진',
+  `→ ${years[0].pillar.stem}${years[0].pillar.branch}`);
+check('세운 간지가 해마다 1갑자씩',
+  years.every((y, i) => i === 0 || y.pillar.sexagenary === (years[i - 1].pillar.sexagenary + 1) % 60));
+check('나이 계산이 입춘 기준 연도와 맞음', years[0].age === 2024 - base1990.meta.solarYear,
+  `2024년에 ${years[0].age}세`);
+
+const today = dailyLuck(base1990, an1990.yongsin, '2000-01-01');
+check('일진이 만세력 일주와 일치 (2000-01-01 무오)',
+  today.pillar.stem === '무' && today.pillar.branch === '오',
+  `→ ${today.pillar.stem}${today.pillar.branch}`);
+
+const week = dailyLuckRange(base1990, an1990.yongsin, '2024-03-01', 7);
+check('일진 7일 생성', week.length === 7);
+check('일진이 하루 1갑자씩',
+  week.every((d, i) => i === 0 || d.pillar.sexagenary === (week[i - 1].pillar.sexagenary + 1) % 60));
+
+// 유불리 판정이 용신과 일관되는가
+const favors = new Set(male.periods.map((p) => p.favor));
+check('대운마다 유불리가 갈림 (전부 같지 않음)', favors.size > 1,
+  male.periods.map((p) => `${p.pillar.stem}${p.pillar.branch}:${p.favor}`).join(' '));
+
+// 충 검출
+const anyClash = male.periods.some((p) => p.interactions.some((i) => i.includes('충')));
+check('대운 중 명식과 충하는 구간을 짚어냄', anyClash,
+  male.periods.filter((p) => p.interactions.length).map((p) => `${p.pillar.stem}${p.pillar.branch}(${p.interactions.length})`).join(' ') || '(없음)');
+
+// ── L. 대운 출력 미리보기 ──────────────────────────────────────
+section('L. 대운 출력 (1990-05-15 14:30 남)');
+console.log(`  ${male.directionReason}`);
+console.log(`  ${male.basis}\n`);
+for (const p of male.periods.slice(0, 6)) {
+  const mark = p.favor === '유리' ? '+' : p.favor === '불리' ? '−' : ' ';
+  console.log(`  ${mark} ${String(p.startAge).padStart(2)}~${p.endAge}세  ${p.pillar.stem}${p.pillar.branch}  ` +
+    `${p.stemGod}/${p.branchGod}  ${p.favor}` + (p.interactions.length ? `  · ${p.interactions[0]}` : ''));
+}
+console.log('\n  세운:');
+for (const y of years) {
+  const mark = y.favor === '유리' ? '+' : y.favor === '불리' ? '−' : ' ';
+  console.log(`  ${mark} ${y.year}년 (${y.age}세)  ${y.pillar.stem}${y.pillar.branch}  ${y.stemGod}/${y.branchGod}  ${y.favor}` +
+    (y.interactions.length ? `  · ${y.interactions[0]}` : ''));
+}
 
 // ── I. 결과 미리보기 ───────────────────────────────────────────
 section('I. 실제 출력 (1990-05-15 14:30 서울)');

@@ -40,8 +40,14 @@ export interface MyeongsikMeta {
   monthTermHanja: string;
   /** 그 절의 절입시각 (KST 시계 시각) */
   monthTermEnteredAt: string;
-  /** 절입시각까지 남은/지난 시간 (분). 음수면 이미 지났다. */
+  /** 절입 후 경과 시간 (분). 역행 대운수의 근거가 된다. */
   minutesFromMonthTerm: number;
+  /** 다음 절의 이름 */
+  nextTermName: string;
+  /** 다음 절의 절입시각 (KST) */
+  nextTermEnteredAt: string;
+  /** 다음 절까지 남은 시간 (분). 순행 대운수의 근거가 된다. */
+  minutesToNextTerm: number;
   /** 입춘 기준 연도 */
   solarYear: number;
   /** 그 해 입춘 시각 (KST) */

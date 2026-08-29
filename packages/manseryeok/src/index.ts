@@ -108,6 +108,12 @@ export function calculate(input: BirthInput): Myeongsik {
   const daysSinceTerm = (((lambda - term.longitude) % 360) + 360) % 360 / 0.9856473;
   const termEnteredJd = solveSolarLongitude(term.longitude, jdUt - daysSinceTerm);
 
+  // 다음 절까지의 거리도 구한다 — 대운수(大運數) 계산에 필요하다.
+  // 순행 대운은 다음 절까지, 역행 대운은 이전 절부터의 시간을 쓴다.
+  const nextLongitude = (term.longitude + 30) % 360;
+  const nextTerm = monthTermFor(nextLongitude);
+  const nextTermJd = solveSolarLongitude(nextLongitude, termEnteredJd + 30.44);
+
   // ── 연주: 입춘 기준 ──────────────────────────────────────────
   const ipchunJd = solveSolarLongitude(315, toJulianDay(y, 2, 4));
   const solarYear = jdUt < ipchunJd ? y - 1 : y;
@@ -149,6 +155,9 @@ export function calculate(input: BirthInput): Myeongsik {
       monthTermHanja: term.hanja,
       monthTermEnteredAt: formatAsLocalClock(termEnteredJd),
       minutesFromMonthTerm: Math.round((jdUt - termEnteredJd) * 1440),
+      nextTermName: nextTerm.name,
+      nextTermEnteredAt: formatAsLocalClock(nextTermJd),
+      minutesToNextTerm: Math.round((nextTermJd - jdUt) * 1440),
       solarYear,
       ipchunAt: formatAsLocalClock(ipchunJd),
       solarLongitude: Math.round(lambda * 1e6) / 1e6,
