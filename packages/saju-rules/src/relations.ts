@@ -6,6 +6,7 @@
  */
 
 import type { Myeongsik } from '../../manseryeok/src/index.ts';
+import { josa } from './josa.ts';
 import {
   STEM_COMBINATIONS, STEM_CLASHES, BRANCH_SIX_COMBOS, BRANCH_TRIPLE_COMBOS,
   BRANCH_CLASHES, BRANCH_PUNISHMENTS, CHEONEUL, PEACH_BLOSSOM, TRAVELING_HORSE,

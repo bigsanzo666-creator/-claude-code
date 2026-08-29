@@ -12,6 +12,7 @@ import {
   analyze, formatAnalysis, tenGodOf, twelveStage, HIDDEN_STEMS,
   findRelations, findSinsal, elementWeights,
   calculateDaeun, currentDaeun, annualLuck, dailyLuck, dailyLuckRange,
+  compatibility,
 } from './src/index.ts';
 
 let passed = 0, failed = 0;
@@ -295,6 +296,73 @@ for (const y of years) {
   console.log(`  ${mark} ${y.year}년 (${y.age}세)  ${y.pillar.stem}${y.pillar.branch}  ${y.stemGod}/${y.branchGod}  ${y.favor}` +
     (y.interactions.length ? `  · ${y.interactions[0]}` : ''));
 }
+
+// ── M. 궁합 ────────────────────────────────────────────────────
+section('M. 궁합');
+
+// 일간 갑 vs 기 = 갑기합. 일지 자 vs 축 = 자축합. 둘 다 합이므로 높게 나와야 한다
+const goodA = fakeMyeongsik('임인', '계묘', '갑자', '병인');
+const goodB = fakeMyeongsik('무진', '경신', '기축', '을해');
+const good = compatibility(goodA, goodB, '가', '나');
+
+// 일간 갑 vs 경 = 충. 일지 자 vs 오 = 충. 둘 다 충
+const badA = fakeMyeongsik('임인', '계묘', '갑자', '병인');
+const badB = fakeMyeongsik('무진', '병오', '경오', '을해');
+const bad = compatibility(badA, badB, '가', '나');
+
+check('일간·일지 모두 합 → 두 축이 높음',
+  good.axes[0].score >= 90 && good.axes[1].score >= 90,
+  `일간 ${good.axes[0].score} / 일지 ${good.axes[1].score}`);
+check('일간·일지 모두 충 → 두 축이 낮음',
+  bad.axes[0].score <= 45 && bad.axes[1].score <= 45,
+  `일간 ${bad.axes[0].score} / 일지 ${bad.axes[1].score}`);
+check('합 조합이 충 조합보다 종합 점수가 높음', good.score > bad.score,
+  `${good.score} (${good.grade}) vs ${bad.score} (${bad.grade})`);
+
+check('점수는 0~100 범위', [good, bad].every((c) => c.score >= 0 && c.score <= 100));
+check('모든 축이 0~100 범위',
+  [good, bad].every((c) => c.axes.every((x) => x.score >= 0 && x.score <= 100)));
+check('축 가중치 합이 100', good.axes.reduce((s, x) => s + x.weight, 0) === 100);
+check('축이 5개', good.axes.length === 5, good.axes.map((x) => x.name).join(', '));
+
+// 순서를 바꿔도 같은 결과여야 한다
+const fwd = compatibility(goodA, goodB, '가', '나');
+const rev = compatibility(goodB, goodA, '나', '가');
+check('A·B 순서를 바꿔도 점수가 같음', fwd.score === rev.score, `${fwd.score} = ${rev.score}`);
+
+// 결과는 반드시 행동 제안으로 끝난다 — 낮은 점수라도
+check('좋은 궁합에도 조언이 있음', good.advice.length > 0);
+check('낮은 궁합에도 조언이 있음 (단정으로 끝내지 않음)', bad.advice.length > 0,
+  `${bad.advice.length}건`);
+check('두 사람 모두의 배우자 자리를 짚음',
+  bad.advice.filter((a) => a.includes('배우자 자리')).length === 2);
+check('면책 문구가 붙음', good.disclaimer.includes('참고'));
+check('낮은 점수에서 주의 항목이 나옴', bad.cautions.length > 0, `${bad.cautions.length}건`);
+check('높은 점수에서 강점 항목이 나옴', good.strengths.length > 0, `${good.strengths.length}건`);
+
+// 용신 보완이 가장 큰 비중
+check('용신 보완이 최대 가중치', good.axes.find((x) => x.name === '용신 보완')!.weight === 30);
+
+// 실제 생년월일로도 동작하는가
+const p1 = calculate({ date: '1990-05-15', time: '14:30' });
+const p2 = calculate({ date: '1993-11-03', time: '09:20' });
+const real = compatibility(p1, p2, '민수', '지영');
+check('실제 두 명식으로 계산됨', real.score > 0 && real.axes.length === 5,
+  `${real.score}점 ${real.grade}`);
+check('결정론 — 같은 두 명식이면 같은 결과',
+  JSON.stringify(compatibility(p1, p2, '민수', '지영')) === JSON.stringify(real));
+
+// ── N. 궁합 출력 미리보기 ──────────────────────────────────────
+section('N. 궁합 출력 (1990-05-15 · 1993-11-03)');
+console.log(`  종합 ${real.score}점 — ${real.grade}\n`);
+for (const x of real.axes) {
+  console.log(`  [${String(x.weight).padStart(2)}%] ${x.name} ${String(x.score).padStart(5)}  ${x.verdict}`);
+  console.log(`         ${x.reasoning}`);
+}
+if (real.strengths.length) { console.log('\n  강점:'); for (const t of real.strengths) console.log(`    + ${t.split(' — ')[0]}`); }
+if (real.cautions.length) { console.log('\n  주의:'); for (const t of real.cautions) console.log(`    − ${t.split(' — ')[0]}`); }
+console.log('\n  조언:');
+for (const t of real.advice) console.log(`    · ${t}`);
 
 // ── I. 결과 미리보기 ───────────────────────────────────────────
 section('I. 실제 출력 (1990-05-15 14:30 서울)');

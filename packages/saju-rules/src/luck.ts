@@ -14,6 +14,7 @@ import type { Pillar } from '../../manseryeok/src/ganzhi.ts';
 import { HIDDEN_STEMS, BRANCH_CLASHES, BRANCH_SIX_COMBOS, STEM_COMBINATIONS, STEM_CLASHES } from './tables.ts';
 import { tenGodOf, GOD_GROUP, type TenGod, type GodGroup } from './tenGods.ts';
 import type { YongsinResult } from './strength.ts';
+import { josa } from './josa.ts';
 
 export type Gender = '남' | '여';
 
@@ -77,19 +78,19 @@ function interactionsWith(ms: Myeongsik, pillar: Pillar): string[] {
 
     if (BRANCH_CLASHES.some((c) =>
       (c[0] === p.branch && c[1] === pillar.branch) || (c[1] === p.branch && c[0] === pillar.branch))) {
-      notes.push(`${name} ${p.branch}과 충 — ${clashMeaning(name)}`);
+      notes.push(`${name} ${josa(p.branch, '과')} 충 — ${clashMeaning(name)}`);
     }
     const six = BRANCH_SIX_COMBOS.find((c) =>
       (c.pair[0] === p.branch && c.pair[1] === pillar.branch) || (c.pair[1] === p.branch && c.pair[0] === pillar.branch));
-    if (six) notes.push(`${name} ${p.branch}과 ${six.name}`);
+    if (six) notes.push(`${name} ${josa(p.branch, '과')} ${six.name}`);
 
     if (STEM_CLASHES.some((c) =>
       (c[0] === p.stem && c[1] === pillar.stem) || (c[1] === p.stem && c[0] === pillar.stem))) {
-      notes.push(`${name} 천간 ${p.stem}과 충`);
+      notes.push(`${name} 천간 ${josa(p.stem, '과')} 충`);
     }
     const combo = STEM_COMBINATIONS.find((c) =>
       (c.pair[0] === p.stem && c.pair[1] === pillar.stem) || (c.pair[1] === p.stem && c.pair[0] === pillar.stem));
-    if (combo) notes.push(`${name} 천간 ${p.stem}과 ${combo.name}`);
+    if (combo) notes.push(`${name} 천간 ${josa(p.stem, '과')} ${combo.name}`);
   }
   return notes;
 }

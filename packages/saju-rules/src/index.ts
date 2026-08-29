@@ -27,6 +27,8 @@ export * from './tenGods.ts';
 export * from './strength.ts';
 export * from './relations.ts';
 export * from './luck.ts';
+export * from './compatibility.ts';
+export * from './josa.ts';
 
 export interface PillarAnalysis {
   position: PillarName;
