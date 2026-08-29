@@ -19,7 +19,7 @@ const bundlePath = join(scratch, 'engine.js');
 
 execFileSync('npx', [
   '--yes', 'esbuild@0.24.0',
-  '--bundle', join(root, 'packages/manseryeok/src/index.ts'),
+  '--bundle', join(here, 'entry.ts'),
   '--format=iife', '--global-name=MS', '--minify', '--target=es2020',
   `--outfile=${bundlePath}`,
 ], { stdio: 'inherit' });
