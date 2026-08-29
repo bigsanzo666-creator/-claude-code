@@ -19,6 +19,10 @@ import {
   WITHDRAWAL_NOTICE, type Order, type PaymentGateway, type ProductId,
 } from '../../../packages/commerce/src/index.ts';
 import { cacheKey } from '../../../packages/report/src/cache.ts';
+import {
+  loadBusinessInfo, renderFooter, renderTerms, renderPrivacy, renderRefund,
+  type BusinessInfo,
+} from '../../../packages/site-policy/src/index.ts';
 import { buildPayload, KIND_OF, type ReadingRequest } from './payload.ts';
 import { buildPreview } from './preview.ts';
 
@@ -53,6 +57,8 @@ export interface ApiDeps {
   reports?: Map<string, string>;
   /** 포트원 상점 정보. 없으면 결제 기능이 꺼진 채로 뜬다 */
   checkout?: CheckoutConfig;
+  /** 사업자 정보. 없으면 환경변수에서 읽는다 */
+  business?: BusinessInfo;
 }
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -65,7 +71,7 @@ const VIEWER_PATH = join(HERE, '..', '..', 'manse-viewer', 'index.html');
  * 바깥 껍데기를 플랫폼이 씌워준다. 우리가 직접 서빙할 때는 여기서 씌운다.
  * 덕분에 같은 파일이 무료 데모(아티팩트)와 실제 사이트 양쪽에서 쓰인다.
  */
-function renderPage(checkout: CheckoutConfig | null): string {
+function renderPage(checkout: CheckoutConfig | null, business: BusinessInfo): string {
   const fragment = readFileSync(VIEWER_PATH, 'utf8');
   const config = JSON.stringify({ apiBase: '', checkout, ready: checkout !== null });
   return `<!doctype html>
@@ -73,15 +79,37 @@ function renderPage(checkout: CheckoutConfig | null): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<style>:root{color-scheme:light dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{color-scheme:light dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+${FOOTER_CSS}</style>
 <script>window.SAJU_CONFIG = ${config};</script>
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 </head>
 <body>
 ${fragment}
+${renderFooter(business)}
 </body>
 </html>`;
 }
+
+/**
+ * 푸터 스타일.
+ *
+ * 정책 페이지는 자기 스타일을 들고 다니지만, 본 화면의 껍데기는 여기서 씌우므로
+ * 푸터 몫만 따로 둔다. 아티팩트로 게시하는 무료 데모에는 푸터가 붙지 않는다 —
+ * 거기서는 파는 것이 없으므로 사업자 정보 표시 의무도 없다.
+ */
+const FOOTER_CSS = `
+.biz{max-width:760px;margin:24px auto 0;padding:20px;border-top:1px solid #e3e3ea;color:#5c5c66;font:12.5px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
+.biz-links{display:flex;gap:14px;margin-bottom:10px}
+.biz-links a{color:#5b3fa8}
+.biz-rows{display:flex;flex-wrap:wrap;gap:4px 14px}
+.biz-rows b{font-weight:600;color:#1b1b1f}
+.biz-note{margin-top:10px}
+@media (prefers-color-scheme:dark){
+.biz{border-top-color:#33333d;color:#a0a0ad}
+.biz-links a{color:#b9a4f0}
+.biz-rows b{color:#e8e8ee}
+}`;
 
 class HttpError extends Error {
   readonly status: number;
@@ -110,6 +138,14 @@ function send(res: ServerResponse, status: number, body: unknown): void {
   res.end(payload);
 }
 
+function sendHtml(res: ServerResponse, html: string): void {
+  res.writeHead(200, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Content-Length': Buffer.byteLength(html),
+  });
+  res.end(html);
+}
+
 function validateReading(body: any): ReadingRequest {
   if (!body || typeof body !== 'object') throw new HttpError(400, '요청 본문이 필요합니다.');
   const productId = body.productId as ProductId;
@@ -122,11 +158,12 @@ export function createApi(deps: ApiDeps) {
   const reports = deps.reports ?? new Map<string, string>();
 
   const checkout = deps.checkout ?? null;
+  const business = deps.business ?? loadBusinessInfo();
 
   const routes: Record<string, (req: IncomingMessage, res: ServerResponse, id: string) => Promise<void>> = {
     /** 화면. 결제 설정을 주입해 내려준다 */
     'GET /': async (_req, res) => {
-      const html = renderPage(checkout);
+      const html = renderPage(checkout, business);
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Length': Buffer.byteLength(html),
@@ -138,6 +175,16 @@ export function createApi(deps: ApiDeps) {
     'GET /api/config': async (_req, res) => {
       send(res, 200, { ready: checkout !== null, checkout });
     },
+
+    /**
+     * 정책 페이지 세 장.
+     *
+     * PG 심사에서 실제로 열어보는 주소다. 결제 화면 안의 팝업이 아니라
+     * 고정된 주소로 접근되어야 하므로 라우트로 둔다.
+     */
+    'GET /terms': async (_req, res) => sendHtml(res, renderTerms(business)),
+    'GET /privacy': async (_req, res) => sendHtml(res, renderPrivacy(business)),
+    'GET /refund': async (_req, res) => sendHtml(res, renderRefund(business)),
 
     /** 상품 목록. 가격은 서버가 정한다 */
     'GET /api/products': async (_req, res) => {

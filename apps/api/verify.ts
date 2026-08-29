@@ -10,6 +10,7 @@ import { createServer } from 'node:http';
 import {
   CATALOG, FakeGateway, markPaid, markPending, createOrder,
 } from '../../packages/commerce/src/index.ts';
+import { loadBusinessInfo } from '../../packages/site-policy/src/index.ts';
 import { createApi, MemoryOrderStore } from './src/server.ts';
 
 let passed = 0, failed = 0;
@@ -24,9 +25,19 @@ const gateway = new FakeGateway();
 const orders = new MemoryOrderStore();
 let generateCalls = 0;
 
+/** 심사에 통과할 만큼 채워진 사업자 정보. 실제 값이 아니다 */
+const business = loadBusinessInfo({
+  SITE_NAME: '사주보다', SITE_URL: 'https://example.kr',
+  BIZ_COMPANY: '주식회사 예시', BIZ_REPRESENTATIVE: '홍길동',
+  BIZ_REG_NUMBER: '220-81-62517', BIZ_MAIL_ORDER_NUMBER: '2026-서울강남-00001',
+  BIZ_ADDRESS: '서울특별시 강남구 테헤란로 1', BIZ_PHONE: '02-0000-0000',
+  BIZ_EMAIL: 'help@example.kr',
+});
+
 const handler = createApi({
   gateway,
   orders,
+  business,
   generate: async ({ kind, subject }) => {
     generateCalls++;
     return { text: `[가짜 ${kind} 리포트: ${subject}]\n\n두 번째 문단입니다.` };
@@ -45,6 +56,11 @@ const api = async (method: string, path: string, body?: unknown) => {
     body: body ? JSON.stringify(body) : undefined,
   });
   return { status: res.status, body: await res.json() as any };
+};
+
+const page = async (path: string) => {
+  const res = await fetch(`${base}${path}`);
+  return { status: res.status, type: res.headers.get('content-type') ?? '', html: await res.text() };
 };
 
 const BIRTH = { date: '1990-05-15', time: '14:30', gender: '남' as const, name: '민수' };
@@ -146,6 +162,33 @@ check('환불 안내에 처리 기한 포함', refunded.body.message.includes('3
 check('PG에 실제로 취소가 걸림', gateway.cancelled.some((c) => c.paymentId === id2));
 check('환불 후에는 열람 차단', (await api('GET', `/api/orders/${id2}/report`)).status === 403);
 check('중복 환불 차단', (await api('POST', `/api/orders/${id2}/refund`)).status === 409);
+
+// ── E. 정책 페이지와 사업자 정보 ───────────────────────────────
+section('E. 정책 페이지 (PG 심사가 열어보는 곳)');
+
+for (const [path, title] of [['/terms', '이용약관'], ['/privacy', '개인정보처리방침'], ['/refund', '취소·환불 정책']]) {
+  const res = await page(path);
+  check(`${path} 는 ${title} 을 200으로 준다`, res.status === 200 && res.html.includes(`<h1>${title}</h1>`));
+  check(`${path} 는 HTML로 응답`, res.type.startsWith('text/html'));
+  check(`${path} 에 사업자등록번호 표시`, res.html.includes('220-81-62517'));
+}
+
+const home = await page('/');
+check('첫 화면에도 사업자 정보가 붙는다', home.html.includes('220-81-62517'));
+check('첫 화면에서 세 정책으로 링크', ['/terms', '/privacy', '/refund'].every((h) => home.html.includes(`href="${h}"`)));
+check('첫 화면은 여전히 뷰어를 담고 있다', home.html.includes('window.SAJU_CONFIG'));
+check('푸터 스타일이 함께 나간다', home.html.includes('.biz-rows'));
+
+// GET /refund 는 정책 페이지, GET /api/orders/:id/refund 는 환불 조회 — 서로 가리지 않아야 한다
+const stillJson = await api('GET', `/api/orders/${id2}/refund`);
+check('주문 환불 조회가 정책 페이지에 먹히지 않는다', stillJson.status === 200 && 'verdict' in stillJson.body);
+
+const noBiz = createServer(createApi({ gateway, orders, generate: async () => ({ text: '' }), business: loadBusinessInfo({}) }));
+await new Promise<void>((r) => noBiz.listen(0, r));
+const noBizPort = (noBiz.address() as { port: number }).port;
+const bare = await fetch(`http://127.0.0.1:${noBizPort}/terms`).then((r) => r.text());
+check('사업자 정보가 비면 화면에 드러난다', bare.includes('[미입력: 상호]'));
+noBiz.close();
 
 server.close();
 console.log(`\n${'═'.repeat(60)}`);
