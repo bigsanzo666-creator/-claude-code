@@ -22,8 +22,15 @@ if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
 
 const cache = new MemoryReportCache();
 
+const storeId = process.env.PORTONE_STORE_ID;
+const channelKey = process.env.PORTONE_CHANNEL_KEY;
+if (!storeId || !channelKey) {
+  console.warn('[api] PORTONE_STORE_ID / PORTONE_CHANNEL_KEY 가 없습니다. 결제 버튼이 비활성 상태로 뜹니다.');
+}
+
 startApi({
   gateway: new PortOneGateway({ apiSecret }),
+  checkout: storeId && channelKey ? { storeId, channelKey } : undefined,
   // 배포 전에 Postgres 구현체로 바꿀 것. 지금은 프로세스가 죽으면 주문이 사라진다
   orders: new MemoryOrderStore(),
   generate: async ({ kind, data, subject }) =>

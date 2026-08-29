@@ -210,6 +210,25 @@ body.pair #panelF,body.pair #panelP{display:none}
 .xr .xs b{color:var(--ink-2);font-weight:500}
 .xr .xv2{font-size:.78rem;color:var(--xc);font-weight:500;white-space:nowrap}
 .xr .xt{grid-column:1/-1;font-size:.85rem;line-height:1.6;color:var(--ink-3);margin-top:.25rem}
+
+/* 결제 */
+.buy{display:grid;gap:1rem}
+.buy .price{font-family:"Nanum Myeongjo",serif;font-size:2rem;font-weight:800;line-height:1;color:var(--seal);font-variant-numeric:tabular-nums}
+.buy .row{display:flex;align-items:baseline;gap:.8rem;flex-wrap:wrap}
+.will{display:grid;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft)}
+.will li{background:var(--surface);padding:.5rem .85rem;font-size:.87rem;list-style:none}
+.will li::before{content:"·";color:var(--seal);margin-right:.5rem}
+.samp{background:var(--surface-2);border:1px solid var(--rule-soft);padding:1rem 1.1rem;font-size:.9rem;line-height:1.75;color:var(--ink-2);white-space:pre-wrap}
+.samp .cut{display:block;margin-top:.7rem;color:var(--ink-3);font-size:.82rem}
+.legal{border:1px solid var(--rule);background:var(--surface-2);padding:.9rem 1.05rem;font-size:.85rem;line-height:1.7;color:var(--ink-2)}
+.agree{display:flex;gap:.55rem;align-items:flex-start;margin-top:.8rem;cursor:pointer;font-size:.87rem;color:var(--ink)}
+.agree input{margin-top:.3rem}
+button.pay{font:inherit;font-size:.95rem;font-weight:600;color:var(--paper);background:var(--seal);border:0;border-radius:2px;padding:.8rem 1.4rem;cursor:pointer;justify-self:start}
+button.pay:disabled{background:var(--rule);color:var(--ink-3);cursor:not-allowed}
+button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.step{font-family:"IBM Plex Mono",monospace;font-size:.8rem;color:var(--ink-2)}
+.bought{white-space:pre-wrap;line-height:1.85;font-size:.95rem}
+.bought h2,.bought h3{font-family:"Nanum Myeongjo",serif}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -592,6 +611,98 @@ body.pair #panelF,body.pair #panelP{display:none}
       '<dl class="meta">' + rows + '</dl>');
   }
 
+  var CFG = (window.SAJU_CONFIG || {});
+  var checkout = null;
+  // previewTried: 실패해도 다시 요청하지 않기 위한 표시.
+  // 이게 없으면 실패 → render → 재요청 → 실패가 무한히 돈다.
+  var buyState = { previewed: null, previewTried: false, agreed: false, busy: false, result: null, error: null };
+
+  function money(n) { return n.toLocaleString('ko-KR') + '원'; }
+
+  function paywallPanel(xv) {
+    var p = buyState.previewed;
+
+    if (buyState.result) {
+      return '<div class="panel"><div class="panel-in">' +
+        '<h2>리포트</h2>' +
+        '<div class="bought">' + esc(buyState.result.text) + '</div>' +
+        '<p class="note" style="margin-top:1.2rem">주문번호 <span class="mono">' + esc(buyState.result.orderId) + '</span></p>' +
+        '</div></div>';
+    }
+
+    var body = '';
+    if (!p) {
+      body = buyState.error
+        ? '<div class="err">' + esc(buyState.error) + '</div>'
+        : '<p class="step">미리보기를 불러오는 중…</p>';
+    } else {
+      body =
+        '<div class="buy">' +
+          '<div class="row"><span class="price">' + money(p.product.priceKrw) + '</span>' +
+            '<span class="note" style="margin:0">' + esc(p.product.description) + '</span></div>' +
+
+          '<div><p class="label" style="margin:0 0 .5rem">이 리포트에 담기는 내용</p>' +
+            '<ul class="will">' + p.preview.contents.map(function (c) {
+              return '<li>' + esc(c) + '</li>'; }).join('') + '</ul></div>' +
+
+          '<div><p class="label" style="margin:0 0 .5rem">어떤 문장으로 나오는지 — 예시</p>' +
+            '<div class="samp">' + esc(p.preview.sample) +
+            '<span class="cut">' + esc(p.preview.sampleNotice) + '</span></div></div>' +
+
+          '<div class="legal">' + esc(p.notice) +
+            '<label class="agree"><input type="checkbox" id="agree"' + (buyState.agreed ? ' checked' : '') + '>' +
+            '<span>위 내용을 확인했습니다.</span></label></div>' +
+
+          '<button class="pay" id="payBtn"' + (buyState.agreed && !buyState.busy ? '' : ' disabled') + '>' +
+            (buyState.busy ? '진행 중…' : money(p.product.priceKrw) + ' 결제하기') + '</button>' +
+
+          (buyState.error ? '<div class="err">' + esc(buyState.error) + '</div>' : '') +
+          (buyState.busy ? '<p class="step" id="stepText">주문을 만드는 중…</p>' : '') +
+        '</div>';
+    }
+
+    return '<div class="panel pro"><div class="panel-in">' +
+      '<h2>사주 × 관상 × 손금 교차검증 리포트</h2>' +
+      '<p class="note" style="margin:-.4rem 0 1.2rem">세 갈래를 <strong>같은 여덟 개 축</strong>으로 대조합니다. ' +
+      '각각 따로 보면 알 수 없고 <strong>합쳐야만 나오는 정보</strong>입니다.</p>' +
+      body +
+      '</div></div>';
+  }
+
+  var STEP_TEXT = {
+    order: '주문을 만드는 중…', payment: '결제창을 여는 중…',
+    confirm: '결제를 확인하는 중…', report: '리포트를 만드는 중… (1분쯤 걸립니다)',
+    done: '완료',
+  };
+
+  function wirePaywall(reading) {
+    var agree = $('agree');
+    if (agree) {
+      agree.addEventListener('change', function () { buyState.agreed = agree.checked; render(); });
+    }
+    var btn = $('payBtn');
+    if (!btn) return;
+
+    btn.addEventListener('click', async function () {
+      buyState.busy = true; buyState.error = null; render();
+      try {
+        buyState.result = await checkout.purchase(reading, {
+          previewShown: true,
+          onStage: function (stage) {
+            var el = $('stepText');
+            if (el) el.textContent = STEP_TEXT[stage] || '';
+          },
+        });
+      } catch (e) {
+        buyState.error = e && e.cancelled
+          ? '결제를 취소하셨습니다. 언제든 다시 시도하실 수 있습니다.'
+          : (e && e.message) || '결제에 실패했습니다.';
+      } finally {
+        buyState.busy = false; render();
+      }
+    });
+  }
+
   function readingPanels(face, palm, xv) {
     return '<div class="two">' +
         notesPanel('관상 풀이', face.notes, 'palace') +
@@ -599,12 +710,16 @@ body.pair #panelF,body.pair #panelP{display:none}
       '</div>' +
 
       '<div style="height:1.6rem"></div>' +
-      '<div class="panel pro"><div class="panel-in">' +
-        '<h2>사주 × 관상 × 손금 교차검증</h2>' +
-        '<p class="note" style="margin:-.4rem 0 1rem">세 갈래를 <strong>같은 여덟 개 축</strong>으로 환산해 대조합니다. ' +
-        '각각 따로 보면 알 수 없고 <strong>합쳐야만 나오는 정보</strong>라, 이 구간을 유료로 둡니다.</p>' +
-        crossPanel(xv) +
-      '</div></div>';
+      // 결제가 켜져 있으면 결과 대신 미리보기와 결제 버튼을 보인다.
+      // 꺼져 있으면(아티팩트 데모) 지금처럼 전문을 그대로 보여준다.
+      (CFG.ready
+        ? paywallPanel(xv)
+        : '<div class="panel pro"><div class="panel-in">' +
+            '<h2>사주 × 관상 × 손금 교차검증</h2>' +
+            '<p class="note" style="margin:-.4rem 0 1rem">세 갈래를 <strong>같은 여덟 개 축</strong>으로 환산해 대조합니다. ' +
+            '각각 따로 보면 알 수 없고 <strong>합쳐야만 나오는 정보</strong>라, 이 구간을 유료로 둡니다.</p>' +
+            crossPanel(xv) +
+          '</div></div>');
   }
 
   function miniChart(ms) {
@@ -726,6 +841,28 @@ body.pair #panelF,body.pair #panelP{display:none}
       return;
     }
     out.innerHTML = readingPanels(face, palm, xv);
+
+    if (!CFG.ready) return;
+
+    var reading = {
+      productId: 'cross-report',
+      birth: {
+        date: $('date').value, time: $('notime').checked ? null : $('time').value,
+        longitude: parseFloat($('place').value), gender: $('gender').value,
+        name: ($('name').value || '').trim() || undefined,
+      },
+      face: faceState, palm: palmState,
+    };
+    wirePaywall(reading);
+
+    if (!buyState.previewed && !buyState.previewTried && !buyState.busy) {
+      buyState.previewTried = true;
+      checkout.preview(reading).then(function (p) {
+        buyState.previewed = p; render();
+      }).catch(function (e) {
+        buyState.error = '미리보기를 불러오지 못했습니다. ' + e.message; render();
+      });
+    }
   }
 
   function render() {
@@ -812,13 +949,30 @@ body.pair #panelF,body.pair #panelP{display:none}
       panel('계산 근거', metaList(ms.meta));
   }
 
+  if (CFG.ready) {
+    checkout = new MS.Checkout({
+      apiBase: CFG.apiBase || '',
+      config: CFG.checkout,
+      pay: MS.portOnePay(),
+    });
+  }
+
   const IDS = ['name', 'date', 'time', 'place', 'gender', 'yaja', 'notime', 'tst', 'eot',
                'b-name', 'b-date', 'b-time', 'b-place', 'b-gender', 'b-notime'];
   for (const id of IDS) {
     const el = $(id);
     if (!el) continue;
-    el.addEventListener('input', render);
-    el.addEventListener('change', render);
+    el.addEventListener('input', invalidateAndRender);
+    el.addEventListener('change', invalidateAndRender);
+  }
+
+  /** 입력이 바뀌면 이전 미리보기는 다른 사람 것이 된다. 구매 결과도 마찬가지다 */
+  function invalidateAndRender() {
+    if (!buyState.busy) {
+      buyState.previewed = null; buyState.previewTried = false;
+      buyState.result = null; buyState.error = null;
+    }
+    render();
   }
 
   function setMode(next) {

@@ -9,6 +9,9 @@
  */
 
 import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import {
   CATALOG, getProduct, createOrder, markPending, markFulfilled, markViewed,
@@ -36,12 +39,48 @@ export type ReportGenerator = (args: {
   kind: string; data: unknown; subject: string;
 }) => Promise<{ text: string }>;
 
+/** 브라우저 결제창에 필요한 값. 비어 있으면 화면이 결제 버튼을 감춘다 */
+export interface CheckoutConfig {
+  storeId: string;
+  channelKey: string;
+}
+
 export interface ApiDeps {
   gateway: PaymentGateway;
   orders: OrderStore;
   generate: ReportGenerator;
   /** 생성된 리포트 본문 보관. 주문 id → 본문 */
   reports?: Map<string, string>;
+  /** 포트원 상점 정보. 없으면 결제 기능이 꺼진 채로 뜬다 */
+  checkout?: CheckoutConfig;
+}
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const VIEWER_PATH = join(HERE, '..', '..', 'manse-viewer', 'index.html');
+
+/**
+ * 화면 HTML을 만든다.
+ *
+ * `apps/manse-viewer/index.html` 은 문서 조각이다 — 아티팩트로 게시할 때는
+ * 바깥 껍데기를 플랫폼이 씌워준다. 우리가 직접 서빙할 때는 여기서 씌운다.
+ * 덕분에 같은 파일이 무료 데모(아티팩트)와 실제 사이트 양쪽에서 쓰인다.
+ */
+function renderPage(checkout: CheckoutConfig | null): string {
+  const fragment = readFileSync(VIEWER_PATH, 'utf8');
+  const config = JSON.stringify({ apiBase: '', checkout, ready: checkout !== null });
+  return `<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>:root{color-scheme:light dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<script>window.SAJU_CONFIG = ${config};</script>
+<script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
+</head>
+<body>
+${fragment}
+</body>
+</html>`;
 }
 
 class HttpError extends Error {
@@ -82,7 +121,24 @@ function validateReading(body: any): ReadingRequest {
 export function createApi(deps: ApiDeps) {
   const reports = deps.reports ?? new Map<string, string>();
 
+  const checkout = deps.checkout ?? null;
+
   const routes: Record<string, (req: IncomingMessage, res: ServerResponse, id: string) => Promise<void>> = {
+    /** 화면. 결제 설정을 주입해 내려준다 */
+    'GET /': async (_req, res) => {
+      const html = renderPage(checkout);
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Length': Buffer.byteLength(html),
+      });
+      res.end(html);
+    },
+
+    /** 결제 준비 상태. 상점 정보가 없으면 화면이 결제 버튼을 감춘다 */
+    'GET /api/config': async (_req, res) => {
+      send(res, 200, { ready: checkout !== null, checkout });
+    },
+
     /** 상품 목록. 가격은 서버가 정한다 */
     'GET /api/products': async (_req, res) => {
       send(res, 200, { products: Object.values(CATALOG), notice: WITHDRAWAL_NOTICE });
