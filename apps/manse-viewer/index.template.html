@@ -187,10 +187,10 @@ body.pair .who{display:block}
 .mini .c .g{font-family:"Nanum Myeongjo",serif;font-size:1.3rem;font-weight:700;line-height:1.15}
 
 /* 관상 폼 */
-#panelF{display:none}
-body.face #panelF{display:block}
+#panelF,#panelP{display:none}
+body.face #panelF,body.face #panelP{display:block}
 body.face #panelB{display:none}
-body.pair #panelF{display:none}
+body.pair #panelF,body.pair #panelP{display:none}
 .fgrid{display:grid;gap:.8rem 1.1rem;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
 .fg{display:grid;grid-template-columns:1fr auto;gap:.15rem .6rem;align-items:center}
 .fg .fl{font-size:.86rem}
@@ -226,7 +226,7 @@ body.pair #panelF{display:none}
   <div class="tabs" role="tablist">
     <button class="tab on" id="tabSolo" type="button" role="tab" aria-selected="true">나의 사주</button>
     <button class="tab" id="tabPair" type="button" role="tab" aria-selected="false">궁합</button>
-    <button class="tab" id="tabFace" type="button" role="tab" aria-selected="false">관상 · 교차검증</button>
+    <button class="tab" id="tabFace" type="button" role="tab" aria-selected="false">관상 · 손금 · 교차검증</button>
   </div>
 
   <section class="panel" id="panelA"><div class="panel-in">
@@ -302,6 +302,13 @@ body.pair #panelF{display:none}
     <p class="note" style="margin:-.4rem 0 1.1rem">부위마다 해당하는 쪽을 고르세요. 각 부위는 관상의 십이궁(十二宮)에 대응합니다.<br>
     실제 서비스에서는 사진에서 이 값들을 자동으로 뽑되, <strong>사진은 기기 안에서만 처리하고 서버로 보내지 않습니다.</strong></p>
     <div class="fgrid" id="faceForm"></div>
+  </div></section>
+
+  <div style="height:1.2rem"></div>
+  <section class="panel" id="panelP"><div class="panel-in">
+    <h2>손금</h2>
+    <p class="note" style="margin:-.4rem 0 1.1rem" id="handNote"></p>
+    <div class="fgrid" id="palmForm"></div>
   </div></section>
 
   <div style="height:1.6rem"></div>
@@ -472,6 +479,53 @@ body.pair #panelF{display:none}
     cheekbone: ['평평', '보통', '발달'],
   };
 
+  var palmState = null;
+
+  function segRow(label, domain, key, values, labels, current, ns) {
+    var segs = values.map(function (v, i) {
+      return '<button type="button" data-ns="' + ns + '" data-k="' + key + '" data-v="' + v + '"' +
+        (current === v ? ' class="on"' : '') + '>' + labels[i] + '</button>';
+    }).join('');
+    return '<div class="fg"><span class="fl">' + label + '</span>' +
+      '<span class="seg">' + segs + '</span>' +
+      '<span class="fp">' + domain + '</span></div>';
+  }
+
+  function buildPalmForm() {
+    if (palmState) return;
+    // 전부 '보통'이면 대조가 성립하지 않으므로 몇 개는 특징이 드러난 값으로 시작한다
+    palmState = Object.assign({}, MS.NEUTRAL_PALM_FEATURES, {
+      lifeLength: 'high', headLength: 'high', heartLength: 'high', fateClarity: 'high',
+    });
+
+    $('handNote').textContent = MS.HAND_CHOICE_NOTE;
+
+    var keys = Object.keys(MS.PALM_FEATURE_LABEL);
+    var html = keys.map(function (k) {
+      return segRow(MS.PALM_FEATURE_LABEL[k], MS.PALM_FEATURE_DOMAIN[k], k,
+        ['low', 'mid', 'high'], MS.PALM_LEVEL_LABELS[k], palmState[k], 'palm');
+    }).join('');
+
+    var shapes = Object.keys(MS.HAND_SHAPE_SHORT);
+    html += segRow('손 모양', '오행 분류', 'handShape', shapes,
+      shapes.map(function (v) { return MS.HAND_SHAPE_SHORT[v]; }), palmState.handShape, 'palm');
+    html += segRow('막쥔손금', '두뇌선과 감정선이 하나', 'simianLine',
+      ['no', 'yes'], ['없음', '있음'], palmState.simianLine ? 'yes' : 'no', 'palm');
+
+    var host = $('palmForm');
+    host.innerHTML = html;
+    host.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-k]');
+      if (!b) return;
+      var v = b.dataset.v;
+      palmState[b.dataset.k] = b.dataset.k === 'simianLine' ? v === 'yes' : v;
+      var group = b.parentElement.querySelectorAll('button');
+      for (var i = 0; i < group.length; i++) group[i].classList.remove('on');
+      b.classList.add('on');
+      render();
+    });
+  }
+
   function buildFaceForm() {
     if (faceState) return;
     // 기본값은 특징이 몇 개 드러난 얼굴로 둔다 — 전부 '보통'이면 교차검증이 성립하지 않는다
@@ -530,19 +584,25 @@ body.pair #panelF{display:none}
       '<p class="note" style="margin-top:1rem">' + esc(xv.disclaimer) + '</p>';
   }
 
-  function facePanels(reading, xv) {
-    var notes = reading.notes.map(function (n) {
-      return '<div><dt>' + esc(n.palace) + '</dt><dd>' + esc(n.text) + '</dd></div>';
+  function notesPanel(title, notes, key) {
+    var rows = notes.map(function (n) {
+      return '<div><dt>' + esc(n[key]) + '</dt><dd>' + esc(n.text) + '</dd></div>';
     }).join('');
+    return panel(title + ' <span class="label" style="font-family:inherit">무료</span>',
+      '<dl class="meta">' + rows + '</dl>');
+  }
 
-    return panel('관상 풀이 <span class="label" style="font-family:inherit">무료</span>',
-        '<dl class="meta">' + notes + '</dl>') +
+  function readingPanels(face, palm, xv) {
+    return '<div class="two">' +
+        notesPanel('관상 풀이', face.notes, 'palace') +
+        notesPanel('손금 풀이', palm.notes, 'domain') +
+      '</div>' +
 
       '<div style="height:1.6rem"></div>' +
       '<div class="panel pro"><div class="panel-in">' +
-        '<h2>사주 × 관상 교차검증</h2>' +
-        '<p class="note" style="margin:-.4rem 0 1rem">사주와 관상을 <strong>같은 여덟 개 축</strong>으로 환산해 대조합니다. ' +
-        '따로 보면 알 수 없고 합쳐야만 나오는 정보라, 이 구간을 유료로 둡니다.</p>' +
+        '<h2>사주 × 관상 × 손금 교차검증</h2>' +
+        '<p class="note" style="margin:-.4rem 0 1rem">세 갈래를 <strong>같은 여덟 개 축</strong>으로 환산해 대조합니다. ' +
+        '각각 따로 보면 알 수 없고 <strong>합쳐야만 나오는 정보</strong>라, 이 구간을 유료로 둡니다.</p>' +
         crossPanel(xv) +
       '</div></div>';
   }
@@ -653,17 +713,19 @@ body.pair #panelF{display:none}
 
   function renderFace() {
     buildFaceForm();
-    var ms, an, reading, xv;
+    buildPalmForm();
+    var ms, an, face, palm, xv;
     try {
       ms = MS.calculate(readPerson(''));
       an = MS.analyze(ms);
-      reading = MS.readFace(faceState);
-      xv = MS.crossValidate(MS.sajuToTraits(an), reading.profile);
+      face = MS.readFace(faceState);
+      palm = MS.readPalm(palmState);
+      xv = MS.crossValidate(MS.sajuToTraits(an), face.profile, palm.profile);
     } catch (e) {
       out.innerHTML = '<div class="err">' + esc(e.message) + '</div>';
       return;
     }
-    out.innerHTML = facePanels(reading, xv);
+    out.innerHTML = readingPanels(face, palm, xv);
   }
 
   function render() {
