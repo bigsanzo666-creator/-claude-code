@@ -131,6 +131,29 @@ ul.why li::before{content:"·";position:absolute;left:.15rem}
 .school{font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.06em;color:var(--ink-3);margin-top:.7rem;display:block}
 .two{display:grid;gap:1.6rem}
 @media(min-width:720px){.two{grid-template-columns:1fr 1fr}}
+
+/* 운 */
+.favor-유리{--fv:var(--wood)} .favor-불리{--fv:var(--seal)} .favor-중립{--fv:var(--ink-3)}
+.tl{display:flex;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft);overflow-x:auto}
+.tl .u{background:var(--surface);min-width:88px;flex:1;padding:.6rem .5rem .7rem;display:flex;flex-direction:column;align-items:center;gap:.15rem;position:relative}
+.tl .u::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--fv)}
+.tl .u.now{background:var(--surface-2);box-shadow:inset 0 0 0 2px var(--seal)}
+.tl .age{font-family:"IBM Plex Mono",monospace;font-size:.66rem;color:var(--ink-3);margin-top:.2rem}
+.tl .gz{font-family:"Nanum Myeongjo",serif;font-size:1.45rem;font-weight:700;line-height:1.1}
+.tl .g{font-size:.68rem;color:var(--ink-2);text-align:center;line-height:1.35}
+.tl .now-tag{font-family:"IBM Plex Mono",monospace;font-size:.6rem;letter-spacing:.08em;color:var(--seal)}
+
+.yrs{display:grid;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft)}
+.yr{background:var(--surface);display:grid;grid-template-columns:4.6rem 3.2rem 1fr auto;gap:.7rem;align-items:baseline;padding:.5rem .8rem;font-size:.86rem;border-left:3px solid var(--fv)}
+.yr.now{background:var(--surface-2)}
+.yr .y{font-family:"IBM Plex Mono",monospace;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.yr .gz{font-family:"Nanum Myeongjo",serif;font-size:1.05rem;font-weight:700}
+.yr .n{font-size:.79rem;color:var(--ink-3);line-height:1.5}
+.yr .fv{font-size:.75rem;color:var(--fv);font-weight:500;white-space:nowrap}
+
+.today{display:flex;gap:1.1rem;align-items:center;flex-wrap:wrap}
+.today .big{font-family:"Nanum Myeongjo",serif;font-size:2.5rem;font-weight:800;line-height:1;color:var(--fv)}
+.today .meta2{font-size:.86rem;color:var(--ink-2);line-height:1.6}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -164,6 +187,9 @@ ul.why li::before{content:"·";position:absolute;left:.15rem}
           <option value="129.365">포항</option>
           <option value="126.531">제주</option>
         </select>
+      </div>
+      <div class="f"><label class="label" for="gender">성별 <span style="text-transform:none;letter-spacing:0">— 대운 방향</span></label>
+        <select id="gender"><option value="남" selected>남</option><option value="여">여</option></select>
       </div>
       <div class="f"><label class="label" for="yaja">자시(子時) 처리</label>
         <select id="yaja">
@@ -287,6 +313,55 @@ ul.why li::before{content:"·";position:absolute;left:.15rem}
       '<p class="note" style="margin-top:.8rem">지지는 겉 글자 하나지만 속에 여러 천간을 품습니다. 이걸 빼고 세면 명식의 실제 무게가 달라집니다.</p>';
   }
 
+  function daeunPanel(an, daeun, cur, age) {
+    const cells = daeun.periods.map((p) => {
+      const isNow = cur && p.index === cur.index;
+      return '<div class="u favor-' + p.favor + (isNow ? ' now' : '') + '">' +
+        '<span class="age">' + p.startAge + '–' + p.endAge + '세</span>' +
+        '<span class="gz e-' + p.pillar.element.stem + '">' + p.pillar.stemHanja + p.pillar.branchHanja + '</span>' +
+        '<span class="g">' + p.stemGod + '<br>' + p.branchGod + '</span>' +
+        (isNow ? '<span class="now-tag">지금</span>' : '') +
+        '</div>';
+    }).join('');
+
+    const detail = cur
+      ? '<p class="note" style="margin-top:.9rem"><strong>지금은 ' + cur.index + '번째 대운 ' +
+          esc(cur.pillar.stem + cur.pillar.branch) + ' (' + cur.startAge + '~' + cur.endAge + '세).</strong> ' +
+          '천간은 ' + cur.stemGod + ', 지지는 ' + cur.branchGod + ' — 용신 기준 <strong style="color:var(--' +
+          (cur.favor === '유리' ? 'wood' : cur.favor === '불리' ? 'seal' : 'ink-2') + ')">' + cur.favor + '</strong>.' +
+          (cur.interactions.length ? '<br>' + cur.interactions.map(esc).join(' · ') : '') + '</p>'
+      : '<p class="note" style="margin-top:.9rem">아직 첫 대운(' + daeun.startAge + '세) 전입니다. 그 전까지는 월주의 기운이 이어진다고 봅니다.</p>';
+
+    return '<div class="tl">' + cells + '</div>' + detail +
+      '<ul class="why" style="margin-top:.9rem"><li>' + esc(daeun.directionReason) + '</li>' +
+      '<li>' + esc(daeun.basis) + '</li></ul>' +
+      '<span class="school">대운수는 3일을 1년으로 환산합니다. 반올림 여부는 유파에 따라 갈리며, 여기서는 ' +
+      daeun.startAgeExact.toFixed(2) + '년을 반올림해 ' + daeun.startAge + '로 씁니다.</span>';
+  }
+
+  function yearsPanel(years) {
+    return '<div class="yrs">' + years.map((y, i) =>
+      '<div class="yr favor-' + y.favor + (i === 0 ? ' now' : '') + '">' +
+        '<span class="y">' + y.year + '년</span>' +
+        '<span class="gz e-' + y.pillar.element.stem + '">' + y.pillar.stemHanja + y.pillar.branchHanja + '</span>' +
+        '<span class="n">' + y.age + '세 · ' + y.stemGod + '/' + y.branchGod +
+          (y.interactions.length ? '<br>' + esc(y.interactions.join(' · ')) : '') + '</span>' +
+        '<span class="fv">' + y.favor + '</span>' +
+      '</div>').join('') + '</div>';
+  }
+
+  function todayPanel(today, label) {
+    return '<div class="today favor-' + today.favor + '">' +
+        '<span class="big">' + today.pillar.stemHanja + today.pillar.branchHanja + '</span>' +
+        '<span class="meta2"><strong>' + esc(label) + '</strong>의 일진은 ' +
+          esc(today.pillar.stem + today.pillar.branch) + '.<br>' +
+          '내 일간 기준 천간 ' + today.stemGod + ', 지지 ' + today.branchGod + ' — ' +
+          '<strong style="color:var(--fv)">' + today.favor + '</strong>.' +
+          (today.interactions.length ? '<br>' + esc(today.interactions.join(' · ')) : '') +
+        '</span></div>' +
+      '<p class="note" style="margin-top:.9rem">일진은 매일 바뀝니다. 명식은 그대로인데 오늘의 간지와 맺는 관계만 달라집니다.</p>';
+  }
+
   function metaList(m) {
     const rows = [];
     const push = (k, v) => rows.push('<div><dt>' + k + '</dt><dd>' + v + '</dd></div>');
@@ -316,7 +391,7 @@ ul.why li::before{content:"·";position:absolute;left:.15rem}
     $('time').disabled = noTime;
     $('yaja').disabled = noTime;
 
-    let ms, an;
+    let ms, an, daeun, cur, years, today, age, todayLabel;
     try {
       ms = MS.calculate({
         date: $('date').value,
@@ -327,6 +402,15 @@ ul.why li::before{content:"·";position:absolute;left:.15rem}
         applyEquationOfTime: $('eot').checked,
       });
       an = MS.analyze(ms);
+
+      const todayISO = new Date().toISOString().slice(0, 10);
+      const nowChart = MS.calculate({ date: todayISO, time: '12:00' });
+      age = nowChart.meta.solarYear - ms.meta.solarYear;
+      daeun = MS.calculateDaeun(ms, $('gender').value, an.yongsin, 10);
+      cur = MS.currentDaeun(daeun, age);
+      years = MS.annualLuck(ms, an.yongsin, nowChart.meta.solarYear, 10);
+      today = MS.dailyLuck(ms, an.yongsin, todayISO);
+      todayLabel = todayISO;
     } catch (e) {
       out.innerHTML = '<div class="err">' + esc(e.message) + '</div>';
       return;
@@ -365,6 +449,15 @@ ul.why li::before{content:"·";position:absolute;left:.15rem}
       '</div>' +
 
       '<div style="height:1.6rem"></div>' +
+      panel('오늘의 일진', todayPanel(today, todayLabel)) +
+
+      '<div style="height:1.6rem"></div>' +
+      panel('대운 <span class="label" style="font-family:inherit">10년 단위</span>', daeunPanel(an, daeun, cur, age)) +
+
+      '<div style="height:1.6rem"></div>' +
+      panel('세운 <span class="label" style="font-family:inherit">해마다</span>', yearsPanel(years)) +
+
+      '<div style="height:1.6rem"></div>' +
       panel('관계와 신살', relationsPanel(an)) +
 
       '<div style="height:1.6rem"></div>' +
@@ -374,7 +467,7 @@ ul.why li::before{content:"·";position:absolute;left:.15rem}
       panel('계산 근거', metaList(ms.meta));
   }
 
-  for (const id of ['date', 'time', 'place', 'yaja', 'notime', 'tst', 'eot']) {
+  for (const id of ['date', 'time', 'place', 'gender', 'yaja', 'notime', 'tst', 'eot']) {
     $(id).addEventListener('input', render);
     $(id).addEventListener('change', render);
   }
