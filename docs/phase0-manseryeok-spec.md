@@ -14,32 +14,48 @@
 - `packages/physiognomy/` — 관상 십이궁 → 8축. 외모 점수화 없음.
 - `packages/palmistry/` — 손금 4선·오행 손모양 → 8축. 수명 예측 없음.
 - `packages/report/` — 룰 결과 → 서술형 리포트. 판단 금지·문장화만. 검증 45(모델 호출 없음).
+- `packages/commerce/` — 주문·이용권·환불 정책·포트원 V2 어댑터. 검증 49(네트워크 없음).
+- `packages/korean/` — 조사 처리 등 한국어 문장 유틸.
+- `apps/api/` — 결제·리포트 API 서버. 검증 34(실제 결제 0건).
+
+**검증 합계 275.** 각 패키지에서 `node --experimental-strip-types verify.ts`
 - `apps/manse-viewer/` — 3탭(사주 / 궁합 / 관상·손금·교차검증). `node apps/manse-viewer/build.mjs`
 - **3종 교차검증 완성.** 사주·관상·손금을 8축으로 대조해 일치/엇갈림/단독으로 분류.
 
 **수익 경계선 확정** — `docs/saju-service-research.md` 10절 참고.
 무료 = 단독 풀이 전부(원가 0). 유료 = 교차검증 + AI 서술형 리포트.
 
-### 다음 작업 — 결제
+### 다음 작업 — 실제 결제 한 건 뚫기
 
-팔 물건은 다 있는데 돈 받을 방법이 없다. 여기가 병목이다.
+코드는 다 있다. 남은 건 계정과 배포다. 순서:
 
-새 세션에 이 프롬프트를 붙여넣을 것:
+1. **리포트 품질 확인 (제일 먼저)**
+   `ANTHROPIC_API_KEY=... node --experimental-strip-types packages/report/demo.ts`
+   한 건 뽑아 읽어보고, 팔 만한 글인지 판단할 것. (약 150원)
+   여기서 별로면 결제를 붙여도 안 팔린다.
+
+2. **포트원 가입 + 테스트 결제**
+   콘솔에서 V2 API Secret 발급 → `PORTONE_API_SECRET` 로 주입.
+   결제창(브라우저 SDK)은 아직 안 붙였다. 서버는 준비됐다.
+
+3. **뷰어에 결제 붙이기**
+   지금 뷰어는 정적 페이지라 API를 부르지 않는다.
+   유료 패널을 미리보기 + 결제 버튼으로 바꾸고 `/api/preview` → `/api/orders` → 결제창 → `/api/orders/:id/confirm` 흐름을 연결할 것.
+
+4. **배포 + Postgres**
+   `MemoryOrderStore` / `MemoryReportCache` 를 Postgres 구현체로 교체.
+   지금은 프로세스가 죽으면 주문과 리포트가 사라진다.
+
+새 세션 프롬프트:
 
 ```
-결제를 붙여줘. 포트원 또는 토스페이먼츠 웹 결제.
-docs/saju-service-research.md 10절의 수익 경계선대로,
-무료 구간은 그대로 두고 교차검증과 서술형 리포트만 유료로 막는다.
-전자상거래법 요건을 반드시 반영할 것:
-디지털콘텐츠는 "청약철회 불가 고지 + 미리보기 제공"이 있어야 철회 제한을 주장할 수 있다.
-결제 화면에 그 고지와 리포트 샘플을 넣고, 환불은 철회일로부터 3영업일 기준으로 잡아줘.
+apps/api 서버는 완성돼 있다 (verify.ts 34개 통과).
+apps/manse-viewer 의 유료 패널을 실제 결제 흐름으로 바꿔줘.
+/api/preview 로 미리보기를 받아 보여주고, 청약철회 고지에 동의를 받은 뒤
+/api/orders 로 주문을 만들고, 포트원 브라우저 SDK로 결제창을 띄우고,
+/api/orders/:id/confirm 으로 확정하는 흐름.
+무료 구간은 지금처럼 브라우저에서만 돌게 그대로 둘 것.
 ```
-
-**결제 전에 반드시 확인할 것:** 실제 리포트 품질.
-`ANTHROPIC_API_KEY=... node --experimental-strip-types packages/report/demo.ts` 로 한 건 뽑아보고,
-문장이 팔 만한지 직접 읽어볼 것. (한 건 약 150원)
-
-그 다음 후보: 사진 → 특징 자동 추출, 서버 배포 + Postgres 캐시, 신년 시즌 패키지(11월 마감).
 
 ### 남은 숙제
 
@@ -52,6 +68,11 @@ docs/saju-service-research.md 10절의 수익 경계선대로,
 - 리포트 캐시가 메모리라 프로세스가 죽으면 사라진다. 배포 전 Postgres로 옮길 것
   (`packages/report/src/cache.ts` 의 `ReportCache` 인터페이스 구현체만 갈아끼우면 된다).
 - 리포트 계층은 서버 전용이다. 브라우저 페이지에서는 못 쓴다 (API 키 노출).
+- 주문 저장소도 메모리다 (`apps/api/src/server.ts` 의 `MemoryOrderStore`). 배포 전 교체 필수.
+- 환불 정책은 법령을 읽고 구현한 것이지 법률 자문이 아니다. 오픈 전 검토받을 것.
+- 영업일 계산에 공휴일이 빠져 있다 (`packages/commerce/src/refund.ts`). 실제로는 기한이 더 늘어나므로
+  이 값보다 빨리 환급하면 안전한 쪽이다.
+- 포트원 결제창(브라우저 SDK) 연동은 아직 없다. 서버 쪽 검증만 완성.
 
 ---
 
