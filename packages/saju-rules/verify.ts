@@ -12,8 +12,10 @@ import {
   analyze, formatAnalysis, tenGodOf, twelveStage, HIDDEN_STEMS,
   findRelations, findSinsal, elementWeights,
   calculateDaeun, currentDaeun, annualLuck, dailyLuck, dailyLuckRange,
-  compatibility,
+  compatibility, sajuToTraits, crossValidate,
 } from './src/index.ts';
+import { readFace, NEUTRAL_FEATURES } from '../physiognomy/src/index.ts';
+import { TRAIT_AXES } from '../traits/src/index.ts';
 
 let passed = 0, failed = 0;
 const failures: string[] = [];
@@ -363,6 +365,69 @@ if (real.strengths.length) { console.log('\n  강점:'); for (const t of real.st
 if (real.cautions.length) { console.log('\n  주의:'); for (const t of real.cautions) console.log(`    − ${t.split(' — ')[0]}`); }
 console.log('\n  조언:');
 for (const t of real.advice) console.log(`    · ${t}`);
+
+// ── O. 교차검증 ────────────────────────────────────────────────
+section('O. 교차검증 — 사주 × 관상');
+
+const msX = calculate({ date: '1990-05-15', time: '14:30' });
+const anX = analyze(msX);
+const sajuTraits = sajuToTraits(anX);
+
+check('사주가 성향 신호를 생성', sajuTraits.signals.length > 0, `${sajuTraits.signals.length}개 신호`);
+check('신호 점수가 −2~+2 범위', sajuTraits.signals.every((s) => s.score >= -2 && s.score <= 2));
+check('모든 신호에 근거가 붙음', sajuTraits.signals.every((s) => s.evidence.length > 0));
+
+// 한 갈래만 있으면 교차검증이 성립하지 않는다
+const solo = crossValidate(sajuTraits);
+check('한 갈래만으로는 대조 불가 안내', solo.summary.includes('두 가지 이상'), solo.summary.slice(0, 30) + '…');
+check('한 갈래면 일치 항목이 없음', solo.agreed.length === 0);
+
+// 사주와 같은 방향을 말하는 얼굴 / 반대를 말하는 얼굴
+const richFace = readFace({ ...NEUTRAL_FEATURES, noseWing: 'high', mouthSize: 'high' });
+const poorFace = readFace({ ...NEUTRAL_FEATURES, noseWing: 'low', mouthSize: 'low' });
+
+check('관상이 성향 신호를 생성', richFace.profile.signals.length > 0, `${richFace.profile.signals.length}개`);
+check('중립 얼굴은 얼굴형 신호만 남음',
+  readFace(NEUTRAL_FEATURES).profile.signals.every((s) => s.evidence.includes('얼굴형')));
+
+// 사주는 재성 0 → 재물 약함. 콧방울 큰 얼굴 → 재물 강함. 엇갈려야 한다
+const cvConflict = crossValidate(sajuTraits, richFace.profile);
+const wealth = cvConflict.comparisons.find((c) => c.axis === '재물')!;
+check('재물 축에서 사주와 관상이 엇갈림을 잡아냄', wealth.verdict === '엇갈림',
+  `${wealth.verdict} — 사주 ${wealth.readings[0].score} / 관상 ${wealth.readings[1].score}`);
+check('엇갈림을 감추지 않고 목록에 올림', cvConflict.conflicted.some((c) => c.axis === '재물'));
+check('엇갈림 문구가 "노력"의 여지로 안내',
+  wealth.text.includes('노력'), wealth.text.slice(0, 40) + '…');
+
+// 같은 방향이면 일치로 잡아야 한다
+const cvAgree = crossValidate(sajuTraits, poorFace.profile);
+const wealth2 = cvAgree.comparisons.find((c) => c.axis === '재물')!;
+check('둘 다 약하다고 보면 일치로 판정', wealth2.verdict === '일치',
+  `${wealth2.verdict} (합의 방향 ${wealth2.consensus})`);
+check('일치 항목은 확신 문구를 씀', wealth2.text.includes('확신'));
+
+check('모든 축이 판정을 받음', cvAgree.comparisons.length === TRAIT_AXES.length,
+  `${cvAgree.comparisons.length}/${TRAIT_AXES.length}축`);
+check('네 가지 판정만 사용',
+  cvAgree.comparisons.every((c) => ['일치', '엇갈림', '단독', '해당 없음'].includes(c.verdict)));
+check('요약에 대조한 갈래 수가 들어감', cvAgree.summary.includes('2가지'));
+check('면책 문구가 붙음', cvAgree.disclaimer.includes('참고'));
+
+check('결정론 — 같은 입력이면 같은 교차검증',
+  JSON.stringify(crossValidate(sajuTraits, poorFace.profile)) === JSON.stringify(cvAgree));
+
+// ── P. 교차검증 출력 미리보기 ──────────────────────────────────
+section('P. 교차검증 출력 (1990-05-15 사주 × 콧방울·입 큰 얼굴)');
+console.log(`  ${cvConflict.summary}\n`);
+for (const c of cvConflict.comparisons) {
+  const mark = c.verdict === '일치' ? '=' : c.verdict === '엇갈림' ? '≠' : c.verdict === '단독' ? '·' : ' ';
+  const scores = c.readings.map((r) => `${r.source} ${r.score > 0 ? '+' : ''}${r.score}`).join('  ');
+  console.log(`  ${mark} ${c.axis.padEnd(6)} ${scores.padEnd(20)} ${c.verdict}`);
+}
+console.log('\n  엇갈리는 항목 상세:');
+for (const c of cvConflict.conflicted) console.log(`    · ${c.text}`);
+console.log('\n  일치하는 항목 상세:');
+for (const c of cvConflict.agreed.slice(0, 2)) console.log(`    · ${c.text}`);
 
 // ── I. 결과 미리보기 ───────────────────────────────────────────
 section('I. 실제 출력 (1990-05-15 14:30 서울)');

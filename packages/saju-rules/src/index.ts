@@ -29,6 +29,8 @@ export * from './relations.ts';
 export * from './luck.ts';
 export * from './compatibility.ts';
 export * from './josa.ts';
+export * from './toTraits.ts';
+export * from './crossValidate.ts';
 
 export interface PillarAnalysis {
   position: PillarName;
