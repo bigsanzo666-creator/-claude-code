@@ -5,3 +5,5 @@ export {
   calculateDaeun, currentDaeun, annualLuck, dailyLuck,
 } from '../../packages/saju-rules/src/index.ts';
 export { compatibility } from '../../packages/saju-rules/src/index.ts';
+export { sajuToTraits, crossValidate } from '../../packages/saju-rules/src/index.ts';
+export { readFace, NEUTRAL_FEATURES, FEATURE_LABEL, FEATURE_PALACE, FACE_SHAPE_LABEL } from '../../packages/physiognomy/src/index.ts';

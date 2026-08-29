@@ -185,6 +185,31 @@ body.pair .who{display:block}
 .mini .c{background:var(--surface);text-align:center;padding:.5rem .2rem .6rem}
 .mini .c .p{font-family:"IBM Plex Mono",monospace;font-size:.6rem;color:var(--ink-3);letter-spacing:.06em}
 .mini .c .g{font-family:"Nanum Myeongjo",serif;font-size:1.3rem;font-weight:700;line-height:1.15}
+
+/* 관상 폼 */
+#panelF{display:none}
+body.face #panelF{display:block}
+body.face #panelB{display:none}
+body.pair #panelF{display:none}
+.fgrid{display:grid;gap:.8rem 1.1rem;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.fg{display:grid;grid-template-columns:1fr auto;gap:.15rem .6rem;align-items:center}
+.fg .fl{font-size:.86rem}
+.fg .fp{font-family:"IBM Plex Mono",monospace;font-size:.66rem;color:var(--ink-3);grid-column:1}
+.seg{display:flex;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft);grid-row:1/span 2}
+.seg button{font:inherit;font-size:.78rem;font-weight:400;color:var(--ink-2);background:var(--surface);border:0;padding:.32rem .55rem;cursor:pointer;min-width:2.6rem}
+.seg button.on{background:var(--seal-soft);color:var(--seal);font-weight:600}
+
+/* 교차검증 */
+.pro{border:1px solid var(--seal);position:relative}
+.pro::before{content:"유료 구간";position:absolute;top:-1px;right:-1px;font-family:"IBM Plex Mono",monospace;font-size:.62rem;letter-spacing:.1em;background:var(--seal);color:var(--paper);padding:.15rem .5rem}
+.xv{display:grid;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft)}
+.xr{background:var(--surface);padding:.7rem .9rem;display:grid;grid-template-columns:5.5rem 1fr auto;gap:.2rem .8rem;align-items:center;border-left:3px solid var(--xc)}
+.xr.v일치{--xc:var(--wood)} .xr.v엇갈림{--xc:var(--seal)} .xr.v단독{--xc:var(--rule)} .xr.v해당{--xc:transparent}
+.xr .xa{font-weight:500;font-size:.9rem}
+.xr .xs{display:flex;gap:.5rem;flex-wrap:wrap;font-family:"IBM Plex Mono",monospace;font-size:.76rem;color:var(--ink-3)}
+.xr .xs b{color:var(--ink-2);font-weight:500}
+.xr .xv2{font-size:.78rem;color:var(--xc);font-weight:500;white-space:nowrap}
+.xr .xt{grid-column:1/-1;font-size:.85rem;line-height:1.6;color:var(--ink-3);margin-top:.25rem}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -201,6 +226,7 @@ body.pair .who{display:block}
   <div class="tabs" role="tablist">
     <button class="tab on" id="tabSolo" type="button" role="tab" aria-selected="true">나의 사주</button>
     <button class="tab" id="tabPair" type="button" role="tab" aria-selected="false">궁합</button>
+    <button class="tab" id="tabFace" type="button" role="tab" aria-selected="false">관상 · 교차검증</button>
   </div>
 
   <section class="panel" id="panelA"><div class="panel-in">
@@ -268,6 +294,14 @@ body.pair .who{display:block}
     <div class="opts">
       <label class="opt"><input type="checkbox" id="b-notime"> 출생 시각을 모름</label>
     </div>
+  </div></section>
+
+  <div style="height:1.2rem"></div>
+  <section class="panel" id="panelF"><div class="panel-in">
+    <h2>얼굴 특징</h2>
+    <p class="note" style="margin:-.4rem 0 1.1rem">부위마다 해당하는 쪽을 고르세요. 각 부위는 관상의 십이궁(十二宮)에 대응합니다.<br>
+    실제 서비스에서는 사진에서 이 값들을 자동으로 뽑되, <strong>사진은 기기 안에서만 처리하고 서버로 보내지 않습니다.</strong></p>
+    <div class="fgrid" id="faceForm"></div>
   </div></section>
 
   <div style="height:1.6rem"></div>
@@ -428,6 +462,91 @@ body.pair .who{display:block}
       '<p class="note" style="margin-top:.9rem">일진은 매일 바뀝니다. 명식은 그대로인데 오늘의 간지와 맺는 관계만 달라집니다.</p>';
   }
 
+  var faceState = null;
+  var SEG = { low: '작음', mid: '보통', high: '큼' };
+  var SEG_LABELS = {
+    foreheadWidth: ['좁음', '보통', '넓음'], browThickness: ['옅음', '보통', '짙음'],
+    eyeSize: ['작음', '보통', '큼'], noseBridge: ['낮음', '보통', '높음'],
+    noseWing: ['작음', '보통', '큼'], mouthSize: ['작음', '보통', '큼'],
+    lipThickness: ['얇음', '보통', '두꺼움'], jawDevelopment: ['갸름', '보통', '발달'],
+    cheekbone: ['평평', '보통', '발달'],
+  };
+
+  function buildFaceForm() {
+    if (faceState) return;
+    // 기본값은 특징이 몇 개 드러난 얼굴로 둔다 — 전부 '보통'이면 교차검증이 성립하지 않는다
+    faceState = Object.assign({}, MS.NEUTRAL_FEATURES, {
+      foreheadWidth: 'high', noseWing: 'high', jawDevelopment: 'low', eyeSize: 'high',
+    });
+
+    var host = $('faceForm');
+    var keys = Object.keys(SEG_LABELS);
+    var html = keys.map(function (k) {
+      var labels = SEG_LABELS[k];
+      var segs = ['low', 'mid', 'high'].map(function (v, i) {
+        return '<button type="button" data-k="' + k + '" data-v="' + v + '"' +
+          (faceState[k] === v ? ' class="on"' : '') + '>' + labels[i] + '</button>';
+      }).join('');
+      return '<div class="fg"><span class="fl">' + MS.FEATURE_LABEL[k] + '</span>' +
+        '<span class="seg">' + segs + '</span>' +
+        '<span class="fp">' + MS.FEATURE_PALACE[k] + '</span></div>';
+    }).join('');
+
+    var shapes = Object.keys(MS.FACE_SHAPE_LABEL).map(function (v) {
+      return '<button type="button" data-k="faceShape" data-v="' + v + '"' +
+        (faceState.faceShape === v ? ' class="on"' : '') + '>' + MS.FACE_SHAPE_LABEL[v] + '</button>';
+    }).join('');
+    html += '<div class="fg" style="grid-column:1/-1"><span class="fl">얼굴형</span>' +
+      '<span class="seg">' + shapes + '</span><span class="fp">전체 골격</span></div>';
+
+    host.innerHTML = html;
+    host.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-k]');
+      if (!b) return;
+      faceState[b.dataset.k] = b.dataset.v;
+      var group = b.parentElement.querySelectorAll('button');
+      for (var i = 0; i < group.length; i++) group[i].classList.remove('on');
+      b.classList.add('on');
+      render();
+    });
+  }
+
+  function crossPanel(xv) {
+    var rows = xv.comparisons.map(function (c) {
+      var scores = c.readings.map(function (r) {
+        return '<span><b>' + r.source + '</b> ' + (r.score > 0 ? '+' : '') + r.score + '</span>';
+      }).join('');
+      var vcls = c.verdict === '해당 없음' ? '해당' : c.verdict;
+      return '<div class="xr v' + vcls + '">' +
+        '<span class="xa">' + esc(c.axis) + '</span>' +
+        '<span class="xs">' + scores + '</span>' +
+        '<span class="xv2">' + esc(c.verdict) + '</span>' +
+        (c.verdict === '일치' || c.verdict === '엇갈림' ? '<span class="xt">' + esc(c.text) + '</span>' : '') +
+        '</div>';
+    }).join('');
+
+    return '<p class="note" style="margin:0 0 1rem">' + esc(xv.summary) + '</p>' +
+      '<div class="xv">' + rows + '</div>' +
+      '<p class="note" style="margin-top:1rem">' + esc(xv.disclaimer) + '</p>';
+  }
+
+  function facePanels(reading, xv) {
+    var notes = reading.notes.map(function (n) {
+      return '<div><dt>' + esc(n.palace) + '</dt><dd>' + esc(n.text) + '</dd></div>';
+    }).join('');
+
+    return panel('관상 풀이 <span class="label" style="font-family:inherit">무료</span>',
+        '<dl class="meta">' + notes + '</dl>') +
+
+      '<div style="height:1.6rem"></div>' +
+      '<div class="panel pro"><div class="panel-in">' +
+        '<h2>사주 × 관상 교차검증</h2>' +
+        '<p class="note" style="margin:-.4rem 0 1rem">사주와 관상을 <strong>같은 여덟 개 축</strong>으로 환산해 대조합니다. ' +
+        '따로 보면 알 수 없고 합쳐야만 나오는 정보라, 이 구간을 유료로 둡니다.</p>' +
+        crossPanel(xv) +
+      '</div></div>';
+  }
+
   function miniChart(ms) {
     const c = (p, pos) => '<div class="c"><span class="p">' + pos + '</span><br>' +
       (p ? '<span class="g e-' + p.element.stem + '">' + p.stemHanja + '</span><br>' +
@@ -532,8 +651,24 @@ body.pair .who{display:block}
     out.innerHTML = compatPanels(msA, msB, nameA, nameB, cp);
   }
 
+  function renderFace() {
+    buildFaceForm();
+    var ms, an, reading, xv;
+    try {
+      ms = MS.calculate(readPerson(''));
+      an = MS.analyze(ms);
+      reading = MS.readFace(faceState);
+      xv = MS.crossValidate(MS.sajuToTraits(an), reading.profile);
+    } catch (e) {
+      out.innerHTML = '<div class="err">' + esc(e.message) + '</div>';
+      return;
+    }
+    out.innerHTML = facePanels(reading, xv);
+  }
+
   function render() {
     if (mode === 'pair') { renderPair(); return; }
+    if (mode === 'face') { renderFace(); return; }
 
     const noTime = $('notime').checked;
     $('time').disabled = noTime;
@@ -627,14 +762,17 @@ body.pair .who{display:block}
   function setMode(next) {
     mode = next;
     document.body.classList.toggle('pair', next === 'pair');
-    $('tabSolo').classList.toggle('on', next === 'solo');
-    $('tabPair').classList.toggle('on', next === 'pair');
-    $('tabSolo').setAttribute('aria-selected', String(next === 'solo'));
-    $('tabPair').setAttribute('aria-selected', String(next === 'pair'));
+    document.body.classList.toggle('face', next === 'face');
+    var tabs = { solo: 'tabSolo', pair: 'tabPair', face: 'tabFace' };
+    for (var k in tabs) {
+      $(tabs[k]).classList.toggle('on', next === k);
+      $(tabs[k]).setAttribute('aria-selected', String(next === k));
+    }
     render();
   }
   $('tabSolo').addEventListener('click', () => setMode('solo'));
   $('tabPair').addEventListener('click', () => setMode('pair'));
+  $('tabFace').addEventListener('click', () => setMode('face'));
 
   render();
 })();
