@@ -15,6 +15,7 @@ import {
   compatibility, sajuToTraits, crossValidate,
 } from './src/index.ts';
 import { readFace, NEUTRAL_FEATURES } from '../physiognomy/src/index.ts';
+import { readPalm, NEUTRAL_PALM_FEATURES } from '../palmistry/src/index.ts';
 import { TRAIT_AXES } from '../traits/src/index.ts';
 
 let passed = 0, failed = 0;
@@ -428,6 +429,106 @@ console.log('\n  엇갈리는 항목 상세:');
 for (const c of cvConflict.conflicted) console.log(`    · ${c.text}`);
 console.log('\n  일치하는 항목 상세:');
 for (const c of cvConflict.agreed.slice(0, 2)) console.log(`    · ${c.text}`);
+
+// ── Q. 손금 ────────────────────────────────────────────────────
+section('Q. 손금');
+
+const neutralPalm = readPalm(NEUTRAL_PALM_FEATURES);
+check('중립 손은 손 모양 신호만 남음',
+  neutralPalm.profile.signals.every((s) => s.evidence.includes('손 모양')),
+  `${neutralPalm.profile.signals.length}개`);
+
+const strongPalm = readPalm({
+  ...NEUTRAL_PALM_FEATURES,
+  lifeLength: 'high', lifeDepth: 'high', headLength: 'high',
+  heartLength: 'low', fateClarity: 'high', handShape: '토형',
+});
+check('특징 있는 손은 여러 축에 신호', strongPalm.profile.signals.length >= 8,
+  `${strongPalm.profile.signals.length}개 신호`);
+check('모든 신호에 근거가 붙음', strongPalm.profile.signals.every((s) => s.evidence.length > 0));
+check('점수가 −2~+2 범위', strongPalm.profile.signals.every((s) => s.score >= -2 && s.score <= 2));
+
+// 생명선을 수명과 엮지 않는다 — 이건 규칙이다
+const lifeNote = strongPalm.notes.find((n) => n.domain === '생명선')!;
+check('생명선을 체력으로만 읽고 수명 예측을 하지 않음',
+  lifeNote.text.includes('수명이 아니라') && !/수명이 (길|짧)/.test(lifeNote.text),
+  lifeNote.text.slice(0, 34) + '…');
+
+// 운명선이 없는 것을 나쁘게 말하지 않는다
+const faintFate = readPalm({ ...NEUTRAL_PALM_FEATURES, fateClarity: 'low' });
+const fateNote = faintFate.notes.find((n) => n.domain === '운명선')!;
+check('운명선이 흐린 것을 결함으로 말하지 않음',
+  fateNote.text.includes('나쁜 것이 아닙니다'), fateNote.text.slice(0, 30) + '…');
+
+// 막쥔손금
+const simian = readPalm({ ...NEUTRAL_PALM_FEATURES, simianLine: true });
+check('막쥔손금이 추진력 신호를 냄',
+  simian.profile.signals.some((s) => s.axis === '추진력' && s.score === 2 && s.evidence.includes('막쥔손금')));
+
+// 손 모양 5종
+let shapeOk = true;
+for (const shape of ['목형', '화형', '토형', '금형', '수형'] as const) {
+  const r = readPalm({ ...NEUTRAL_PALM_FEATURES, handShape: shape });
+  if (!r.profile.signals.some((s) => s.evidence.includes(shape))) shapeOk = false;
+}
+check('오행 손 모양 5종 모두 신호 생성', shapeOk);
+
+// 두뇌선 길이는 방향이 갈려야 한다 (길면 신중, 짧으면 결단)
+const longHead = readPalm({ ...NEUTRAL_PALM_FEATURES, headLength: 'high' });
+const shortHead = readPalm({ ...NEUTRAL_PALM_FEATURES, headLength: 'low' });
+check('두뇌선 길면 학습, 짧으면 추진으로 갈림',
+  longHead.profile.signals.some((s) => s.axis === '학습·직관' && s.score > 0) &&
+  shortHead.profile.signals.some((s) => s.axis === '추진력' && s.score > 0));
+
+// ── R. 3갈래 교차검증 ──────────────────────────────────────────
+section('R. 사주 × 관상 × 손금');
+
+const face3 = readFace({ ...NEUTRAL_FEATURES, foreheadWidth: 'high', noseWing: 'high', jawDevelopment: 'low', eyeSize: 'high' });
+const palm3 = readPalm({ ...NEUTRAL_PALM_FEATURES, lifeLength: 'high', headLength: 'high', heartLength: 'high', fateClarity: 'high', handShape: '토형' });
+const cv3 = crossValidate(sajuTraits, face3.profile, palm3.profile);
+
+check('세 갈래를 모두 인식', cv3.sourceCount === 3);
+check('요약에 3가지로 표기', cv3.summary.includes('3가지'), cv3.summary.slice(0, 40) + '…');
+check('각 축이 세 갈래의 판정을 모두 담음',
+  cv3.comparisons.every((c) => c.readings.length === 3));
+check('갈래가 늘어 단독 항목이 줄어듦',
+  cv3.soloOnly.length < crossValidate(sajuTraits, face3.profile).soloOnly.length,
+  `2갈래 ${crossValidate(sajuTraits, face3.profile).soloOnly.length}개 → 3갈래 ${cv3.soloOnly.length}개`);
+
+// 셋 다 같은 방향이면 일치, 하나라도 반대면 엇갈림
+const allAgree = crossValidate(
+  { source: '사주', signals: [{ axis: '재물', score: 2, evidence: '재성이 많다' }] },
+  { source: '관상', signals: [{ axis: '재물', score: 1, evidence: '콧방울이 크다' }] },
+  { source: '손금', signals: [{ axis: '재물', score: 1, evidence: '운명선이 뚜렷하다' }] },
+);
+const w3 = allAgree.comparisons.find((c) => c.axis === '재물')!;
+check('셋 다 같은 방향 → 일치', w3.verdict === '일치');
+check('일치 문구가 세 갈래를 모두 호명', w3.text.includes('사주') && w3.text.includes('관상') && w3.text.includes('손금'),
+  w3.text.slice(0, 40) + '…');
+
+const twoVsOne = crossValidate(
+  { source: '사주', signals: [{ axis: '재물', score: 2, evidence: '재성이 많다' }] },
+  { source: '관상', signals: [{ axis: '재물', score: 1, evidence: '콧방울이 크다' }] },
+  { source: '손금', signals: [{ axis: '재물', score: -2, evidence: '운명선이 흐리다' }] },
+);
+const w4 = twoVsOne.comparisons.find((c) => c.axis === '재물')!;
+check('2대1로 갈리면 엇갈림으로 처리', w4.verdict === '엇갈림');
+check('어느 쪽이 어느 편인지 문구에 드러남',
+  w4.text.includes('사주·관상') && w4.text.includes('손금'), w4.text.slice(0, 50) + '…');
+
+check('결정론 — 3갈래도 같은 입력이면 같은 결과',
+  JSON.stringify(crossValidate(sajuTraits, face3.profile, palm3.profile)) === JSON.stringify(cv3));
+
+// ── S. 3갈래 출력 미리보기 ─────────────────────────────────────
+section('S. 3갈래 교차검증 출력');
+console.log(`  ${cv3.summary}\n`);
+for (const c of cv3.comparisons) {
+  const mark = c.verdict === '일치' ? '=' : c.verdict === '엇갈림' ? '≠' : c.verdict === '단독' ? '·' : ' ';
+  const scores = c.readings.map((r) => `${r.source} ${r.score > 0 ? '+' : ''}${r.score}`).join('  ');
+  console.log(`  ${mark} ${c.axis.padEnd(6)} ${scores.padEnd(32)} ${c.verdict}`);
+}
+console.log('\n  손금 풀이:');
+for (const n of palm3.notes) console.log(`    · [${n.domain}] ${n.text}`);
 
 // ── I. 결과 미리보기 ───────────────────────────────────────────
 section('I. 실제 출력 (1990-05-15 14:30 서울)');

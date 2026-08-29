@@ -21,10 +21,14 @@ import {
 } from '../../traits/src/index.ts';
 import { josa } from './josa.ts';
 
-/** 여러 이름을 '와/과'로 잇는다. 마지막 연결만 받침을 따진다. */
+/**
+ * 여러 이름을 잇는다.
+ * 둘이면 '와/과'로, 셋 이상이면 가운뎃점으로 — "사주와 관상과 손금"은 어색하다.
+ */
 function joinWith(names: string[]): string {
   if (names.length <= 1) return names[0] ?? '';
-  return names.slice(0, -1).map((n) => josa(n, '와')).join(' ') + ' ' + names.at(-1);
+  if (names.length === 2) return `${josa(names[0], '와')} ${names[1]}`;
+  return names.join('·');
 }
 
 export type Verdict = '일치' | '엇갈림' | '단독' | '해당 없음';
