@@ -20,7 +20,7 @@ import {
 } from './tables.ts';
 import { tenGodOf, GOD_GROUP, GOD_MEANING, type GodGroup } from './tenGods.ts';
 import { analyzeStrength, findYongsin, elementWeights } from './strength.ts';
-import { josa } from './josa.ts';
+import { josa } from '../../korean/src/index.ts';
 
 export interface CompatibilityAxis {
   name: string;

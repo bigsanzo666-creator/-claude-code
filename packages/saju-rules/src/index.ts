@@ -28,7 +28,7 @@ export * from './strength.ts';
 export * from './relations.ts';
 export * from './luck.ts';
 export * from './compatibility.ts';
-export * from './josa.ts';
+export * from '../../korean/src/index.ts';
 export * from './toTraits.ts';
 export * from './crossValidate.ts';
 

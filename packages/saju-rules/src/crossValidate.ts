@@ -19,7 +19,7 @@ import {
   TRAIT_AXES, collapse, scoreLabel,
   type TraitProfile, type TraitAxis, type TraitSource,
 } from '../../traits/src/index.ts';
-import { josa } from './josa.ts';
+import { josa } from '../../korean/src/index.ts';
 
 /**
  * 여러 이름을 잇는다.

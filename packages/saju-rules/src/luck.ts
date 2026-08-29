@@ -14,7 +14,7 @@ import type { Pillar } from '../../manseryeok/src/ganzhi.ts';
 import { HIDDEN_STEMS, BRANCH_CLASHES, BRANCH_SIX_COMBOS, STEM_COMBINATIONS, STEM_CLASHES } from './tables.ts';
 import { tenGodOf, GOD_GROUP, type TenGod, type GodGroup } from './tenGods.ts';
 import type { YongsinResult } from './strength.ts';
-import { josa } from './josa.ts';
+import { josa } from '../../korean/src/index.ts';
 
 export type Gender = '남' | '여';
 
