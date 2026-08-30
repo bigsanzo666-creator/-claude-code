@@ -33,30 +33,56 @@ const missing = missingFields(business);
 
 const cache = new MemoryReportCache();
 
+// 결제창은 상점 정보와 API 비밀이 **모두** 있을 때만 켠다.
+// 셋 중 하나라도 없으면 버튼을 띄우지 않는다 — 눌러봤자 실패할 버튼이다.
+const payable = Boolean(apiSecret && storeId && channelKey);
+
 /**
  * 저장소를 고른다.
  *
- * `DATABASE_URL`이 없으면 메모리 구현으로 뜬다 — 개발 중에도 서버가 떠야 하고,
- * 심사 대기 중에는 파는 것이 없으므로 주문이 사라져도 잃을 것이 없다.
+ * 규칙이 둘이고, 둘 다 "무엇이 더 나쁜 사고인가"로 정해진다.
  *
- * **결제가 켜진 채로 메모리 구현이 돌아가는 것만은 막는다.** 그 조합에서
- * 서버가 한 번 재시작되면 "돈은 나갔는데 주문이 없다"가 되고, 그건 되돌릴 수 없다.
- * 그래서 그 경우에는 뜨지 않고 죽는다 — 조용히 굴러가는 것보다 낫다.
+ * **결제가 켜져 있으면 DB 없이는 뜨지 않는다.** 메모리 저장소로 결제를 받으면
+ * 재시작 한 번에 "돈은 나갔는데 주문이 없다"가 되고, 그건 되돌릴 수 없다.
+ * 안 뜨는 편이 낫다.
+ *
+ * **결제가 꺼져 있으면 DB에 못 붙어도 뜬다.** 심사 대기 중에는 파는 것이 없어서
+ * 주문이 사라져도 잃을 것이 없는 반면, 사이트가 내려가면 심사자가 열었을 때
+ * 접속 불가로 반려된다. 이쪽이 더 큰 손해다.
+ *
+ * 처음에는 이 구분 없이 `await migrate()` 를 그냥 두었는데, DB가 준비되기 전에
+ * 배포가 돌면 서버가 기동 중에 멈춰 **사이트 전체가 내려갔다.** 약관 페이지까지
+ * 같이 죽는다. 저장소 하나 때문에 사이트가 죽는 구조여서는 안 된다.
  */
 const databaseUrl = process.env.DATABASE_URL;
 let orders: OrderStore = new MemoryOrderStore();
 let reportStore: ReportBox | null = null;
+let storeKind = '메모리 (재시작하면 주문이 사라집니다)';
 
 if (databaseUrl) {
-  const pool = createPool(databaseUrl);
-  await migrate(pool);
-  orders = new PostgresOrderStore(pool);
-  reportStore = new PostgresReportStore(pool);
+  try {
+    const pool = createPool(databaseUrl);
+    // 기동을 무한정 붙잡지 않는다. 못 붙으면 빨리 알고 다음으로 넘어가야 한다
+    await Promise.race([
+      migrate(pool),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('데이터베이스 응답이 20초 안에 오지 않았습니다.')), 20_000)),
+    ]);
+    orders = new PostgresOrderStore(pool);
+    reportStore = new PostgresReportStore(pool);
+    storeKind = 'Postgres';
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    if (payable) {
+      console.error(`[api] 결제가 켜져 있는데 데이터베이스에 붙지 못했습니다: ${reason}`);
+      console.error('      메모리 저장소로 결제를 받으면 재시작 시 주문이 사라집니다 — 뜨지 않습니다.');
+      process.exit(1);
+    }
+    console.error(`[api] 데이터베이스에 붙지 못했습니다: ${reason}`);
+    console.warn('[api] 결제가 꺼져 있으므로 메모리 저장소로 뜹니다. 사이트는 정상 동작합니다.');
+    storeKind = `메모리 (DB 연결 실패: ${reason})`;
+  }
 }
-
-// 결제창은 상점 정보와 API 비밀이 **모두** 있을 때만 켠다.
-// 셋 중 하나라도 없으면 버튼을 띄우지 않는다 — 눌러봤자 실패할 버튼이다.
-const payable = Boolean(apiSecret && storeId && channelKey);
 
 if (payable && !databaseUrl) {
   console.error('[api] 결제가 켜져 있는데 DATABASE_URL 이 없습니다.');
@@ -67,7 +93,7 @@ if (payable && !databaseUrl) {
 console.log('[api] 기동 상태');
 console.log(`  결제      ${payable ? '켜짐' : '꺼짐 (포트원 설정 없음)'}`);
 console.log(`  리포트    ${hasModelKey ? '켜짐' : '꺼짐 (API 키 없음)'}`);
-console.log(`  저장소    ${databaseUrl ? 'Postgres' : '메모리 (재시작하면 주문이 사라집니다)'}`);
+console.log(`  저장소    ${storeKind}`);
 console.log(`  사업자정보 ${missing.length ? `미입력 ${missing.length}건` : '완비'}`);
 if (missing.length) {
   console.warn(`[api] 심사 전에 채울 것: ${missing.join(', ')}`);

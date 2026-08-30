@@ -311,6 +311,48 @@ if (process.env.DATABASE_URL) {
   section('G. 재시작 검증 — DATABASE_URL 이 없어 건너뜁니다');
 }
 
+// ── H. 저장소가 죽어도 사이트는 산다 ──────────────────────────
+section('H. 저장소 장애가 사이트를 죽이지 않는다');
+
+{
+  /*
+   * 처음에는 기동 중 `await migrate()` 를 그냥 두었다가, DB가 준비되기 전에
+   * 배포가 돌아 서버가 기동에서 멈추고 **사이트 전체가 내려갔다.**
+   * 심사자가 봐야 할 약관 페이지까지 같이 죽는다.
+   *
+   * 저장소가 끊겨도 무료 구간과 정책 페이지는 살아 있어야 한다.
+   */
+  const brokenStore: OrderStore = {
+    async get() { throw new Error('데이터베이스에 연결할 수 없습니다.'); },
+    async save() { throw new Error('데이터베이스에 연결할 수 없습니다.'); },
+  };
+  const brokenReports = {
+    async get(): Promise<string | null> { throw new Error('연결 끊김'); },
+    async set() { throw new Error('연결 끊김'); },
+    async delete() { throw new Error('연결 끊김'); },
+  };
+  const srv = createServer(createApi({
+    gateway: new StandbyGateway(), orders: brokenStore,
+    reportStore: brokenReports, generate: standbyGenerate, business,
+  }));
+  await new Promise<void>((r) => srv.listen(0, r));
+  const port = (srv.address() as { port: number }).port;
+  const call = async (path: string) => {
+    const res = await fetch(`http://127.0.0.1:${port}${path}`);
+    return res.status;
+  };
+
+  check('첫 화면이 뜬다', (await call('/')) === 200);
+  check('헬스체크가 산다', (await call('/healthz')) === 200);
+  for (const path of ['/products', '/terms', '/privacy', '/refund']) {
+    check(`${path} 가 뜬다`, (await call(path)) === 200);
+  }
+  // 주문 조회는 당연히 실패하지만, 500으로 실패할 뿐 서버가 죽지는 않는다
+  check('주문 조회는 실패하되 서버는 살아 있다', (await call('/api/orders/ord_x/report')) === 500);
+  check('그 뒤에도 정책 페이지가 뜬다', (await call('/terms')) === 200);
+  srv.close();
+}
+
 server.close();
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} / 실패 ${failed}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
