@@ -177,6 +177,17 @@ export function createApi(deps: ApiDeps) {
     },
 
     /**
+     * 살아 있는지 확인하는 자리.
+     *
+     * 배포 플랫폼이 여기를 주기적으로 두드려서, 죽으면 다시 띄운다.
+     * 화면을 렌더링하지 않으므로 파일을 읽지 않는다 — 헬스체크가 디스크를
+     * 건드리면 그 자체가 장애 원인이 된다.
+     */
+    'GET /healthz': async (_req, res) => {
+      send(res, 200, { ok: true, payments: checkout !== null });
+    },
+
+    /**
      * 정책 페이지 세 장.
      *
      * PG 심사에서 실제로 열어보는 주소다. 결제 화면 안의 팝업이 아니라

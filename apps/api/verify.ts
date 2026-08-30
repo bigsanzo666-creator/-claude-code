@@ -12,6 +12,7 @@ import {
 } from '../../packages/commerce/src/index.ts';
 import { loadBusinessInfo } from '../../packages/site-policy/src/index.ts';
 import { createApi, MemoryOrderStore } from './src/server.ts';
+import { StandbyGateway, standbyGenerate } from './src/standby.ts';
 
 let passed = 0, failed = 0;
 const failures: string[] = [];
@@ -189,6 +190,47 @@ const noBizPort = (noBiz.address() as { port: number }).port;
 const bare = await fetch(`http://127.0.0.1:${noBizPort}/terms`).then((r) => r.text());
 check('사업자 정보가 비면 화면에 드러난다', bare.includes('[미입력: 상호]'));
 noBiz.close();
+
+// ── F. 심사 대기 모드 ──────────────────────────────────────────
+section('F. 심사 대기 모드 (PG 계약 전에도 사이트가 떠 있어야 한다)');
+
+const health = await api('GET', '/healthz');
+check('헬스체크 응답', health.status === 200 && health.body.ok === true);
+check('헬스체크가 결제 가능 여부를 알려준다', health.body.payments === false);
+
+const standby = createServer(createApi({
+  gateway: new StandbyGateway(),
+  orders: new MemoryOrderStore(),
+  generate: standbyGenerate,
+  business,
+}));
+await new Promise<void>((r) => standby.listen(0, r));
+const sbPort = (standby.address() as { port: number }).port;
+const sb = async (method: string, path: string, body?: unknown) => {
+  const res = await fetch(`http://127.0.0.1:${sbPort}${path}`, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : {},
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  return { status: res.status, text, json: (() => { try { return JSON.parse(text); } catch { return null; } })() };
+};
+
+check('심사 대기 중에도 첫 화면이 뜬다', (await sb('GET', '/')).status === 200);
+for (const path of ['/terms', '/privacy', '/refund']) {
+  check(`심사 대기 중에도 ${path} 가 뜬다`, (await sb('GET', path)).status === 200);
+}
+const sbConfig = await sb('GET', '/api/config');
+check('결제 준비 안 됐다고 알린다', sbConfig.json.ready === false);
+check('결제 버튼을 감추도록 화면에 내려간다', (await sb('GET', '/')).text.includes('"ready":false'));
+check('무료 미리보기는 여전히 동작', (await sb('POST', '/api/preview', reading)).status === 200);
+
+const sbOrder = await sb('POST', '/api/orders', { ...reading, acknowledgedNotice: true, previewShown: true });
+check('주문 자체는 만들어진다', sbOrder.status === 201);
+const sbConfirm = await sb('POST', `/api/orders/${sbOrder.json.order.id}/confirm`, {});
+check('결제 확인은 조용히 성공하지 않고 거부된다', sbConfirm.status === 402);
+check('거부 사유가 심사 대기임을 밝힌다', String(sbConfirm.json.error).includes('심사 대기'));
+standby.close();
 
 server.close();
 console.log(`\n${'═'.repeat(60)}`);
