@@ -14,7 +14,7 @@
 
 import { CATALOG, getProduct, type ProductId } from './catalog.ts';
 
-export type PackageId = 'basic-pack' | 'samhap-pack' | 'full-pack';
+export type PackageId = 'love-pack' | 'samhap-pack' | 'family-pack' | 'full-pack';
 
 export interface BundlePackage {
   id: PackageId;
@@ -26,29 +26,43 @@ export interface BundlePackage {
   recommended: boolean;
 }
 
+/**
+ * 묶음은 갈래를 가로지른다.
+ *
+ * 「연애 묶음」은 손님이 들어오는 입구를 넓히고, 「가족 묶음」은 우리만
+ * 가진 자리를 판다. 삼합은 간판이라 단독으로도 서고 묶음의 축이기도 하다.
+ */
 export const PACKAGES: Record<PackageId, BundlePackage> = {
-  'basic-pack': {
-    id: 'basic-pack',
-    name: '늘봄 기본',
-    members: ['saju-report', 'newyear-report'],
-    priceKrw: 29900,
-    hook: '내 사주와 올해 흐름을 함께',
+  'love-pack': {
+    id: 'love-pack',
+    name: '늘봄 연애',
+    members: ['charm-report', 'single-report', 'compat-report'],
+    priceKrw: 34900,
+    hook: '내 매력과 만날 시기, 그리고 그 사람까지',
     recommended: false,
   },
   'samhap-pack': {
     id: 'samhap-pack',
     name: '늘봄 삼합',
     members: ['cross-report', 'saju-report', 'newyear-report'],
-    priceKrw: 44900,
+    priceKrw: 64900,
     hook: '사주·관상·손금까지 전부 대조해서',
     recommended: true,
+  },
+  'family-pack': {
+    id: 'family-pack',
+    name: '늘봄 가족',
+    members: ['child-report', 'child-aptitude-report', 'parent-child-report'],
+    priceKrw: 44900,
+    hook: '아이의 기질과 진로, 그리고 나와의 관계까지',
+    recommended: false,
   },
   'full-pack': {
     id: 'full-pack',
     name: '늘봄 완전',
-    members: ['cross-report', 'saju-report', 'newyear-report', 'compat-report'],
-    priceKrw: 59900,
-    hook: '나와 상대까지, 빠짐없이',
+    members: ['cross-report', 'saju-report', 'newyear-report', 'compat-report', 'wealth-report', 'career-report'],
+    priceKrw: 89000,
+    hook: '나와 상대, 돈과 일까지 빠짐없이',
     recommended: false,
   },
 };

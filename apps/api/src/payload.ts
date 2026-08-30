@@ -45,7 +45,12 @@ export interface ReadingRequest {
  * 잊으면 그 상품은 조용히 잘못된 갈래로 나가는데, 기본값을 두면 그 사고가 없다.
  */
 const KIND_EXCEPTIONS: Partial<Record<ProductId, ReportKind>> = {
+  // 두 사람의 명식을 대조하는 것은 전부 「궁합」 갈래다
   'compat-report': '궁합',
+  'crush-compat-report': '궁합',
+  'reunion-report': '궁합',
+  'parent-child-report': '궁합',
+  // 세 갈래를 대조하는 것
   'cross-report': '교차검증',
   'charm-report': '교차검증',
 };

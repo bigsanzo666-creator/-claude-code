@@ -71,7 +71,7 @@ const reading = { productId: 'cross-report', birth: BIRTH };
 section('A. 상품과 미리보기 (결제 전, 원가 0)');
 
 const products = await api('GET', '/api/products');
-check('상품 목록 조회', products.status === 200 && products.body.products.length === 13, `${products.body.products.length}종`);
+check('상품 목록 조회', products.status === 200 && products.body.products.length === 21, `${products.body.products.length}종`);
 check('목록에 청약철회 고지 포함', products.body.notice.includes('청약철회가 제한'));
 
 const preview = await api('POST', '/api/preview', reading);

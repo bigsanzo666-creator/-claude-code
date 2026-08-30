@@ -8,7 +8,7 @@
 
 import {
   CATALOG, getProduct, makePreview, CATEGORIES, productsIn,
-  PACKAGES, bundleMath, packagesContaining, assertPackagesValid,
+  PACKAGES, bundleMath, packagesContaining, assertPackagesValid, needsPartner,
   createOrder, markPending, markPaid, markFulfilled, markViewed, markRefunded,
   hasEntitlement, OrderTransitionError,
   assessRefund, addBusinessDays, WITHDRAWAL_NOTICE, WITHDRAWAL_WINDOW_DAYS, refundNotice,
@@ -46,13 +46,21 @@ const CROSS_PRICE = CATALOG['cross-report'].priceKrw;
 // ── A. 상품 ────────────────────────────────────────────────────
 section('A. 상품과 미리보기');
 
-check('상품 13종', Object.keys(CATALOG).length === 13, `${Object.keys(CATALOG).length}개`);
+check('상품 21종', Object.keys(CATALOG).length === 21, `${Object.keys(CATALOG).length}개`);
+// 시장 1위의 24개 중 연애 계열이 71%였다. 입구를 그쪽에 둔다
+const loveish = ['연애', '재회', '궁합'].reduce((n, c) => n + productsIn(c as any).length, 0);
+check('연애·재회·궁합에 입구를 둔다', loveish >= 6, `${loveish}종`);
+// 1위가 비워둔 자리. 여기서 기억되게 한다
+check('가족 갈래가 비어 있지 않다', productsIn('가족').length >= 4, `${productsIn('가족').length}종`);
+check('2인 상품은 상대 입력이 필요하다고 표시된다',
+  Object.values(CATALOG).filter((p) => p.needsPartner).every((p) => needsPartner(p.id)));
+check('혼자 보는 상품은 상대를 요구하지 않는다', !needsPartner('saju-report'));
 check('모든 상품에 갈래가 있다', Object.values(CATALOG).every((p) => CATEGORIES.some((c) => c.key === p.category)));
 check('모든 상품에 후킹 질문이 있다', Object.values(CATALOG).every((p) => p.hook.endsWith('?')),
   '「재물운」이라고만 쓰면 안 눌린다');
 check('갈래마다 상품이 있다', CATEGORIES.every((c) => productsIn(c.key).length > 0));
 check('갈래 제목도 질문이다', CATEGORIES.every((c) => c.question.endsWith('?')));
-check('식별자가 겹치지 않는다', new Set(Object.values(CATALOG).map((p) => p.id)).size === 13);
+check('식별자가 겹치지 않는다', new Set(Object.values(CATALOG).map((p) => p.id)).size === 21);
 check('id 와 키가 일치', Object.entries(CATALOG).every(([k, v]) => k === v.id));
 
 // ── 묶음 ────────────────────────────────────────────────────
@@ -68,8 +76,8 @@ for (const pack of Object.values(PACKAGES)) {
 }
 check('가운데를 추천한다 — 극단을 피하는 심리',
   Object.values(PACKAGES).filter((p) => p.recommended).length === 1);
-check('추천 묶음의 절약률이 가장 높다',
-  bundleMath('samhap-pack').percent >= bundleMath('basic-pack').percent);
+check('묶음마다 절약률이 20%를 넘는다',
+  Object.values(PACKAGES).every((p) => bundleMath(p.id).percent >= 20));
 check('삼합 리포트를 보는 사람에게 삼합이 든 묶음만 권한다',
   packagesContaining('cross-report').every((p) => p.members.includes('cross-report')));
 check('싼 것부터 권한다', (() => {

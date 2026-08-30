@@ -70,11 +70,11 @@ export interface PreviewResult {
  * 쓰는구나"이지 그 상품 고유의 문장이 아니다. 없으면 같은 갈래의 예시를 쓴다.
  */
 export function sampleFor(productId: ProductId): string {
-  return SAMPLES[productId] ?? SAMPLES[
-    productId === 'compat-report' ? 'compat-report'
-    : productId === 'cross-report' || productId === 'charm-report' ? 'cross-report'
-    : 'saju-report'
-  ]!;
+  if (SAMPLES[productId]) return SAMPLES[productId]!;
+  const twoPerson = ['crush-compat-report', 'reunion-report', 'parent-child-report'];
+  if (twoPerson.includes(productId)) return SAMPLES['compat-report']!;
+  if (productId === 'charm-report') return SAMPLES['cross-report']!;
+  return SAMPLES['saju-report']!;
 }
 
 /** @deprecated `sampleFor()`를 쓸 것 */
