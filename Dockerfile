@@ -9,11 +9,24 @@
 FROM node:22-slim AS build
 WORKDIR /app
 
-# 의존성 먼저. 소스가 바뀌어도 이 층은 캐시에서 재사용된다
-COPY packages/report/package.json packages/report/package-lock.json* ./packages/report/
-RUN cd packages/report && npm ci --omit=dev 2>/dev/null || npm install --omit=dev
+COPY packages ./packages
+COPY apps ./apps
 
-COPY . .
+# 의존성이 있는 패키지를 **찾아서** 설치한다.
+#
+# 전에는 `packages/report` 하나만 손으로 적어 뒀는데, `packages/store` 를 만들면서
+# 거기 붙인 `pg` 를 여기 추가하는 것을 잊었다. 빌드는 통과하고 **실행할 때 죽는다** —
+# 도커 빌드는 앱을 돌려보지 않기 때문이다. 배포가 실패하고 나서야 알았다.
+#
+# 목록을 손으로 관리하는 한 같은 사고가 또 난다. 그래서 목록을 없앴다.
+RUN set -eu; \
+    for pkg in packages/*/package.json; do \
+      dir=$(dirname "$pkg"); \
+      if grep -q '"dependencies"' "$pkg"; then \
+        echo "==> 의존성 설치: $dir"; \
+        (cd "$dir" && npm install --omit=dev --no-audit --no-fund); \
+      fi; \
+    done
 
 # 뷰어 번들 생성 → apps/manse-viewer/index.html
 RUN node apps/manse-viewer/build.mjs
@@ -29,7 +42,7 @@ USER node
 EXPOSE 3000
 ENV PORT=3000
 
-# 헬스체크는 플랫폼이 /healthz 를 두드리게 설정한다 (아래 참고).
+# 헬스체크는 플랫폼이 /healthz 를 두드리게 설정한다 (render.yaml 참고).
 # 이미지 안에서 curl을 돌리지 않는 이유는, 그러려면 curl을 깔아야 하고
 # 최종 이미지에 도구가 하나 늘기 때문이다.
 
