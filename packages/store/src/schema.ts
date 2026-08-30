@@ -44,6 +44,9 @@ CREATE TABLE IF NOT EXISTS reports (
 CREATE INDEX IF NOT EXISTS reports_input_hash_idx ON reports (input_hash);
 `;
 
+/** 연락처는 주문과 수명이 다르다 (동의 철회 전까지). 그래서 파일을 나눴다 */
+export { CONTACTS_SQL } from './contacts.ts';
+
 /**
  * 보관 기간.
  *

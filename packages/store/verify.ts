@@ -10,7 +10,8 @@
  * DATABASE_URL이 없으면 건너뛴다 (실패가 아니다).
  */
 
-import { createPool, migrate, PostgresOrderStore, PostgresReportStore, RETENTION_YEARS } from './src/index.ts';
+import { createPool, migrate, PostgresOrderStore, PostgresReportStore, RETENTION_YEARS,
+         PostgresContactStore, isPlausibleEmail } from './src/index.ts';
 import { createOrder, markPending, markPaid, markFulfilled, markViewed, refundOrder,
          hasEntitlement, CATALOG, FakeGateway } from '../commerce/src/index.ts';
 
@@ -30,7 +31,7 @@ function check(label: string, ok: boolean, detail = '') {
 function section(t: string) { console.log(`\n${t}\n${'─'.repeat(60)}`); }
 
 const pool = createPool(url);
-await pool.query('DROP TABLE IF EXISTS reports, orders CASCADE');
+await pool.query('DROP TABLE IF EXISTS reports, orders, contacts CASCADE');
 
 section('1. 스키마');
 await migrate(pool);
@@ -40,7 +41,8 @@ check('두 번 실행해도 깨지지 않는다 (여러 대로 늘어도 안전)
 
 const tables = await pool.query<{ table_name: string }>(
   `SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY 1`);
-check('orders·reports 두 테이블', tables.rows.map((r) => r.table_name).join(',') === 'orders,reports',
+check('orders·reports·contacts 세 테이블',
+  tables.rows.map((r) => r.table_name).join(',') === 'contacts,orders,reports',
   tables.rows.map((r) => r.table_name).join(','));
 
 const idx = await pool.query<{ indexname: string }>(
@@ -154,6 +156,49 @@ const cascade = await pool2.query<{ count: string }>(
   `SELECT count(*) FROM information_schema.referential_constraints
     WHERE delete_rule = 'CASCADE'`);
 check('주문을 지우면 리포트도 함께 지워진다', Number(cascade.rows[0].count) >= 1);
+
+section('7. 연락처와 동의');
+const contacts = new PostgresContactStore(pool2);
+
+check('명백한 오타를 거른다', !isPlausibleEmail('그냥글자') && !isPlausibleEmail('a@b') && !isPlausibleEmail('a b@c.kr'));
+check('멀쩡한 주소는 통과', isPlausibleEmail('bigsanzo666@gmail.com') && isPlausibleEmail('a.b+c@sub.example.co.kr'));
+
+const c1 = await contacts.upsert({ email: '  Hong@Example.KR ', serviceConsent: true, marketingConsent: false });
+check('대소문자·공백을 정리해 저장', c1.email === 'hong@example.kr');
+check('결과 전달 동의가 기록된다', c1.serviceConsent === true && c1.serviceConsentAt !== null);
+check('광고 동의는 따로 — 안 했으면 false', c1.marketingConsent === false && c1.marketingConsentAt === null);
+
+// 두 동의를 뭉뚱그리면 위법이다. 결과 동의만으로 광고를 보내면 안 된다
+check('광고 대상에 안 들어간다', !(await contacts.marketingRecipients()).includes('hong@example.kr'));
+
+let noConsent = '';
+try { await contacts.upsert({ email: 'x@y.kr', serviceConsent: false, marketingConsent: true }); }
+catch (e) { noConsent = (e as Error).message; }
+check('결과 동의 없이는 저장 자체가 거부된다', noConsent.includes('동의가 필요'));
+
+let badFormat = '';
+try { await contacts.upsert({ email: '그냥글자', serviceConsent: true, marketingConsent: false }); }
+catch (e) { badFormat = (e as Error).message; }
+check('이메일 형식이 아니면 거부', badFormat.includes('이메일 형식'));
+
+const c2 = await contacts.upsert({ email: 'hong@example.kr', serviceConsent: true, marketingConsent: true });
+check('나중에 광고 동의를 하면 올라간다', c2.marketingConsent === true && c2.marketingConsentAt !== null);
+check('이제 광고 대상에 들어간다', (await contacts.marketingRecipients()).includes('hong@example.kr'));
+
+const c3 = await contacts.upsert({ email: 'hong@example.kr', serviceConsent: true, marketingConsent: false });
+check('두 번째 방문에서 체크를 안 했다고 동의가 취소되지는 않는다', c3.marketingConsent === true);
+check('동의 시각도 처음 것이 유지된다', c3.marketingConsentAt === c2.marketingConsentAt);
+
+await contacts.unsubscribe('HONG@example.kr');
+const after = await contacts.get('hong@example.kr');
+check('수신거부로만 동의가 내려간다', after?.marketingConsent === false);
+check('거부 시각이 기록된다', after?.unsubscribedAt !== null);
+check('거부 후 광고 대상에서 빠진다', !(await contacts.marketingRecipients()).includes('hong@example.kr'));
+check('연락처를 지우지는 않는다 — 지우면 거부한 사실을 잊는다', after !== null);
+
+await contacts.upsert({ email: 'hong@example.kr', serviceConsent: true, marketingConsent: true });
+const resubscribed = await contacts.get('hong@example.kr');
+check('거부한 사람이 다시 동의하면 다시 받는다', resubscribed?.marketingConsent === true);
 
 await pool.end(); await pool2.end();
 console.log(`\n${'═'.repeat(60)}`);

@@ -75,6 +75,7 @@ for (const [name, html] of pages) {
   check(`${name}: 제목에 서비스 이름`, html.includes(`<title>${name} · 사주보다</title>`));
   check(`${name}: 사업자 정보 동반`, html.includes('220-81-62517'));
   check(`${name}: 시행일 표시`, html.includes(POLICY_EFFECTIVE_DATE));
+  check(`${name}: 개정판 번호 표시`, html.includes('제1.1판'));
   check(`${name}: 다크 모드 대응`, html.includes('prefers-color-scheme'));
 }
 
@@ -95,6 +96,14 @@ check('결제 위탁(포트원)을 고지', privacy.includes('코리아포트원
 check('무료 이용은 저장하지 않는다고 명시', privacy.includes('저장하지 않습니다'));
 check('보호책임자 연락처가 들어간다', privacy.includes('help@example.kr') && privacy.includes('02-0000-0000'));
 check('광고 쿠키를 쓰지 않는다고 명시', privacy.includes('행태정보'));
+// 코드가 하는 일과 방침이 다르면 그 자체가 방침 위반이다
+check('이메일 수집 항목을 표에 밝힌다', privacy.includes('연락처 <b>(선택)</b>'));
+check('광고 수신 동의를 별도로 받는다고 명시', privacy.includes('별도의 수신 동의'));
+check('두 동의가 별개임을 명시', privacy.includes('별개로 받으며'));
+check('동의 안 해도 이용에 제한 없음을 명시', privacy.includes('제한이 없습니다'));
+check('수신거부 방법 안내를 약속', privacy.includes('수신거부 방법을 함께 안내'));
+check('거부 기록을 광고에 쓰지 않는다고 명시', privacy.includes('광고 발송에 사용되지 않습니다'));
+check('절 번호가 이어진다', privacy.includes('<h2>11. 처리방침의 변경</h2>'));
 
 section('7. 이용약관의 사실 확인');
 const terms = renderTerms(full);

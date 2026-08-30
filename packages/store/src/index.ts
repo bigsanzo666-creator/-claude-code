@@ -8,10 +8,12 @@
 
 import pg from 'pg';
 import { SCHEMA_SQL } from './schema.ts';
+import { CONTACTS_SQL } from './contacts.ts';
 
 export * from './schema.ts';
 export * from './orders.ts';
 export * from './reports.ts';
+export * from './contacts.ts';
 
 export function createPool(connectionString: string): pg.Pool {
   return new pg.Pool({
@@ -28,4 +30,5 @@ export function createPool(connectionString: string): pg.Pool {
 /** 기동 시 한 번. 여러 번 실행해도 안전하다 */
 export async function migrate(pool: pg.Pool): Promise<void> {
   await pool.query(SCHEMA_SQL);
+  await pool.query(CONTACTS_SQL);
 }
