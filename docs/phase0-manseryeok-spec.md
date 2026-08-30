@@ -16,11 +16,12 @@
 - `packages/report/` — 룰 결과 → 서술형 리포트. 판단 금지·문장화만. 검증 45(모델 호출 없음).
 - `packages/commerce/` — 주문·이용권·환불 정책·포트원 V2 어댑터. 검증 49(네트워크 없음).
 - `packages/korean/` — 조사 처리 등 한국어 문장 유틸.
-- `apps/api/` — 결제·리포트 API 서버. 검증 49(실제 결제 0건).
+- `apps/api/` — 결제·리포트 API 서버. 검증 76(실제 결제 0건).
 - `packages/checkout-client/` — 브라우저 결제 흐름. 검증 24.
-- `packages/site-policy/` — 사업자 정보 표시, 이용약관·개인정보처리방침·환불정책. 검증 56.
+- `packages/site-policy/` — 사업자 정보, 약관·개인정보·환불정책, 상품·가격 안내. 검증 84.
+- `packages/store/` — 주문·리포트 Postgres 영속 저장. 검증 36(진짜 DB).
 
-**검증 합계 370.** 각 패키지에서 `node --experimental-strip-types verify.ts`
+**검증 합계 461.** 각 패키지에서 `node --experimental-strip-types verify.ts`
 브라우저 E2E 25건은 `node apps/manse-viewer/build.mjs && node --experimental-strip-types apps/manse-viewer/browser-test.ts`
 - `apps/manse-viewer/` — 3탭(사주 / 궁합 / 관상·손금·교차검증). `node apps/manse-viewer/build.mjs`
 - **3종 교차검증 완성.** 사주·관상·손금을 8축으로 대조해 일치/엇갈림/단독으로 분류.
