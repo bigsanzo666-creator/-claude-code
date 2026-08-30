@@ -13,6 +13,7 @@ import {
   findRelations, findSinsal, elementWeights,
   calculateDaeun, currentDaeun, annualLuck, dailyLuck, dailyLuckRange,
   compatibility, sajuToTraits, crossValidate,
+  allTopics, extractTopic, ALL_TOPICS, TOPIC_LABELS,
 } from './src/index.ts';
 import { readFace, NEUTRAL_FEATURES } from '../physiognomy/src/index.ts';
 import { readPalm, NEUTRAL_PALM_FEATURES } from '../palmistry/src/index.ts';
@@ -539,6 +540,70 @@ for (const h of full.highlights) console.log(`    · ${h}`);
 console.log('\n  판정 근거:');
 for (const r of full.strength.reasoning) console.log(`    · ${r}`);
 console.log(`    · ${full.yongsin.reasoning}`);
+
+
+// ── 주제별 분리 ────────────────────────────────────────────────
+section('주제별 분리 (상품을 열 개로 나누기 위한 것)');
+{
+  const ms = calculate({ date: '1990-05-15', time: '14:30', longitude: 126.978, gender: '남' });
+  const a = analyze(ms);
+  const topics = allTopics(a);
+
+  check('여덟 주제가 모두 나온다', topics.length === ALL_TOPICS.length, `${topics.length}개`);
+  check('식별자가 겹치지 않는다', new Set(topics.map((t) => t.id)).size === topics.length);
+
+  // 용어를 던지고 끝내지 않는다 — 이게 경쟁사와의 차이다
+  for (const t of topics) {
+    check(`${t.label}: 명리 용어와 한자를 함께 든다`, Boolean(t.term && t.termHanja));
+    check(`${t.label}: 용어 뜻을 한 줄로 설명한다`, t.gloss.length > 5 && t.gloss.endsWith('뜻합니다'));
+  }
+
+  // 결론에는 근거가 붙어야 한다
+  for (const t of topics.filter((x) => x.count > 0 || x.hiddenCount > 0)) {
+    check(`${t.label}: 근거가 붙는다`, t.evidence.length > 0, `${t.evidence.length}건`);
+    check(`${t.label}: 근거가 어느 글자인지 밝힌다`, t.evidence.every((e) => e.where.length > 0));
+  }
+
+  const wealth = extractTopic(a, 'wealth');
+  check('겉과 속을 나눠 센다', wealth.count === 0 && wealth.hiddenCount === 2,
+    `겉 ${wealth.count} · 숨은 ${wealth.hiddenCount}`);
+  check('겉이 비었어도 "없다"고 말하지 않는다',
+    wealth.notes.some((n) => n.includes('숨어 있습니다')) &&
+    !wealth.notes.some((n) => n.includes('명식에 없습니다')));
+  check('지장간 근거는 깊이를 표시한다', wealth.evidence.every((e) => e.depth === '지장간'));
+
+  const career = extractTopic(a, 'career');
+  check('겉으로 드러난 십신은 천간·지지로 잡힌다',
+    career.evidence.some((e) => e.depth === '천간' || e.depth === '지지'));
+  check('십신이 상징하는 영역을 함께 준다', career.aspects.length > 0, career.aspects[0]);
+
+  // 용신은 "써야 할 기운"과 "덜어낼 기운"을 구분한다
+  const favorables = topics.filter((t) => t.favorable === true).map((t) => t.term);
+  const avoids = topics.filter((t) => t.favorable === false).map((t) => t.term);
+  check('용신이 써야 할 기운을 짚는다', favorables.length > 0, favorables.join(','));
+  check('덜어낼 기운도 짚는다 — 많다고 좋은 게 아니다', avoids.length > 0, avoids.join(','));
+  check('써야 할 것과 덜어낼 것이 겹치지 않는다',
+    favorables.every((f) => !avoids.includes(f)));
+
+  // 없는 것을 있다고 하지 않는다
+  const charm = extractTopic(a, 'charm');
+  check('신살이 없으면 근거도 0건', charm.count > 0 || charm.evidence.length === 0);
+  check('없을 때도 겁주지 않는다',
+    charm.count > 0 || charm.notes.some((n) => n.includes('막혀 있다는 뜻이 아닙니다')));
+
+  // 이름은 갈아끼울 수 있어야 한다 — 장사의 영역이라 자주 바뀐다
+  check('이름표가 계산과 분리돼 있다',
+    Object.keys(TOPIC_LABELS).length === ALL_TOPICS.length &&
+    ALL_TOPICS.every((id) => TOPIC_LABELS[id].label.length > 0));
+
+  // 신살이 있는 명식으로도 확인한다
+  const other = analyze(calculate({ date: '1988-03-03', time: '09:00', longitude: 126.978, gender: '여' }));
+  const withSinsal = allTopics(other).filter((t) => t.count > 0 && !t.favorable === false);
+  check('다른 명식에서도 주제가 뽑힌다', withSinsal.length > 0, `${withSinsal.length}개 주제`);
+  const helper = extractTopic(other, 'helper');
+  check('신살 근거는 판정 기준을 밝힌다',
+    helper.count === 0 || helper.evidence.every((e) => e.where.includes('—')));
+}
 
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} / 실패 ${failed}`);
