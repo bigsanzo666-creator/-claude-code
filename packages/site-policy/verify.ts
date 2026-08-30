@@ -9,7 +9,9 @@
 import {
   loadBusinessInfo, missingFields, isComplete, isValidRegistrationNumber,
   renderFooter, renderTerms, renderPrivacy, renderRefund, POLICY_EFFECTIVE_DATE,
+  renderProducts, renderProductsPage, bundleSaving,
 } from './src/index.ts';
+import { CATALOG } from '../commerce/src/catalog.ts';
 import { WITHDRAWAL_WINDOW_DAYS, REFUND_DUE_BUSINESS_DAYS } from '../commerce/src/refund.ts';
 
 let passed = 0, failed = 0;
@@ -55,7 +57,7 @@ const footer = renderFooter(full);
 for (const value of ['주식회사 예시', '홍길동', '220-81-62517', '2026-서울강남-00001', 'help@example.kr']) {
   check(`푸터에 ${value} 노출`, footer.includes(value));
 }
-for (const href of ['/terms', '/privacy', '/refund']) {
+for (const href of ['/products', '/terms', '/privacy', '/refund']) {
   check(`푸터에 ${href} 링크`, footer.includes(`href="${href}"`));
 }
 const emptyFooter = renderFooter(empty);
@@ -108,6 +110,44 @@ const nasty = loadBusinessInfo({ ...FULL, BIZ_COMPANY: '<script>alert(1)</script
 const nastyFooter = renderFooter(nasty);
 check('상호에 태그가 들어가도 실행되지 않는다',
   !nastyFooter.includes('<script>alert') && nastyFooter.includes('&lt;script&gt;'));
+
+section('9. 상품·가격 안내 (PG 심사의 「상품 등록 유무」)');
+
+for (const ready of [true, false]) {
+  const html = renderProducts(ready);
+  const label = ready ? '결제 켜짐' : '결제 꺼짐';
+  for (const p of Object.values(CATALOG)) {
+    check(`${label}: ${p.name} 노출`, html.includes(p.name));
+    check(`${label}: ${p.priceKrw.toLocaleString('ko-KR')}원 표시`,
+      html.includes(`${p.priceKrw.toLocaleString('ko-KR')}원`));
+  }
+  check(`${label}: 부가세 포함 명시`, html.includes('부가세 포함'));
+  check(`${label}: 청약철회 안내와 환불정책 링크`,
+    html.includes('청약철회') && html.includes('href="/refund"'));
+}
+
+// 심사를 통과해야 결제가 켜지는데 결제가 켜져야 가격이 보이면 영원히 통과 못 한다
+const off = renderProducts(false);
+check('결제가 꺼져 있어도 가격이 보인다', off.includes('19,900원'));
+check('결제가 꺼져 있으면 준비 중이라고 알린다', off.includes('결제 준비 중'));
+check('결제가 켜지면 준비 중 문구가 사라진다', !renderProducts(true).includes('결제 준비 중'));
+
+const saving = bundleSaving();
+check('묶음 할인 근거가 카탈로그 합계와 맞는다',
+  saving.individual === CATALOG['saju-report'].priceKrw + CATALOG['compat-report'].priceKrw
+  && saving.bundle === CATALOG['cross-report'].priceKrw, `${saving.individual} → ${saving.bundle}`);
+check('절약률이 계산된다', saving.percent === 20, `${saving.percent}%`);
+check('개별 합산가가 화면에 나온다', off.includes('24,800원'));
+
+// 받을 내용을 못 박아야 손님도 심사자도 결제 전에 안다
+check('교차검증 상품의 포함 내용 명시',
+  off.includes('일치하는 것') && off.includes('엇갈리는 것') && off.includes('하나만 말하는 것'));
+check('무료 구간이 있다는 사실을 밝힌다', off.includes('결제 없이 이용'));
+
+const page = renderProductsPage(full, false, renderFooter(full));
+check('상품 전용 페이지가 완성된 문서', page.startsWith('<!doctype html>') && page.trimEnd().endsWith('</html>'));
+check('상품 전용 페이지에 사업자 정보 동반', page.includes('220-81-62517'));
+check('상품 전용 페이지 제목', page.includes('<title>판매 상품과 가격 · 사주보다</title>'));
 
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);

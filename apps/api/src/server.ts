@@ -21,6 +21,7 @@ import {
 import { cacheKey } from '../../../packages/report/src/cache.ts';
 import {
   loadBusinessInfo, renderFooter, renderTerms, renderPrivacy, renderRefund,
+  renderProducts, renderProductsPage, PRODUCTS_CSS,
   type BusinessInfo,
 } from '../../../packages/site-policy/src/index.ts';
 import { buildPayload, KIND_OF, type ReadingRequest } from './payload.ts';
@@ -80,12 +81,14 @@ function renderPage(checkout: CheckoutConfig | null, business: BusinessInfo): st
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>:root{color-scheme:light dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+${PRODUCTS_CSS}
 ${FOOTER_CSS}</style>
 <script>window.SAJU_CONFIG = ${config};</script>
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 </head>
 <body>
 ${fragment}
+${renderProducts(checkout !== null)}
 ${renderFooter(business)}
 </body>
 </html>`;
@@ -193,6 +196,15 @@ export function createApi(deps: ApiDeps) {
      * PG 심사에서 실제로 열어보는 주소다. 결제 화면 안의 팝업이 아니라
      * 고정된 주소로 접근되어야 하므로 라우트로 둔다.
      */
+    /**
+     * 상품·가격 전용 페이지.
+     *
+     * 첫 화면에도 같은 내용이 붙지만, 심사가 곧바로 열어볼 수 있는 주소를
+     * 따로 둔다. 「상품 등록 유무」는 자동 검사 항목이라 찾기 쉬워야 한다.
+     */
+    'GET /products': async (_req, res) =>
+      sendHtml(res, renderProductsPage(business, checkout !== null, renderFooter(business))),
+
     'GET /terms': async (_req, res) => sendHtml(res, renderTerms(business)),
     'GET /privacy': async (_req, res) => sendHtml(res, renderPrivacy(business)),
     'GET /refund': async (_req, res) => sendHtml(res, renderRefund(business)),

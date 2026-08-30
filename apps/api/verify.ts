@@ -167,16 +167,20 @@ check('중복 환불 차단', (await api('POST', `/api/orders/${id2}/refund`)).s
 // ── E. 정책 페이지와 사업자 정보 ───────────────────────────────
 section('E. 정책 페이지 (PG 심사가 열어보는 곳)');
 
-for (const [path, title] of [['/terms', '이용약관'], ['/privacy', '개인정보처리방침'], ['/refund', '취소·환불 정책']]) {
+for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms', '이용약관'], ['/privacy', '개인정보처리방침'], ['/refund', '취소·환불 정책']]) {
   const res = await page(path);
-  check(`${path} 는 ${title} 을 200으로 준다`, res.status === 200 && res.html.includes(`<h1>${title}</h1>`));
+  const heading = path === '/products' ? `<h2>${title}</h2>` : `<h1>${title}</h1>`;
+  check(`${path} 는 ${title} 을 200으로 준다`, res.status === 200 && res.html.includes(heading));
   check(`${path} 는 HTML로 응답`, res.type.startsWith('text/html'));
   check(`${path} 에 사업자등록번호 표시`, res.html.includes('220-81-62517'));
 }
 
 const home = await page('/');
 check('첫 화면에도 사업자 정보가 붙는다', home.html.includes('220-81-62517'));
-check('첫 화면에서 세 정책으로 링크', ['/terms', '/privacy', '/refund'].every((h) => home.html.includes(`href="${h}"`)));
+check('첫 화면에서 정책·상품으로 링크', ['/products', '/terms', '/privacy', '/refund'].every((h) => home.html.includes(`href="${h}"`)));
+// 심사는 첫 화면만 본다. 생년월일을 넣어야 나오는 가격은 없는 것과 같다
+check('첫 화면 HTML 자체에 가격이 박혀 있다', home.html.includes('19,900원') && home.html.includes('9,900원'));
+check('가격이 자바스크립트 없이 보인다', home.html.includes('<section class="pr"'));
 check('첫 화면은 여전히 뷰어를 담고 있다', home.html.includes('window.SAJU_CONFIG'));
 check('푸터 스타일이 함께 나간다', home.html.includes('.biz-rows'));
 
@@ -216,8 +220,12 @@ const sb = async (method: string, path: string, body?: unknown) => {
   return { status: res.status, text, json: (() => { try { return JSON.parse(text); } catch { return null; } })() };
 };
 
-check('심사 대기 중에도 첫 화면이 뜬다', (await sb('GET', '/')).status === 200);
-for (const path of ['/terms', '/privacy', '/refund']) {
+const sbHome = await sb('GET', '/');
+check('심사 대기 중에도 첫 화면이 뜬다', sbHome.status === 200);
+// 심사를 통과해야 결제가 켜지는데, 결제가 켜져야 가격이 보이면 영원히 통과 못 한다
+check('결제가 꺼져 있어도 첫 화면에 가격이 있다', sbHome.text.includes('19,900원'));
+check('결제가 꺼져 있으면 준비 중이라고 알린다', sbHome.text.includes('결제 준비 중'));
+for (const path of ['/products', '/terms', '/privacy', '/refund']) {
   check(`심사 대기 중에도 ${path} 가 뜬다`, (await sb('GET', path)).status === 200);
 }
 const sbConfig = await sb('GET', '/api/config');

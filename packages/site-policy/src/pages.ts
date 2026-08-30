@@ -40,6 +40,7 @@ export function renderFooter(info: BusinessInfo): string {
   const items = rows.map(([k, v]) => `<span><b>${esc(k)}</b> ${esc(v)}</span>`).join('\n      ');
   return `<footer class="biz">
   <nav class="biz-links">
+    <a href="/products">판매 상품</a>
     <a href="/terms">이용약관</a>
     <a href="/privacy"><b>개인정보처리방침</b></a>
     <a href="/refund">취소·환불 정책</a>
