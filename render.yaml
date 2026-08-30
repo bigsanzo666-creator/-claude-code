@@ -19,6 +19,12 @@ services:
     plan: 0.5c-512mb
     healthCheckPath: /healthz
     envVars:
+      # 주문·리포트 영속 저장. 이 값이 없으면 결제를 켠 채로 뜨지 않는다 —
+      # 메모리 저장소는 재시작 시 주문이 사라지고, 그건 되돌릴 수 없다.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: neulbomsaju-db
+          property: connectionString
       # 사업자 정보 — 렌더 대시보드에서 값을 채운다.
       # 저장소에 넣지 않는 이유는 개인정보이기 때문이고,
       # 신청서가 바뀔 때 배포를 다시 하지 않으려는 이유도 있다.
@@ -52,3 +58,10 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+
+databases:
+  - name: neulbomsaju-db
+    databaseName: neulbomsaju
+    user: neulbomsaju
+    region: singapore
+    plan: basic-256mb

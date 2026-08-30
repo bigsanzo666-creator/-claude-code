@@ -33,6 +33,25 @@ export interface OrderStore {
   save(order: Order): Promise<void>;
 }
 
+/**
+ * 리포트 본문 보관.
+ *
+ * 메모리(Map)와 Postgres 두 가지를 같은 얼굴로 다루기 위한 것이다.
+ * 라우트가 저장 방식을 알 필요는 없다.
+ */
+export interface ReportBox {
+  get(orderId: string): Promise<string | null>;
+  set(orderId: string, inputHash: string, body: string): Promise<void>;
+  delete(orderId: string): Promise<void>;
+}
+
+export class MemoryReportBox implements ReportBox {
+  private map = new Map<string, string>();
+  async get(id: string) { return this.map.get(id) ?? null; }
+  async set(id: string, _hash: string, body: string) { this.map.set(id, body); }
+  async delete(id: string) { this.map.delete(id); }
+}
+
 export class MemoryOrderStore implements OrderStore {
   private store = new Map<string, Order>();
   async get(id: string) { return this.store.get(id) ?? null; }
@@ -54,8 +73,8 @@ export interface ApiDeps {
   gateway: PaymentGateway;
   orders: OrderStore;
   generate: ReportGenerator;
-  /** 생성된 리포트 본문 보관. 주문 id → 본문 */
-  reports?: Map<string, string>;
+  /** 생성된 리포트 본문 보관. 없으면 메모리에 담는다 */
+  reportStore?: ReportBox | null;
   /** 포트원 상점 정보. 없으면 결제 기능이 꺼진 채로 뜬다 */
   checkout?: CheckoutConfig;
   /** 사업자 정보. 없으면 환경변수에서 읽는다 */
@@ -158,7 +177,7 @@ function validateReading(body: any): ReadingRequest {
 }
 
 export function createApi(deps: ApiDeps) {
-  const reports = deps.reports ?? new Map<string, string>();
+  const reports: ReportBox = deps.reportStore ?? new MemoryReportBox();
 
   const checkout = deps.checkout ?? null;
   const business = deps.business ?? loadBusinessInfo();
@@ -295,7 +314,7 @@ export function createApi(deps: ApiDeps) {
       const reading = (stored as any).reading as ReadingRequest;
       const { kind, data, subject } = buildPayload(reading);
       const { text } = await deps.generate({ kind, data, subject });
-      reports.set(id, text);
+      await reports.set(id, stored.inputHash, text);
 
       const done = markFulfilled(paid);
       await save(stored, done);
@@ -311,7 +330,7 @@ export function createApi(deps: ApiDeps) {
       if (!hasEntitlement(stored, stored.inputHash)) {
         throw new HttpError(403, '결제가 확인되지 않았거나 환불된 주문입니다.');
       }
-      const text = reports.get(id);
+      const text = await reports.get(id);
       if (!text) throw new HttpError(409, '리포트가 아직 준비되지 않았습니다.');
 
       const viewed = stored.status === 'viewed' ? stored : markViewed(stored);
@@ -333,7 +352,7 @@ export function createApi(deps: ApiDeps) {
 
       const outcome = await refundOrder(stored, deps.gateway);
       await save(stored, outcome.order);
-      reports.delete(id);
+      await reports.delete(id);
       send(res, 200, {
         order: strip(outcome.order),
         refundedKrw: outcome.cancelledAmountKrw,

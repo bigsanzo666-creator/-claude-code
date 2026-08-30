@@ -240,6 +240,77 @@ check('결제 확인은 조용히 성공하지 않고 거부된다', sbConfirm.s
 check('거부 사유가 심사 대기임을 밝힌다', String(sbConfirm.json.error).includes('심사 대기'));
 standby.close();
 
+// ── G. 재시작을 넘는 구매 (진짜 Postgres) ──────────────────────
+if (process.env.DATABASE_URL) {
+  section('G. 서버가 재시작돼도 산 사람은 리포트를 본다');
+
+  const { createPool, migrate, PostgresOrderStore, PostgresReportStore } =
+    await import('../../packages/store/src/index.ts');
+
+  const pool = createPool(process.env.DATABASE_URL);
+  await pool.query('DROP TABLE IF EXISTS reports, orders CASCADE');
+  await migrate(pool);
+
+  const pgGateway = new FakeGateway();
+  /** 서버를 새로 띄운다. 같은 DB를 보되 프로세스 안의 상태는 전부 새것이다 */
+  const boot = async () => {
+    const srv = createServer(createApi({
+      gateway: pgGateway,
+      orders: new PostgresOrderStore(createPool(process.env.DATABASE_URL!)),
+      reportStore: new PostgresReportStore(createPool(process.env.DATABASE_URL!)),
+      generate: async ({ kind, subject }) => ({ text: `[${kind} 리포트: ${subject}] 재시작을 넘어 살아남는 본문.` }),
+      business,
+    }));
+    await new Promise<void>((r) => srv.listen(0, r));
+    const p = (srv.address() as { port: number }).port;
+    return {
+      close: () => srv.close(),
+      call: async (method: string, path: string, body?: unknown) => {
+        const res = await fetch(`http://127.0.0.1:${p}${path}`, {
+          method,
+          headers: body ? { 'Content-Type': 'application/json' } : {},
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        return { status: res.status, body: await res.json() as any };
+      },
+    };
+  };
+
+  const first = await boot();
+  const made = await first.call('POST', '/api/orders',
+    { ...reading, acknowledgedNotice: true, previewShown: true });
+  check('주문 생성', made.status === 201);
+  const pgId = made.body.order.id;
+
+  await first.call('POST', `/api/orders/${pgId}/pending`);
+  pgGateway.put({
+    paymentId: pgId, status: 'paid', amountKrw: CATALOG['cross-report'].priceKrw,
+    orderName: '교차검증', raw: {},
+  });
+  const confirmed = await first.call('POST', `/api/orders/${pgId}/confirm`, { paymentId: pgId });
+  check('결제 확인·리포트 생성', confirmed.status === 200 && confirmed.body.ready === true);
+
+  // 여기서 서버가 죽는다. 손님은 아직 리포트를 안 열었다
+  first.close();
+
+  const second = await boot();
+  const afterRestart = await second.call('GET', `/api/orders/${pgId}/report`);
+  check('재시작 후에도 리포트를 받는다', afterRestart.status === 200, `${afterRestart.status}`);
+  check('본문이 그대로', String(afterRestart.body.text).includes('재시작을 넘어 살아남는'));
+  check('열람 기록도 남는다', afterRestart.body.order.status === 'viewed');
+
+  const refundCheck = await second.call('GET', `/api/orders/${pgId}/refund`);
+  check('재시작 후에도 환불 판정이 된다', refundCheck.status === 200 && 'verdict' in refundCheck.body);
+
+  const third = await boot();
+  const stillViewed = await third.call('GET', `/api/orders/${pgId}/report`);
+  check('두 번째 재시작에도 이용권 유지', stillViewed.status === 200);
+  second.close(); third.close();
+  await pool.end();
+} else {
+  section('G. 재시작 검증 — DATABASE_URL 이 없어 건너뜁니다');
+}
+
 server.close();
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} / 실패 ${failed}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
