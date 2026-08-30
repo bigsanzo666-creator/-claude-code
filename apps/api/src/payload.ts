@@ -34,11 +34,30 @@ export interface ReadingRequest {
   palm?: Parameters<typeof readPalm>[0];
 }
 
-export const KIND_OF: Record<ProductId, ReportKind> = {
-  'saju-report': '사주',
+/**
+ * 상품 → 리포트 갈래.
+ *
+ * 상품은 열셋이지만 갈래는 셋뿐이다. 주제별 상품(돈그릇·출세운 …)은
+ * 전부 하나의 명식에서 나오므로 「사주」 갈래를 쓴다 — 계산은 한 번,
+ * 파는 건 열 번이라는 구조가 여기에도 그대로 적용된다.
+ *
+ * 빠짐없이 적는 대신 예외만 적는다. 상품이 늘 때마다 이 표를 고치는 것을
+ * 잊으면 그 상품은 조용히 잘못된 갈래로 나가는데, 기본값을 두면 그 사고가 없다.
+ */
+const KIND_EXCEPTIONS: Partial<Record<ProductId, ReportKind>> = {
   'compat-report': '궁합',
   'cross-report': '교차검증',
+  'charm-report': '교차검증',
 };
+
+export function kindOf(productId: ProductId): ReportKind {
+  return KIND_EXCEPTIONS[productId] ?? '사주';
+}
+
+/** @deprecated `kindOf()`를 쓸 것. 기존 호출부 호환용 */
+export const KIND_OF = new Proxy({} as Record<ProductId, ReportKind>, {
+  get: (_t, key: string) => kindOf(key as ProductId),
+});
 
 function sajuBundle(birth: BirthInput) {
   const ms = calculate({ date: birth.date, time: birth.time, longitude: birth.longitude });

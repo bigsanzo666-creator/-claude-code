@@ -21,7 +21,7 @@ import { makePreview, type ProductId } from '../../../packages/commerce/src/inde
  * 예시 리포트. 실제 룰 엔진 출력으로 한 번 만들어 고정해둔 것이며,
  * 특정 사용자의 것이 아니다. 프롬프트를 고치면 이것도 다시 만들어야 한다.
  */
-export const SAMPLE_REPORTS: Record<ProductId, string> = {
+const SAMPLES: Partial<Record<ProductId, string>> = {
   'saju-report': `일간이 경금(庚金)이고, 이 명식은 신강한 편입니다. 일간을 돕는 힘이 전체의 60% 남짓이라 경계선에 가까운 신강이며, 월지가 일간을 돕지 않는 대신 일지가 받쳐주는 구조입니다. 밀고 나가는 힘 자체는 충분하지만, 그 힘이 늘 같은 세기로 나오지는 않는 배치입니다.
 
 눈에 띄는 것은 재성(재물과 현실적 성취를 다루는 기운)이 하나도 없다는 점입니다. 이것을 "돈이 없다"로 읽지는 않습니다. 다만 재물을 다루는 축이 명식 안에 자리 잡고 있지 않아서, 성취를 재물의 형태로 쌓는 일이 저절로 되지는 않는 편입니다. 의식적으로 구조를 만들어야 남는 쪽입니다.
@@ -35,6 +35,12 @@ export const SAMPLE_REPORTS: Record<ProductId, string> = {
 일간을 보면 지영 님의 토(土)가 민수 님의 금(金)을 생합니다. 지영 님이 민수 님을 북돋우는 흐름이고, 관계 초반에는 이 방향이 편안하게 작동합니다. 일지끼리는 신자진 수국의 일부를 이뤄, 두 분이 바라보는 방향 자체는 비슷합니다.
 
 가장 무겁게 보는 용신 보완에서는 서로 채워주는 관계로 나옵니다. 다만…
+
+…`,
+
+  'charm-report': `매력을 세 갈래로 대조했습니다. 사주에서는 도화가 일지에 자리하고, 관상에서는 눈매가 부드러운 편이며, 손금에서는 감정선이 길게 뻗습니다. 셋이 같은 쪽을 가리킵니다.
+
+다만 방향이 조금씩 다릅니다. 사주의 도화는 사람을 끌어당기는 쪽이고, 관상의 눈매는 상대를 편안하게 하는 쪽입니다. 앞의 것은 첫인상에서, 뒤의 것은 시간이 지날수록 작동합니다.
 
 …`,
 
@@ -57,6 +63,25 @@ export interface PreviewResult {
 }
 
 /** 룰 엔진 결과에서 "무엇이 담기는지"를 뽑아낸다. 모델을 부르지 않는다. */
+/**
+ * 상품별 예시.
+ *
+ * 상품이 열셋인데 예시를 열셋 쓸 이유는 없다. 손님이 보는 것은 "이런 식으로
+ * 쓰는구나"이지 그 상품 고유의 문장이 아니다. 없으면 같은 갈래의 예시를 쓴다.
+ */
+export function sampleFor(productId: ProductId): string {
+  return SAMPLES[productId] ?? SAMPLES[
+    productId === 'compat-report' ? 'compat-report'
+    : productId === 'cross-report' || productId === 'charm-report' ? 'cross-report'
+    : 'saju-report'
+  ]!;
+}
+
+/** @deprecated `sampleFor()`를 쓸 것 */
+export const SAMPLE_REPORTS = new Proxy({} as Record<ProductId, string>, {
+  get: (_t, key: string) => sampleFor(key as ProductId),
+});
+
 export function buildPreview(productId: ProductId, data: unknown, ratio: number): PreviewResult {
   const d = data as Record<string, any>;
   const contents: string[] = [];

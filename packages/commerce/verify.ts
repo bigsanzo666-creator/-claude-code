@@ -7,7 +7,8 @@
  */
 
 import {
-  CATALOG, getProduct, makePreview,
+  CATALOG, getProduct, makePreview, CATEGORIES, productsIn,
+  PACKAGES, bundleMath, packagesContaining, assertPackagesValid,
   createOrder, markPending, markPaid, markFulfilled, markViewed, markRefunded,
   hasEntitlement, OrderTransitionError,
   assessRefund, addBusinessDays, WITHDRAWAL_NOTICE, WITHDRAWAL_WINDOW_DAYS, refundNotice,
@@ -39,14 +40,49 @@ const newOrder = (over: Partial<Parameters<typeof createOrder>[0]> = {}) =>
     noticeGiven: true, previewProvided: true, now: T0, ...over,
   });
 
+/** 가격은 카탈로그에서 가져온다. 값이 바뀌어도 검증이 따라오게 하려는 것이다 */
+const CROSS_PRICE = CATALOG['cross-report'].priceKrw;
+
 // ── A. 상품 ────────────────────────────────────────────────────
 section('A. 상품과 미리보기');
 
-check('상품 3종', Object.keys(CATALOG).length === 3, Object.keys(CATALOG).join(', '));
+check('상품 13종', Object.keys(CATALOG).length === 13, `${Object.keys(CATALOG).length}개`);
+check('모든 상품에 갈래가 있다', Object.values(CATALOG).every((p) => CATEGORIES.some((c) => c.key === p.category)));
+check('모든 상품에 후킹 질문이 있다', Object.values(CATALOG).every((p) => p.hook.endsWith('?')),
+  '「재물운」이라고만 쓰면 안 눌린다');
+check('갈래마다 상품이 있다', CATEGORIES.every((c) => productsIn(c.key).length > 0));
+check('갈래 제목도 질문이다', CATEGORIES.every((c) => c.question.endsWith('?')));
+check('식별자가 겹치지 않는다', new Set(Object.values(CATALOG).map((p) => p.id)).size === 13);
+check('id 와 키가 일치', Object.entries(CATALOG).every(([k, v]) => k === v.id));
+
+// ── 묶음 ────────────────────────────────────────────────────
+check('묶음 구성이 카탈로그와 어긋나지 않는다', throwsSync(() => assertPackagesValid()) === null);
+for (const pack of Object.values(PACKAGES)) {
+  const m = bundleMath(pack.id);
+  check(`${pack.name}: 따로 사는 것보다 싸다`, m.savedKrw > 0, `${m.individualKrw}원 → ${m.bundleKrw}원`);
+  // 정가를 지어내면 표시광고법 위반이다. 구성 상품의 실제 판매가 합계만 쓴다
+  check(`${pack.name}: 정가가 구성 상품 실제 가격의 합`,
+    m.individualKrw === pack.members.reduce((s, id) => s + CATALOG[id].priceKrw, 0));
+  check(`${pack.name}: 절약률을 내림한다 — 올려 적으면 과장이다`,
+    m.percent <= (m.savedKrw / m.individualKrw) * 100, `${m.percent}%`);
+}
+check('가운데를 추천한다 — 극단을 피하는 심리',
+  Object.values(PACKAGES).filter((p) => p.recommended).length === 1);
+check('추천 묶음의 절약률이 가장 높다',
+  bundleMath('samhap-pack').percent >= bundleMath('basic-pack').percent);
+check('삼합 리포트를 보는 사람에게 삼합이 든 묶음만 권한다',
+  packagesContaining('cross-report').every((p) => p.members.includes('cross-report')));
+check('싼 것부터 권한다', (() => {
+  const ps = packagesContaining('saju-report');
+  return ps.every((p, i) => i === 0 || ps[i - 1].priceKrw <= p.priceKrw);
+})());
 check('가격이 정수 원 단위', Object.values(CATALOG).every((p) => Number.isInteger(p.priceKrw)));
-check('교차검증이 가장 비쌈',
-  CATALOG['cross-report'].priceKrw > CATALOG['saju-report'].priceKrw,
-  `${CATALOG['cross-report'].priceKrw}원 vs ${CATALOG['saju-report'].priceKrw}원`);
+check('삼합(교차검증)이 단품 중 가장 비쌈',
+  Object.values(CATALOG).every((p) => p.priceKrw <= CATALOG['cross-report'].priceKrw),
+  `${CATALOG['cross-report'].priceKrw}원`);
+check('맛보기 상품이 가장 쌈 — 첫 결제 장벽을 낮춘다',
+  Object.values(CATALOG).every((p) => p.priceKrw >= CATALOG['daily-report'].priceKrw),
+  `${CATALOG['daily-report'].priceKrw}원`);
 check('없는 상품은 거부', throwsSync(() => getProduct('nope')) !== null);
 
 const long = ['첫 문단입니다. 두 문장째입니다.', '둘째 문단입니다.', '셋째 문단입니다.', '넷째 문단입니다.'].join('\n\n');
@@ -95,10 +131,10 @@ check('환불하면 이용권 사라짐', !hasEntitlement(markRefunded(o2, T0), 
 section('D. 결제 검증 — 위조 시도를 막는가');
 
 const gw = new FakeGateway();
-gw.put({ paymentId: 'pay_ok', status: 'paid', amountKrw: 19900, merchantOrderId: 'ord_1', method: 'card', paidAt: T0.toISOString(), raw: {} });
+gw.put({ paymentId: 'pay_ok', status: 'paid', amountKrw: CROSS_PRICE, merchantOrderId: 'ord_1', method: 'card', paidAt: T0.toISOString(), raw: {} });
 gw.put({ paymentId: 'pay_cheap', status: 'paid', amountKrw: 100, merchantOrderId: 'ord_1', method: 'card', paidAt: T0.toISOString(), raw: {} });
-gw.put({ paymentId: 'pay_pending', status: 'pending', amountKrw: 19900, merchantOrderId: 'ord_1', method: 'card', paidAt: null, raw: {} });
-gw.put({ paymentId: 'pay_other', status: 'paid', amountKrw: 19900, merchantOrderId: 'ord_999', method: 'card', paidAt: T0.toISOString(), raw: {} });
+gw.put({ paymentId: 'pay_pending', status: 'pending', amountKrw: CROSS_PRICE, merchantOrderId: 'ord_1', method: 'card', paidAt: null, raw: {} });
+gw.put({ paymentId: 'pay_other', status: 'paid', amountKrw: CROSS_PRICE, merchantOrderId: 'ord_999', method: 'card', paidAt: T0.toISOString(), raw: {} });
 
 const confirmed = await confirmPayment(markPending(newOrder(), 'pay_ok'), gw, 'pay_ok', T0);
 check('정상 결제는 확정됨', confirmed.status === 'paid' && confirmed.paymentId === 'pay_ok');
@@ -122,7 +158,7 @@ check('없는 결제는 조회 단계에서 실패',
 section('E. 환불 — 전자상거래법 제17조');
 
 const paidOrder = (over: Partial<Order> = {}): Order => ({
-  ...markPaid(markPending(newOrder(), 'pay_ok'), 19900, T0), ...over,
+  ...markPaid(markPending(newOrder(), 'pay_ok'), CROSS_PRICE, T0), ...over,
 });
 
 const day = (n: number) => new Date(T0.getTime() + n * 86400000);
@@ -178,15 +214,15 @@ check('환불 안내에 처리 기한 포함',
 section('G. 환불 실행');
 
 const gw2 = new FakeGateway();
-gw2.put({ paymentId: 'pay_ok', status: 'paid', amountKrw: 19900, merchantOrderId: 'ord_1', method: 'card', paidAt: T0.toISOString(), raw: {} });
+gw2.put({ paymentId: 'pay_ok', status: 'paid', amountKrw: CROSS_PRICE, merchantOrderId: 'ord_1', method: 'card', paidAt: T0.toISOString(), raw: {} });
 
 const outcome = await refundOrder(paidOrder(), gw2, day(1));
 check('환불되면 주문이 refunded', outcome.order.status === 'refunded' && outcome.order.refundedAt !== null);
 check('PG에 취소가 실제로 걸림', gw2.cancelled.length === 1 && gw2.cancelled[0].paymentId === 'pay_ok');
-check('전액이 취소됨', outcome.cancelledAmountKrw === 19900, `${outcome.cancelledAmountKrw}원`);
+check('전액이 취소됨', outcome.cancelledAmountKrw === CROSS_PRICE, `${outcome.cancelledAmountKrw}원`);
 
 const gw3 = new FakeGateway();
-gw3.put({ paymentId: 'pay_ok', status: 'paid', amountKrw: 19900, merchantOrderId: 'ord_1', method: 'card', paidAt: T0.toISOString(), raw: {} });
+gw3.put({ paymentId: 'pay_ok', status: 'paid', amountKrw: CROSS_PRICE, merchantOrderId: 'ord_1', method: 'card', paidAt: T0.toISOString(), raw: {} });
 const blocked = await throwsAsync(() => refundOrder({ ...viewedFull, paymentId: 'pay_ok' }, gw3, day(1)));
 check('환불 불가 건은 PG를 부르기 전에 막힘', blocked !== null && gw3.cancelled.length === 0,
   '정책 판정이 먼저, 돈은 그 다음');

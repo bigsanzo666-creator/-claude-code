@@ -13,7 +13,8 @@
  *    다르면 그 자체가 사고다.
  */
 
-import { CATALOG, type Product } from '../../commerce/src/catalog.ts';
+import { CATALOG, CATEGORIES, productsIn, type Product } from '../../commerce/src/catalog.ts';
+import { PACKAGES, bundleMath, type BundlePackage } from '../../commerce/src/packages.ts';
 import { WITHDRAWAL_WINDOW_DAYS } from '../../commerce/src/refund.ts';
 import { type BusinessInfo, show } from './business.ts';
 
@@ -28,6 +29,9 @@ const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
  *
  * 카탈로그의 한 줄 설명만으로는 부족하다 — 손님도 심사자도
  * 결제 버튼을 누르기 전에 받을 것을 알아야 한다.
+ *
+ * 주제별 상품은 여기 없다. 그쪽은 카탈로그의 `hook`과 `description`이
+ * 이미 그 일을 한다. 없는 상품은 목록 없이 설명만 나간다.
  */
 const CONTENTS: Record<string, string[]> = {
   'saju-report': [
@@ -49,6 +53,11 @@ const CONTENTS: Record<string, string[]> = {
     '**하나만 말하는 것** — 아직 드러나지 않은 면',
     '각 결론이 어느 글자·어느 부위에서 나왔는지 표시',
   ],
+  'newyear-report': [
+    '올해 세운이 내 명식과 만나는 지점',
+    '달별로 나뉜 흐름',
+    '올해 특히 조심할 것과 밀어붙일 것',
+  ],
 };
 
 function bold(text: string): string {
@@ -59,12 +68,13 @@ function bold(text: string): string {
 function productCard(product: Product, ready: boolean): string {
   const items = (CONTENTS[product.id] ?? []).map((t) => `<li>${bold(t)}</li>`).join('');
   const action = ready
-    ? `<span class="pr-buy">위에서 정보를 입력하시면 구매하실 수 있습니다</span>`
-    : `<span class="pr-soon">결제 준비 중 — 무료 풀이는 지금 이용하실 수 있습니다</span>`;
+    ? '<span class="pr-buy">위에서 정보를 입력하시면 구매하실 수 있습니다</span>'
+    : '<span class="pr-soon">결제 준비 중</span>';
   return `<article class="pr-card">
+  <p class="pr-hook">${esc(product.hook)}</p>
   <h3>${esc(product.name)}</h3>
   <p class="pr-desc">${esc(product.description)}</p>
-  <ul class="pr-list">${items}</ul>
+  ${items ? `<ul class="pr-list">${items}</ul>` : ''}
   <div class="pr-foot">
     <span class="pr-price">${won(product.priceKrw)}<span class="pr-vat"> (부가세 포함)</span></span>
     ${action}
@@ -73,23 +83,40 @@ function productCard(product: Product, ready: boolean): string {
 }
 
 /**
- * 묶음 할인의 근거.
+ * 묶음 카드.
  *
- * 경쟁사들이 쓰는 "정가 36,740원 → 46% 할인" 같은 표시는, 그 가격에 실제로
- * 판 적이 없으면 표시광고법상 거짓·과장광고가 된다. 우리는 개별 상품이
- * 실재하므로 그 합계를 쓴다 — 같은 효과를 사실만으로 낸다.
+ * 정가를 지어내지 않는다. 경쟁사들이 쓰는 "정가 128,000원 → 61% 할인"은
+ * 그 가격에 실제로 판 적이 없으면 표시광고법상 거짓·과장광고가 된다.
+ * 우리는 구성 상품이 전부 실재하므로 **그 합계를 그대로 쓴다.**
  */
-export function bundleSaving(): { individual: number; bundle: number; percent: number } {
-  const individual = CATALOG['saju-report'].priceKrw + CATALOG['compat-report'].priceKrw;
-  const bundle = CATALOG['cross-report'].priceKrw;
-  return { individual, bundle, percent: Math.round((1 - bundle / individual) * 100) };
+function packageCard(pack: BundlePackage, ready: boolean): string {
+  const m = bundleMath(pack.id);
+  const names = pack.members.map((id) => CATALOG[id].name).join(' + ');
+  return `<article class="pr-card${pack.recommended ? ' pr-rec' : ''}">
+  ${pack.recommended ? '<span class="pr-badge">추천</span>' : ''}
+  <p class="pr-hook">${esc(pack.hook)}</p>
+  <h3>${esc(pack.name)}</h3>
+  <p class="pr-desc">${esc(names)}</p>
+  <div class="pr-foot">
+    <span class="pr-price">${won(m.bundleKrw)}<span class="pr-vat"> (부가세 포함)</span></span>
+    <span class="pr-save">따로 사면 ${won(m.individualKrw)} · ${m.percent}% 절약</span>
+    ${ready ? '' : '<span class="pr-soon">결제 준비 중</span>'}
+  </div>
+</article>`;
 }
 
 export const PRODUCTS_CSS = `
 .pr{max-width:760px;margin:0 auto;padding:28px 20px 8px;font:15px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;color:#1b1b1f}
 .pr h2{font-size:20px;margin:0 0 6px}
 .pr-intro{color:#5c5c66;margin:0 0 18px;font-size:14px}
-.pr-card{border:1px solid #e3e3ea;border-radius:12px;padding:18px 20px;margin-bottom:14px;background:#fff}
+.pr-group{margin:26px 0}
+.pr-q{font-size:17px;margin:0 0 2px}
+.pr-cat{font-size:12px;color:#5c5c66;margin:0 0 12px;letter-spacing:.02em}
+.pr-card{position:relative;border:1px solid #e3e3ea;border-radius:12px;padding:18px 20px;margin-bottom:14px;background:#fff}
+.pr-rec{border-color:#5b3fa8;border-width:2px}
+.pr-badge{position:absolute;top:-10px;left:18px;background:#5b3fa8;color:#fff;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px}
+.pr-hook{margin:0 0 4px;font-size:13.5px;color:#5b3fa8;font-weight:600}
+.pr-save{font-size:13px;color:#5c5c66}
 .pr-card h3{font-size:16.5px;margin:0 0 4px}
 .pr-desc{color:#5c5c66;margin:0 0 12px;font-size:14px}
 .pr-list{margin:0 0 14px;padding-left:20px}
@@ -103,7 +130,10 @@ export const PRODUCTS_CSS = `
 .pr-note a{color:#5b3fa8}
 @media (prefers-color-scheme:dark){
 .pr{color:#e8e8ee}
-.pr-intro,.pr-desc,.pr-vat,.pr-buy,.pr-note{color:#a0a0ad}
+.pr-intro,.pr-desc,.pr-vat,.pr-buy,.pr-note,.pr-cat,.pr-save{color:#a0a0ad}
+.pr-hook{color:#b9a4f0}
+.pr-rec{border-color:#b9a4f0}
+.pr-badge{background:#b9a4f0;color:#16161a}
 .pr-card{background:#1e1e24;border-color:#33333d}
 .pr-foot{border-top-color:#2c2c35}
 .pr-note{background:#1e1e24}
@@ -111,19 +141,40 @@ export const PRODUCTS_CSS = `
 .pr-soon{color:#e0b34d}
 }`;
 
-/** 상품 목록 한 덩어리. 화면에도 붙이고 전용 페이지에도 쓴다 */
+/**
+ * 상품 목록 한 덩어리. 화면에도 붙이고 전용 페이지에도 쓴다.
+ *
+ * 열셋을 그냥 늘어놓으면 아무도 못 고른다. 그래서 갈래로 묶고,
+ * 갈래 제목을 **질문으로** 단다 — 「연애」라고만 쓰면 안 눌리고
+ * 「이 사람, 괜찮을까?」라고 쓰면 눌린다.
+ */
 export function renderProducts(ready: boolean): string {
-  const cards = Object.values(CATALOG).map((p) => productCard(p, ready)).join('\n');
-  const { individual, bundle, percent } = bundleSaving();
+  const groups = CATEGORIES.map((c) => {
+    const cards = productsIn(c.key).map((p) => productCard(p, ready)).join('\n');
+    return `<section class="pr-group">
+<h3 class="pr-q">${esc(c.question)}</h3>
+<p class="pr-cat">${esc(c.key)}</p>
+${cards}
+</section>`;
+  }).join('\n');
+
+  const packs = Object.values(PACKAGES)
+    .sort((a, b) => a.priceKrw - b.priceKrw)
+    .map((p) => packageCard(p, ready)).join('\n');
+
   return `<section class="pr" id="products">
 <h2>판매 상품과 가격</h2>
 <p class="pr-intro">아래는 유료 리포트입니다. 사주 명식·궁합·관상·손금 풀이 자체는 무료이며,
 결제 없이 이용하실 수 있습니다.</p>
-${cards}
+${groups}
+<section class="pr-group">
+<h3 class="pr-q">여러 개를 함께 보시려면</h3>
+<p class="pr-cat">묶음</p>
+${packs}
+</section>
 <p class="pr-note">
-<strong>사주 종합(${won(CATALOG['saju-report'].priceKrw)})과 궁합(${won(CATALOG['compat-report'].priceKrw)})을
-따로 구매하면 ${won(individual)}</strong>입니다.
-교차검증 리포트는 ${won(bundle)}으로, 약 ${percent}% 절약됩니다.<br>
+묶음 가격 옆의 「따로 사면」은 <strong>구성 상품을 실제로 낱개 판매하는 가격의 합계</strong>입니다.
+판매한 적 없는 정가를 지어내 할인율을 부풀리지 않습니다.<br>
 결제 전에 리포트 일부를 미리 보실 수 있으며, 결제일부터 ${WITHDRAWAL_WINDOW_DAYS}일 이내에
 청약철회가 가능합니다. 자세한 내용은 <a href="/refund">취소·환불 정책</a>을 참고해 주세요.
 </p>

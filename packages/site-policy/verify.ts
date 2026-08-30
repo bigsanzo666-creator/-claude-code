@@ -9,9 +9,10 @@
 import {
   loadBusinessInfo, missingFields, isComplete, isValidRegistrationNumber,
   renderFooter, renderTerms, renderPrivacy, renderRefund, POLICY_EFFECTIVE_DATE,
-  renderProducts, renderProductsPage, bundleSaving,
+  renderProducts, renderProductsPage,
 } from './src/index.ts';
-import { CATALOG } from '../commerce/src/catalog.ts';
+import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
+import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
 import { WITHDRAWAL_WINDOW_DAYS, REFUND_DUE_BUSINESS_DAYS } from '../commerce/src/refund.ts';
 
 let passed = 0, failed = 0;
@@ -141,12 +142,21 @@ check('결제가 꺼져 있어도 가격이 보인다', off.includes('19,900원'
 check('결제가 꺼져 있으면 준비 중이라고 알린다', off.includes('결제 준비 중'));
 check('결제가 켜지면 준비 중 문구가 사라진다', !renderProducts(true).includes('결제 준비 중'));
 
-const saving = bundleSaving();
-check('묶음 할인 근거가 카탈로그 합계와 맞는다',
-  saving.individual === CATALOG['saju-report'].priceKrw + CATALOG['compat-report'].priceKrw
-  && saving.bundle === CATALOG['cross-report'].priceKrw, `${saving.individual} → ${saving.bundle}`);
-check('절약률이 계산된다', saving.percent === 20, `${saving.percent}%`);
-check('개별 합산가가 화면에 나온다', off.includes('24,800원'));
+// 갈래 제목이 질문이어야 눌린다. 「연애」로는 안 눌린다
+for (const c of CATEGORIES) {
+  check(`갈래 제목이 질문으로 나온다: ${c.question}`, off.includes(c.question));
+}
+check('상품마다 후킹 질문이 붙는다',
+  Object.values(CATALOG).every((p) => off.includes(p.hook)));
+
+// 묶음 — 정가를 지어내지 않는다
+for (const pack of Object.values(PACKAGES)) {
+  const m = bundleMath(pack.id);
+  check(`${pack.name}: 묶음가 표시`, off.includes(m.bundleKrw.toLocaleString('ko-KR')));
+  check(`${pack.name}: 따로 사는 합계도 함께 표시`, off.includes(m.individualKrw.toLocaleString('ko-KR')));
+}
+check('추천 배지는 하나뿐', (off.match(/pr-badge/g) ?? []).length === 1);
+check('지어낸 정가가 아님을 밝힌다', off.includes('판매한 적 없는 정가를 지어내'));
 
 // 받을 내용을 못 박아야 손님도 심사자도 결제 전에 안다
 check('교차검증 상품의 포함 내용 명시',
