@@ -182,6 +182,15 @@ check('첫 화면에서 정책·상품으로 링크', ['/products', '/terms', '/
 check('첫 화면 HTML 자체에 가격이 박혀 있다', home.html.includes('19,900원') && home.html.includes('9,900원'));
 check('가격이 자바스크립트 없이 보인다', home.html.includes('<section class="pr"'));
 check('첫 화면은 여전히 뷰어를 담고 있다', home.html.includes('window.SAJU_CONFIG'));
+// 손님이 보는 순서: 브랜드 → 상품 → 무료 체험. 계산기가 먼저 나오면 안 된다
+const iBrand = home.html.indexOf('lp-name');
+const iProducts = home.html.indexOf('id="products"');
+const iTry = home.html.indexOf('id="try"');
+check('브랜드가 맨 위', iBrand > 0 && iBrand < iProducts, `${iBrand} < ${iProducts}`);
+check('상품이 무료 체험보다 먼저', iProducts > 0 && iProducts < iTry, `${iProducts} < ${iTry}`);
+check('개발자용 제목이 사라졌다', !home.html.includes('<h1>만세력 · 명식 해석</h1>'));
+check('VSOP87 같은 말이 첫 화면 상단에 없다',
+  home.html.indexOf('VSOP87') === -1 || home.html.indexOf('VSOP87') > iTry);
 check('푸터 스타일이 함께 나간다', home.html.includes('.biz-rows'));
 
 // GET /refund 는 정책 페이지, GET /api/orders/:id/refund 는 환불 조회 — 서로 가리지 않아야 한다

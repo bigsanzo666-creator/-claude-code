@@ -116,7 +116,9 @@ await page.waitForSelector('.pro', { timeout: 10000 });
 await page.waitForSelector('#payBtn', { timeout: 10000 });
 
 const priceText = await page.locator('.buy .price').textContent();
-check('가격이 표시됨', priceText?.includes('19,900') ?? false, priceText ?? '');
+// 값을 여기 적어두면 카탈로그를 고칠 때마다 검증이 깨진다. 한 곳에서만 온다
+const crossPrice = CATALOG['cross-report'].priceKrw.toLocaleString('ko-KR');
+check('가격이 표시됨', priceText?.includes(crossPrice) ?? false, priceText ?? '');
 check('담길 내용 목록이 보임', (await page.locator('.will li').count()) > 0,
   `${await page.locator('.will li').count()}개`);
 check('예시 리포트가 보임', ((await page.locator('.samp').textContent()) ?? '').length > 50);

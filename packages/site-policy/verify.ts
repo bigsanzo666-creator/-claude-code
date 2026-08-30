@@ -9,7 +9,7 @@
 import {
   loadBusinessInfo, missingFields, isComplete, isValidRegistrationNumber,
   renderFooter, renderTerms, renderPrivacy, renderRefund, POLICY_EFFECTIVE_DATE,
-  renderProducts, renderProductsPage,
+  renderProducts, renderProductsPage, renderHero, renderTryHeading, LANDING_CSS,
 } from './src/index.ts';
 import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
@@ -167,6 +167,35 @@ const page = renderProductsPage(full, false, renderFooter(full));
 check('상품 전용 페이지가 완성된 문서', page.startsWith('<!doctype html>') && page.trimEnd().endsWith('</html>'));
 check('상품 전용 페이지에 사업자 정보 동반', page.includes('220-81-62517'));
 check('상품 전용 페이지 제목', page.includes('<title>판매 상품과 가격 · 사주보다</title>'));
+
+section('10. 첫 화면');
+{
+  const hero = renderHero(full, false);
+  check('브랜드 이름이 맨 위에 나온다', hero.includes('사주보다'));
+  check('서버가 HTML로 그린다 — 검색엔진과 심사 검사기가 본다', hero.includes('<h1>'));
+  check('무료 구간으로 가는 버튼', hero.includes('href="#try"') && hero.includes('무료'));
+
+  // 없는 실적을 만들지 않는다. 경쟁사의 「누적 30,000명」「97% 만족」은 우리에게 없다
+  for (const banned of ['누적', '만족', '명이 선택', '1위', '최고']) {
+    check(`없는 실적을 내걸지 않는다: ${banned}`, !hero.includes(banned));
+  }
+  // 대신 실제로 가진 것을 내건다
+  check('세 갈래 대조를 내건다', hero.includes('세 갈래'));
+  check('절기를 직접 계산한다는 사실', hero.includes('천문 계산'));
+  check('근거를 단다는 원칙', hero.includes('근거'));
+
+  // 개발자용 문구가 손님 화면에 남아 있으면 안 된다
+  for (const jargon of ['VSOP87', '급수', '명식 해석', '만세력 · 명식']) {
+    check(`손님 화면에 개발 용어가 없다: ${jargon}`, !hero.includes(jargon));
+  }
+
+  check('모바일 폭이 기준', renderHero(full, true).length > 0 && LANDING_CSS.includes('max-width:560px'));
+  check('다크 모드 대응', LANDING_CSS.includes('prefers-color-scheme'));
+
+  const heading = renderTryHeading();
+  check('무료 구간 앞에 안내가 붙는다', heading.includes('id="try"') && heading.includes('무료'));
+  check('결제 없이 된다고 분명히 밝힌다', heading.includes('결제 없이'));
+}
 
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);

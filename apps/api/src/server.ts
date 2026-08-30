@@ -22,6 +22,7 @@ import { cacheKey } from '../../../packages/report/src/cache.ts';
 import {
   loadBusinessInfo, renderFooter, renderTerms, renderPrivacy, renderRefund,
   renderProducts, renderProductsPage, PRODUCTS_CSS,
+  renderHero, renderTryHeading, LANDING_CSS,
   type BusinessInfo,
 } from '../../../packages/site-policy/src/index.ts';
 import { buildPayload, KIND_OF, type ReadingRequest } from './payload.ts';
@@ -100,14 +101,17 @@ function renderPage(checkout: CheckoutConfig | null, business: BusinessInfo): st
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>:root{color-scheme:light dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+${LANDING_CSS}
 ${PRODUCTS_CSS}
 ${FOOTER_CSS}</style>
 <script>window.SAJU_CONFIG = ${config};</script>
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 </head>
 <body>
-${fragment}
+${renderHero(business, checkout !== null)}
 ${renderProducts(checkout !== null)}
+${renderTryHeading()}
+${fragment}
 ${renderFooter(business)}
 </body>
 </html>`;
