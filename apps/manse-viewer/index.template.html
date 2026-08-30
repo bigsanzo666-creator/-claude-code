@@ -986,3 +986,130 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   render();
 })();
 </script>
+
+<style>
+/* 한 화면에 한 질문.
+   생년월일·시각·지역·성별을 한꺼번에 들이밀면 폰에서 부담스럽다.
+   경쟁사가 전부 한 질문씩 넘기게 만들어 둔 데는 이유가 있다. */
+.wiz .f{display:none}
+.wiz .f.step-on{display:block}
+.wiz .opts,.wiz #out,.wiz .panel:not(#panelA){display:none}
+.wiz #panelA h2{font-size:1.25rem;margin-bottom:1.2rem}
+.wiz-bar{display:flex;gap:10px;align-items:center;margin-top:1.4rem}
+.wiz-next{flex:1;background:#5b3fa8;color:#fff;border:0;border-radius:999px;
+  padding:14px 20px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit}
+.wiz-back{background:none;border:0;color:var(--ink-3);font-size:14px;cursor:pointer;
+  padding:14px 6px;font-family:inherit}
+.wiz-dots{display:flex;gap:6px;margin-bottom:1.1rem}
+.wiz-dot{width:22px;height:3px;border-radius:2px;background:var(--rule)}
+.wiz-dot.on{background:#5b3fa8}
+.wiz-skip{display:block;margin-top:.9rem;font-size:13px;color:var(--ink-3);
+  background:none;border:0;cursor:pointer;font-family:inherit;text-decoration:underline}
+@media (prefers-color-scheme:dark){
+.wiz-next{background:#b9a4f0;color:#16161a}
+.wiz-dot.on{background:#b9a4f0}
+}
+</style>
+<script>
+/*
+ * 입력 마법사.
+ *
+ * 계산 코드는 건드리지 않는다. 이 스크립트가 하는 일은 **보이는 것을 고르는 것**
+ * 뿐이다 — 기존 입력칸을 그대로 쓰고, 이벤트도 원래 붙은 것이 그대로 돈다.
+ * 그래서 마법사를 끄면 예전 화면이 그대로 돌아온다.
+ *
+ * 마지막 단계를 넘기면 마법사는 스스로 사라지고, 그 뒤로는 예전처럼
+ * 값이 바뀔 때마다 결과가 바로 갱신된다.
+ */
+(function () {
+  var panel = document.getElementById('panelA');
+  if (!panel) return;
+  var grid = panel.querySelector('.grid');
+  var by = function (id) { return panel.querySelector('.f:has(#' + id + ')'); };
+
+  // 질문 순서. 「이름」과 세부 설정(자시·보정)은 마법사에서 빼둔다 —
+  // 처음 온 사람에게 물을 것이 아니다.
+  var steps = [
+    { id: 'date', title: '태어난 날이 언제신가요?', note: '양력으로 넣어 주세요.' },
+    { id: 'time', title: '몇 시에 태어나셨나요?', note: '모르셔도 볼 수 있습니다.', skip: '시각을 모르겠어요' },
+    { id: 'place', title: '어디에서 태어나셨나요?', note: '지역에 따라 진태양시가 달라집니다.' },
+    { id: 'gender', title: '성별이 어떻게 되시나요?', note: '대운이 흐르는 방향을 정하는 데 씁니다.' },
+  ].filter(function (s) { return by(s.id); });
+  if (!steps.length) return;
+
+  var at = 0;
+  var heading = panel.querySelector('h2');
+  var originalHeading = heading ? heading.textContent : '';
+  var note = document.createElement('p');
+  note.className = 'note';
+  note.style.margin = '-.6rem 0 1.1rem';
+
+  var dots = document.createElement('div');
+  dots.className = 'wiz-dots';
+  steps.forEach(function () { dots.appendChild(document.createElement('span')).className = 'wiz-dot'; });
+
+  var bar = document.createElement('div');
+  bar.className = 'wiz-bar';
+  var back = document.createElement('button');
+  back.type = 'button'; back.className = 'wiz-back'; back.textContent = '이전';
+  var next = document.createElement('button');
+  next.type = 'button'; next.className = 'wiz-next';
+  bar.appendChild(back); bar.appendChild(next);
+
+  var skip = document.createElement('button');
+  skip.type = 'button'; skip.className = 'wiz-skip';
+
+  if (heading) heading.insertAdjacentElement('afterend', note);
+  if (grid) { grid.insertAdjacentElement('beforebegin', dots); grid.insertAdjacentElement('afterend', bar); }
+  bar.insertAdjacentElement('afterend', skip);
+
+  function show() {
+    var step = steps[at];
+    steps.forEach(function (s, i) {
+      var el = by(s.id);
+      if (el) el.classList.toggle('step-on', i === at);
+      dots.children[i].classList.toggle('on', i <= at);
+    });
+    if (heading) heading.textContent = step.title;
+    note.textContent = step.note;
+    next.textContent = at === steps.length - 1 ? '내 사주 보기' : '다음';
+    back.style.visibility = at === 0 ? 'hidden' : 'visible';
+    skip.style.display = step.skip ? 'block' : 'none';
+    skip.textContent = step.skip || '';
+    var input = document.getElementById(step.id);
+    if (input && input.focus) { try { input.focus({ preventScroll: true }); } catch (e) {} }
+  }
+
+  /** 마법사를 끝낸다. 여기부터는 원래 화면이다 */
+  function finish() {
+    document.body.classList.remove('wiz');
+    [dots, bar, skip, note].forEach(function (el) { el.remove(); });
+    if (heading) heading.textContent = originalHeading;
+    steps.forEach(function (s) { var el = by(s.id); if (el) el.classList.remove('step-on'); });
+    var out = document.getElementById('out');
+    if (out && out.scrollIntoView) out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  next.addEventListener('click', function () {
+    if (at < steps.length - 1) { at++; show(); } else { finish(); }
+  });
+  back.addEventListener('click', function () { if (at > 0) { at--; show(); } });
+  skip.addEventListener('click', function () {
+    var notime = document.getElementById('notime');
+    // 「모르겠어요」는 기존 체크박스를 대신 눌러 준다. 계산 규칙은 그대로다
+    if (notime && !notime.checked) { notime.checked = true; notime.dispatchEvent(new Event('change')); }
+    if (at < steps.length - 1) { at++; show(); } else { finish(); }
+  });
+
+  // 탭을 옮기면 마법사는 물러난다. 궁합·관상은 원래 화면이 맞다
+  ['tabPair', 'tabFace'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('click', function () {
+      if (document.body.classList.contains('wiz')) finish();
+    }, { capture: true });
+  });
+
+  document.body.classList.add('wiz');
+  show();
+})();
+</script>

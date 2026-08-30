@@ -98,6 +98,22 @@ await page.addInitScript(() => {
 section('A. 페이지 로드');
 
 await page.goto(base, { waitUntil: 'domcontentloaded' });
+
+/**
+ * 입력 마법사를 끝까지 넘긴다.
+ *
+ * 첫 화면은 한 질문씩 묻고, 다 넘겨야 결과와 결제 구간이 나온다.
+ * 이 검증이 보려는 것은 그 뒤의 구매 흐름이므로 여기서 한 번에 통과시킨다.
+ * 마법사 자체는 `wiz-test.ts` 가 따로 본다.
+ */
+async function passWizard() {
+  for (let i = 0; i < 8; i++) {
+    if (await page.locator('body.wiz').count() === 0) return;
+    await page.locator('.wiz-next').click();
+    await page.waitForTimeout(60);
+  }
+}
+await passWizard();
 await page.waitForSelector('.chart', { timeout: 10000 });
 
 check('명식이 그려짐', (await page.locator('.chart .col').count()) === 4);
