@@ -12,7 +12,11 @@ services:
     dockerfilePath: ./Dockerfile
     # 한국에서 가장 가까운 지역
     region: singapore
-    plan: starter
+    # 렌더는 요금제를 사양 이름으로 부른다. 0.5 CPU / 512MB = 예전의 Starter, 월 $7.
+    # 우리 서버는 요청당 하는 일이 적고 상태를 메모리에 거의 안 들고 있어 이 사양으로 충분하다.
+    # 무료 요금제(free)를 쓰지 않는 이유: 15분 놀면 잠들고, 심사자가 열었을 때
+    # 잠들어 있으면 "접속 불가"로 반려된다.
+    plan: 0.5c-512mb
     healthCheckPath: /healthz
     envVars:
       # 사업자 정보 — 렌더 대시보드에서 값을 채운다.
