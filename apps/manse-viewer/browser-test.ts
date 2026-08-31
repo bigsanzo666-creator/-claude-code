@@ -171,7 +171,11 @@ section('D. 사용자가 결제창을 닫는 경우');
 
 await page.evaluate(() => { (window as any).__payMode = 'cancel'; });
 // 입력을 바꾸면 이전 구매 결과가 초기화된다 (이름 칸은 궁합 모드 전용이라 생년월일로 바꾼다)
-await page.locator('#date').fill('1985-11-03');
+// 생년월일은 이제 연·월·일 세 칸이다. 숨은 입력에 직접 쓰지 않고 손님처럼 고른다
+const ymd = page.locator('.ymd').first().locator('select');
+await ymd.nth(0).selectOption('1985');
+await ymd.nth(1).selectOption('11');
+await ymd.nth(2).selectOption('03');
 await page.waitForSelector('#payBtn', { timeout: 10000 });
 check('입력이 바뀌면 이전 리포트가 사라짐', (await page.locator('.bought').count()) === 0);
 

@@ -8,6 +8,8 @@
   "description": "만세력 뷰어 — 무료 구간은 브라우저에서, 유료 구간은 서버 결제로",
   "scripts": {
     "browser-test": "node --experimental-strip-types browser-test.ts",
-    "wiz-test": "node --experimental-strip-types wiz-test.ts"
+    "wiz-test": "node --experimental-strip-types wiz-test.ts",
+    "ymd-test": "node --experimental-strip-types ymd-test.ts",
+    "overflow-check": "node --experimental-strip-types overflow-check.ts"
   }
 }

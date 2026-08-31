@@ -49,11 +49,20 @@ header{background:var(--surface);border-bottom:1px solid var(--rule);padding:2.2
 header p{margin:.7rem 0 0;color:var(--ink-2);max-width:60ch;font-size:.95rem}
 
 main{padding:1.9rem 0 3.5rem;display:grid;gap:1.6rem}
+/* 격자 칸은 기본이 min-width:auto 라 **안쪽 내용만큼 벌어진다.**
+   그래서 390px 폰에서 패널이 936px가 됐고, 그 바람에 가운데 정렬이 어긋나고
+   아래쪽 배경이 화면 폭보다 좁게 잘려 보였다. 한 줄이 세 가지 증상을 만들었다. */
+main>*{min-width:0}
 
 /* form */
 .panel{background:var(--surface);border:1px solid var(--rule-soft)}
 .panel-in{padding:1.3rem 1.35rem}
 .grid{display:grid;gap:1rem 1.15rem;grid-template-columns:repeat(auto-fit,minmax(165px,1fr))}
+/* 격자 칸은 기본이 min-width:auto 라, 안에 든 <select> 의 가장 긴 항목만큼 벌어진다.
+   「야자시 — 23시부터 다음날」 하나 때문에 폰에서 화면이 936px로 늘어났고,
+   그 바람에 가운데 정렬이 어긋나고 아래쪽 배경이 화면 폭보다 좁게 잘려 보였다. */
+.grid>*,.fgrid>*{min-width:0}
+.grid select,.grid input,.fgrid select,.fgrid input{max-width:100%}
 .f{display:flex;flex-direction:column;gap:.35rem;min-width:0}
 .f > .label{color:var(--ink-2)}
 input,select{
@@ -1111,5 +1120,79 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 
   document.body.classList.add('wiz');
   show();
+})();
+</script>
+
+<style>
+/* 생년월일은 연·월·일을 따로 고른다.
+   폰의 기본 달력은 1990년을 찾으려면 화살표를 수백 번 눌러야 한다.
+   사주는 태어난 해가 수십 년 전이라 그 방식이 특히 나쁘다. */
+.ymd{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:.5rem}
+.ymd select{min-width:0}
+</style>
+<script>
+/*
+ * 생년월일 입력을 연·월·일 세 칸으로 바꾼다.
+ *
+ * 기존 <input type="date"> 는 **그대로 두고 숨긴다.** 계산 코드는 그 값을
+ * 읽으므로, 세 칸이 값을 써 넣고 change 를 흘려보내면 나머지는 원래대로 돈다.
+ * 엔진을 건드리지 않는 이유이자, 이 화면이 깨져도 계산은 멀쩡한 이유다.
+ */
+(function () {
+  var THIS_YEAR = new Date().getFullYear();
+
+  function opt(v, label) { var o = document.createElement('option'); o.value = v; o.textContent = label; return o; }
+  function daysIn(y, m) { return new Date(y, m, 0).getDate(); }
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function attach(inputId) {
+    var input = document.getElementById(inputId);
+    if (!input || input.dataset.ymd) return;
+    input.dataset.ymd = '1';
+
+    var box = document.createElement('div');
+    box.className = 'ymd';
+    var ys = document.createElement('select'), ms = document.createElement('select'), ds = document.createElement('select');
+    [ys, ms, ds].forEach(function (s) { box.appendChild(s); });
+    ys.setAttribute('aria-label', '태어난 해');
+    ms.setAttribute('aria-label', '태어난 달');
+    ds.setAttribute('aria-label', '태어난 날');
+
+    for (var y = THIS_YEAR; y >= 1920; y--) ys.appendChild(opt(String(y), y + '년'));
+    for (var m = 1; m <= 12; m++) ms.appendChild(opt(pad(m), m + '월'));
+
+    function fillDays() {
+      var keep = ds.value;
+      var n = daysIn(Number(ys.value), Number(ms.value));
+      ds.textContent = '';
+      for (var d = 1; d <= n; d++) ds.appendChild(opt(pad(d), d + '일'));
+      // 31일에서 2월로 옮기면 없는 날이 된다. 그럴 땐 그 달의 마지막 날로 맞춘다
+      ds.value = (keep && Number(keep) <= n) ? keep : pad(n);
+    }
+
+    function pull() {
+      var parts = (input.value || '1990-01-01').split('-');
+      ys.value = parts[0]; ms.value = parts[1];
+      fillDays();
+      ds.value = parts[2];
+    }
+
+    function push() {
+      input.value = ys.value + '-' + ms.value + '-' + ds.value;
+      // 원래 붙어 있던 처리기가 그대로 돈다. 계산 규칙은 바뀌지 않는다
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    ys.addEventListener('change', function () { fillDays(); push(); });
+    ms.addEventListener('change', function () { fillDays(); push(); });
+    ds.addEventListener('change', push);
+
+    pull();
+    input.style.display = 'none';
+    input.insertAdjacentElement('afterend', box);
+  }
+
+  ['date', 'b-date'].forEach(attach);
 })();
 </script>
