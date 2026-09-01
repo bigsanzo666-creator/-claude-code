@@ -164,7 +164,24 @@ const VIEWER_SKIN = `
 }
 /* 조각 안에 색이 직접 박힌 두 곳. 보라색 알약 버튼 하나가 화면 전체를 싸구려로 만든다 */
 .wiz-next{background:var(--nb-ink);color:var(--nb-paper-2);border-radius:0;letter-spacing:.02em}
-.wiz-dot.on{background:var(--nb-gold)}`;
+.wiz-dot.on{background:var(--nb-gold)}
+
+/* 여기부터는 「행정 서식」을 위쪽 화면과 한 가족으로 만드는 손질이다.
+   붉은색은 남겨 둔다 — 오류·경고·불리처럼 **뜻이 있는 자리**에 쓰이고 있어서,
+   금색으로 바꾸면 나쁜 소식이 좋은 소식처럼 보인다. 손대는 것은 껍데기뿐이다. */
+.tabs{width:100%}
+.tab{flex:1;white-space:nowrap;font-size:.86rem}
+.tab.on{color:var(--nb-gold);box-shadow:inset 0 -2px 0 var(--nb-gold)}
+.seg button.on{background:transparent;color:var(--nb-gold);box-shadow:inset 0 -2px 0 var(--nb-gold)}
+button.pay{background:var(--nb-ink);color:var(--nb-paper-2);border-radius:0;letter-spacing:.02em}
+input,select,textarea{border-radius:0;border-color:var(--nb-line)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline-color:var(--nb-gold)}
+/* 대문자 영문 모노 라벨은 서식 서류의 인상을 준다. 위쪽 금색 라벨과 같은 결로 맞춘다 */
+.label,.who{font-family:var(--nb-sans);text-transform:none;letter-spacing:.16em;color:var(--nb-gold)}
+.f > .label{color:var(--nb-ink-3);letter-spacing:.04em;font-size:.78rem}
+.seal{border-color:var(--nb-gold);color:var(--nb-gold);border-radius:0;border-width:1px}
+.pro{border-color:var(--nb-gold)}
+.pro::before{background:var(--nb-gold);color:var(--nb-paper-2)}`;
 
 class HttpError extends Error {
   readonly status: number;

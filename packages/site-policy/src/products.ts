@@ -84,7 +84,7 @@ function bold(text: string): string {
   return esc(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 }
 
-function productCard(product: Product, ready: boolean, images: ProductImages): string {
+function productCard(product: Product, ready: boolean, images: ProductImages, groupQuestion = ''): string {
   // 21개를 낱장으로 늘어놓으면 아무도 끝까지 못 본다. 그래서 목록은 **그림 격자**다 —
   // 후킹 질문·이름·값만 싣고, 설명과 담기는 내용은 상세 페이지가 맡는다.
   // alt 를 비우는 것은 장식이기 때문이다. 바로 아래에 상품 이름이 글자로 있다.
@@ -94,7 +94,7 @@ function productCard(product: Product, ready: boolean, images: ProductImages): s
   return `<article class="pr-card">
   <a class="pr-link" href="/products/${esc(product.id)}">
     ${shot}
-    <span class="pr-hook">${esc(product.hook)}</span>
+    ${product.hook === groupQuestion ? '' : `<span class="pr-hook">${esc(product.hook)}</span>`}
     <h3>${esc(product.name)}</h3>
   </a>
   <p class="pr-foot"><span class="pr-price">${won(product.priceKrw)}</span><span class="pr-vat"> (부가세 포함)</span>${
@@ -204,8 +204,10 @@ body{background:var(--nb-paper)}
 .pr-link{display:block;color:inherit;text-decoration:none}
 .pr-shot{display:block;aspect-ratio:3/4;overflow:hidden;
   background:var(--nb-paper-2);border:1px solid var(--nb-line-soft)}
-.pr-thumb{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
-.pr-link:hover .pr-thumb,.pr-link:focus .pr-thumb{transform:scale(1.04)}
+.pr-thumb{width:100%;height:100%;object-fit:cover}
+/* 확대는 쇼핑몰 몸짓이다. 수묵 그림에는 테두리 한 줄이면 된다 */
+.pr-shot{transition:border-color .15s}
+.pr-link:hover .pr-shot,.pr-link:focus .pr-shot{border-color:var(--nb-gold)}
 .pr-hook{display:block;margin:14px 0 3px;font-size:12.5px;line-height:1.5;color:var(--nb-gold);word-break:keep-all}
 .pr-card h3{font-size:16.5px;margin:0;line-height:1.5;word-break:keep-all}
 .pr-link:hover h3,.pr-link:focus h3{text-decoration:underline;text-underline-offset:3px}
@@ -248,7 +250,7 @@ body{background:var(--nb-paper)}
 
 @media (min-width:760px){
   .pr-top h2{font-size:34px}
-  .pr-grid{grid-template-columns:repeat(4,1fr);gap:34px 24px}
+  .pr-grid{grid-template-columns:repeat(3,1fr);gap:40px 28px}
   .pr-wide>.pr-link{display:grid;grid-template-columns:1.15fr 1fr}
   .pr-wide>.pr-link>*{min-width:0}
   .pr-wide .pr-shot{aspect-ratio:auto;height:100%;border-bottom:0;border-right:1px solid var(--nb-line)}
@@ -277,7 +279,7 @@ export function renderProducts(ready: boolean, images: ProductImages = NO_IMAGES
     const star = all.find((p) => p.id === FEATURED);
     const cards = [
       ...(star ? [featureCard(star, ready, images)] : []),
-      ...all.filter((p) => p !== star).map((p) => productCard(p, ready, images)),
+      ...all.filter((p) => p !== star).map((p) => productCard(p, ready, images, c.question)),
     ].join('\n');
     return `<section class="pr-group">
 <p class="pr-cat">${esc(c.key)}</p>
@@ -294,7 +296,6 @@ ${cards}
 
   return `<section class="pr" id="products">
 <div class="pr-top">
-<p class="pr-kicker">R E P O R T</p>
 <h2>판매 상품과 가격</h2>
 <p class="pr-intro">사주 명식·궁합·관상·손금 풀이 자체는 무료이며, 결제 없이 이용하실 수 있습니다.
 아래는 그보다 깊이 들어가는 유료 리포트입니다.</p>

@@ -57,13 +57,15 @@ const NUMERALS = ['壹', '貳', '參'];
  * 글자는 제목만 명조로 간다. 본문까지 명조로 하면 폰에서 읽기 힘들다.
  */
 export const LANDING_CSS = `
-.lp-hero{position:relative;display:flex;flex-direction:column;justify-content:space-between;
-  min-height:80vh;background:var(--nb-paper-2) center/cover no-repeat;background-image:var(--nb-hero,none);overflow:hidden}
-.lp-hero::after{content:"";position:absolute;inset:0;
-  background:linear-gradient(to bottom,var(--nb-veil-0) 28%,var(--nb-veil-1) 62%,var(--nb-paper) 96%)}
-.lp-hero>*{position:relative;z-index:1;width:100%}
-.lp-top{padding-top:24px}
-.lp-lead{padding-bottom:52px}
+/* 폰에서는 그림을 통째로 보여 준다. 배경으로 깔고 베일을 씌우면 폰 폭에서는
+   그림이 거의 남지 않는다 — 브랜드가 첫 화면에서 사라지는 것과 같다 */
+.lp-hero{position:relative;overflow:hidden}
+.lp-top{padding:24px 0 16px}
+.lp-shot{position:relative;aspect-ratio:4/3;
+  background:var(--nb-paper-2) center 42%/cover no-repeat;background-image:var(--nb-hero,none)}
+.lp-shot::after{content:"";position:absolute;inset:auto 0 -1px 0;height:34%;
+  background:linear-gradient(to bottom,var(--nb-veil-0),var(--nb-paper) 92%)}
+.lp-lead{padding:20px 0 52px}
 .lp-brand{display:flex;align-items:center;gap:10px}
 .lp-seal{width:26px;height:26px;flex:0 0 auto;display:grid;place-items:center;
   border:1px solid var(--nb-gold);color:var(--nb-gold);font-family:var(--nb-serif);font-size:13px}
@@ -88,8 +90,15 @@ export const LANDING_CSS = `
 .lp-try{padding:64px 0 0}
 .lp-try h2{font-family:var(--nb-serif);font-weight:500;font-size:23px;margin:0 0 8px}
 @media (min-width:760px){
-  .lp-hero h1{font-size:52px}
+  /* 넓은 화면에서는 글을 그림 위에 얹는다. 베일은 글이 앉는 아래쪽에만 두어
+     산이 형체로 남게 한다 */
+  .lp-hero{display:flex;flex-direction:column;justify-content:space-between;min-height:86vh}
+  .lp-shot{position:absolute;inset:0;aspect-ratio:auto;background-position:center 38%}
+  .lp-shot::after{inset:0;height:auto;
+    background:linear-gradient(to bottom,var(--nb-veil-0) 46%,var(--nb-veil-1) 86%,var(--nb-paper) 100%)}
+  .lp-top,.lp-lead{position:relative;z-index:1;width:100%}
   .lp-lead{padding-bottom:76px}
+  .lp-hero h1{font-size:52px}
   .lp-row{grid-template-columns:repeat(3,1fr);gap:0 40px}
   .lp-item,.lp-item:last-child{border-top:1px solid var(--nb-line-soft);border-bottom:1px solid var(--nb-line-soft)}
 }
@@ -112,13 +121,14 @@ export function renderHero(info: BusinessInfo, ready: boolean, hero = false): st
       <p class="lp-bb">${esc(b.body)}</p>
     </div>`).join('\n');
 
-  return `<header class="lp-hero"${hero ? ' style="--nb-hero:url(/img/hero)"' : ''}>
+  return `<header class="lp-hero">
   <div class="lp lp-top">
     <div class="lp-brand">
       <span class="lp-seal" aria-hidden="true">命</span>
       <span class="lp-name">${name}</span>
     </div>
   </div>
+${hero ? '  <div class="lp-shot" style="--nb-hero:url(/img/hero)"></div>' : ''}
   <div class="lp lp-lead">
     <h1>사주 하나로는<br>안 보이는 것이 <em>있습니다</em></h1>
     <p class="lp-sub">사주와 관상과 손금, 세 갈래를 맞춰 봅니다.

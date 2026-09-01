@@ -161,8 +161,12 @@ check('상세 페이지도 그림이 있을 때만 크게 건다',
 for (const c of CATEGORIES) {
   check(`갈래 제목이 질문으로 나온다: ${c.question}`, off.includes(c.question));
 }
+// 갈래 제목과 똑같은 질문을 카드에도 또 적으면 같은 문장을 두 번 읽힌다
+const groupQuestions = new Set(CATEGORIES.map((c) => c.question));
 check('상품마다 후킹 질문이 붙는다',
   Object.values(CATALOG).every((p) => off.includes(p.hook)));
+check('갈래 제목과 겹치는 질문은 카드에서 한 번만 나온다',
+  [...groupQuestions].every((q) => (off.split(q).length - 1) <= 1));
 
 // 묶음 — 정가를 지어내지 않는다
 for (const pack of Object.values(PACKAGES)) {
