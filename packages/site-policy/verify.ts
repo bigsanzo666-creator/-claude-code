@@ -9,7 +9,7 @@
 import {
   loadBusinessInfo, missingFields, isComplete, isValidRegistrationNumber,
   renderFooter, renderTerms, renderPrivacy, renderRefund, POLICY_EFFECTIVE_DATE,
-  renderProducts, renderProductsPage, renderHero, renderTryHeading, LANDING_CSS,
+  renderProducts, renderProductsPage, renderProductPage, renderHero, renderTryHeading, LANDING_CSS,
 } from './src/index.ts';
 import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
@@ -141,6 +141,20 @@ const off = renderProducts(false);
 check('결제가 꺼져 있어도 가격이 보인다', off.includes('19,900원'));
 check('결제가 꺼져 있으면 준비 중이라고 알린다', off.includes('결제 준비 중'));
 check('결제가 켜지면 준비 중 문구가 사라진다', !renderProducts(true).includes('결제 준비 중'));
+
+// 그림은 있는 것만 붙는다. 21장을 다 기다리지 않고 나온 것부터 올릴 수 있어야 하고,
+// 빠진 자리에 빈 네모가 남으면 그림이 없느니만 못하다
+check('그림이 없으면 img 태그를 아예 안 그린다', !renderProducts(false).includes('<img'));
+const oneImage = renderProducts(false, new Set(['wealth-report']));
+check('그림이 있는 상품에만 썸네일이 붙는다',
+  (oneImage.match(/<img/g) ?? []).length === 1
+  && oneImage.includes('src="/img/products/wealth-report"'));
+check('썸네일 alt는 비어 있다 — 바로 옆에 이름이 글자로 있다',
+  oneImage.includes('class="pr-thumb" src="/img/products/wealth-report" alt=""'));
+check('상세 페이지도 그림이 있을 때만 크게 건다',
+  !renderProductPage(CATALOG['wealth-report'], full, false, '').includes('<img')
+  && renderProductPage(CATALOG['wealth-report'], full, false, '', new Set(['wealth-report']))
+       .includes('class="pd-hero"'));
 
 // 갈래 제목이 질문이어야 눌린다. 「연애」로는 안 눌린다
 for (const c of CATEGORIES) {

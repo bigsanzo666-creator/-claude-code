@@ -14,6 +14,7 @@ import { PortOneGateway } from '../../../packages/commerce/src/index.ts';
 import { generateReport, MemoryReportCache } from '../../../packages/report/src/index.ts';
 import { loadBusinessInfo, missingFields } from '../../../packages/site-policy/src/index.ts';
 import { createPool, migrate, PostgresOrderStore, PostgresReportStore } from '../../../packages/store/src/index.ts';
+import { findProductImages, strayImages, ALL_PRODUCT_IDS } from './images.ts';
 import { MemoryOrderStore, startApi, type OrderStore, type ReportBox } from './server.ts';
 import { StandbyGateway, standbyGenerate } from './standby.ts';
 
@@ -95,6 +96,14 @@ console.log(`  결제      ${payable ? '켜짐' : '꺼짐 (포트원 설정 없�
 console.log(`  리포트    ${hasModelKey ? '켜짐' : '꺼짐 (API 키 없음)'}`);
 console.log(`  저장소    ${storeKind}`);
 console.log(`  사업자정보 ${missing.length ? `미입력 ${missing.length}건` : '완비'}`);
+
+// 그림은 있으면 붙고 없으면 안 붙는다. 몇 장이 붙었는지는 눈으로 확인할 수 있어야 한다
+const productImages = findProductImages();
+const strays = strayImages();
+console.log(`  상품그림  ${productImages.size} / ${ALL_PRODUCT_IDS.length}장`);
+if (strays.length) {
+  console.warn(`  ⚠ 이름이 카탈로그와 맞지 않는 그림 ${strays.length}개: ${strays.join(', ')}`);
+}
 if (missing.length) {
   console.warn(`[api] 심사 전에 채울 것: ${missing.join(', ')}`);
 }
@@ -106,6 +115,7 @@ startApi({
   gateway: payable ? new PortOneGateway({ apiSecret: apiSecret! }) : new StandbyGateway(),
   checkout: payable ? { storeId: storeId!, channelKey: channelKey! } : undefined,
   business,
+  images: productImages,
   orders,
   reportStore,
   generate: hasModelKey

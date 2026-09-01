@@ -25,6 +25,7 @@ import {
   renderHero, renderTryHeading, LANDING_CSS, renderProductPage,
   type BusinessInfo,
 } from '../../../packages/site-policy/src/index.ts';
+import { findProductImages, type ProductImage } from './images.ts';
 import { buildPayload, KIND_OF, type ReadingRequest } from './payload.ts';
 import { buildPreview } from './preview.ts';
 
@@ -80,6 +81,8 @@ export interface ApiDeps {
   checkout?: CheckoutConfig;
   /** 사업자 정보. 없으면 환경변수에서 읽는다 */
   business?: BusinessInfo;
+  /** 상품 그림. 없으면 기동할 때 public 폴더를 훑는다 */
+  images?: Map<string, ProductImage>;
 }
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -92,7 +95,9 @@ const VIEWER_PATH = join(HERE, '..', '..', 'manse-viewer', 'index.html');
  * 바깥 껍데기를 플랫폼이 씌워준다. 우리가 직접 서빙할 때는 여기서 씌운다.
  * 덕분에 같은 파일이 무료 데모(아티팩트)와 실제 사이트 양쪽에서 쓰인다.
  */
-function renderPage(checkout: CheckoutConfig | null, business: BusinessInfo): string {
+function renderPage(
+  checkout: CheckoutConfig | null, business: BusinessInfo, images: ReadonlySet<string>,
+): string {
   const fragment = readFileSync(VIEWER_PATH, 'utf8');
   const config = JSON.stringify({ apiBase: '', checkout, ready: checkout !== null });
   return `<!doctype html>
@@ -109,7 +114,7 @@ ${FOOTER_CSS}</style>
 </head>
 <body>
 ${renderHero(business, checkout !== null)}
-${renderProducts(checkout !== null)}
+${renderProducts(checkout !== null, images)}
 ${renderTryHeading()}
 ${fragment}
 ${renderFooter(business)}
@@ -185,11 +190,14 @@ export function createApi(deps: ApiDeps) {
 
   const checkout = deps.checkout ?? null;
   const business = deps.business ?? loadBusinessInfo();
+  // 기동할 때 한 번만 훑는다. 그림은 배포로만 바뀐다
+  const images = deps.images ?? findProductImages();
+  const haveImage = new Set(images.keys());
 
   const routes: Record<string, (req: IncomingMessage, res: ServerResponse, id: string) => Promise<void>> = {
     /** 화면. 결제 설정을 주입해 내려준다 */
     'GET /': async (_req, res) => {
-      const html = renderPage(checkout, business);
+      const html = renderPage(checkout, business, haveImage);
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Length': Buffer.byteLength(html),
@@ -234,11 +242,33 @@ export function createApi(deps: ApiDeps) {
     'GET /products/:id': async (_req, res, id) => {
       const product = CATALOG[id as ProductId];
       if (!product) throw new HttpError(404, `없는 상품입니다: ${id}`);
-      sendHtml(res, renderProductPage(product, business, checkout !== null, renderFooter(business)));
+      sendHtml(res, renderProductPage(product, business, checkout !== null, renderFooter(business), haveImage));
+    },
+
+    /**
+     * 상품 그림.
+     *
+     * 확장자 없는 주소로 받는다. 그록이 무엇을 뱉든 파일 이름만 상품 아이디에
+     * 맞추면 되고, 나중에 jpg를 webp로 바꿔도 화면 쪽은 손댈 것이 없다.
+     *
+     * 요청에서 온 문자열로 경로를 만들지 않는다. 기동할 때 카탈로그와 대조해
+     * 만들어 둔 표에서 꺼내 쓸 뿐이라 경로 조작이 성립하지 않는다.
+     */
+    'GET /img/products/:id': async (_req, res, id) => {
+      const image = images.get(id);
+      if (!image) throw new HttpError(404, `그림이 없습니다: ${id}`);
+      const body = readFileSync(image.path);
+      res.writeHead(200, {
+        'Content-Type': image.type,
+        'Content-Length': body.length,
+        // 한 시간. 그림을 다시 뽑아 올려도 오래 묵지 않는다
+        'Cache-Control': 'public, max-age=3600',
+      });
+      res.end(body);
     },
 
     'GET /products': async (_req, res) =>
-      sendHtml(res, renderProductsPage(business, checkout !== null, renderFooter(business))),
+      sendHtml(res, renderProductsPage(business, checkout !== null, renderFooter(business), haveImage)),
 
     'GET /terms': async (_req, res) => sendHtml(res, renderTerms(business)),
     'GET /privacy': async (_req, res) => sendHtml(res, renderPrivacy(business)),
@@ -406,6 +436,9 @@ export function createApi(deps: ApiDeps) {
       } else if (parts[0] === 'products' && parts[1] && !parts[2]) {
         id = parts[1];
         key = `${req.method} /products/:id`;
+      } else if (parts[0] === 'img' && parts[1] === 'products' && parts[2] && !parts[3]) {
+        id = parts[2];
+        key = `${req.method} /img/products/:id`;
       }
 
       const route = routes[key];

@@ -194,6 +194,60 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
     (await page('/products')).html.includes('href="/products/wealth-report"'));
 }
 
+// 상품 그림. 나온 것만 붙고, 없는 것은 자리를 남기지 않는다
+{
+  const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join: j } = await import('node:path');
+  const { findProductImages, strayImages } = await import('./src/images.ts');
+
+  const dir = mkdtempSync(j(tmpdir(), 'saju-img-'));
+  const png = Buffer.from('89504e470d0a1a0a', 'hex'); // 내용은 상관없다 — 이름과 확장자만 본다
+  writeFileSync(j(dir, 'wealth-report.png'), png);
+  writeFileSync(j(dir, 'reunion-report.jpg'), png);
+  writeFileSync(j(dir, '오타난이름.png'), png);      // 카탈로그에 없는 이름
+  writeFileSync(j(dir, 'wealth-report.txt'), 'x');   // 그림이 아닌 파일
+
+  const found = findProductImages(dir);
+  check('상품 아이디로 저장한 그림만 골라낸다', found.size === 2);
+  check('확장자가 달라도 찾는다 — png도 jpg도',
+    found.get('wealth-report')?.type === 'image/png'
+    && found.get('reunion-report')?.type === 'image/jpeg');
+  check('카탈로그에 없는 이름은 무시한다', !found.has('오타난이름'));
+  check('이름 틀린 파일은 기동 로그로 알려준다', strayImages(dir).includes('오타난이름.png'));
+  check('폴더가 없어도 죽지 않는다', findProductImages(j(dir, '없는폴더')).size === 0);
+
+  const imgSrv = createServer(createApi({
+    gateway, orders, generate: async () => ({ text: '' }), images: found,
+  }));
+  await new Promise<void>((r) => imgSrv.listen(0, r));
+  const ip = (imgSrv.address() as { port: number }).port;
+  const get = (path: string) => fetch(`http://127.0.0.1:${ip}${path}`);
+
+  const img = await get('/img/products/wealth-report');
+  check('그림을 200으로 준다', img.status === 200);
+  check('Content-Type 이 실제 파일 형식과 맞는다',
+    img.headers.get('content-type') === 'image/png');
+  check('그림은 캐시된다', (img.headers.get('cache-control') ?? '').includes('max-age'));
+  await img.arrayBuffer();
+
+  check('그림이 없는 상품은 404', (await get('/img/products/child-report')).status === 404);
+  check('카탈로그에 없는 아이디도 404', (await get('/img/products/nope')).status === 404);
+  // 요청 문자열로 경로를 만들지 않으므로 애초에 성립하지 않는다
+  check('경로를 거슬러 올라갈 수 없다',
+    (await get('/img/products/..%2F..%2Fetc%2Fpasswd')).status === 404);
+
+  const list = await get('/products').then((r) => r.text());
+  check('그림이 있는 둘에만 썸네일이 붙는다', (list.match(/pr-thumb"/g) ?? []).length === 2);
+  const detail = await get('/products/wealth-report').then((r) => r.text());
+  check('상세페이지에는 크게 건다', detail.includes('class="pd-hero"'));
+  const noPic = await get('/products/child-report').then((r) => r.text());
+  check('그림 없는 상세페이지에 빈 네모가 없다', !noPic.includes('<img'));
+
+  imgSrv.close();
+  rmSync(dir, { recursive: true, force: true });
+}
+
 // 카드사 심사가 하단 필수정보로 보는 항목들
 {
   const f = (await page('/products')).html;

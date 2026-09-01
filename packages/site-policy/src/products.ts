@@ -25,6 +25,22 @@ function esc(value: string): string {
 const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
 
 /**
+ * 그림이 있는 상품의 아이디 모음.
+ *
+ * 서버가 기동할 때 실제로 있는 파일을 세어 넘겨준다. 여기서 파일을 뒤지지 않는
+ * 이유는, 이 패키지가 어느 서버의 어느 폴더에 붙을지 몰라야 하기 때문이다.
+ *
+ * **없으면 아무것도 그리지 않는다.** 빈 네모를 남기면 그림이 없느니만 못하다.
+ * 그래서 21장이 다 나오기 전에도 나온 것만 먼저 붙일 수 있다.
+ */
+export type ProductImages = ReadonlySet<string>;
+
+const NO_IMAGES: ProductImages = new Set();
+
+/** 확장자를 URL에 넣지 않는다 — 서버가 실제 파일을 알고 있다. */
+export const imageUrl = (id: string) => `/img/products/${encodeURIComponent(id)}`;
+
+/**
  * 상품마다 "무엇을 받는지"를 못 박는다.
  *
  * 카탈로그의 한 줄 설명만으로는 부족하다 — 손님도 심사자도
@@ -65,14 +81,22 @@ function bold(text: string): string {
   return esc(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 }
 
-function productCard(product: Product, ready: boolean): string {
+function productCard(product: Product, ready: boolean, images: ProductImages): string {
   const items = (CONTENTS[product.id] ?? []).map((t) => `<li>${bold(t)}</li>`).join('');
   const action = ready
     ? '<span class="pr-buy">위에서 정보를 입력하시면 구매하실 수 있습니다</span>'
     : '<span class="pr-soon">결제 준비 중</span>';
-  return `<article class="pr-card">
+  // 목록에서는 작게 — 3:4 그림을 카드 폭으로 깔면 21개가 스크롤 지옥이 된다.
+  // alt 를 비우는 것은 장식이기 때문이다. 바로 옆에 상품 이름이 글자로 있다.
+  const head = images.has(product.id)
+    ? `<div class="pr-head"><img class="pr-thumb" src="${imageUrl(product.id)}" alt="" width="72" height="96" loading="lazy" decoding="async"><div>
   <p class="pr-hook">${esc(product.hook)}</p>
   <h3><a class="pr-link" href="/products/${esc(product.id)}">${esc(product.name)}</a></h3>
+  </div></div>`
+    : `<p class="pr-hook">${esc(product.hook)}</p>
+  <h3><a class="pr-link" href="/products/${esc(product.id)}">${esc(product.name)}</a></h3>`;
+  return `<article class="pr-card">
+  ${head}
   <p class="pr-desc">${esc(product.description)}</p>
   ${items ? `<ul class="pr-list">${items}</ul>` : ''}
   <div class="pr-foot">
@@ -116,6 +140,10 @@ export const PRODUCTS_CSS = `
 .pr-rec{border-color:#5b3fa8;border-width:2px}
 .pr-badge{position:absolute;top:-10px;left:18px;background:#5b3fa8;color:#fff;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px}
 .pr-hook{margin:0 0 4px;font-size:13.5px;color:#5b3fa8;font-weight:600}
+.pr-head{display:flex;gap:14px;align-items:flex-start}
+.pr-head>div{min-width:0;flex:1}
+.pr-thumb{width:72px;height:96px;flex:0 0 72px;object-fit:cover;border-radius:8px;background:#f0f0f5;border:1px solid #e3e3ea}
+.pd-hero{display:block;width:100%;max-width:280px;aspect-ratio:3/4;object-fit:cover;border-radius:12px;border:1px solid #e3e3ea;background:#f0f0f5;margin:0 0 18px}
 .pr-link{color:inherit;text-decoration:none}
 .pr-link:hover,.pr-link:focus{text-decoration:underline}
 .pd-back{display:inline-block;font-size:13.5px;color:#5b3fa8;text-decoration:none;margin-bottom:16px}
@@ -143,6 +171,7 @@ export const PRODUCTS_CSS = `
 .pr-rec{border-color:#b9a4f0}
 .pr-badge{background:#b9a4f0;color:#16161a}
 .pr-card{background:#1e1e24;border-color:#33333d}
+.pr-thumb,.pd-hero{background:#26262e;border-color:#33333d}
 .pr-foot{border-top-color:#2c2c35}
 .pr-note{background:#1e1e24}
 .pr-note a{color:#b9a4f0}
@@ -160,9 +189,9 @@ export const PRODUCTS_CSS = `
  * 갈래 제목을 **질문으로** 단다 — 「연애」라고만 쓰면 안 눌리고
  * 「이 사람, 괜찮을까?」라고 쓰면 눌린다.
  */
-export function renderProducts(ready: boolean): string {
+export function renderProducts(ready: boolean, images: ProductImages = NO_IMAGES): string {
   const groups = CATEGORIES.map((c) => {
-    const cards = productsIn(c.key).map((p) => productCard(p, ready)).join('\n');
+    const cards = productsIn(c.key).map((p) => productCard(p, ready, images)).join('\n');
     return `<section class="pr-group">
 <h3 class="pr-q">${esc(c.question)}</h3>
 <p class="pr-cat">${esc(c.key)}</p>
@@ -194,7 +223,9 @@ ${packs}
 }
 
 /** 상품만 담은 독립 페이지. 심사가 곧바로 열어볼 수 있는 주소를 만든다 */
-export function renderProductsPage(info: BusinessInfo, ready: boolean, footer: string): string {
+export function renderProductsPage(
+  info: BusinessInfo, ready: boolean, footer: string, images: ProductImages = NO_IMAGES,
+): string {
   const site = show(info, 'serviceName', '서비스 이름');
   return `<!doctype html>
 <html lang="ko">
@@ -210,7 +241,7 @@ ${PRODUCTS_CSS}
 </style>
 </head>
 <body>
-${renderProducts(ready)}
+${renderProducts(ready, images)}
 <div style="height:24px"></div>
 ${footer}
 </body>
@@ -230,6 +261,7 @@ ${footer}
  */
 export function renderProductPage(
   product: Product, info: BusinessInfo, ready: boolean, footer: string,
+  images: ProductImages = NO_IMAGES,
 ): string {
   const site = show(info, 'serviceName', '서비스 이름');
   const items = (CONTENTS[product.id] ?? []).map((t) => `<li>${bold(t)}</li>`).join('');
@@ -257,6 +289,9 @@ ${PRODUCTS_CSS}
 <body>
 <section class="pr">
   <a class="pd-back" href="/products">← 판매 상품 전체 보기</a>
+  ${images.has(product.id)
+    ? `<img class="pd-hero" src="${imageUrl(product.id)}" alt="" width="280" height="373" decoding="async">`
+    : ''}
   <p class="pr-hook">${esc(product.hook)}</p>
   <h2>${esc(product.name)}</h2>
   ${product.topic ? `<p class="pd-term">명리에서는 <b>${esc(TERM_OF[product.topic] ?? '')}</b>이라 부르는 자리입니다.</p>` : ''}
