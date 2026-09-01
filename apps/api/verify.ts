@@ -297,6 +297,9 @@ check('푸터 스타일이 함께 나간다', home.html.includes('.biz-rows'));
 check('색이 토큰 한 곳에서 나온다', home.html.includes('--nb-ink:#182640'));
 // 무료 만세력 조각은 자기 색을 들고 온다. 한 장의 종이로 보이도록 덮어 준다
 check('무료 화면 색을 우리 색으로 맞춘다', home.html.includes('--paper:var(--nb-paper)'));
+// 관상 칸의 이름표가 버튼 오른쪽으로 밀려 나 있었다. 한 줄짜리로 세워 둔다
+check('관상 고르는 칸이 한 줄로 선다',
+  home.html.includes('.fg{grid-template-columns:1fr') && home.html.includes('.fg > .seg{grid-row:auto'));
 
 // GET /refund 는 정책 페이지, GET /api/orders/:id/refund 는 환불 조회 — 서로 가리지 않아야 한다
 const stillJson = await api('GET', `/api/orders/${id2}/refund`);

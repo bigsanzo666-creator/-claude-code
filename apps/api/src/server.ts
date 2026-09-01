@@ -166,6 +166,15 @@ const VIEWER_SKIN = `
 .wiz-next{background:var(--nb-ink);color:var(--nb-paper-2);border-radius:0;letter-spacing:.02em}
 .wiz-dot.on{background:var(--nb-gold)}
 
+/* 얼굴·손금을 고르는 칸의 배치가 깨져 있다.
+   fg 는 두 칸 격자인데 seg 에 grid-row:1/span 2 가 붙어 있다. 행이 정해진 항목이
+   먼저 놓이므로 버튼이 왼쪽 첫 칸을 차지하고, 이름표가 오른쪽으로 밀려난다.
+   버튼 칸은 1fr 이라 옆에 빈자리까지 남는다.
+   조각은 아티팩트로도 나가므로 손대지 않고 여기서 한 줄짜리로 세워 준다 —
+   이름표 · 고르는 버튼 · 명리 용어 순서로 위에서 아래로 읽힌다. */
+.fg{grid-template-columns:1fr;gap:.3rem}
+.fg > .seg{grid-row:auto;width:fit-content;max-width:100%;flex-wrap:wrap}
+
 /* 여기부터는 「행정 서식」을 위쪽 화면과 한 가족으로 만드는 손질이다.
    붉은색은 남겨 둔다 — 오류·경고·불리처럼 **뜻이 있는 자리**에 쓰이고 있어서,
    금색으로 바꾸면 나쁜 소식이 좋은 소식처럼 보인다. 손대는 것은 껍데기뿐이다. */
