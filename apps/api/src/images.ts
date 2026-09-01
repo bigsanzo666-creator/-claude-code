@@ -84,6 +84,9 @@ export function toProductId(fileBase: string): string {
   return '';
 }
 
+/** 첫 화면 그림의 파일 이름. 상품 아이디가 아니므로 목록에서는 걸러진다 */
+export const HERO_NAME = 'site-hero';
+
 export const IMAGE_DIR = join(
   dirname(fileURLToPath(import.meta.url)), '..', 'public', 'products',
 );
@@ -120,10 +123,30 @@ export function strayImages(dir: string = IMAGE_DIR): string[] {
   try {
     return readdirSync(dir)
       .filter((n) => TYPES[extname(n).toLowerCase()])
+      .filter((n) => n.slice(0, -extname(n).length) !== HERO_NAME)
       .filter((n) => !toProductId(n.slice(0, -extname(n).length)));
   } catch {
     return [];
   }
+}
+
+/**
+ * 첫 화면에 깔 그림.
+ *
+ * 상품이 아니므로 카탈로그에 없다. 이름을 `site-hero` 로 고정해 두고 그 파일만
+ * 찾는다 — 상품 그림과 같은 폴더를 쓰되 섞이지는 않는다.
+ *
+ * **없으면 없는 대로 둔다.** 화면은 종이색 바탕으로 뜬다.
+ */
+export function findHeroImage(dir: string = IMAGE_DIR): ProductImage | null {
+  let entries: string[];
+  try { entries = readdirSync(dir); } catch { return null; }
+  for (const name of entries) {
+    const ext = extname(name).toLowerCase();
+    const type = TYPES[ext];
+    if (type && name.slice(0, -ext.length) === HERO_NAME) return { path: join(dir, name), type };
+  }
+  return null;
 }
 
 export const ALL_PRODUCT_IDS = Object.keys(CATALOG) as ProductId[];

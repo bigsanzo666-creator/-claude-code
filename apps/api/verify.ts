@@ -199,7 +199,7 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
   const { join: j } = await import('node:path');
-  const { findProductImages, strayImages, toProductId } = await import('./src/images.ts');
+  const { findProductImages, findHeroImage, strayImages, toProductId } = await import('./src/images.ts');
 
   // 한국 사람이 한국 손님에게 파는 물건이다. 파일 이름을 한글로 지어도 붙어야 한다
   check('한글 짧은 이름을 알아듣는다',
@@ -217,6 +217,7 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   writeFileSync(j(dir, '오타난이름.png'), png);      // 카탈로그에 없는 이름
   writeFileSync(j(dir, 'wealth-report.txt'), 'x');   // 그림이 아닌 파일
   writeFileSync(j(dir, '귀인운.jpg'), png);           // 한글로 저장한 파일
+  writeFileSync(j(dir, 'site-hero.jpg'), png);       // 첫 화면에 까는 그림 — 상품이 아니다
 
   const found = findProductImages(dir);
   check('상품 아이디로 저장한 그림만 골라낸다', found.size === 3);
@@ -226,10 +227,16 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
     && found.get('reunion-report')?.type === 'image/jpeg');
   check('카탈로그에 없는 이름은 무시한다', !found.has('오타난이름'));
   check('이름 틀린 파일은 기동 로그로 알려준다', strayImages(dir).includes('오타난이름.png'));
+  // 첫 화면 그림은 일부러 그 이름으로 지은 것이다. 오타로 오해해 경고하면 안 된다
+  check('첫 화면 그림은 오타 경고에 끼지 않는다', !strayImages(dir).includes('site-hero.jpg'));
+  check('첫 화면 그림은 상품 목록에도 끼지 않는다', found.size === 3);
+  check('첫 화면 그림을 따로 찾아낸다', findHeroImage(dir)?.type === 'image/jpeg');
+  check('첫 화면 그림이 없으면 null', findHeroImage(j(dir, '없는폴더')) === null);
   check('폴더가 없어도 죽지 않는다', findProductImages(j(dir, '없는폴더')).size === 0);
 
   const imgSrv = createServer(createApi({
     gateway, orders, generate: async () => ({ text: '' }), images: found,
+    heroImage: findHeroImage(dir),
   }));
   await new Promise<void>((r) => imgSrv.listen(0, r));
   const ip = (imgSrv.address() as { port: number }).port;
@@ -243,6 +250,9 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   await img.arrayBuffer();
 
   check('그림이 없는 상품은 404', (await get('/img/products/child-report')).status === 404);
+  const heroRes = await get('/img/hero');
+  check('첫 화면 그림을 200으로 준다', heroRes.status === 200);
+  await heroRes.arrayBuffer();
   check('카탈로그에 없는 아이디도 404', (await get('/img/products/nope')).status === 404);
   // 요청 문자열로 경로를 만들지 않으므로 애초에 성립하지 않는다
   check('경로를 거슬러 올라갈 수 없다',
@@ -283,6 +293,10 @@ check('개발자용 제목이 사라졌다', !home.html.includes('<h1>만세력 
 check('VSOP87 같은 말이 첫 화면 상단에 없다',
   home.html.indexOf('VSOP87') === -1 || home.html.indexOf('VSOP87') > iTry);
 check('푸터 스타일이 함께 나간다', home.html.includes('.biz-rows'));
+// 색을 한 곳에서만 정한다 — 첫 화면·목록·상세가 서로 다른 색으로 뜨면 그림이 겉돈다
+check('색이 토큰 한 곳에서 나온다', home.html.includes('--nb-ink:#182640'));
+// 무료 만세력 조각은 자기 색을 들고 온다. 한 장의 종이로 보이도록 덮어 준다
+check('무료 화면 색을 우리 색으로 맞춘다', home.html.includes('--paper:var(--nb-paper)'));
 
 // GET /refund 는 정책 페이지, GET /api/orders/:id/refund 는 환불 조회 — 서로 가리지 않아야 한다
 const stillJson = await api('GET', `/api/orders/${id2}/refund`);

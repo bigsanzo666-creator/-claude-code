@@ -37,6 +37,9 @@ export type ProductImages = ReadonlySet<string>;
 
 const NO_IMAGES: ProductImages = new Set();
 
+/** 갈래 맨 앞에 크게 거는 상품 */
+const FEATURED = 'cross-report';
+
 /** 확장자를 URL에 넣지 않는다 — 서버가 실제 파일을 알고 있다. */
 export const imageUrl = (id: string) => `/img/products/${encodeURIComponent(id)}`;
 
@@ -82,27 +85,48 @@ function bold(text: string): string {
 }
 
 function productCard(product: Product, ready: boolean, images: ProductImages): string {
-  const items = (CONTENTS[product.id] ?? []).map((t) => `<li>${bold(t)}</li>`).join('');
-  const action = ready
-    ? '<span class="pr-buy">위에서 정보를 입력하시면 구매하실 수 있습니다</span>'
-    : '<span class="pr-soon">결제 준비 중</span>';
-  // 목록에서는 작게 — 3:4 그림을 카드 폭으로 깔면 21개가 스크롤 지옥이 된다.
-  // alt 를 비우는 것은 장식이기 때문이다. 바로 옆에 상품 이름이 글자로 있다.
-  const head = images.has(product.id)
-    ? `<div class="pr-head"><img class="pr-thumb" src="${imageUrl(product.id)}" alt="" width="72" height="96" loading="lazy" decoding="async"><div>
-  <p class="pr-hook">${esc(product.hook)}</p>
-  <h3><a class="pr-link" href="/products/${esc(product.id)}">${esc(product.name)}</a></h3>
-  </div></div>`
-    : `<p class="pr-hook">${esc(product.hook)}</p>
-  <h3><a class="pr-link" href="/products/${esc(product.id)}">${esc(product.name)}</a></h3>`;
+  // 21개를 낱장으로 늘어놓으면 아무도 끝까지 못 본다. 그래서 목록은 **그림 격자**다 —
+  // 후킹 질문·이름·값만 싣고, 설명과 담기는 내용은 상세 페이지가 맡는다.
+  // alt 를 비우는 것은 장식이기 때문이다. 바로 아래에 상품 이름이 글자로 있다.
+  const shot = images.has(product.id)
+    ? `<span class="pr-shot"><img class="pr-thumb" src="${imageUrl(product.id)}" alt="" width="480" height="640" loading="lazy" decoding="async"></span>`
+    : '';
   return `<article class="pr-card">
-  ${head}
-  <p class="pr-desc">${esc(product.description)}</p>
-  ${items ? `<ul class="pr-list">${items}</ul>` : ''}
-  <div class="pr-foot">
-    <span class="pr-price">${won(product.priceKrw)}<span class="pr-vat"> (부가세 포함)</span></span>
-    ${action}
-  </div>
+  <a class="pr-link" href="/products/${esc(product.id)}">
+    ${shot}
+    <span class="pr-hook">${esc(product.hook)}</span>
+    <h3>${esc(product.name)}</h3>
+  </a>
+  <p class="pr-foot"><span class="pr-price">${won(product.priceKrw)}</span><span class="pr-vat"> (부가세 포함)</span>${
+    ready ? '' : '<span class="pr-soon">결제 준비 중</span>'}</p>
+</article>`;
+}
+
+/**
+ * 크게 거는 카드.
+ *
+ * 삼합 리포트는 제일 비싸고 우리만 하는 것인데, 다른 스무 개와 똑같이 생겨 있으면
+ * 아무도 그것부터 보지 않는다. 갈래 맨 앞에 한 칸을 다 쓰고, 설명과 담기는 내용까지
+ * 여기서 보여 준다.
+ */
+function featureCard(product: Product, ready: boolean, images: ProductImages): string {
+  const items = (CONTENTS[product.id] ?? []).map((t) => `<li>${bold(t)}</li>`).join('');
+  const shot = images.has(product.id)
+    ? `<span class="pr-shot"><img class="pr-thumb" src="${imageUrl(product.id)}" alt="" width="480" height="640" loading="lazy" decoding="async"></span>`
+    : '';
+  return `<article class="pr-card pr-wide">
+  <a class="pr-link" href="/products/${esc(product.id)}">
+    ${shot}
+    <span class="pr-body">
+      <span class="pr-tag">가장 깊이 봅니다</span>
+      <span class="pr-hook">${esc(product.hook)}</span>
+      <h3>${esc(product.name)}</h3>
+      <span class="pr-desc">${esc(product.description)}</span>
+      ${items ? `<ul class="pr-list">${items}</ul>` : ''}
+      <span class="pr-foot"><span class="pr-price">${won(product.priceKrw)}</span><span class="pr-vat"> (부가세 포함)</span>${
+        ready ? '' : '<span class="pr-soon">결제 준비 중</span>'}</span>
+    </span>
+  </a>
 </article>`;
 }
 
@@ -116,70 +140,121 @@ function productCard(product: Product, ready: boolean, images: ProductImages): s
 function packageCard(pack: BundlePackage, ready: boolean): string {
   const m = bundleMath(pack.id);
   const names = pack.members.map((id) => CATALOG[id].name).join(' + ');
-  return `<article class="pr-card${pack.recommended ? ' pr-rec' : ''}">
-  ${pack.recommended ? '<span class="pr-badge">추천</span>' : ''}
-  <p class="pr-hook">${esc(pack.hook)}</p>
-  <h3>${esc(pack.name)}</h3>
-  <p class="pr-desc">${esc(names)}</p>
-  <div class="pr-foot">
-    <span class="pr-price">${won(m.bundleKrw)}<span class="pr-vat"> (부가세 포함)</span></span>
-    <span class="pr-save">따로 사면 ${won(m.individualKrw)} · ${m.percent}% 절약</span>
-    ${ready ? '' : '<span class="pr-soon">결제 준비 중</span>'}
-  </div>
+  return `<article class="pr-card pr-wide pr-pack${pack.recommended ? ' pr-rec' : ''}">
+  <span class="pr-body">
+    ${pack.recommended ? '<span class="pr-badge">추천</span>' : ''}
+    <span class="pr-hook">${esc(pack.hook)}</span>
+    <h3>${esc(pack.name)}</h3>
+    <span class="pr-desc">${esc(names)}</span>
+    <span class="pr-foot">
+      <span class="pr-price">${won(m.bundleKrw)}</span><span class="pr-vat"> (부가세 포함)</span>
+      <span class="pr-save">따로 사면 ${won(m.individualKrw)} · ${m.percent}% 절약</span>
+      ${ready ? '' : '<span class="pr-soon">결제 준비 중</span>'}
+    </span>
+  </span>
 </article>`;
 }
 
+/**
+ * 화면 전체의 색과 글자.
+ *
+ * **색은 상품 그림에서 가져왔다.** 짙은 남색 먹, 한지 바탕, 은은한 금 —
+ * 21장이 전부 그 세 가지로 그려져 있다. 화면이 다른 색이면 그림이 겉돈다.
+ *
+ * 값을 여기 한 곳에만 두는 이유는, 이 CSS 가 첫 화면·상품 목록·상품 상세
+ * 세 군데에 모두 실리는 유일한 조각이기 때문이다. 첫 화면 스타일은 여기의
+ * `--ink` 를 가져다 쓴다.
+ */
 export const PRODUCTS_CSS = `
-.pr{max-width:760px;margin:0 auto;padding:28px 20px 8px;font:15px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;color:#1b1b1f}
-.pr h2{font-size:20px;margin:0 0 6px}
-.pr-intro{color:#5c5c66;margin:0 0 18px;font-size:14px}
-.pr-group{margin:26px 0}
-.pr-q{font-size:17px;margin:0 0 2px}
-.pr-cat{font-size:12px;color:#5c5c66;margin:0 0 12px;letter-spacing:.02em}
-.pr-card{position:relative;border:1px solid #e3e3ea;border-radius:12px;padding:18px 20px;margin-bottom:14px;background:#fff}
-.pr-rec{border-color:#5b3fa8;border-width:2px}
-.pr-badge{position:absolute;top:-10px;left:18px;background:#5b3fa8;color:#fff;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px}
-.pr-hook{margin:0 0 4px;font-size:13.5px;color:#5b3fa8;font-weight:600}
-.pr-head{display:flex;gap:14px;align-items:flex-start}
-.pr-head>div{min-width:0;flex:1}
-.pr-thumb{width:72px;height:96px;flex:0 0 72px;object-fit:cover;border-radius:8px;background:#f0f0f5;border:1px solid #e3e3ea}
-.pd-hero{display:block;width:100%;max-width:280px;aspect-ratio:3/4;object-fit:cover;border-radius:12px;border:1px solid #e3e3ea;background:#f0f0f5;margin:0 0 18px}
-.pr-link{color:inherit;text-decoration:none}
-.pr-link:hover,.pr-link:focus{text-decoration:underline}
-.pd-back{display:inline-block;font-size:13.5px;color:#5b3fa8;text-decoration:none;margin-bottom:16px}
-.pd-term{font-size:13.5px;color:#5c5c66;margin:0 0 14px}
-.pd-term b{color:#1b1b1f}
-.pd-buy{border:1px solid #e3e3ea;border-radius:12px;padding:16px 18px;margin:20px 0;background:#fff}
-.pd-price{font-size:26px;font-weight:800}
-.pd-also{font-size:14px;color:#5c5c66;margin:6px 0 0}
-.pr-save{font-size:13px;color:#5c5c66}
-.pr-card h3{font-size:16.5px;margin:0 0 4px}
-.pr-desc{color:#5c5c66;margin:0 0 12px;font-size:14px}
-.pr-list{margin:0 0 14px;padding-left:20px}
-.pr-list li{margin:4px 0;font-size:14px}
-.pr-foot{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;border-top:1px solid #eeeef3;padding-top:12px}
-.pr-price{font-size:19px;font-weight:700}
-.pr-vat{font-size:12.5px;font-weight:400;color:#5c5c66}
-.pr-buy,.pr-soon{font-size:13px;color:#5c5c66}
-.pr-soon{color:#9a6b00}
-.pr-note{font-size:13px;color:#5c5c66;background:#f6f6fa;border-radius:10px;padding:12px 14px;margin:4px 0 0}
-.pr-note a{color:#5b3fa8}
+:root{
+  --nb-paper:#F2EEE5; --nb-paper-2:#FAF7F0; --nb-line:#DED5C4; --nb-line-soft:#E9E2D5;
+  --nb-ink:#182640; --nb-ink-2:#4C566B; --nb-ink-3:#8B8674; --nb-gold:#9C7C42;
+  --nb-veil-0:rgba(242,238,229,0); --nb-veil-1:rgba(242,238,229,.72);
+  --nb-serif:"Noto Serif KR","Nanum Myeongjo",AppleMyungjo,Batang,serif;
+  --nb-sans:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+body{background:var(--nb-paper)}
+.pr,.lp{width:100%;max-width:1080px;margin:0 auto;padding:0 22px;box-sizing:border-box;
+  font:16px/1.75 var(--nb-sans);color:var(--nb-ink);-webkit-font-smoothing:antialiased}
+.pr img,.lp img{max-width:100%;display:block}
+.pr h2,.pr h3,.pr h4{font-family:var(--nb-serif);font-weight:500;letter-spacing:-.01em}
+
+/* 목록 머리 */
+.pr-top{text-align:center;padding:74px 0 10px}
+.pr-kicker{margin:0 0 12px;font-size:12.5px;letter-spacing:.28em;color:var(--nb-gold)}
+.pr-top h2{font-size:27px;margin:0 0 10px}
+.pr-intro{margin:0 auto;max-width:34em;font-size:14.5px;color:var(--nb-ink-2);word-break:keep-all}
+.pr-rule{width:38px;height:1px;background:var(--nb-gold);margin:26px auto 0}
+
+/* 갈래 */
+.pr-group{padding:46px 0 0}
+.pr-cat{margin:0 0 7px;font-size:12px;letter-spacing:.24em;color:var(--nb-gold)}
+.pr-q{font-size:22px;margin:0 0 22px}
+
+/* 격자 */
+.pr-grid{display:grid;grid-template-columns:1fr 1fr;gap:26px 18px}
+.pr-grid>*{min-width:0}
+.pr-card{margin:0}
+.pr-link{display:block;color:inherit;text-decoration:none}
+.pr-shot{display:block;aspect-ratio:3/4;overflow:hidden;
+  background:var(--nb-paper-2);border:1px solid var(--nb-line-soft)}
+.pr-thumb{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
+.pr-link:hover .pr-thumb,.pr-link:focus .pr-thumb{transform:scale(1.04)}
+.pr-hook{display:block;margin:14px 0 3px;font-size:12.5px;line-height:1.5;color:var(--nb-gold);word-break:keep-all}
+.pr-card h3{font-size:16.5px;margin:0;line-height:1.5;word-break:keep-all}
+.pr-link:hover h3,.pr-link:focus h3{text-decoration:underline;text-underline-offset:3px}
+.pr-foot{display:block;margin:7px 0 0;font-size:14px;color:var(--nb-ink-2);font-variant-numeric:tabular-nums}
+.pr-price{font-size:15px;color:var(--nb-ink)}
+.pr-vat{font-size:12px;color:var(--nb-ink-3)}
+.pr-soon{display:block;margin:2px 0 0;font-size:11.5px;color:var(--nb-ink-3)}
+.pr-save{display:block;margin-top:4px;font-size:13px;color:var(--nb-ink-3)}
+
+/* 크게 거는 카드 · 묶음 */
+.pr-wide{grid-column:1/-1;border:1px solid var(--nb-line);background:var(--nb-paper-2)}
+.pr-wide>.pr-link,.pr-pack{display:block}
+.pr-wide .pr-shot{border:0;border-bottom:1px solid var(--nb-line);aspect-ratio:16/11}
+.pr-body{display:block;padding:26px 24px 28px}
+.pr-tag{display:inline-block;margin-bottom:14px;padding:3px 10px;border:1px solid var(--nb-gold);
+  font-size:11.5px;letter-spacing:.18em;color:var(--nb-gold)}
+.pr-wide h3{font-size:22px;margin:0 0 8px}
+.pr-desc{display:block;margin:0 0 14px;font-size:14.5px;color:var(--nb-ink-2);word-break:keep-all}
+.pr-wide .pr-price{font-family:var(--nb-serif);font-size:22px}
+.pr-list{margin:0 0 16px;padding-left:19px}
+.pr-list li{margin:4px 0;font-size:14px;color:var(--nb-ink-2)}
+.pr-link .pr-soon{display:inline;margin:0 0 0 10px}
+.pr-rec{border-color:var(--nb-gold)}
+.pr-badge{display:inline-block;margin-bottom:12px;padding:3px 10px;background:var(--nb-gold);
+  color:var(--nb-paper-2);font-size:11.5px;font-weight:700;letter-spacing:.06em}
+.pr-note{margin:56px 0 0;padding:22px 0 0;border-top:1px solid var(--nb-line-soft);
+  font-size:13px;line-height:1.85;color:var(--nb-ink-3)}
+.pr-note a{color:var(--nb-gold)}
+
+/* 상품 하나짜리 페이지 */
+.pd-back{display:inline-block;margin-bottom:18px;font-size:13.5px;color:var(--nb-gold);text-decoration:none}
+.pd-hero{width:100%;max-width:300px;aspect-ratio:3/4;object-fit:cover;margin:0 0 22px;
+  background:var(--nb-paper-2);border:1px solid var(--nb-line-soft)}
+.pd-term{margin:0 0 14px;font-size:13.5px;color:var(--nb-ink-2)}
+.pd-term b{color:var(--nb-ink)}
+.pd-buy{margin:22px 0;padding:20px 22px;border:1px solid var(--nb-line);background:var(--nb-paper-2)}
+.pd-price{font-family:var(--nb-serif);font-size:27px}
+.pd-also{margin:8px 0 0;font-size:14px;color:var(--nb-ink-2)}
+.pr-body>h3,.pr-card>h3{font-family:var(--nb-serif)}
+
+@media (min-width:760px){
+  .pr-top h2{font-size:34px}
+  .pr-grid{grid-template-columns:repeat(4,1fr);gap:34px 24px}
+  .pr-wide>.pr-link{display:grid;grid-template-columns:1.15fr 1fr}
+  .pr-wide>.pr-link>*{min-width:0}
+  .pr-wide .pr-shot{aspect-ratio:auto;height:100%;border-bottom:0;border-right:1px solid var(--nb-line)}
+  .pr-body{align-self:center;padding:40px 38px}
+}
 @media (prefers-color-scheme:dark){
-.pr{color:#e8e8ee}
-.pr-intro,.pr-desc,.pr-vat,.pr-buy,.pr-note,.pr-cat,.pr-save{color:#a0a0ad}
-.pr-hook{color:#b9a4f0}
-.pr-rec{border-color:#b9a4f0}
-.pr-badge{background:#b9a4f0;color:#16161a}
-.pr-card{background:#1e1e24;border-color:#33333d}
-.pr-thumb,.pd-hero{background:#26262e;border-color:#33333d}
-.pr-foot{border-top-color:#2c2c35}
-.pr-note{background:#1e1e24}
-.pr-note a{color:#b9a4f0}
-.pd-back{color:#b9a4f0}
-.pd-term,.pd-also{color:#a0a0ad}
-.pd-term b{color:#e8e8ee}
-.pd-buy{background:#1e1e24;border-color:#33333d}
-.pr-soon{color:#e0b34d}
+  :root{
+    --nb-paper:#131A26; --nb-paper-2:#1A2231; --nb-line:#2E3A4D; --nb-line-soft:#25303F;
+    --nb-ink:#E9E3D6; --nb-ink-2:#A6AFC0; --nb-ink-3:#7B8394; --nb-gold:#C2A063;
+    --nb-veil-0:rgba(19,26,38,0); --nb-veil-1:rgba(19,26,38,.78);
+  }
+  .pr-badge{color:#131A26}
 }`;
 
 /**
@@ -191,11 +266,19 @@ export const PRODUCTS_CSS = `
  */
 export function renderProducts(ready: boolean, images: ProductImages = NO_IMAGES): string {
   const groups = CATEGORIES.map((c) => {
-    const cards = productsIn(c.key).map((p) => productCard(p, ready, images)).join('\n');
+    const all = productsIn(c.key);
+    // 삼합 리포트는 갈래 맨 앞에 한 칸을 다 쓴다. 제일 비싸고 우리만 하는 것이다
+    const star = all.find((p) => p.id === FEATURED);
+    const cards = [
+      ...(star ? [featureCard(star, ready, images)] : []),
+      ...all.filter((p) => p !== star).map((p) => productCard(p, ready, images)),
+    ].join('\n');
     return `<section class="pr-group">
-<h3 class="pr-q">${esc(c.question)}</h3>
 <p class="pr-cat">${esc(c.key)}</p>
+<h3 class="pr-q">${esc(c.question)}</h3>
+<div class="pr-grid">
 ${cards}
+</div>
 </section>`;
   }).join('\n');
 
@@ -204,14 +287,20 @@ ${cards}
     .map((p) => packageCard(p, ready)).join('\n');
 
   return `<section class="pr" id="products">
+<div class="pr-top">
+<p class="pr-kicker">R E P O R T</p>
 <h2>판매 상품과 가격</h2>
-<p class="pr-intro">아래는 유료 리포트입니다. 사주 명식·궁합·관상·손금 풀이 자체는 무료이며,
-결제 없이 이용하실 수 있습니다.</p>
+<p class="pr-intro">사주 명식·궁합·관상·손금 풀이 자체는 무료이며, 결제 없이 이용하실 수 있습니다.
+아래는 그보다 깊이 들어가는 유료 리포트입니다.</p>
+<div class="pr-rule"></div>
+</div>
 ${groups}
 <section class="pr-group">
-<h3 class="pr-q">여러 개를 함께 보시려면</h3>
 <p class="pr-cat">묶음</p>
+<h3 class="pr-q">여러 개를 함께 보시려면</h3>
+<div class="pr-grid">
 ${packs}
+</div>
 </section>
 <p class="pr-note">
 묶음 가격 옆의 「따로 사면」은 <strong>구성 상품을 실제로 낱개 판매하는 가격의 합계</strong>입니다.
@@ -235,8 +324,7 @@ export function renderProductsPage(
 <title>판매 상품과 가격 · ${esc(site)}</title>
 <style>
 :root{color-scheme:light dark}
-body{margin:0;background:#fbfbfd}
-@media (prefers-color-scheme:dark){body{background:#16161a}}
+body{margin:0}
 ${PRODUCTS_CSS}
 </style>
 </head>
@@ -281,8 +369,7 @@ export function renderProductPage(
 <meta name="description" content="${esc(product.hook)} ${esc(product.description)}">
 <style>
 :root{color-scheme:light dark}
-body{margin:0;background:#fbfbfd}
-@media (prefers-color-scheme:dark){body{background:#16161a}}
+body{margin:0}
 ${PRODUCTS_CSS}
 </style>
 </head>

@@ -9,7 +9,8 @@
 import {
   loadBusinessInfo, missingFields, isComplete, isValidRegistrationNumber,
   renderFooter, renderTerms, renderPrivacy, renderRefund, POLICY_EFFECTIVE_DATE,
-  renderProducts, renderProductsPage, renderProductPage, renderHero, renderTryHeading, LANDING_CSS,
+  renderProducts, renderProductsPage, renderProductPage, renderHero, renderTryHeading,
+  LANDING_CSS, PRODUCTS_CSS,
 } from './src/index.ts';
 import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
@@ -203,8 +204,18 @@ section('10. 첫 화면');
     check(`손님 화면에 개발 용어가 없다: ${jargon}`, !hero.includes(jargon));
   }
 
-  check('모바일 폭이 기준', renderHero(full, true).length > 0 && LANDING_CSS.includes('max-width:560px'));
-  check('다크 모드 대응', LANDING_CSS.includes('prefers-color-scheme'));
+  // 폰이 기준이다. 좁은 화면 스타일을 먼저 쓰고 넓은 화면은 min-width 로 덧붙인다
+  check('모바일이 기준 — 좁은 화면이 기본값',
+    renderHero(full, true).length > 0
+    && LANDING_CSS.includes('@media (min-width:760px)')
+    && !LANDING_CSS.includes('max-width:760px'));
+  check('폭에 상한이 있다 — 넓은 화면에서 글줄이 늘어지지 않는다',
+    PRODUCTS_CSS.includes('max-width:1080px'));
+  check('다크 모드 대응', LANDING_CSS.includes('prefers-color-scheme') && PRODUCTS_CSS.includes('prefers-color-scheme'));
+
+  // 그림이 없으면 배경을 걸지 않는다 — 회색 네모를 남기지 않는 것은 상품 그림과 같은 규칙이다
+  check('첫 화면 그림이 있으면 배경으로 깐다', renderHero(full, true, true).includes('url(/img/hero)'));
+  check('첫 화면 그림이 없으면 걸지 않는다', !renderHero(full, true, false).includes('/img/hero'));
 
   const heading = renderTryHeading();
   check('무료 구간 앞에 안내가 붙는다', heading.includes('id="try"') && heading.includes('무료'));

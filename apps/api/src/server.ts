@@ -25,7 +25,7 @@ import {
   renderHero, renderTryHeading, LANDING_CSS, renderProductPage,
   type BusinessInfo,
 } from '../../../packages/site-policy/src/index.ts';
-import { findProductImages, type ProductImage } from './images.ts';
+import { findProductImages, findHeroImage, type ProductImage } from './images.ts';
 import { buildPayload, KIND_OF, type ReadingRequest } from './payload.ts';
 import { buildPreview } from './preview.ts';
 
@@ -83,6 +83,8 @@ export interface ApiDeps {
   business?: BusinessInfo;
   /** 상품 그림. 없으면 기동할 때 public 폴더를 훑는다 */
   images?: Map<string, ProductImage>;
+  /** 첫 화면에 깔 그림. `null` 이면 종이색 바탕으로 뜬다 */
+  heroImage?: ProductImage | null;
 }
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -97,6 +99,7 @@ const VIEWER_PATH = join(HERE, '..', '..', 'manse-viewer', 'index.html');
  */
 function renderPage(
   checkout: CheckoutConfig | null, business: BusinessInfo, images: ReadonlySet<string>,
+  hero = false,
 ): string {
   const fragment = readFileSync(VIEWER_PATH, 'utf8');
   const config = JSON.stringify({ apiBase: '', checkout, ready: checkout !== null });
@@ -113,10 +116,11 @@ ${FOOTER_CSS}</style>
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 </head>
 <body>
-${renderHero(business, checkout !== null)}
+${renderHero(business, checkout !== null, hero)}
 ${renderProducts(checkout !== null, images)}
 ${renderTryHeading()}
 ${fragment}
+<style>${VIEWER_SKIN}</style>
 ${renderFooter(business)}
 </body>
 </html>`;
@@ -130,17 +134,36 @@ ${renderFooter(business)}
  * 거기서는 파는 것이 없으므로 사업자 정보 표시 의무도 없다.
  */
 const FOOTER_CSS = `
-.biz{max-width:760px;margin:24px auto 0;padding:20px;border-top:1px solid #e3e3ea;color:#5c5c66;font:12.5px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
-.biz-links{display:flex;gap:14px;margin-bottom:10px}
-.biz-links a{color:#5b3fa8}
+.biz{max-width:1080px;margin:56px auto 0;padding:22px;border-top:1px solid var(--nb-line-soft);
+  color:var(--nb-ink-3);font:12.5px/1.7 var(--nb-sans)}
+.biz-links{display:flex;gap:16px;margin-bottom:10px}
+.biz-links a{color:var(--nb-gold)}
 .biz-rows{display:flex;flex-wrap:wrap;gap:4px 14px}
-.biz-rows b{font-weight:600;color:#1b1b1f}
-.biz-note{margin-top:10px}
-@media (prefers-color-scheme:dark){
-.biz{border-top-color:#33333d;color:#a0a0ad}
-.biz-links a{color:#b9a4f0}
-.biz-rows b{color:#e8e8ee}
-}`;
+.biz-rows b{font-weight:600;color:var(--nb-ink-2)}
+.biz-note{margin-top:10px}`;
+
+/**
+ * 무료 만세력 화면의 색을 우리 색으로 맞춘다.
+ *
+ * 그 화면은 아티팩트로 따로 게시하는 물건이라 자기 색을 들고 다닌다 —
+ * 차가운 회색 바탕이다. 한 페이지 안에서 위는 한지색이고 가운데만 회색이면
+ * 서로 다른 사이트를 이어 붙인 것처럼 보인다.
+ *
+ * 조각의 `:root` 가 우리 것보다 뒤에 오므로 여기서 다시 덮는다. 조각 자체는
+ * 손대지 않는다 — 아티팩트로 나갈 때는 원래 색 그대로여야 한다.
+ *
+ * 오행 다섯 색과 도장의 붉은색은 그대로 둔다. 뜻이 있는 색이다.
+ */
+const VIEWER_SKIN = `
+:root{
+  --paper:var(--nb-paper); --surface:var(--nb-paper-2); --surface-2:var(--nb-paper-2);
+  --ink:var(--nb-ink); --ink-2:var(--nb-ink-2); --ink-3:var(--nb-ink-3);
+  --rule:var(--nb-line); --rule-soft:var(--nb-line-soft);
+  --field:var(--nb-paper-2);
+}
+/* 조각 안에 색이 직접 박힌 두 곳. 보라색 알약 버튼 하나가 화면 전체를 싸구려로 만든다 */
+.wiz-next{background:var(--nb-ink);color:var(--nb-paper-2);border-radius:0;letter-spacing:.02em}
+.wiz-dot.on{background:var(--nb-gold)}`;
 
 class HttpError extends Error {
   readonly status: number;
@@ -193,11 +216,12 @@ export function createApi(deps: ApiDeps) {
   // 기동할 때 한 번만 훑는다. 그림은 배포로만 바뀐다
   const images = deps.images ?? findProductImages();
   const haveImage = new Set(images.keys());
+  const hero = deps.heroImage !== undefined ? deps.heroImage : findHeroImage();
 
   const routes: Record<string, (req: IncomingMessage, res: ServerResponse, id: string) => Promise<void>> = {
     /** 화면. 결제 설정을 주입해 내려준다 */
     'GET /': async (_req, res) => {
-      const html = renderPage(checkout, business, haveImage);
+      const html = renderPage(checkout, business, haveImage, hero !== null);
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Length': Buffer.byteLength(html),
@@ -262,6 +286,18 @@ export function createApi(deps: ApiDeps) {
         'Content-Type': image.type,
         'Content-Length': body.length,
         // 한 시간. 그림을 다시 뽑아 올려도 오래 묵지 않는다
+        'Cache-Control': 'public, max-age=3600',
+      });
+      res.end(body);
+    },
+
+    /** 첫 화면에 까는 그림. 상품이 아니므로 주소도 따로 둔다 */
+    'GET /img/hero': async (_req, res) => {
+      if (!hero) throw new HttpError(404, '첫 화면 그림이 없습니다.');
+      const body = readFileSync(hero.path);
+      res.writeHead(200, {
+        'Content-Type': hero.type,
+        'Content-Length': body.length,
         'Cache-Control': 'public, max-age=3600',
       });
       res.end(body);
