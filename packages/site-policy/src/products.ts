@@ -72,7 +72,7 @@ function productCard(product: Product, ready: boolean): string {
     : '<span class="pr-soon">결제 준비 중</span>';
   return `<article class="pr-card">
   <p class="pr-hook">${esc(product.hook)}</p>
-  <h3>${esc(product.name)}</h3>
+  <h3><a class="pr-link" href="/products/${esc(product.id)}">${esc(product.name)}</a></h3>
   <p class="pr-desc">${esc(product.description)}</p>
   ${items ? `<ul class="pr-list">${items}</ul>` : ''}
   <div class="pr-foot">
@@ -116,6 +116,14 @@ export const PRODUCTS_CSS = `
 .pr-rec{border-color:#5b3fa8;border-width:2px}
 .pr-badge{position:absolute;top:-10px;left:18px;background:#5b3fa8;color:#fff;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px}
 .pr-hook{margin:0 0 4px;font-size:13.5px;color:#5b3fa8;font-weight:600}
+.pr-link{color:inherit;text-decoration:none}
+.pr-link:hover,.pr-link:focus{text-decoration:underline}
+.pd-back{display:inline-block;font-size:13.5px;color:#5b3fa8;text-decoration:none;margin-bottom:16px}
+.pd-term{font-size:13.5px;color:#5c5c66;margin:0 0 14px}
+.pd-term b{color:#1b1b1f}
+.pd-buy{border:1px solid #e3e3ea;border-radius:12px;padding:16px 18px;margin:20px 0;background:#fff}
+.pd-price{font-size:26px;font-weight:800}
+.pd-also{font-size:14px;color:#5c5c66;margin:6px 0 0}
 .pr-save{font-size:13px;color:#5c5c66}
 .pr-card h3{font-size:16.5px;margin:0 0 4px}
 .pr-desc{color:#5c5c66;margin:0 0 12px;font-size:14px}
@@ -138,6 +146,10 @@ export const PRODUCTS_CSS = `
 .pr-foot{border-top-color:#2c2c35}
 .pr-note{background:#1e1e24}
 .pr-note a{color:#b9a4f0}
+.pd-back{color:#b9a4f0}
+.pd-term,.pd-also{color:#a0a0ad}
+.pd-term b{color:#e8e8ee}
+.pd-buy{background:#1e1e24;border-color:#33333d}
 .pr-soon{color:#e0b34d}
 }`;
 
@@ -204,3 +216,78 @@ ${footer}
 </body>
 </html>`;
 }
+
+
+/**
+ * 상품 하나짜리 페이지.
+ *
+ * 카드사 등록심사가 **"상품을 클릭했을 때 상세페이지에 상품 설명이 제대로
+ * 되어 있는가"** 를 본다. 목록에 설명이 다 있어도 클릭해서 들어갈 곳이 없으면
+ * 걸린다. 그래서 상품마다 고유한 주소를 준다.
+ *
+ * 검색에도 같은 이유로 유리하다 — 사람들은 「사주」가 아니라 「재물운 사주」로
+ * 검색하고, 그 검색어에 대응하는 페이지가 있어야 걸린다.
+ */
+export function renderProductPage(
+  product: Product, info: BusinessInfo, ready: boolean, footer: string,
+): string {
+  const site = show(info, 'serviceName', '서비스 이름');
+  const items = (CONTENTS[product.id] ?? []).map((t) => `<li>${bold(t)}</li>`).join('');
+  const packs = Object.values(PACKAGES)
+    .filter((p) => p.members.includes(product.id))
+    .sort((a, b) => a.priceKrw - b.priceKrw);
+  const alsoIn = packs.length
+    ? `<p class="pd-also">이 리포트는 ${packs.map((p) => `<b>${esc(p.name)}</b>(${won(bundleMath(p.id).bundleKrw)})`).join(', ')} 묶음에도 들어 있습니다.</p>`
+    : '';
+
+  return `<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(product.name)} · ${esc(site)}</title>
+<meta name="description" content="${esc(product.hook)} ${esc(product.description)}">
+<style>
+:root{color-scheme:light dark}
+body{margin:0;background:#fbfbfd}
+@media (prefers-color-scheme:dark){body{background:#16161a}}
+${PRODUCTS_CSS}
+</style>
+</head>
+<body>
+<section class="pr">
+  <a class="pd-back" href="/products">← 판매 상품 전체 보기</a>
+  <p class="pr-hook">${esc(product.hook)}</p>
+  <h2>${esc(product.name)}</h2>
+  ${product.topic ? `<p class="pd-term">명리에서는 <b>${esc(TERM_OF[product.topic] ?? '')}</b>이라 부르는 자리입니다.</p>` : ''}
+  <p class="pr-desc">${esc(product.description)}</p>
+  ${items ? `<h3 style="font-size:15.5px;margin:18px 0 6px">이 리포트에 담기는 것</h3><ul class="pr-list">${items}</ul>` : ''}
+
+  <div class="pd-buy">
+    <span class="pd-price">${won(product.priceKrw)}</span><span class="pr-vat"> (부가세 포함)</span>
+    ${product.needsPartner ? '<p class="pd-also">두 사람의 생년월일이 필요합니다.</p>' : ''}
+    ${ready
+      ? '<p class="pd-also">첫 화면에서 생년월일을 넣으시면 미리보기를 보신 뒤 구매하실 수 있습니다.</p>'
+      : '<p class="pd-also"><b>결제 준비 중입니다.</b> 사주 명식·궁합·관상·손금 풀이는 지금도 결제 없이 이용하실 수 있습니다.</p>'}
+    ${alsoIn}
+  </div>
+
+  <p class="pr-note">
+  결제 전에 리포트 일부를 미리 보실 수 있으며, 결제일부터 ${WITHDRAWAL_WINDOW_DAYS}일 이내에
+  청약철회가 가능합니다. 자세한 내용은 <a href="/refund">취소·환불 정책</a>을 참고해 주세요.<br>
+  이 해석은 전통 명리 이론에 근거한 참고 자료이며, 의료·법률·투자 판단의 근거가 아닙니다.
+  </p>
+  <p><a class="pd-back" href="/">← ${esc(site)} 첫 화면</a></p>
+</section>
+<div style="height:24px"></div>
+${footer}
+</body>
+</html>`;
+}
+
+/** 주제별 상품에 붙일 명리 용어. `packages/saju-rules` 의 이름표와 같은 값이다 */
+const TERM_OF: Record<string, string> = {
+  wealth: '재성(財星)', career: '관성(官星)', expression: '식상(食傷)',
+  learning: '인성(印星)', peers: '비겁(比劫)', charm: '도화·홍염(桃花·紅艶)',
+  travel: '역마(驛馬)', helper: '천을귀인(天乙貴人)',
+};

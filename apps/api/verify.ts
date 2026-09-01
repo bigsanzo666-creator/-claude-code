@@ -175,6 +175,32 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   check(`${path} 에 사업자등록번호 표시`, res.html.includes('220-81-62517'));
 }
 
+// 카드사 등록심사: 상품을 클릭하면 상세페이지가 나와야 한다
+{
+  const { CATALOG: CAT } = await import('../../packages/commerce/src/catalog.ts');
+  let ok = 0;
+  for (const p of Object.values(CAT)) {
+    const res = await page(`/products/${p.id}`);
+    if (res.status === 200 && res.html.includes(p.name) && res.html.includes(p.hook)) ok++;
+  }
+  check('상품 21개가 각각 제 페이지를 가진다', ok === Object.keys(CAT).length, `${ok}/${Object.keys(CAT).length}`);
+  const one = await page('/products/wealth-report');
+  check('상세페이지에 가격이 실판매가로 나온다', one.html.includes('6,900원'));
+  check('상세페이지에 명리 용어를 함께 단다', one.html.includes('재성(財星)'));
+  check('상세페이지에서 목록으로 돌아갈 수 있다', one.html.includes('href="/products"'));
+  check('상세페이지에도 사업자 정보', one.html.includes('220-81-62517'));
+  check('없는 상품은 404', (await page('/products/nope')).status === 404);
+  check('목록에서 상세로 링크가 걸린다',
+    (await page('/products')).html.includes('href="/products/wealth-report"'));
+}
+
+// 카드사 심사가 하단 필수정보로 보는 항목들
+{
+  const f = (await page('/products')).html;
+  check('「대표」 직책 표기', f.includes('<b>대표</b>'));
+  check('유선전화 항목이 있다', f.includes('<b>유선전화</b>'));
+}
+
 const home = await page('/');
 check('첫 화면에도 사업자 정보가 붙는다', home.html.includes('220-81-62517'));
 check('첫 화면에서 정책·상품으로 링크', ['/products', '/terms', '/privacy', '/refund'].every((h) => home.html.includes(`href="${h}"`)));

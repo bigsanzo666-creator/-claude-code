@@ -22,7 +22,7 @@ import { cacheKey } from '../../../packages/report/src/cache.ts';
 import {
   loadBusinessInfo, renderFooter, renderTerms, renderPrivacy, renderRefund,
   renderProducts, renderProductsPage, PRODUCTS_CSS,
-  renderHero, renderTryHeading, LANDING_CSS,
+  renderHero, renderTryHeading, LANDING_CSS, renderProductPage,
   type BusinessInfo,
 } from '../../../packages/site-policy/src/index.ts';
 import { buildPayload, KIND_OF, type ReadingRequest } from './payload.ts';
@@ -225,6 +225,18 @@ export function createApi(deps: ApiDeps) {
      * 첫 화면에도 같은 내용이 붙지만, 심사가 곧바로 열어볼 수 있는 주소를
      * 따로 둔다. 「상품 등록 유무」는 자동 검사 항목이라 찾기 쉬워야 한다.
      */
+    /**
+     * 상품 하나짜리 페이지.
+     *
+     * 카드사 등록심사가 "상품을 클릭했을 때 상세페이지가 제대로 되어 있는가"를
+     * 본다. 목록에 설명이 다 있어도 들어갈 곳이 없으면 걸린다.
+     */
+    'GET /products/:id': async (_req, res, id) => {
+      const product = CATALOG[id as ProductId];
+      if (!product) throw new HttpError(404, `없는 상품입니다: ${id}`);
+      sendHtml(res, renderProductPage(product, business, checkout !== null, renderFooter(business)));
+    },
+
     'GET /products': async (_req, res) =>
       sendHtml(res, renderProductsPage(business, checkout !== null, renderFooter(business))),
 
@@ -391,6 +403,9 @@ export function createApi(deps: ApiDeps) {
       if (parts[0] === 'api' && parts[1] === 'orders' && parts[2]) {
         id = parts[2];
         key = `${req.method} /api/orders/:id${parts[3] ? `/${parts[3]}` : ''}`;
+      } else if (parts[0] === 'products' && parts[1] && !parts[2]) {
+        id = parts[1];
+        key = `${req.method} /products/:id`;
       }
 
       const route = routes[key];

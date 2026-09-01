@@ -29,10 +29,13 @@ function esc(value: string): string {
 export function renderFooter(info: BusinessInfo): string {
   const rows: Array<[string, string]> = [
     ['상호', show(info, 'companyName', '상호')],
-    ['대표자', show(info, 'representative', '대표자')],
+    // 카드사 심사가 「대표」라는 직책 표기를 요구한다 (예: 대표:홍길동)
+    ['대표', show(info, 'representative', '대표자')],
     ['사업자등록번호', show(info, 'registrationNumber', '사업자등록번호')],
     ['통신판매업 신고', info.mailOrderNumber || '신고 진행 중'],
     ['주소', show(info, 'address', '사업장 주소')],
+    // 유선전화가 없으면 고객센터 번호를 그 자리에 쓴다. 빈칸이면 심사에서 걸린다
+    ['유선전화', info.landline || show(info, 'phone', '전화')],
     ['고객센터', `${show(info, 'phone', '전화')} · ${show(info, 'email', '이메일')}`],
     ['개인정보 보호책임자', show(info, 'privacyOfficer', '개인정보 보호책임자')],
     ['호스팅 제공', info.hostingProvider],

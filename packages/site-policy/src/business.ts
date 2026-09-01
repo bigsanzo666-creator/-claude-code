@@ -33,6 +33,14 @@ export interface BusinessInfo {
   address: string;
   /** 고객센터 전화번호 */
   phone: string;
+  /**
+   * 유선전화번호.
+   *
+   * 카드사 등록심사가 하단 필수정보로 **유선전화번호**를 본다. 휴대폰만 적어두면
+   * 걸릴 수 있고, 걸리면 재신청이라 2주가 다시 간다.
+   * 없으면 고객센터 번호로 대신 표시한다 — 빈칸으로 두는 것보다 낫다.
+   */
+  landline: string;
   /** 고객센터 이메일 */
   email: string;
   /** 개인정보 보호책임자 성명 */
@@ -66,7 +74,7 @@ export const MAIL_ORDER_LABEL = '통신판매업 신고번호';
 const EMPTY: BusinessInfo = {
   serviceName: '', serviceUrl: '', companyName: '', representative: '',
   registrationNumber: '', mailOrderNumber: '', address: '', phone: '',
-  email: '', privacyOfficer: '', hostingProvider: '',
+  landline: '', email: '', privacyOfficer: '', hostingProvider: '',
 };
 
 /** 환경변수에서 읽는다. 없는 값은 빈 문자열로 남는다 */
@@ -81,6 +89,7 @@ export function loadBusinessInfo(env: Record<string, string | undefined> = proce
     mailOrderNumber: get('BIZ_MAIL_ORDER_NUMBER'),
     address: get('BIZ_ADDRESS'),
     phone: get('BIZ_PHONE'),
+    landline: get('BIZ_LANDLINE'),
     email: get('BIZ_EMAIL'),
     privacyOfficer: get('BIZ_PRIVACY_OFFICER') || get('BIZ_REPRESENTATIVE'),
     hostingProvider: get('BIZ_HOSTING') || '자체 호스팅',
