@@ -165,13 +165,19 @@ function packageCard(pack: BundlePackage, ready: boolean): string {
  * 세 군데에 모두 실리는 유일한 조각이기 때문이다. 첫 화면 스타일은 여기의
  * `--ink` 를 가져다 쓴다.
  */
+export const FONT_LINK = `<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=IBM+Plex+Sans+KR:wght@300;400;500;600&display=swap">`;
+
 export const PRODUCTS_CSS = `
 :root{
   --nb-paper:#F2EEE5; --nb-paper-2:#FAF7F0; --nb-line:#DED5C4; --nb-line-soft:#E9E2D5;
   --nb-ink:#182640; --nb-ink-2:#4C566B; --nb-ink-3:#8B8674; --nb-gold:#9C7C42;
   --nb-veil-0:rgba(242,238,229,0); --nb-veil-1:rgba(242,238,229,.72);
-  --nb-serif:"Noto Serif KR","Nanum Myeongjo",AppleMyungjo,Batang,serif;
-  --nb-sans:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  /* 글씨는 두 벌만 쓴다. 아래 무료 만세력 조각이 이미 이 둘을 받아 오므로
+     새로 받지 않는다 — 한 페이지에 명조 두 벌, 고딕 두 벌이 도는 것을 막는다 */
+  --nb-serif:"Nanum Myeongjo",AppleMyungjo,Batang,serif;
+  --nb-sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
 }
 body{background:var(--nb-paper)}
 .pr,.lp{width:100%;max-width:1080px;margin:0 auto;padding:0 22px;box-sizing:border-box;
@@ -321,6 +327,7 @@ export function renderProductsPage(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${FONT_LINK}
 <title>판매 상품과 가격 · ${esc(site)}</title>
 <style>
 :root{color-scheme:light dark}
@@ -365,6 +372,7 @@ export function renderProductPage(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${FONT_LINK}
 <title>${esc(product.name)} · ${esc(site)}</title>
 <meta name="description" content="${esc(product.hook)} ${esc(product.description)}">
 <style>

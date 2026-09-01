@@ -65,9 +65,9 @@ export const LANDING_CSS = `
 .lp-top{padding-top:24px}
 .lp-lead{padding-bottom:52px}
 .lp-brand{display:flex;align-items:center;gap:10px}
-.lp-seal{width:34px;height:34px;flex:0 0 auto;display:grid;place-items:center;
-  border:1px solid var(--nb-gold);color:var(--nb-gold);font-family:var(--nb-serif);font-size:17px}
-.lp-name{font-family:var(--nb-serif);font-size:18px;letter-spacing:.06em}
+.lp-seal{width:26px;height:26px;flex:0 0 auto;display:grid;place-items:center;
+  border:1px solid var(--nb-gold);color:var(--nb-gold);font-family:var(--nb-serif);font-size:13px}
+.lp-name{font-family:var(--nb-serif);font-size:20px;letter-spacing:.06em}
 .lp-hero h1{font-family:var(--nb-serif);font-weight:500;font-size:29px;line-height:1.55;
   letter-spacing:-.01em;word-break:keep-all;margin:0 0 14px}
 .lp-hero h1 em{font-style:normal;color:var(--nb-gold)}

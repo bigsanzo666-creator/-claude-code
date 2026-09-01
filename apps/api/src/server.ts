@@ -22,7 +22,7 @@ import { cacheKey } from '../../../packages/report/src/cache.ts';
 import {
   loadBusinessInfo, renderFooter, renderTerms, renderPrivacy, renderRefund,
   renderProducts, renderProductsPage, PRODUCTS_CSS,
-  renderHero, renderTryHeading, LANDING_CSS, renderProductPage,
+  renderHero, renderTryHeading, LANDING_CSS, FONT_LINK, renderProductPage,
   type BusinessInfo,
 } from '../../../packages/site-policy/src/index.ts';
 import { findProductImages, findHeroImage, type ProductImage } from './images.ts';
@@ -108,6 +108,7 @@ function renderPage(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${FONT_LINK}
 <style>:root{color-scheme:light dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 ${LANDING_CSS}
 ${PRODUCTS_CSS}

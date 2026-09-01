@@ -10,7 +10,7 @@ import {
   loadBusinessInfo, missingFields, isComplete, isValidRegistrationNumber,
   renderFooter, renderTerms, renderPrivacy, renderRefund, POLICY_EFFECTIVE_DATE,
   renderProducts, renderProductsPage, renderProductPage, renderHero, renderTryHeading,
-  LANDING_CSS, PRODUCTS_CSS,
+  LANDING_CSS, PRODUCTS_CSS, FONT_LINK,
 } from './src/index.ts';
 import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
@@ -211,6 +211,14 @@ section('10. 첫 화면');
     && !LANDING_CSS.includes('max-width:760px'));
   check('폭에 상한이 있다 — 넓은 화면에서 글줄이 늘어지지 않는다',
     PRODUCTS_CSS.includes('max-width:1080px'));
+  // 글씨는 두 벌만. 한 페이지에 명조 두 벌이 돌면 어디는 나눔명조, 어디는 시스템 명조로 뜬다
+  check('제목 글씨는 실제로 받아 오는 것만 쓴다',
+    PRODUCTS_CSS.includes('--nb-serif:"Nanum Myeongjo"') && FONT_LINK.includes('Nanum+Myeongjo'));
+  check('본문 글씨도 실제로 받아 오는 것만 쓴다',
+    PRODUCTS_CSS.includes('--nb-sans:"IBM Plex Sans KR"') && FONT_LINK.includes('IBM+Plex+Sans+KR'));
+  check('로고가 인장보다 크다', LANDING_CSS.includes('.lp-name{font-family:var(--nb-serif);font-size:20px')
+    && LANDING_CSS.includes('.lp-seal{width:26px'));
+
   check('다크 모드 대응', LANDING_CSS.includes('prefers-color-scheme') && PRODUCTS_CSS.includes('prefers-color-scheme'));
 
   // 그림이 없으면 배경을 걸지 않는다 — 회색 네모를 남기지 않는 것은 상품 그림과 같은 규칙이다
