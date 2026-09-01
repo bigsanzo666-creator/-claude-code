@@ -199,7 +199,16 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
   const { join: j } = await import('node:path');
-  const { findProductImages, strayImages } = await import('./src/images.ts');
+  const { findProductImages, strayImages, toProductId } = await import('./src/images.ts');
+
+  // 한국 사람이 한국 손님에게 파는 물건이다. 파일 이름을 한글로 지어도 붙어야 한다
+  check('한글 짧은 이름을 알아듣는다',
+    toProductId('돈그릇') === 'wealth-report' && toProductId('재회') === 'reunion-report');
+  check('카탈로그에 적힌 상품 이름 그대로도 알아듣는다',
+    toProductId('우리 아이 사주') === 'child-report');
+  check('띄어쓰기가 달라도 같은 것으로 본다', toProductId('돈 그릇') === 'wealth-report');
+  check('영어 아이디도 그대로 된다', toProductId('wealth-report') === 'wealth-report');
+  check('모르는 이름은 빈 문자열', toProductId('아무거나') === '');
 
   const dir = mkdtempSync(j(tmpdir(), 'saju-img-'));
   const png = Buffer.from('89504e470d0a1a0a', 'hex'); // 내용은 상관없다 — 이름과 확장자만 본다
@@ -207,9 +216,11 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   writeFileSync(j(dir, 'reunion-report.jpg'), png);
   writeFileSync(j(dir, '오타난이름.png'), png);      // 카탈로그에 없는 이름
   writeFileSync(j(dir, 'wealth-report.txt'), 'x');   // 그림이 아닌 파일
+  writeFileSync(j(dir, '귀인운.jpg'), png);           // 한글로 저장한 파일
 
   const found = findProductImages(dir);
-  check('상품 아이디로 저장한 그림만 골라낸다', found.size === 2);
+  check('상품 아이디로 저장한 그림만 골라낸다', found.size === 3);
+  check('한글로 저장한 파일도 제자리에 붙는다', found.has('helper-report'));
   check('확장자가 달라도 찾는다 — png도 jpg도',
     found.get('wealth-report')?.type === 'image/png'
     && found.get('reunion-report')?.type === 'image/jpeg');
@@ -238,7 +249,7 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
     (await get('/img/products/..%2F..%2Fetc%2Fpasswd')).status === 404);
 
   const list = await get('/products').then((r) => r.text());
-  check('그림이 있는 둘에만 썸네일이 붙는다', (list.match(/pr-thumb"/g) ?? []).length === 2);
+  check('그림이 있는 것에만 썸네일이 붙는다', (list.match(/pr-thumb"/g) ?? []).length === 3);
   const detail = await get('/products/wealth-report').then((r) => r.text());
   check('상세페이지에는 크게 건다', detail.includes('class="pd-hero"'));
   const noPic = await get('/products/child-report').then((r) => r.text());

@@ -32,6 +32,58 @@ export interface ProductImage {
   type: string;
 }
 
+/**
+ * 한글 파일 이름.
+ *
+ * 한국 사람이 한국에서 한국 손님에게 팔 물건이다. 영어 아이디로 파일 이름을
+ * 맞추라는 건 프로그램 사정을 사람에게 떠넘기는 것이다. 그래서 프로그램이
+ * 한글을 알아듣는다.
+ *
+ * 아이디로 저장해도 되고, 카탈로그의 상품 이름 그대로 저장해도 되고,
+ * 아래 짧은 이름으로 저장해도 된다. 셋 다 같은 자리에 붙는다.
+ */
+const KOREAN_NAMES: Record<string, string> = {
+  '매력': 'charm-report',
+  '솔로탈출': 'single-report',
+  '결혼시기': 'marriage-timing-report',
+  '재회': 'reunion-report',
+  '궁합': 'compat-report',
+  '썸궁합': 'crush-compat-report',
+  '우리아이': 'child-report',
+  '자녀진로': 'child-aptitude-report',
+  '부모자식': 'parent-child-report',
+  '노후': 'latelife-report',
+  '사주종합': 'saju-report',
+  '삼합': 'cross-report',
+  '재능운': 'expression-report',
+  '사람운': 'peers-report',
+  '귀인운': 'helper-report',
+  '돈그릇': 'wealth-report',
+  '출세운': 'career-report',
+  '공부운': 'learning-report',
+  '오늘운세': 'daily-report',
+  '신년운세': 'newyear-report',
+  '이동운': 'travel-report',
+};
+
+/** 띄어쓰기·밑줄·유니코드 조합 차이를 지운다 — 「돈 그릇」도 「돈그릇」으로 본다 */
+const squash = (s: string) => s.normalize('NFC').replace(/[\s_-]+/g, '');
+
+/** 파일 이름 하나를 상품 아이디로 옮긴다. 못 알아들으면 빈 문자열 */
+export function toProductId(fileBase: string): string {
+  if (fileBase in CATALOG) return fileBase;
+
+  const key = squash(fileBase);
+  for (const [korean, id] of Object.entries(KOREAN_NAMES)) {
+    if (squash(korean) === key) return id;
+  }
+  // 카탈로그에 적힌 상품 이름 그대로 저장한 경우
+  for (const [id, product] of Object.entries(CATALOG)) {
+    if (squash((product as { name: string }).name) === key) return id;
+  }
+  return '';
+}
+
 export const IMAGE_DIR = join(
   dirname(fileURLToPath(import.meta.url)), '..', 'public', 'products',
 );
@@ -55,9 +107,9 @@ export function findProductImages(dir: string = IMAGE_DIR): Map<string, ProductI
     const ext = extname(name).toLowerCase();
     const type = TYPES[ext];
     if (!type) continue;
-    const id = name.slice(0, -ext.length);
-    if (!(id in CATALOG)) continue; // 이름이 틀린 파일은 조용히 무시한다
-    if (found.has(id)) continue;    // 같은 상품에 둘이면 먼저 것을 쓴다
+    const id = toProductId(name.slice(0, -ext.length));
+    if (!id) continue;           // 이름을 못 알아들은 파일은 조용히 무시한다
+    if (found.has(id)) continue; // 같은 상품에 둘이면 먼저 것을 쓴다
     found.set(id, { path: join(dir, name), type });
   }
   return found;
@@ -68,7 +120,7 @@ export function strayImages(dir: string = IMAGE_DIR): string[] {
   try {
     return readdirSync(dir)
       .filter((n) => TYPES[extname(n).toLowerCase()])
-      .filter((n) => !(n.slice(0, -extname(n).length) in CATALOG));
+      .filter((n) => !toProductId(n.slice(0, -extname(n).length)));
   } catch {
     return [];
   }
