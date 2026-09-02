@@ -7,6 +7,7 @@ export {
 export { compatibility } from '../../packages/saju-rules/src/index.ts';
 export { sajuToTraits, crossValidate } from '../../packages/saju-rules/src/index.ts';
 export { readFace, NEUTRAL_FEATURES, FEATURE_LABEL, FEATURE_PALACE, FACE_SHAPE_LABEL } from '../../packages/physiognomy/src/index.ts';
+export { measureFace, MEASURE_NOTE, YAW_LIMIT } from '../../packages/physiognomy/src/index.ts';
 export {
   readPalm, NEUTRAL_PALM_FEATURES, PALM_FEATURE_LABEL, PALM_FEATURE_DOMAIN,
   PALM_LEVEL_LABELS, HAND_SHAPE_SHORT, HAND_SHAPE_LABEL, HAND_CHOICE_NOTE,

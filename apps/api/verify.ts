@@ -337,6 +337,26 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
 }
 
 const home = await page('/');
+{
+  // 얼굴 사진은 생체정보다. 서버로 보내는 순간 보관·파기·동의 문제가 전부 따라붙는다.
+  // 여기서 보는 것은 「보내지 않는다」가 코드에 실제로 그렇게 되어 있는가다
+  const v = home.html;
+  check('사진 고르는 칸이 관상 화면에 있다', v.includes('id="facePhoto"'));
+  check('사진을 우리 서버로 올리지 않는다',
+    !/facePhoto[\s\S]{0,4000}?(FormData|new XMLHttpRequest)/.test(v));
+  check('다 쓴 사진은 바로 버린다', v.includes('revokeObjectURL'));
+  check('사진 재기가 안 되면 손으로 고를 수 있다고 알린다',
+    v.includes('직접 골라 주세요'));
+  // 3MB짜리 도구를 첫 화면부터 받으면 사진을 안 쓸 손님까지 기다린다
+  check('점 찍는 도구는 누를 때 받는다',
+    v.includes("import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision"));
+  check('첫 화면이 그 도구를 미리 받지 않는다', !v.includes('<script src="https://cdn.jsdelivr.net/npm/@mediapipe'));
+  // 인터넷이 느리면 손님을 하염없이 기다리게 두지 않는다
+  check('오래 걸리면 포기하고 알려 준다', v.includes('FACE_WAIT_MS'));
+  // hidden 은 display:none 이라 키보드로 고를 수 없다
+  check('파일칸을 눈에서만 감춘다', !v.includes('id="facePhoto" accept="image/*" hidden'));
+  check('사진 값도 손으로 고칠 수 있다', v.includes('syncFaceForm'));
+}
 check('첫 화면에도 사업자 정보가 붙는다', home.html.includes('220-81-62517'));
 check('첫 화면에서 정책·상품으로 링크', ['/products', '/terms', '/privacy', '/refund'].every((h) => home.html.includes(`href="${h}"`)));
 // 첫 화면에서 값부터 보이면 손님이 물러선다. 무엇을 봐 주는지만 보여 준다
