@@ -242,7 +242,10 @@ ${cards}
  */
 export const SPIRITS_CSS = `
 /* 얼굴 자리. 그림이 있든 도장뿐이든 크기가 같아야 줄이 안 흐트러진다 */
+/* 그림은 세로로 길게 들어온다. 동그랗게 자를 때 가운데를 잡으면 얼굴이 잘리고
+   어깨만 남는다. 그래서 **위쪽을 잡는다** — 얼굴이 원 한가운데에 온다 */
 .sp-face{flex:0 0 auto;width:64px;height:64px;border-radius:50%;object-fit:cover;
+  object-position:center 15%;
   background:var(--nb-paper-2);border:1px solid var(--nb-line-soft)}
 .sp-seal{display:grid;place-items:center;font-family:var(--nb-serif);font-size:26px;color:var(--nb-gold)}
 
