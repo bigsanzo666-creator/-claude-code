@@ -75,6 +75,19 @@ input[type=checkbox],input[type=radio]{width:auto;accent-color:var(--seal);margi
 .opt{display:flex;align-items:center;gap:.45rem;font-size:.86rem;color:var(--ink-2);cursor:pointer;font-weight:400}
 .opts{display:flex;flex-wrap:wrap;gap:.45rem 1.2rem;margin-top:1.05rem;padding-top:1.05rem;border-top:1px solid var(--rule-soft)}
 
+/* 쉬운 말 — 큰 글씨는 쉬운 말, 명리 용어는 옆에 작게 */
+.pl-lead{font-family:"Nanum Myeongjo",Georgia,serif;font-size:1.35rem;font-weight:700;
+  line-height:1.5;margin:1.4rem 0 .35rem}
+.pl-lead:first-child{margin-top:0}
+.pl-body{font-size:1rem;line-height:1.75;color:var(--ink-2);margin:0}
+.pl-sub{font-size:.95rem;font-weight:600;margin:1.4rem 0 .5rem}
+.pl-list{list-style:none;padding:0;margin:0}
+.pl-list li{font-size:1rem;line-height:1.7;padding:.45rem 0 .45rem .95rem;
+  border-left:2px solid var(--rule);margin-bottom:.35rem}
+.pl-list.warn li{border-left-color:var(--seal)}
+.gl-t{font-size:.76rem;color:var(--ink-3);margin-left:.35rem}
+.gl-n{font-size:.76rem;font-weight:400;color:var(--ink-3);margin-left:.4rem}
+
 /* 명식 */
 .chart{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule);background:var(--rule-soft);gap:1px}
 .col{background:var(--surface);display:flex;flex-direction:column;align-items:center;padding:.85rem .3rem 1rem;gap:.1rem;min-width:0}
@@ -118,7 +131,7 @@ footer{border-top:1px solid var(--rule);background:var(--surface);padding:1.7rem
 .meter .mk{position:absolute;top:0;bottom:0;width:3px;background:var(--seal);border-radius:2px}
 .meter .tick{position:absolute;top:0;bottom:0;width:1px;background:var(--rule)}
 .scale{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:.68rem;color:var(--ink-3)}
-.verdict{font-family:"Nanum Myeongjo",serif;font-size:1.5rem;font-weight:800;color:var(--seal);line-height:1}
+.verdict{white-space:nowrap;font-family:"Nanum Myeongjo",serif;font-size:1.5rem;font-weight:800;color:var(--seal);line-height:1}
 
 /* 목록 */
 ul.hl{list-style:none;margin:0;padding:0;display:grid;gap:.6rem}
@@ -371,6 +384,73 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
       '</div>';
   }
 
+  /**
+   * 쉬운 말 사전.
+   *
+   * 여기가 이 사이트의 존재 이유다. 사주 보는 곳은 많지만 대부분 명리 용어를
+   * 그대로 던진다. 손님은 「신강」「용신」「식상」이 무슨 말인지 모른 채
+   * 화면을 닫는다. **큰 글씨는 쉬운 말, 명리 용어는 옆에 작게.**
+   */
+  var STEM_PLAIN = {
+    갑: '큰 나무 같은 사람입니다. 곧게 자라고 앞에 서려 합니다.',
+    을: '풀과 넝쿨 같은 사람입니다. 부드럽지만 끈질깁니다.',
+    병: '한낮의 해 같은 사람입니다. 밝고 숨기지 못합니다.',
+    정: '촛불 같은 사람입니다. 조용히 오래 비춥니다.',
+    무: '넓은 땅 같은 사람입니다. 든든하고 잘 흔들리지 않습니다.',
+    기: '텃밭 흙 같은 사람입니다. 품고 길러 냅니다.',
+    경: '쇠와 바위 같은 사람입니다. 단단하고 밀어붙입니다.',
+    신: '보석과 칼날 같은 사람입니다. 야무지고 날이 서 있습니다.',
+    임: '큰 물 같은 사람입니다. 넓게 흐르고 다 담아냅니다.',
+    계: '이슬과 빗물 같은 사람입니다. 스며들고 살핍니다.',
+  };
+  var GROUP_PLAIN = {
+    비겁: '혼자 밀고 나가는 힘',
+    식상: '밖으로 드러내는 힘',
+    재성: '돈을 벌고 챙기는 힘',
+    관성: '맡고 견디는 힘',
+    인성: '배우고 받는 힘',
+  };
+  var VERDICT_PLAIN = {
+    신강: ['기운이 센 편입니다', '힘이 남는 쪽이라, 쓸 곳을 만들어 주면 좋습니다.'],
+    신약: ['기운이 여린 편입니다', '힘이 모자란 쪽이라, 채워 주면 좋습니다.'],
+    중화: ['기운이 고른 편입니다', '한쪽으로 치우치지 않아, 때에 맞춰 쓰면 됩니다.'],
+  };
+
+  /** 어려운 말 뒤에 뜻을 붙인다 */
+  function gloss(term, meaning) {
+    return '<span class="gl">' + esc(term) + '<span class="gl-n">' + esc(meaning) + '</span></span>';
+  }
+
+  /**
+   * 맨 위에 두는 쉬운 말 요약.
+   *
+   * 한자표보다 **먼저** 나온다. 여덟 글자를 읽을 줄 아는 손님은 열에 하나도
+   * 안 된다. 나머지 아홉에게 먼저 말을 걸어야 한다.
+   */
+  function plainPanel(an) {
+    var dm = an.dayMaster;
+    var v = VERDICT_PLAIN[an.strength.verdict] || ['', ''];
+    var need = an.yongsin.primary.map(function (g) {
+      return '<li>' + esc(GROUP_PLAIN[g] || g) + ' <span class="gl-t">' + esc(g) + '</span></li>';
+    }).join('');
+    var enough = an.yongsin.avoid.map(function (g) {
+      return '<li>' + esc(GROUP_PLAIN[g] || g) + ' <span class="gl-t">' + esc(g) + '</span></li>';
+    }).join('');
+
+    return '<p class="pl-lead">당신은 <b class="e-' + dm.element + '">' + esc(dm.stem + dm.element) + '</b> 입니다</p>' +
+      '<p class="pl-body">' + esc(STEM_PLAIN[dm.stem] || '') + '</p>' +
+
+      '<p class="pl-lead">' + esc(v[0]) + '</p>' +
+      '<p class="pl-body">' + esc(v[1]) + '</p>' +
+
+      (need ? '<p class="pl-sub">지금 있으면 좋은 것</p><ul class="pl-list">' + need + '</ul>' : '') +
+      (enough ? '<p class="pl-sub">이미 넉넉한 것 — 더 하면 오히려 힘듭니다</p><ul class="pl-list warn">' + enough + '</ul>' : '') +
+      (an.yongsin.seasonalNote ? '<p class="pl-body">' + esc(an.yongsin.seasonalNote) + '</p>' : '') +
+
+      '<p class="note" style="margin-top:1.1rem">아래는 사주 원문입니다. 어려운 말에는 옆에 뜻을 달아 두었습니다. ' +
+      '몰라도 위의 내용만 보시면 됩니다.</p>';
+  }
+
   function elementBars(an) {
     return an.elements.map((e) =>
       '<div class="bar"><span class="e-' + e.element + '" style="font-weight:500">' + e.element + '</span>' +
@@ -383,7 +463,8 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     const max = Math.max(...groups.map((g) => an.strength.scores[g]));
     return groups.map((g) => {
       const v = an.strength.scores[g];
-      return '<div class="bar"><span style="font-weight:500">' + g + '</span>' +
+      return '<div class="bar"><span style="font-weight:500">' + g +
+        '<span class="gl-n" style="display:block">' + esc(GROUP_PLAIN[g] || '') + '</span></span>' +
         '<div class="track"><div class="fill" style="width:' + (max ? (v / max) * 100 : 0).toFixed(1) + '%;background:var(--ink-2)"></div></div>' +
         '<span class="n">' + v.toFixed(0) + '</span></div>';
     }).join('');
@@ -392,10 +473,12 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   function strengthPanel(an) {
     const s = an.strength;
     const pos = Math.max(0, Math.min(100, s.supportRatio));
-    return '<div style="display:flex;align-items:baseline;gap:.7rem;margin-bottom:.15rem">' +
+    return '<div style="display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-bottom:.15rem">' +
         '<span class="verdict">' + s.verdict + '</span>' +
-        '<span class="mono" style="color:var(--ink-2);font-size:.86rem">일간을 돕는 힘 ' + s.supportRatio + '%</span>' +
+        '<span class="mono" style="color:var(--ink-2);font-size:.86rem">돕는 힘 ' + s.supportRatio + '%</span>' +
       '</div>' +
+      '<p class="pl-body" style="margin:.1rem 0 .5rem">' +
+        esc((VERDICT_PLAIN[s.verdict] || [''])[0]) + '</p>' +
       '<div class="meter">' +
         '<div class="zone" style="left:45%;width:10%"></div>' +
         '<div class="tick" style="left:45%"></div><div class="tick" style="left:55%"></div>' +
@@ -408,8 +491,10 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   function yongsinPanel(an) {
     const y = an.yongsin;
     return '<div class="tags" style="margin-bottom:.7rem">' +
-        y.primary.map((g) => '<span class="tag"><b>' + g + '</b><span class="t-note">필요</span></span>').join('') +
-        y.avoid.map((g) => '<span class="tag warn"><b>' + g + '</b><span class="t-note">과하면 해로움</span></span>').join('') +
+        y.primary.map((g) => '<span class="tag"><b>' + esc(GROUP_PLAIN[g] || g) + '</b>' +
+          '<span class="t-note">' + g + ' · 있으면 좋음</span></span>').join('') +
+        y.avoid.map((g) => '<span class="tag warn"><b>' + esc(GROUP_PLAIN[g] || g) + '</b>' +
+          '<span class="t-note">' + g + ' · 이미 넉넉함</span></span>').join('') +
       '</div>' +
       '<ul class="why"><li>' + esc(y.reasoning) + '</li>' +
         (y.seasonalNote ? '<li>' + esc(y.seasonalNote) + '</li>' : '') + '</ul>' +
@@ -904,7 +989,10 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     for (const p of an.pillars) byPos[p.position] = p;
 
     out.innerHTML =
-      panel('명식',
+      panel('쉽게 말하면', plainPanel(an)) +
+
+      '<div style="height:1.6rem"></div>' +
+      panel('사주 여덟 글자 <span class="label" style="font-family:inherit">명식</span>',
         '<div class="chart">' +
           pillarColumn(ms.hour, byPos['시주'], '시주', false) +
           pillarColumn(ms.day, byPos['일주'], '일주 · 나', true) +
@@ -922,14 +1010,14 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 
       '<div style="height:1.6rem"></div>' +
       '<div class="two">' +
-        panel('일간의 강약', strengthPanel(an)) +
-        panel('용신 — 필요한 기운', yongsinPanel(an)) +
+        panel('기운의 세기 <span class="label" style="font-family:inherit">일간의 강약</span>', strengthPanel(an)) +
+        panel('지금 필요한 기운 <span class="label" style="font-family:inherit">용신</span>', yongsinPanel(an)) +
       '</div>' +
 
       '<div style="height:1.6rem"></div>' +
       '<div class="two">' +
         panel('오행 분포 <span class="label" style="font-family:inherit">지장간 반영</span>', '<div class="bars">' + elementBars(an) + '</div>') +
-        panel('십신 비중', '<div class="bars">' + godBars(an) + '</div>') +
+        panel('다섯 가지 힘 <span class="label" style="font-family:inherit">십신</span>', '<div class="bars">' + godBars(an) + '</div>') +
       '</div>' +
 
       '<div style="height:1.6rem"></div>' +
