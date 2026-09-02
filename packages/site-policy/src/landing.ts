@@ -57,16 +57,17 @@ const NUMERALS = ['壹', '貳', '參'];
  * 글자는 제목만 명조로 간다. 본문까지 명조로 하면 폰에서 읽기 힘들다.
  */
 export const LANDING_CSS = `
-/* 폰에서는 그림을 통째로 보여 준다. 배경으로 깔고 베일을 씌우면 폰 폭에서는
-   그림이 거의 남지 않는다 — 브랜드가 첫 화면에서 사라지는 것과 같다 */
+/* 첫 화면은 그림 반, 글 반이다. 그림이 화면을 다 차지하면 무슨 파는 곳인지
+   모르는 채로 스크롤부터 해야 한다. 잘릴 때는 **위를 자른다** — 아래쪽 물결이
+   이 그림의 핵심이다 */
 .lp-hero{position:relative;overflow:hidden}
 .lp-top{padding:24px 0 16px}
-.lp-shot{position:relative;width:100%;aspect-ratio:3/4;
+.lp-shot{position:relative;width:100%;height:46vh;min-height:260px;max-height:430px;overflow:hidden;
   background:var(--nb-paper) center bottom/cover no-repeat;background-image:var(--nb-hero,none)}
 .lp-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center bottom;
   opacity:0;transition:opacity .6s ease}
 .lp-vid.on{opacity:1}
-.lp-shot::after{content:"";position:absolute;inset:auto 0 -1px 0;height:34%;
+.lp-shot::after{content:"";position:absolute;inset:auto 0 -1px 0;height:26%;
   background:linear-gradient(to bottom,var(--nb-veil-0),var(--nb-paper) 92%)}
 .lp-lead{padding:20px 0 52px}
 .lp-brand{display:flex;align-items:center;gap:10px}
@@ -93,25 +94,15 @@ export const LANDING_CSS = `
 .lp-try{padding:64px 0 0}
 .lp-try h2{font-family:var(--nb-serif);font-weight:500;font-size:23px;margin:0 0 8px}
 @media (min-width:760px){
-  /* 폭이 넓어지면 3:4 그대로는 화면 하나를 다 잡아먹는다. 높이를 잡아 두고
-     그림은 잘리지 않게 안에 담는다 — 위로는 산, 아래로는 물결까지 다 남는다 */
-  .lp-shot{aspect-ratio:auto;height:64vh;min-height:420px;background-size:contain}
-  .lp-vid{object-fit:contain}
+  /* 넓어질수록 세로 그림에서 잘라 쓰는 띠가 얇아진다. 맨 아래를 붙들면 물만
+     남으므로, 꽃가지와 산자락이 함께 걸리도록 조금 올려 잡는다 */
+  .lp-shot{height:52vh;max-height:560px;background-position:center 78%}
+  .lp-vid{object-position:center 78%}
   .lp-hero h1{font-size:44px}
   .lp-row{grid-template-columns:repeat(3,1fr);gap:0 40px}
   .lp-item,.lp-item:last-child{border-top:1px solid var(--nb-line-soft);border-bottom:1px solid var(--nb-line-soft)}
 }
-@media (min-width:1024px){
-  /* 여기서부터 글을 그림 위에 얹는다. 베일은 글이 앉는 아래쪽에만 두어
-     산이 형체로 남게 한다. 그림도 영상도 세로라, 이 폭에서만 잘라 쓴다 */
-  .lp-hero{display:flex;flex-direction:column;justify-content:space-between;min-height:86vh}
-  .lp-shot{position:absolute;inset:0;aspect-ratio:auto;height:auto;min-height:0;
-    background-size:cover;background-position:center 38%}
-  .lp-vid{object-fit:cover}
-  .lp-shot::after{inset:0;height:auto;
-    background:linear-gradient(to bottom,var(--nb-veil-0) 46%,var(--nb-veil-1) 86%,var(--nb-paper) 100%)}
-  .lp-top,.lp-lead{position:relative;z-index:1;width:100%}
-  .lp-lead{padding-bottom:76px}
+@media (min-width:1180px){
   .lp-hero h1{font-size:52px}
 }
 @media (prefers-color-scheme:dark){
@@ -169,15 +160,13 @@ ${items}
  * - **느린 연결(2G·3G)** — 받는 동안 다른 것까지 느려진다.
  * - **움직임 줄이기를 켜 둔 손님** — 어지럼증 때문에 꺼 둔 사람이 있다.
  *
- * 영상은 세로다. 세로로 세운 틀(3:4)에 그대로 들어가야 아래쪽 물결까지 보인다 —
- * 가로 틀에 넣으면 위아래가 잘려 꽃잎만 떨어지고 물결이 사라진다.
- * 1024 이상에서는 글을 그림 위에 얹느라 좌우를 잘라 쓰므로 영상을 받지 않는다.
+ * 첫 장면은 이 영상의 마지막 프레임이다. 그래서 그림에서 영상으로 넘어갈 때
+ * 화면이 바뀌지 않는다 — 멈춰 있던 물이 움직이기 시작할 뿐이다.
  */
 const HERO_VIDEO = `<video class="lp-vid" muted loop playsinline preload="none" aria-hidden="true"></video>
 <script>(function(){
   var v=document.currentScript.previousElementSibling;
   if(!v)return;
-  if(window.innerWidth>=1024)return;
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   var c=navigator.connection;
   if(c&&(c.saveData||/2g/.test(c.effectiveType||'')))return;
