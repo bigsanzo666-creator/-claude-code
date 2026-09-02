@@ -42,6 +42,18 @@ export interface Spirit {
   greet: string;
   /** 첫 화면 소개 줄. 한 줄로 자기가 무엇을 보는지 말한다 */
   intro: string;
+  /**
+   * 얼굴 그림에서 어디를 동그랗게 잘라 낼지.
+   *
+   * 그림마다 구도가 다르게 나온다 — 어떤 것은 세로로 길고 얼굴이 크고, 어떤 것은
+   * 정사각형에 얼굴이 작다. **그림을 다시 뽑는 대신 여기 숫자를 고친다.**
+   *
+   * - `zoom` 몇 배로 당길지 (1 = 그대로)
+   * - `down` 당긴 뒤 얼마나 내릴지 (원 지름 대비 %)
+   *
+   * 둘 다 없으면 세로로 긴 그림 기준으로 위쪽을 잡는다.
+   */
+  crop?: { zoom: number; down: string };
 }
 
 /**
@@ -61,6 +73,8 @@ export const SPIRITS: Spirit[] = [
     holds: '물에 비친 둥근 달',
     greet: '떠난 사람은 물에 비친 달 같아. 그래도 하늘에 달은 남아 있지.',
     intro: '지나간 사람이 돌아올 자리가 있는지 봅니다.',
+    // 정사각형에 얼굴이 작게 들어온 그림. 얼굴부터 달 윗부분까지만 당겨 쓴다
+    crop: { zoom: 2.5, down: '55%' },
   },
   {
     id: 'thread', name: '실신령', seal: '絲', keeps: '궁합',
@@ -165,11 +179,14 @@ export const spiritImageUrl = (id: string) => `/img/spirits/${encodeURIComponent
  * 차지하기 때문에, 일곱 중 셋만 그려져 있어도 줄이 흐트러지지 않는다.
  */
 function face(spirit: Spirit, faces: SpiritImages, size: number): string {
-  if (faces.has(spirit.id)) {
-    return `<img class="sp-face" src="${spiritImageUrl(spirit.id)}" alt=""
-      width="${size}" height="${size}" loading="lazy" decoding="async">`;
+  if (!faces.has(spirit.id)) {
+    return `<span class="sp-face sp-seal" aria-hidden="true">${esc(spirit.seal)}</span>`;
   }
-  return `<span class="sp-face sp-seal" aria-hidden="true">${esc(spirit.seal)}</span>`;
+  // 그림은 원 밖으로 넘겨 놓고 원이 잘라 낸다. 그래야 얼굴만 당겨 쓸 수 있다
+  const c = spirit.crop;
+  const cut = c ? ` style="--sp-zoom:${c.zoom};--sp-down:${esc(c.down)}"` : '';
+  return `<span class="sp-face"${cut}><img src="${spiritImageUrl(spirit.id)}" alt=""
+      width="${size}" height="${size}" loading="lazy" decoding="async"></span>`;
 }
 
 /**
@@ -242,11 +259,13 @@ ${cards}
  */
 export const SPIRITS_CSS = `
 /* 얼굴 자리. 그림이 있든 도장뿐이든 크기가 같아야 줄이 안 흐트러진다 */
-/* 그림은 세로로 길게 들어온다. 동그랗게 자를 때 가운데를 잡으면 얼굴이 잘리고
-   어깨만 남는다. 그래서 **위쪽을 잡는다** — 얼굴이 원 한가운데에 온다 */
-.sp-face{flex:0 0 auto;width:64px;height:64px;border-radius:50%;object-fit:cover;
-  object-position:center 15%;
+/* 얼굴 자리는 **원이 그림을 잘라 내는 창**이다. 그림이 세로로 길든 정사각형이든,
+   얼굴이 크든 작든, 원 밖으로 넘겨 놓고 필요한 만큼만 보여 준다.
+   기본값은 세로로 긴 그림 기준 — 가운데를 잡으면 얼굴이 잘리므로 위쪽을 잡는다 */
+.sp-face{flex:0 0 auto;display:block;width:64px;height:64px;border-radius:50%;overflow:hidden;
   background:var(--nb-paper-2);border:1px solid var(--nb-line-soft)}
+.sp-face img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 15%;
+  transform:translateY(var(--sp-down,0)) scale(var(--sp-zoom,1))}
 .sp-seal{display:grid;place-items:center;font-family:var(--nb-serif);font-size:26px;color:var(--nb-gold)}
 
 /* 갈래 머리 — 신령이 질문을 던지고 있다 */

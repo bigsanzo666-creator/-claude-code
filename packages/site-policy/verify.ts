@@ -289,6 +289,14 @@ section('9. 신령 — 칸마다 주인이 있는가');
   check('상품 페이지에서 신령이 말을 건다', pitch.includes(PITCH['charm-report']!));
   check('없는 상품에는 말없이 넘어간다', renderSpiritPitch(SPIRITS[0]!, 'no-such-product') === '');
 
+  // 그림 구도가 제각각으로 들어온다. 그림을 다시 뽑는 대신 잘라 내는 값을 고친다
+  const moon = SPIRITS.find((s) => s.id === 'moon')!;
+  const cut = renderSpiritRow(new Set(['moon']));
+  check('얼굴을 어디서 잘라 낼지 그림마다 따로 정할 수 있다',
+    cut.includes(`--sp-zoom:${moon.crop!.zoom}`) && cut.includes(`--sp-down:${moon.crop!.down}`));
+  check('정하지 않은 신령은 기본값으로 나간다',
+    !renderSpiritRow(new Set(['flower'])).includes('--sp-zoom'));
+
   // 얼굴 그림이 들어오면 도장 대신 그림이 나가야 한다
   const withFace = renderSpiritRow(new Set(['flower']));
   check('그림이 있는 신령은 그림으로 나간다', withFace.includes('/img/spirits/flower'));
