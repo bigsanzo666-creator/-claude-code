@@ -34,8 +34,13 @@ export function renderFooter(info: BusinessInfo): string {
     ['사업자등록번호', show(info, 'registrationNumber', '사업자등록번호')],
     ['통신판매업 신고', info.mailOrderNumber || '신고 진행 중'],
     ['주소', show(info, 'address', '사업장 주소')],
-    // 유선전화가 없으면 고객센터 번호를 그 자리에 쓴다. 빈칸이면 심사에서 걸린다
-    ['유선전화', info.landline || show(info, 'phone', '전화')],
+    // 유선전화가 있으면 그렇게, 없으면 휴대폰을 「연락처」로 적는다.
+    // 휴대폰 번호에 「유선전화」라는 이름을 붙이는 것은 사실과 다르고, 번호를 보면
+    // 심사자가 바로 안다. KG이니시스는 하단 필수정보를 「연락처(휴대폰 또는
+    // 일반전화)」로 적어 두었다 — 있는 그대로 쓰는 편이 안전하다.
+    info.landline
+      ? ['유선전화', info.landline]
+      : ['연락처', show(info, 'phone', '전화')],
     ['고객센터', `${show(info, 'phone', '전화')} · ${show(info, 'email', '이메일')}`],
     ['개인정보 보호책임자', show(info, 'privacyOfficer', '개인정보 보호책임자')],
     ['호스팅 제공', info.hostingProvider],

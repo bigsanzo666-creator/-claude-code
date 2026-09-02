@@ -246,6 +246,13 @@ body{background:var(--nb-paper)}
 .pd-buy{margin:22px 0;padding:20px 22px;border:1px solid var(--nb-line);background:var(--nb-paper-2)}
 .pd-price{font-family:var(--nb-serif);font-size:27px}
 .pd-also{margin:8px 0 0;font-size:14px;color:var(--nb-ink-2)}
+/* 언제·어떻게 받고 어떻게 무르는지. 카드사 심사가 상세페이지에서 이걸 본다 */
+.pd-terms{margin:22px 0 0;padding:20px 22px;border:1px solid var(--nb-line-soft);background:var(--nb-paper-2)}
+.pd-terms dt{font-family:var(--nb-serif);font-size:14.5px;color:var(--nb-gold);margin:14px 0 4px}
+.pd-terms dt:first-child{margin-top:0}
+.pd-terms dd{margin:0;font-size:14.5px;line-height:1.8;color:var(--nb-ink-2);word-break:keep-all}
+.pd-terms dd b{color:var(--nb-ink)}
+.pd-terms a{color:var(--nb-gold)}
 .pr-body>h3,.pr-card>h3{font-family:var(--nb-serif)}
 
 @media (min-width:760px){
@@ -402,6 +409,17 @@ ${PRODUCTS_CSS}
       : '<p class="pd-also"><b>결제 준비 중입니다.</b> 사주 명식·궁합·관상·손금 풀이는 지금도 결제 없이 이용하실 수 있습니다.</p>'}
     ${alsoIn}
   </div>
+
+  <dl class="pd-terms">
+    <dt>언제 받나요</dt>
+    <dd>결제하시면 <b>바로</b> 보실 수 있습니다. 늦어도 ${WITHDRAWAL_WINDOW_DAYS}일 이내에 드립니다.</dd>
+    <dt>어떻게 받나요</dt>
+    <dd>화면으로 보여 드립니다. 택배로 보내는 물건이 아닙니다.</dd>
+    <dt>무르고 싶으면</dt>
+    <dd>결제일부터 ${WITHDRAWAL_WINDOW_DAYS}일 안에 말씀하시면 돌려드립니다.
+    글로 된 것이라 바꿔 드리는 것(교환)은 없고, 돈으로 돌려드립니다.
+    <a href="/refund">자세한 규정</a></dd>
+  </dl>
 
   <p class="pr-note">
   결제 전에 리포트 일부를 미리 보실 수 있으며, 결제일부터 ${WITHDRAWAL_WINDOW_DAYS}일 이내에

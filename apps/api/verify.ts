@@ -288,7 +288,15 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
 {
   const f = (await page('/products')).html;
   check('「대표」 직책 표기', f.includes('<b>대표</b>'));
-  check('유선전화 항목이 있다', f.includes('<b>유선전화</b>'));
+  // 유선전화가 있으면 그 이름으로, 없으면 휴대폰을 「연락처」로. 둘 중 하나는 반드시 있어야 한다
+  check('전화 항목이 있다', f.includes('<b>유선전화</b>') || f.includes('<b>연락처</b>'));
+  check('휴대폰을 유선전화라고 적지 않는다',
+    !(f.includes('<b>유선전화</b>') && /<b>유선전화<\/b> 01[016789]/.test(f)));
+  // 카드사 심사는 상세페이지에서 언제·어떻게 받고 어떻게 무르는지를 본다
+  const d = (await page('/products/wealth-report')).html;
+  check('상세페이지에 받는 시기가 적혀 있다', d.includes('언제 받나요'));
+  check('상세페이지에 받는 방법이 적혀 있다', d.includes('어떻게 받나요'));
+  check('상세페이지에 무르는 방법이 적혀 있다', d.includes('무르고 싶으면'));
 }
 
 const home = await page('/');
