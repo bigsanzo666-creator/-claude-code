@@ -87,6 +87,7 @@ input[type=checkbox],input[type=radio]{width:auto;accent-color:var(--seal);margi
 .pl-list.warn li{border-left-color:var(--seal)}
 .gl-t{font-size:.76rem;color:var(--ink-3);margin-left:.35rem}
 .gl-n{font-size:.76rem;font-weight:400;color:var(--ink-3);margin-left:.4rem}
+.ax .an .gl-n{display:block;margin:.15rem 0 0}
 
 /* 명식 */
 .chart{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule);background:var(--rule-soft);gap:1px}
@@ -817,11 +818,49 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     return '<div class="mini">' + c(ms.hour, '시') + c(ms.day, '일') + c(ms.month, '월') + c(ms.year, '연') + '</div>';
   }
 
+  /** 궁합 다섯 축을 쉬운 말로 */
+  var AXIS_PLAIN = {
+    '일간 상성': '두 사람의 바탕이 맞는가',
+    '일지 · 배우자 자리': '서로 바라는 것이 비슷한가',
+    '용신 보완': '서로 모자란 것을 채워 주는가',
+    '오행 보완': '빈 자리를 메워 주는가',
+    '전체 합·충': '부딪히는 곳이 있는가',
+  };
+
+  /** 점수를 사람 말로 */
+  function pairWord(n) {
+    if (n >= 80) return '아주 잘 맞습니다';
+    if (n >= 70) return '잘 맞는 편입니다';
+    if (n >= 55) return '무난합니다';
+    if (n >= 40) return '맞춰 갈 부분이 있습니다';
+    return '부딪히는 곳이 많습니다';
+  }
+
+  /**
+   * 궁합도 쉬운 말이 먼저다.
+   *
+   * 점수 하나만 크게 띄우면 「75점이 뭔데?」로 끝난다. 무엇이 좋고 무엇을
+   * 조심할지를 한 줄씩 적어 준다. 한자표는 아래로 내린다.
+   */
+  function pairPlain(cp) {
+    var good = cp.axes.filter(function (x) { return x.score >= 65; });
+    var bad = cp.axes.filter(function (x) { return x.score < 55; });
+    var row = function (x) {
+      return '<li>' + esc(x.verdict) +
+        ' <span class="gl-t">' + esc(AXIS_PLAIN[x.name] || x.name) + '</span></li>';
+    };
+    return '<p class="pl-lead">' + cp.score.toFixed(0) + '점 — ' + pairWord(cp.score) + '</p>' +
+      (good.length ? '<p class="pl-sub">좋은 점</p><ul class="pl-list">' + good.map(row).join('') + '</ul>' : '') +
+      (bad.length ? '<p class="pl-sub">조심할 점</p><ul class="pl-list warn">' + bad.map(row).join('') + '</ul>' : '') +
+      '<p class="note" style="margin-top:1.1rem">' + esc(cp.disclaimer) + '</p>';
+  }
+
   function compatPanels(msA, msB, nameA, nameB, cp) {
     const cls = (v) => v >= 70 ? 'hi' : v >= 55 ? 'mid' : 'lo';
     const axes = cp.axes.map((x) =>
       '<div class="ax ' + cls(x.score) + '">' +
-        '<span class="an">' + esc(x.name) + ' <span class="label" style="font-family:\'IBM Plex Mono\',monospace">' + x.weight + '%</span></span>' +
+        '<span class="an">' + esc(AXIS_PLAIN[x.name] || x.name) +
+          ' <span class="gl-n">' + esc(x.name) + ' · ' + x.weight + '%</span></span>' +
         '<span class="as">' + x.score.toFixed(0) + ' · ' + esc(x.verdict) + '</span>' +
         '<span class="abar"><i style="width:' + x.score + '%"></i></span>' +
         '<span class="ar">' + esc(x.reasoning) + '</span>' +
@@ -832,15 +871,7 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
         items.map((t) => '<li>' + esc(t) + '</li>').join('') + '</ul>'
       : '<p class="note">해당 없음.</p>';
 
-    return panel('궁합',
-        '<div class="verd"><span class="num">' + cp.score.toFixed(0) + '</span>' +
-          '<span class="gr">' + esc(cp.grade) + '</span>' +
-          '<span class="note" style="margin:0">' + esc(nameA) + ' · ' + esc(nameB) + '</span></div>' +
-        '<div class="two" style="gap:1.1rem;margin:1.1rem 0">' +
-          '<div><p class="label" style="margin:0 0 .4rem">' + esc(nameA) + '</p>' + miniChart(msA) + '</div>' +
-          '<div><p class="label" style="margin:0 0 .4rem">' + esc(nameB) + '</p>' + miniChart(msB) + '</div>' +
-        '</div>' +
-        '<p class="note">' + esc(cp.disclaimer) + '</p>') +
+    return panel('쉽게 말하면', pairPlain(cp)) +
 
       '<div style="height:1.6rem"></div>' +
       panel('다섯 갈래로 본 상성', '<div class="axes">' + axes + '</div>' +
@@ -855,7 +886,17 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 
       '<div style="height:1.6rem"></div>' +
       panel('어떻게 하면 좋은가', '<ul class="hl">' +
-        cp.advice.map((t) => '<li>' + esc(t) + '</li>').join('') + '</ul>');
+        cp.advice.map((t) => '<li>' + esc(t) + '</li>').join('') + '</ul>') +
+
+      '<div style="height:1.6rem"></div>' +
+      panel('두 사람의 사주 여덟 글자 <span class="label" style="font-family:inherit">명식</span>',
+        '<div class="verd" style="margin-bottom:1.1rem"><span class="num">' + cp.score.toFixed(0) + '</span>' +
+          '<span class="gr">' + esc(cp.grade) + '</span>' +
+          '<span class="note" style="margin:0">' + esc(nameA) + ' · ' + esc(nameB) + '</span></div>' +
+        '<div class="two" style="gap:1.1rem">' +
+          '<div><p class="label" style="margin:0 0 .4rem">' + esc(nameA) + '</p>' + miniChart(msA) + '</div>' +
+          '<div><p class="label" style="margin:0 0 .4rem">' + esc(nameB) + '</p>' + miniChart(msB) + '</div>' +
+        '</div>');
   }
 
   function metaList(m) {
