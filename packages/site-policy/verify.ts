@@ -11,6 +11,7 @@ import {
   renderFooter, renderTerms, renderPrivacy, renderRefund, POLICY_EFFECTIVE_DATE,
   renderProducts, renderProductsPage, renderProductPage, renderHero, renderTryHeading,
   LANDING_CSS, PRODUCTS_CSS, FONT_LINK,
+  SPIRITS, PITCH, spiritOf, renderSpiritRow, renderSpiritHead, renderSpiritPitch, SPIRITS_CSS,
 } from './src/index.ts';
 import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
@@ -249,6 +250,62 @@ section('10. 첫 화면');
   const heading = renderTryHeading();
   check('무료 구간 앞에 안내가 붙는다', heading.includes('id="try"') && heading.includes('무료'));
   check('결제 없이 된다고 분명히 밝힌다', heading.includes('결제 없이'));
+}
+
+section('9. 신령 — 칸마다 주인이 있는가');
+{
+  // 설명만 있는 가게는 누구나 만든다. 갈래마다 말을 거는 신령이 있어야 한다
+  check('갈래 일곱이 전부 주인이 있다',
+    CATEGORIES.every((c) => spiritOf(c.key) !== null),
+    CATEGORIES.filter((c) => !spiritOf(c.key)).map((c) => c.key).join(','));
+  check('한 갈래에 신령이 둘이지 않다',
+    new Set(SPIRITS.map((s) => s.keeps)).size === SPIRITS.length);
+  check('신령 아이디가 겹치지 않는다',
+    new Set(SPIRITS.map((s) => s.id)).size === SPIRITS.length);
+  // 얼굴 그림은 나중에 붙는다. 그동안 빈 네모가 남으면 안 그리느니만 못하다
+  check('그림이 없어도 얼굴 자리가 도장으로 찬다',
+    SPIRITS.every((s) => s.seal.length === 1));
+
+  // 스물한 개 전부 신령이 할 말이 있어야 한다. 하나라도 비면 그 칸은 다시 표가 된다
+  const noPitch = Object.keys(CATALOG).filter((id) => !PITCH[id]);
+  check('상품마다 신령의 말이 있다', noPitch.length === 0, noPitch.join(','));
+  // 「봐 드립니다」로 끝나는 안내문은 신령의 말이 아니다
+  check('신령은 안내문처럼 말하지 않는다',
+    Object.values(PITCH).every((t) => !t.includes('드립니다')));
+  check('신령의 말이 서로 다르다',
+    new Set(Object.values(PITCH)).size === Object.keys(PITCH).length);
+
+  const row = renderSpiritRow();
+  check('첫 화면에 신령 일곱이 다 선다',
+    SPIRITS.every((s) => row.includes(s.name)));
+  check('신령 소개에 맡은 칸이 적힌다',
+    SPIRITS.every((s) => row.includes(`>${s.keeps}<`)));
+
+  const head = renderSpiritHead(SPIRITS[0]!, CATEGORIES[0]!.question);
+  check('갈래 머리에서 신령이 질문을 던진다',
+    head.includes(CATEGORIES[0]!.question) && head.includes(SPIRITS[0]!.greet));
+
+  const pitch = renderSpiritPitch(SPIRITS[0]!, 'charm-report');
+  check('상품 페이지에서 신령이 말을 건다', pitch.includes(PITCH['charm-report']!));
+  check('없는 상품에는 말없이 넘어간다', renderSpiritPitch(SPIRITS[0]!, 'no-such-product') === '');
+
+  // 얼굴 그림이 들어오면 도장 대신 그림이 나가야 한다
+  const withFace = renderSpiritRow(new Set(['flower']));
+  check('그림이 있는 신령은 그림으로 나간다', withFace.includes('/img/spirits/flower'));
+  check('그림이 없는 신령은 도장으로 남는다', withFace.includes('sp-seal'));
+
+  // 신령이 다른 색으로 오면 같은 집 사람으로 안 보인다
+  check('신령도 같은 색을 쓴다',
+    !/#[0-9A-Fa-f]{3,6}/.test(SPIRITS_CSS.replace(/#131A26/g, '')));
+  check('신령 스타일이 모든 화면에 실린다', PRODUCTS_CSS.includes('.sp-face'));
+
+  // 목록에서 만난 얼굴을 상세에서 다시 만나야 같은 사람이 파는 것이 된다
+  const detail = renderProductPage(CATALOG['charm-report']!, full, false, '');
+  check('상품 상세에도 그 갈래 신령이 나온다',
+    detail.includes('꽃신령') && detail.includes(PITCH['charm-report']!));
+  const list = renderProducts(false);
+  check('상품 목록의 갈래마다 신령이 선다',
+    SPIRITS.every((s) => list.includes(s.name)));
 }
 
 console.log(`\n${'═'.repeat(60)}`);

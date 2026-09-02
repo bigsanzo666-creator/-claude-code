@@ -10,7 +10,7 @@ import { createServer } from 'node:http';
 import {
   CATALOG, FakeGateway, markPaid, markPending, createOrder,
 } from '../../packages/commerce/src/index.ts';
-import { loadBusinessInfo } from '../../packages/site-policy/src/index.ts';
+import { loadBusinessInfo, SPIRITS } from '../../packages/site-policy/src/index.ts';
 import { createApi, MemoryOrderStore } from './src/server.ts';
 import { StandbyGateway, standbyGenerate } from './src/standby.ts';
 
@@ -199,7 +199,10 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
   const { join: j } = await import('node:path');
-  const { findProductImages, findHeroImage, findHeroVideo, strayImages, toProductId } = await import('./src/images.ts');
+  const {
+    findProductImages, findHeroImage, findHeroVideo, strayImages, toProductId,
+    findSpiritImages, straySpiritImages,
+  } = await import('./src/images.ts');
 
   // 한국 사람이 한국 손님에게 파는 물건이다. 파일 이름을 한글로 지어도 붙어야 한다
   check('한글 짧은 이름을 알아듣는다',
@@ -220,6 +223,12 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   writeFileSync(j(dir, 'site-hero.jpg'), png);       // 첫 화면에 까는 그림 — 상품이 아니다
   writeFileSync(j(dir, 'hero.mp4'), Buffer.from('0000001c66747970', 'hex')); // 첫 화면 영상
 
+  // 신령 얼굴은 폴더를 따로 쓴다. 파는 물건이 아니라 파는 사람이기 때문이다
+  const spDir = mkdtempSync(j(tmpdir(), 'saju-sp-'));
+  writeFileSync(j(spDir, 'flower.png'), png);        // 영문 아이디로 저장
+  writeFileSync(j(spDir, '산신령.jpg'), png);         // 한글 이름으로 저장
+  writeFileSync(j(spDir, '아무거나.png'), png);        // 신령이 아닌 이름
+
   const found = findProductImages(dir);
   check('상품 아이디로 저장한 그림만 골라낸다', found.size === 3);
   check('한글로 저장한 파일도 제자리에 붙는다', found.has('helper-report'));
@@ -238,9 +247,17 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
     found.size === 3 && !strayImages(dir).includes('hero.mp4'));
   check('폴더가 없어도 죽지 않는다', findProductImages(j(dir, '없는폴더')).size === 0);
 
+  const faces = findSpiritImages(spDir);
+  check('신령 얼굴을 영문 아이디로 찾는다', faces.has('flower'));
+  check('신령 얼굴을 한글 이름으로도 찾는다', faces.has('mountain'));
+  check('신령이 아닌 이름은 무시한다', faces.size === 2);
+  check('신령 폴더의 이름 틀린 파일도 알려준다',
+    straySpiritImages(spDir).includes('아무거나.png'));
+  check('신령 폴더가 없어도 죽지 않는다', findSpiritImages(j(spDir, '없는폴더')).size === 0);
+
   const imgSrv = createServer(createApi({
     gateway, orders, generate: async () => ({ text: '' }), images: found,
-    heroImage: findHeroImage(dir), heroVideo: findHeroVideo(dir),
+    heroImage: findHeroImage(dir), heroVideo: findHeroVideo(dir), spiritImages: faces,
   }));
   await new Promise<void>((r) => imgSrv.listen(0, r));
   const ip = (imgSrv.address() as { port: number }).port;
@@ -268,17 +285,37 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   const part = await fetch(`http://127.0.0.1:${ip}/video/hero`, { headers: { Range: 'bytes=0-3' } });
   check('조각으로 달라면 조각으로 준다',
     part.status === 206 && (await part.arrayBuffer()).byteLength === 4);
+  const spImg = await get('/img/spirits/flower');
+  check('신령 얼굴을 200으로 준다', spImg.status === 200
+    && spImg.headers.get('content-type') === 'image/png');
+  await spImg.arrayBuffer();
+  check('얼굴 없는 신령은 404', (await get('/img/spirits/moon')).status === 404);
+  check('신령 주소도 경로를 거슬러 올라갈 수 없다',
+    (await get('/img/spirits/..%2F..%2Fetc%2Fpasswd')).status === 404);
+
   check('카탈로그에 없는 아이디도 404', (await get('/img/products/nope')).status === 404);
   // 요청 문자열로 경로를 만들지 않으므로 애초에 성립하지 않는다
   check('경로를 거슬러 올라갈 수 없다',
     (await get('/img/products/..%2F..%2Fetc%2Fpasswd')).status === 404);
+
+  // 손님이 첫 화면에서 신령을 먼저 만나고, 상품 칸에서 다시 만나야 가게가 된다
+  const home = await get('/').then((r) => r.text());
+  check('첫 화면에 신령 일곱이 선다',
+    SPIRITS.every((sp) => home.includes(sp.name)));
+  check('얼굴이 있는 신령은 첫 화면에서 그림으로 나온다',
+    home.includes('/img/spirits/flower'));
+  check('얼굴이 없는 신령은 도장으로 자리를 지킨다', home.includes('sp-seal'));
 
   const list = await get('/products').then((r) => r.text());
   check('그림이 있는 것에만 썸네일이 붙는다', (list.match(/pr-thumb"/g) ?? []).length === 3);
   const detail = await get('/products/wealth-report').then((r) => r.text());
   check('상세페이지에는 크게 건다', detail.includes('class="pd-hero"'));
   const noPic = await get('/products/child-report').then((r) => r.text());
-  check('그림 없는 상세페이지에 빈 네모가 없다', !noPic.includes('<img'));
+  // 상품 그림이 없으면 그 자리를 아예 만들지 않는다. 신령 얼굴은 상품 그림이 아니다
+  check('그림 없는 상세페이지에 빈 네모가 없다',
+    !noPic.includes('class="pd-hero"') && !noPic.includes('/img/products/'));
+  check('상품 그림이 없어도 파는 신령은 나온다',
+    noPic.includes('산신령') && noPic.includes('sp-pitch'));
 
   imgSrv.close();
   rmSync(dir, { recursive: true, force: true });

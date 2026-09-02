@@ -16,6 +16,7 @@ import { readdirSync } from 'node:fs';
 import { dirname, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CATALOG, type ProductId } from '../../../packages/commerce/src/index.ts';
+import { SPIRITS } from '../../../packages/site-policy/src/spirits.ts';
 
 const TYPES: Record<string, string> = {
   '.jpg': 'image/jpeg',
@@ -177,5 +178,51 @@ export function findHeroVideo(dir: string = IMAGE_DIR): ProductImage | null {
   }
   return null;
 }
+
+/**
+ * 신령 얼굴 그림.
+ *
+ * 상품 그림과 폴더를 따로 쓴다 — 신령은 파는 물건이 아니라 파는 사람이고,
+ * 상품 폴더에 섞이면 「이름이 틀린 파일」로 잡힌다.
+ *
+ * 파일 이름은 신령의 영문 아이디다: `flower.jpg`, `mountain.png` …
+ * **없으면 없는 대로 둔다.** 그림이 없는 신령은 화면에서 한자 도장으로 나온다.
+ */
+export const SPIRIT_DIR = join(
+  dirname(fileURLToPath(import.meta.url)), '..', 'public', 'spirits',
+);
+
+/** 신령 아이디로 이름을 받는다. 한글 이름으로 저장해도 알아듣는다 */
+const SPIRIT_BY_NAME = new Map<string, string>(
+  SPIRITS.flatMap((s) => [[squash(s.id), s.id], [squash(s.name), s.id]] as [string, string][]),
+);
+
+export function findSpiritImages(dir: string = SPIRIT_DIR): Map<string, ProductImage> {
+  const found = new Map<string, ProductImage>();
+  let entries: string[];
+  try { entries = readdirSync(dir); } catch { return found; }
+  for (const name of entries) {
+    const ext = extname(name).toLowerCase();
+    const type = TYPES[ext];
+    if (!type) continue;
+    const id = SPIRIT_BY_NAME.get(squash(name.slice(0, -ext.length)));
+    if (!id || found.has(id)) continue;
+    found.set(id, { path: join(dir, name), type });
+  }
+  return found;
+}
+
+/** 신령 폴더에 있는데 이름을 못 알아들은 파일 — 기동 로그로 알려준다 */
+export function straySpiritImages(dir: string = SPIRIT_DIR): string[] {
+  try {
+    return readdirSync(dir)
+      .filter((n) => TYPES[extname(n).toLowerCase()])
+      .filter((n) => !SPIRIT_BY_NAME.has(squash(n.slice(0, -extname(n).length))));
+  } catch {
+    return [];
+  }
+}
+
+export const ALL_SPIRIT_IDS = SPIRITS.map((s) => s.id);
 
 export const ALL_PRODUCT_IDS = Object.keys(CATALOG) as ProductId[];

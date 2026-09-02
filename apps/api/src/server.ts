@@ -23,9 +23,12 @@ import {
   loadBusinessInfo, renderFooter, renderTerms, renderPrivacy, renderRefund,
   renderProducts, renderProductsPage, PRODUCTS_CSS,
   renderHero, renderTryHeading, LANDING_CSS, FONT_LINK, renderProductPage,
+  renderSpiritRow,
   type BusinessInfo,
 } from '../../../packages/site-policy/src/index.ts';
-import { findProductImages, findHeroImage, findHeroVideo, type ProductImage } from './images.ts';
+import {
+  findProductImages, findHeroImage, findHeroVideo, findSpiritImages, type ProductImage,
+} from './images.ts';
 import { buildPayload, KIND_OF, type ReadingRequest } from './payload.ts';
 import { buildPreview } from './preview.ts';
 
@@ -87,6 +90,8 @@ export interface ApiDeps {
   heroImage?: ProductImage | null;
   /** 첫 화면에 트는 영상. `null` 이면 그림만 뜬다 */
   heroVideo?: ProductImage | null;
+  /** 신령 얼굴 그림. 없으면 기동할 때 public 폴더를 훑는다 */
+  spiritImages?: Map<string, ProductImage>;
 }
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -101,7 +106,7 @@ const VIEWER_PATH = join(HERE, '..', '..', 'manse-viewer', 'index.html');
  */
 function renderPage(
   checkout: CheckoutConfig | null, business: BusinessInfo, images: ReadonlySet<string>,
-  hero = false, heroVideo = false,
+  hero = false, heroVideo = false, faces: ReadonlySet<string> = new Set(),
 ): string {
   const fragment = readFileSync(VIEWER_PATH, 'utf8');
   const config = JSON.stringify({ apiBase: '', checkout, ready: checkout !== null });
@@ -120,7 +125,8 @@ ${FOOTER_CSS}</style>
 </head>
 <body>
 ${renderHero(business, checkout !== null, hero, heroVideo)}
-${renderProducts(checkout !== null, images)}
+${renderSpiritRow(faces)}
+${renderProducts(checkout !== null, images, faces)}
 ${renderTryHeading()}
 ${fragment}
 <style>${VIEWER_SKIN}</style>
@@ -247,11 +253,14 @@ export function createApi(deps: ApiDeps) {
   const haveImage = new Set(images.keys());
   const hero = deps.heroImage !== undefined ? deps.heroImage : findHeroImage();
   const heroVideo = deps.heroVideo !== undefined ? deps.heroVideo : findHeroVideo();
+  // 신령 얼굴도 같이 훑는다. 없는 얼굴은 한자 도장으로 나가므로 몇 장이든 상관없다
+  const spirits = deps.spiritImages ?? findSpiritImages();
+  const haveFace = new Set(spirits.keys());
 
   const routes: Record<string, (req: IncomingMessage, res: ServerResponse, id: string) => Promise<void>> = {
     /** 화면. 결제 설정을 주입해 내려준다 */
     'GET /': async (_req, res) => {
-      const html = renderPage(checkout, business, haveImage, hero !== null, heroVideo !== null);
+      const html = renderPage(checkout, business, haveImage, hero !== null, heroVideo !== null, haveFace);
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Length': Buffer.byteLength(html),
@@ -296,7 +305,9 @@ export function createApi(deps: ApiDeps) {
     'GET /products/:id': async (_req, res, id) => {
       const product = CATALOG[id as ProductId];
       if (!product) throw new HttpError(404, `없는 상품입니다: ${id}`);
-      sendHtml(res, renderProductPage(product, business, checkout !== null, renderFooter(business), haveImage));
+      sendHtml(res, renderProductPage(
+        product, business, checkout !== null, renderFooter(business), haveImage, haveFace,
+      ));
     },
 
     /**
@@ -316,6 +327,24 @@ export function createApi(deps: ApiDeps) {
         'Content-Type': image.type,
         'Content-Length': body.length,
         // 한 시간. 그림을 다시 뽑아 올려도 오래 묵지 않는다
+        'Cache-Control': 'public, max-age=3600',
+      });
+      res.end(body);
+    },
+
+    /**
+     * 신령 얼굴.
+     *
+     * 상품 그림과 똑같은 방식이다 — 기동할 때 만들어 둔 표에서만 꺼내므로
+     * 요청 문자열로 파일을 찾는 일이 없다.
+     */
+    'GET /img/spirits/:id': async (_req, res, id) => {
+      const image = spirits.get(id);
+      if (!image) throw new HttpError(404, `신령 그림이 없습니다: ${id}`);
+      const body = readFileSync(image.path);
+      res.writeHead(200, {
+        'Content-Type': image.type,
+        'Content-Length': body.length,
         'Cache-Control': 'public, max-age=3600',
       });
       res.end(body);
@@ -370,7 +399,9 @@ export function createApi(deps: ApiDeps) {
     },
 
     'GET /products': async (_req, res) =>
-      sendHtml(res, renderProductsPage(business, checkout !== null, renderFooter(business), haveImage)),
+      sendHtml(res, renderProductsPage(
+        business, checkout !== null, renderFooter(business), haveImage, haveFace,
+      )),
 
     'GET /terms': async (_req, res) => sendHtml(res, renderTerms(business)),
     'GET /privacy': async (_req, res) => sendHtml(res, renderPrivacy(business)),
@@ -541,6 +572,9 @@ export function createApi(deps: ApiDeps) {
       } else if (parts[0] === 'img' && parts[1] === 'products' && parts[2] && !parts[3]) {
         id = parts[2];
         key = `${req.method} /img/products/:id`;
+      } else if (parts[0] === 'img' && parts[1] === 'spirits' && parts[2] && !parts[3]) {
+        id = parts[2];
+        key = `${req.method} /img/spirits/:id`;
       }
 
       const route = routes[key];

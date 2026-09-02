@@ -17,6 +17,13 @@ import { CATALOG, CATEGORIES, productsIn, type Product } from '../../commerce/sr
 import { PACKAGES, bundleMath, type BundlePackage } from '../../commerce/src/packages.ts';
 import { WITHDRAWAL_WINDOW_DAYS } from '../../commerce/src/refund.ts';
 import { type BusinessInfo, show } from './business.ts';
+import {
+  spiritOf, renderSpiritHead, renderSpiritPitch, SPIRITS_CSS,
+  type SpiritImages,
+} from './spirits.ts';
+
+/** 얼굴 그림이 아직 하나도 없을 때. 도장 한 글자로 자리를 지킨다 */
+const NO_FACES: SpiritImages = new Set();
 
 function esc(value: string): string {
   return value.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
@@ -270,7 +277,8 @@ body{background:var(--nb-paper)}
     --nb-veil-0:rgba(19,26,38,0); --nb-veil-1:rgba(19,26,38,.78);
   }
   .pr-badge{color:#131A26}
-}`;
+}
+${SPIRITS_CSS}`;
 
 /**
  * 상품 목록 한 덩어리. 화면에도 붙이고 전용 페이지에도 쓴다.
@@ -279,7 +287,9 @@ body{background:var(--nb-paper)}
  * 갈래 제목을 **질문으로** 단다 — 「연애」라고만 쓰면 안 눌리고
  * 「이 사람, 괜찮을까?」라고 쓰면 눌린다.
  */
-export function renderProducts(ready: boolean, images: ProductImages = NO_IMAGES): string {
+export function renderProducts(
+  ready: boolean, images: ProductImages = NO_IMAGES, faces: SpiritImages = NO_FACES,
+): string {
   const groups = CATEGORIES.map((c) => {
     const all = productsIn(c.key);
     // 삼합 리포트는 갈래 맨 앞에 한 칸을 다 쓴다. 제일 비싸고 우리만 하는 것이다
@@ -288,9 +298,14 @@ export function renderProducts(ready: boolean, images: ProductImages = NO_IMAGES
       ...(star ? [featureCard(star, ready, images)] : []),
       ...all.filter((p) => p !== star).map((p) => productCard(p, ready, images, c.question)),
     ].join('\n');
+    // 갈래마다 주인이 있다. 신령이 질문을 던지고, 그 아래에 그 신령의 물건이 놓인다
+    const spirit = spiritOf(c.key);
+    const head = spirit
+      ? renderSpiritHead(spirit, c.question, faces)
+      : `<h3 class="pr-q">${esc(c.question)}</h3>`;
     return `<section class="pr-group">
 <p class="pr-cat">${esc(c.key)}</p>
-<h3 class="pr-q">${esc(c.question)}</h3>
+${head}
 <div class="pr-grid">
 ${cards}
 </div>
@@ -328,6 +343,7 @@ ${packs}
 /** 상품만 담은 독립 페이지. 심사가 곧바로 열어볼 수 있는 주소를 만든다 */
 export function renderProductsPage(
   info: BusinessInfo, ready: boolean, footer: string, images: ProductImages = NO_IMAGES,
+  faces: SpiritImages = NO_FACES,
 ): string {
   const site = show(info, 'serviceName', '서비스 이름');
   return `<!doctype html>
@@ -344,7 +360,7 @@ ${PRODUCTS_CSS}
 </style>
 </head>
 <body>
-${renderProducts(ready, images)}
+${renderProducts(ready, images, faces)}
 <div style="height:24px"></div>
 ${footer}
 </body>
@@ -364,9 +380,11 @@ ${footer}
  */
 export function renderProductPage(
   product: Product, info: BusinessInfo, ready: boolean, footer: string,
-  images: ProductImages = NO_IMAGES,
+  images: ProductImages = NO_IMAGES, faces: SpiritImages = NO_FACES,
 ): string {
   const site = show(info, 'serviceName', '서비스 이름');
+  // 이 상품을 파는 신령. 목록에서 이 상품을 누른 손님은 같은 얼굴을 다시 만난다
+  const spirit = spiritOf(product.category);
   const items = (CONTENTS[product.id] ?? []).map((t) => `<li>${bold(t)}</li>`).join('');
   const packs = Object.values(PACKAGES)
     .filter((p) => p.members.includes(product.id))
@@ -397,6 +415,7 @@ ${PRODUCTS_CSS}
     : ''}
   <p class="pr-hook">${esc(product.hook)}</p>
   <h2>${esc(product.name)}</h2>
+  ${spirit ? renderSpiritPitch(spirit, product.id, faces) : ''}
   ${product.topic ? `<p class="pd-term">명리에서는 <b>${esc(TERM_OF[product.topic] ?? '')}</b>이라 부르는 자리입니다.</p>` : ''}
   <p class="pr-desc">${esc(product.description)}</p>
   ${items ? `<h3 style="font-size:15.5px;margin:18px 0 6px">이 리포트에 담기는 것</h3><ul class="pr-list">${items}</ul>` : ''}

@@ -14,7 +14,10 @@ import { PortOneGateway } from '../../../packages/commerce/src/index.ts';
 import { generateReport, MemoryReportCache } from '../../../packages/report/src/index.ts';
 import { loadBusinessInfo, missingFields } from '../../../packages/site-policy/src/index.ts';
 import { createPool, migrate, PostgresOrderStore, PostgresReportStore } from '../../../packages/store/src/index.ts';
-import { findProductImages, strayImages, ALL_PRODUCT_IDS } from './images.ts';
+import {
+  findProductImages, strayImages, ALL_PRODUCT_IDS,
+  findSpiritImages, straySpiritImages, ALL_SPIRIT_IDS,
+} from './images.ts';
 import { MemoryOrderStore, startApi, type OrderStore, type ReportBox } from './server.ts';
 import { StandbyGateway, standbyGenerate } from './standby.ts';
 
@@ -104,6 +107,13 @@ console.log(`  상품그림  ${productImages.size} / ${ALL_PRODUCT_IDS.length}�
 if (strays.length) {
   console.warn(`  ⚠ 이름이 카탈로그와 맞지 않는 그림 ${strays.length}개: ${strays.join(', ')}`);
 }
+// 신령 얼굴. 없는 얼굴은 한자 도장으로 나가므로 몇 장이든 화면은 정상이다
+const spiritImages = findSpiritImages();
+const spiritStrays = straySpiritImages();
+console.log(`  신령얼굴  ${spiritImages.size} / ${ALL_SPIRIT_IDS.length}장`);
+if (spiritStrays.length) {
+  console.warn(`  ⚠ 이름이 신령과 맞지 않는 그림 ${spiritStrays.length}개: ${spiritStrays.join(', ')}`);
+}
 if (missing.length) {
   console.warn(`[api] 심사 전에 채울 것: ${missing.join(', ')}`);
 }
@@ -116,6 +126,7 @@ startApi({
   checkout: payable ? { storeId: storeId!, channelKey: channelKey! } : undefined,
   business,
   images: productImages,
+  spiritImages,
   orders,
   reportStore,
   generate: hasModelKey
