@@ -199,7 +199,7 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
   const { join: j } = await import('node:path');
-  const { findProductImages, findHeroImage, strayImages, toProductId } = await import('./src/images.ts');
+  const { findProductImages, findHeroImage, findHeroVideo, strayImages, toProductId } = await import('./src/images.ts');
 
   // 한국 사람이 한국 손님에게 파는 물건이다. 파일 이름을 한글로 지어도 붙어야 한다
   check('한글 짧은 이름을 알아듣는다',
@@ -218,6 +218,7 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   writeFileSync(j(dir, 'wealth-report.txt'), 'x');   // 그림이 아닌 파일
   writeFileSync(j(dir, '귀인운.jpg'), png);           // 한글로 저장한 파일
   writeFileSync(j(dir, 'site-hero.jpg'), png);       // 첫 화면에 까는 그림 — 상품이 아니다
+  writeFileSync(j(dir, 'hero.mp4'), Buffer.from('0000001c66747970', 'hex')); // 첫 화면 영상
 
   const found = findProductImages(dir);
   check('상품 아이디로 저장한 그림만 골라낸다', found.size === 3);
@@ -232,11 +233,14 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   check('첫 화면 그림은 상품 목록에도 끼지 않는다', found.size === 3);
   check('첫 화면 그림을 따로 찾아낸다', findHeroImage(dir)?.type === 'image/jpeg');
   check('첫 화면 그림이 없으면 null', findHeroImage(j(dir, '없는폴더')) === null);
+  check('첫 화면 영상을 찾아낸다', findHeroVideo(dir)?.type === 'video/mp4');
+  check('영상은 상품 목록에도 오타 경고에도 끼지 않는다',
+    found.size === 3 && !strayImages(dir).includes('hero.mp4'));
   check('폴더가 없어도 죽지 않는다', findProductImages(j(dir, '없는폴더')).size === 0);
 
   const imgSrv = createServer(createApi({
     gateway, orders, generate: async () => ({ text: '' }), images: found,
-    heroImage: findHeroImage(dir),
+    heroImage: findHeroImage(dir), heroVideo: findHeroVideo(dir),
   }));
   await new Promise<void>((r) => imgSrv.listen(0, r));
   const ip = (imgSrv.address() as { port: number }).port;
@@ -253,6 +257,17 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   const heroRes = await get('/img/hero');
   check('첫 화면 그림을 200으로 준다', heroRes.status === 200);
   await heroRes.arrayBuffer();
+
+  // 브라우저는 영상을 통째로 받지 않고 조각내어 요청한다. 그것을 못 받으면 재생이 시작되지 않는다
+  const vid = await get('/video/hero');
+  check('첫 화면 영상을 200으로 준다', vid.status === 200
+    && vid.headers.get('content-type') === 'video/mp4');
+  check('조각 요청을 받아 준다는 것을 알린다',
+    vid.headers.get('accept-ranges') === 'bytes');
+  await vid.arrayBuffer();
+  const part = await fetch(`http://127.0.0.1:${ip}/video/hero`, { headers: { Range: 'bytes=0-3' } });
+  check('조각으로 달라면 조각으로 준다',
+    part.status === 206 && (await part.arrayBuffer()).byteLength === 4);
   check('카탈로그에 없는 아이디도 404', (await get('/img/products/nope')).status === 404);
   // 요청 문자열로 경로를 만들지 않으므로 애초에 성립하지 않는다
   check('경로를 거슬러 올라갈 수 없다',

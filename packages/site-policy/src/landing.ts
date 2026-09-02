@@ -63,6 +63,9 @@ export const LANDING_CSS = `
 .lp-top{padding:24px 0 16px}
 .lp-shot{position:relative;aspect-ratio:4/3;
   background:var(--nb-paper-2) center 42%/cover no-repeat;background-image:var(--nb-hero,none)}
+.lp-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  opacity:0;transition:opacity .6s ease}
+.lp-vid.on{opacity:1}
 .lp-shot::after{content:"";position:absolute;inset:auto 0 -1px 0;height:34%;
   background:linear-gradient(to bottom,var(--nb-veil-0),var(--nb-paper) 92%)}
 .lp-lead{padding:20px 0 52px}
@@ -113,7 +116,7 @@ export const LANDING_CSS = `
  * 그림이 있으면 배경으로 깔고, 없으면 종이색 그대로 둔다. **없는 그림 자리에
  * 회색 네모를 남기지 않는다** — 상품 그림에서 지킨 규칙과 같다.
  */
-export function renderHero(info: BusinessInfo, ready: boolean, hero = false): string {
+export function renderHero(info: BusinessInfo, ready: boolean, hero = false, video = false): string {
   const name = esc(show(info, 'serviceName', '서비스 이름'));
   const items = BADGES.map((b, i) => `    <div class="lp-item">
       <span class="lp-num" aria-hidden="true">${NUMERALS[i] ?? ''}</span>
@@ -128,7 +131,7 @@ export function renderHero(info: BusinessInfo, ready: boolean, hero = false): st
       <span class="lp-name">${name}</span>
     </div>
   </div>
-${hero ? '  <div class="lp-shot" style="--nb-hero:url(/img/hero)"></div>' : ''}
+${hero ? `  <div class="lp-shot" style="--nb-hero:url(/img/hero)">${video ? HERO_VIDEO : ''}</div>` : ''}
   <div class="lp lp-lead">
     <h1>사주 하나로는<br>안 보이는 것이 <em>있습니다</em></h1>
     <p class="lp-sub">사주와 관상과 손금, 세 갈래를 맞춰 봅니다.
@@ -144,6 +147,38 @@ ${items}
   </div>
 </section>`;
 }
+
+/**
+ * 첫 화면 영상.
+ *
+ * **그림이 먼저 뜨고, 영상은 그 뒤에서 받는다.** 손님은 기다리지 않는다 —
+ * 산 그림이 이미 떠 있고, 영상은 다 받아졌을 때 조용히 겹쳐진다.
+ * 자바스크립트가 꺼져 있으면 그림만 남는다. 잃는 것이 없다.
+ *
+ * 세 경우에는 아예 받지 않는다.
+ * - **데이터 절약 모드** — 손님 요금을 우리가 쓰면 안 된다.
+ * - **느린 연결(2G·3G)** — 받는 동안 다른 것까지 느려진다.
+ * - **움직임 줄이기를 켜 둔 손님** — 어지럼증 때문에 꺼 둔 사람이 있다.
+ *
+ * 영상은 세로다. 폰 화면에 맞고 넓은 화면에서는 좌우가 잘리므로, 넓은 화면은
+ * 산 그림 그대로 둔다.
+ */
+const HERO_VIDEO = `<video class="lp-vid" muted loop playsinline preload="none" aria-hidden="true"></video>
+<script>(function(){
+  var v=document.currentScript.previousElementSibling;
+  if(!v)return;
+  if(window.innerWidth>=760)return;
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var c=navigator.connection;
+  if(c&&(c.saveData||/2g/.test(c.effectiveType||'')))return;
+  var go=function(){
+    v.src='/video/hero';
+    v.addEventListener('canplaythrough',function(){v.classList.add('on');v.play().catch(function(){});},{once:true});
+    v.load();
+  };
+  if('requestIdleCallback' in window)requestIdleCallback(go,{timeout:3000});
+  else addEventListener('load',function(){setTimeout(go,600);});
+})();</script>`;
 
 /**
  * 무료 구간 앞에 붙일 안내.

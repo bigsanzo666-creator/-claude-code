@@ -229,6 +229,17 @@ section('10. 첫 화면');
   check('첫 화면 그림이 있으면 배경으로 깐다', renderHero(full, true, true).includes('url(/img/hero)'));
   check('첫 화면 그림이 없으면 걸지 않는다', !renderHero(full, true, false).includes('/img/hero'));
 
+  // 영상은 그림을 늦추면 안 된다. 그림이 먼저 뜨고 영상은 뒤에서 받아 겹친다
+  const withVideo = renderHero(full, true, true, true);
+  check('영상이 있으면 그림 위에 겹친다', withVideo.includes('class="lp-vid"'));
+  check('영상은 미리 받지 않는다', withVideo.includes('preload="none"'));
+  check('영상에 소리가 없다', withVideo.includes('muted'));
+  check('영상이 없으면 아무것도 안 붙는다', !renderHero(full, true, true, false).includes('lp-vid'));
+  check('그림이 없으면 영상도 붙지 않는다', !renderHero(full, true, false, true).includes('lp-vid'));
+  check('데이터 절약 모드에서는 받지 않는다', withVideo.includes('saveData'));
+  check('움직임 줄이기를 켠 손님에게는 틀지 않는다',
+    withVideo.includes('prefers-reduced-motion'));
+
   const heading = renderTryHeading();
   check('무료 구간 앞에 안내가 붙는다', heading.includes('id="try"') && heading.includes('무료'));
   check('결제 없이 된다고 분명히 밝힌다', heading.includes('결제 없이'));

@@ -25,7 +25,7 @@ import {
   renderHero, renderTryHeading, LANDING_CSS, FONT_LINK, renderProductPage,
   type BusinessInfo,
 } from '../../../packages/site-policy/src/index.ts';
-import { findProductImages, findHeroImage, type ProductImage } from './images.ts';
+import { findProductImages, findHeroImage, findHeroVideo, type ProductImage } from './images.ts';
 import { buildPayload, KIND_OF, type ReadingRequest } from './payload.ts';
 import { buildPreview } from './preview.ts';
 
@@ -85,6 +85,8 @@ export interface ApiDeps {
   images?: Map<string, ProductImage>;
   /** 첫 화면에 깔 그림. `null` 이면 종이색 바탕으로 뜬다 */
   heroImage?: ProductImage | null;
+  /** 첫 화면에 트는 영상. `null` 이면 그림만 뜬다 */
+  heroVideo?: ProductImage | null;
 }
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -99,7 +101,7 @@ const VIEWER_PATH = join(HERE, '..', '..', 'manse-viewer', 'index.html');
  */
 function renderPage(
   checkout: CheckoutConfig | null, business: BusinessInfo, images: ReadonlySet<string>,
-  hero = false,
+  hero = false, heroVideo = false,
 ): string {
   const fragment = readFileSync(VIEWER_PATH, 'utf8');
   const config = JSON.stringify({ apiBase: '', checkout, ready: checkout !== null });
@@ -117,7 +119,7 @@ ${FOOTER_CSS}</style>
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 </head>
 <body>
-${renderHero(business, checkout !== null, hero)}
+${renderHero(business, checkout !== null, hero, heroVideo)}
 ${renderProducts(checkout !== null, images)}
 ${renderTryHeading()}
 ${fragment}
@@ -244,11 +246,12 @@ export function createApi(deps: ApiDeps) {
   const images = deps.images ?? findProductImages();
   const haveImage = new Set(images.keys());
   const hero = deps.heroImage !== undefined ? deps.heroImage : findHeroImage();
+  const heroVideo = deps.heroVideo !== undefined ? deps.heroVideo : findHeroVideo();
 
   const routes: Record<string, (req: IncomingMessage, res: ServerResponse, id: string) => Promise<void>> = {
     /** 화면. 결제 설정을 주입해 내려준다 */
     'GET /': async (_req, res) => {
-      const html = renderPage(checkout, business, haveImage, hero !== null);
+      const html = renderPage(checkout, business, haveImage, hero !== null, heroVideo !== null);
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Length': Buffer.byteLength(html),
@@ -328,6 +331,42 @@ export function createApi(deps: ApiDeps) {
         'Cache-Control': 'public, max-age=3600',
       });
       res.end(body);
+    },
+
+    /**
+     * 첫 화면 영상.
+     *
+     * 브라우저는 영상을 통째로 받지 않고 조각내어 요청한다(Range). 그것을
+     * 받아 주지 않으면 어떤 브라우저는 아예 재생을 시작하지 않는다.
+     */
+    'GET /video/hero': async (req, res) => {
+      if (!heroVideo) throw new HttpError(404, '첫 화면 영상이 없습니다.');
+      const body = readFileSync(heroVideo.path);
+      const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
+      const head = {
+        'Content-Type': heroVideo.type,
+        'Cache-Control': 'public, max-age=3600',
+        'Accept-Ranges': 'bytes',
+      };
+      if (!range) {
+        res.writeHead(200, { ...head, 'Content-Length': body.length });
+        res.end(body);
+        return;
+      }
+      const start = range[1] ? Number(range[1]) : 0;
+      const end = range[2] ? Math.min(Number(range[2]), body.length - 1) : body.length - 1;
+      if (!(start >= 0 && start <= end && end < body.length)) {
+        res.writeHead(416, { ...head, 'Content-Range': `bytes */${body.length}` });
+        res.end();
+        return;
+      }
+      const slice = body.subarray(start, end + 1);
+      res.writeHead(206, {
+        ...head,
+        'Content-Range': `bytes ${start}-${end}/${body.length}`,
+        'Content-Length': slice.length,
+      });
+      res.end(slice);
     },
 
     'GET /products': async (_req, res) =>

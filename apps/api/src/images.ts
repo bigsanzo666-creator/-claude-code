@@ -87,6 +87,14 @@ export function toProductId(fileBase: string): string {
 /** 첫 화면 그림의 파일 이름. 상품 아이디가 아니므로 목록에서는 걸러진다 */
 export const HERO_NAME = 'site-hero';
 
+/** 첫 화면 영상의 파일 이름 */
+export const HERO_VIDEO_NAME = 'hero';
+
+const VIDEO_TYPES: Record<string, string> = {
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+};
+
 export const IMAGE_DIR = join(
   dirname(fileURLToPath(import.meta.url)), '..', 'public', 'products',
 );
@@ -123,6 +131,7 @@ export function strayImages(dir: string = IMAGE_DIR): string[] {
   try {
     return readdirSync(dir)
       .filter((n) => TYPES[extname(n).toLowerCase()])
+      .filter((n) => !(n.slice(0, -extname(n).length) === HERO_VIDEO_NAME && VIDEO_TYPES[extname(n).toLowerCase()]))
       .filter((n) => n.slice(0, -extname(n).length) !== HERO_NAME)
       .filter((n) => !toProductId(n.slice(0, -extname(n).length)));
   } catch {
@@ -145,6 +154,26 @@ export function findHeroImage(dir: string = IMAGE_DIR): ProductImage | null {
     const ext = extname(name).toLowerCase();
     const type = TYPES[ext];
     if (type && name.slice(0, -ext.length) === HERO_NAME) return { path: join(dir, name), type };
+  }
+  return null;
+}
+
+/**
+ * 첫 화면에 트는 영상.
+ *
+ * 그림과 마찬가지로 **없으면 없는 대로 둔다.** 영상이 없으면 산 그림이 그대로
+ * 남고, 화면은 아무것도 달라지지 않는다.
+ *
+ * 영상은 첫 화면을 늦추면 안 된다. 그래서 서버는 파일을 알려 주기만 하고,
+ * 언제 받을지는 화면이 정한다 — 그림이 먼저 뜬 뒤에 뒤에서 받는다.
+ */
+export function findHeroVideo(dir: string = IMAGE_DIR): ProductImage | null {
+  let entries: string[];
+  try { entries = readdirSync(dir); } catch { return null; }
+  for (const name of entries) {
+    const ext = extname(name).toLowerCase();
+    const type = VIDEO_TYPES[ext];
+    if (type && name.slice(0, -ext.length) === HERO_VIDEO_NAME) return { path: join(dir, name), type };
   }
   return null;
 }
