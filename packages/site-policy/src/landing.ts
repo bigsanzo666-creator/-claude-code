@@ -61,9 +61,9 @@ export const LANDING_CSS = `
    그림이 거의 남지 않는다 — 브랜드가 첫 화면에서 사라지는 것과 같다 */
 .lp-hero{position:relative;overflow:hidden}
 .lp-top{padding:24px 0 16px}
-.lp-shot{position:relative;aspect-ratio:4/3;
-  background:var(--nb-paper-2) center 42%/cover no-repeat;background-image:var(--nb-hero,none)}
-.lp-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+.lp-shot{position:relative;width:100%;aspect-ratio:3/4;
+  background:var(--nb-paper) center bottom/cover no-repeat;background-image:var(--nb-hero,none)}
+.lp-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center bottom;
   opacity:0;transition:opacity .6s ease}
 .lp-vid.on{opacity:1}
 .lp-shot::after{content:"";position:absolute;inset:auto 0 -1px 0;height:34%;
@@ -93,17 +93,26 @@ export const LANDING_CSS = `
 .lp-try{padding:64px 0 0}
 .lp-try h2{font-family:var(--nb-serif);font-weight:500;font-size:23px;margin:0 0 8px}
 @media (min-width:760px){
-  /* 넓은 화면에서는 글을 그림 위에 얹는다. 베일은 글이 앉는 아래쪽에만 두어
-     산이 형체로 남게 한다 */
+  /* 폭이 넓어지면 3:4 그대로는 화면 하나를 다 잡아먹는다. 높이를 잡아 두고
+     그림은 잘리지 않게 안에 담는다 — 위로는 산, 아래로는 물결까지 다 남는다 */
+  .lp-shot{aspect-ratio:auto;height:64vh;min-height:420px;background-size:contain}
+  .lp-vid{object-fit:contain}
+  .lp-hero h1{font-size:44px}
+  .lp-row{grid-template-columns:repeat(3,1fr);gap:0 40px}
+  .lp-item,.lp-item:last-child{border-top:1px solid var(--nb-line-soft);border-bottom:1px solid var(--nb-line-soft)}
+}
+@media (min-width:1024px){
+  /* 여기서부터 글을 그림 위에 얹는다. 베일은 글이 앉는 아래쪽에만 두어
+     산이 형체로 남게 한다. 그림도 영상도 세로라, 이 폭에서만 잘라 쓴다 */
   .lp-hero{display:flex;flex-direction:column;justify-content:space-between;min-height:86vh}
-  .lp-shot{position:absolute;inset:0;aspect-ratio:auto;background-position:center 38%}
+  .lp-shot{position:absolute;inset:0;aspect-ratio:auto;height:auto;min-height:0;
+    background-size:cover;background-position:center 38%}
+  .lp-vid{object-fit:cover}
   .lp-shot::after{inset:0;height:auto;
     background:linear-gradient(to bottom,var(--nb-veil-0) 46%,var(--nb-veil-1) 86%,var(--nb-paper) 100%)}
   .lp-top,.lp-lead{position:relative;z-index:1;width:100%}
   .lp-lead{padding-bottom:76px}
   .lp-hero h1{font-size:52px}
-  .lp-row{grid-template-columns:repeat(3,1fr);gap:0 40px}
-  .lp-item,.lp-item:last-child{border-top:1px solid var(--nb-line-soft);border-bottom:1px solid var(--nb-line-soft)}
 }
 @media (prefers-color-scheme:dark){
   .lp-cta{background:var(--nb-gold);border-color:var(--nb-gold);color:#131A26}
@@ -160,14 +169,15 @@ ${items}
  * - **느린 연결(2G·3G)** — 받는 동안 다른 것까지 느려진다.
  * - **움직임 줄이기를 켜 둔 손님** — 어지럼증 때문에 꺼 둔 사람이 있다.
  *
- * 영상은 세로다. 폰 화면에 맞고 넓은 화면에서는 좌우가 잘리므로, 넓은 화면은
- * 산 그림 그대로 둔다.
+ * 영상은 세로다. 세로로 세운 틀(3:4)에 그대로 들어가야 아래쪽 물결까지 보인다 —
+ * 가로 틀에 넣으면 위아래가 잘려 꽃잎만 떨어지고 물결이 사라진다.
+ * 1024 이상에서는 글을 그림 위에 얹느라 좌우를 잘라 쓰므로 영상을 받지 않는다.
  */
 const HERO_VIDEO = `<video class="lp-vid" muted loop playsinline preload="none" aria-hidden="true"></video>
 <script>(function(){
   var v=document.currentScript.previousElementSibling;
   if(!v)return;
-  if(window.innerWidth>=760)return;
+  if(window.innerWidth>=1024)return;
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   var c=navigator.connection;
   if(c&&(c.saveData||/2g/.test(c.effectiveType||'')))return;

@@ -237,6 +237,11 @@ section('10. 첫 화면');
   check('영상이 없으면 아무것도 안 붙는다', !renderHero(full, true, true, false).includes('lp-vid'));
   check('그림이 없으면 영상도 붙지 않는다', !renderHero(full, true, false, true).includes('lp-vid'));
   check('데이터 절약 모드에서는 받지 않는다', withVideo.includes('saveData'));
+  // 그림도 영상도 세로다. 틀을 가로로 두면 아래쪽 물결이 잘려 나간다
+  check('첫 화면 틀이 세로다', LANDING_CSS.includes('.lp-shot{position:relative;width:100%;aspect-ratio:3/4'));
+  check('잘릴 때는 아래를 붙든다',
+    LANDING_CSS.includes('center bottom/cover') && LANDING_CSS.includes('object-position:center bottom'));
+  check('중간 폭에서는 잘리지 않게 담는다', LANDING_CSS.includes('background-size:contain'));
   check('움직임 줄이기를 켠 손님에게는 틀지 않는다',
     withVideo.includes('prefers-reduced-motion'));
 
