@@ -67,6 +67,7 @@ export const SPIRITS: Spirit[] = [
     holds: '복사꽃 가지',
     greet: '누구한테 마음이 가는지, 내가 꽃가지로 짚어 줄게.',
     intro: '마음이 어느 쪽으로 기우는지 봅니다.',
+    crop: { zoom: 1.55, down: '26%' },
   },
   {
     id: 'moon', name: '달신령', seal: '月', keeps: '재회',
@@ -74,37 +75,42 @@ export const SPIRITS: Spirit[] = [
     greet: '떠난 사람은 물에 비친 달 같아. 그래도 하늘에 달은 남아 있지.',
     intro: '지나간 사람이 돌아올 자리가 있는지 봅니다.',
     // 정사각형에 얼굴이 작게 들어온 그림. 얼굴부터 달 윗부분까지만 당겨 쓴다
-    crop: { zoom: 2.5, down: '55%' },
+    crop: { zoom: 2.5, down: '66%' },
   },
   {
     id: 'thread', name: '실신령', seal: '絲', keeps: '궁합',
     holds: '붉은 실타래',
     greet: '두 사람 사이에 실이 몇 가닥 걸렸는지, 내가 세어 줄게.',
     intro: '두 사람을 이은 실이 튼튼한지 봅니다.',
+    crop: { zoom: 1.7, down: '34%' },
   },
   {
     id: 'mountain', name: '산신령', seal: '山', keeps: '가족',
     holds: '지팡이와 곁에 앉은 호랑이',
     greet: '이 집 일은 내가 제일 오래 봤단다. 앉아 보렴.',
     intro: '집안 사람들 사이를 봅니다.',
+    crop: { zoom: 1.55, down: '26%' },
   },
   {
     id: 'mirror', name: '거울신령', seal: '鏡', keeps: '나',
     holds: '오래된 청동 거울',
     greet: '거울은 안 속여. 네가 진짜 어떤 사람인지 비춰 줄게.',
     intro: '내가 어떤 사람인지 있는 그대로 비춥니다.',
+    crop: { zoom: 1.55, down: '26%' },
   },
   {
     id: 'jar', name: '곳간신령', seal: '庫', keeps: '돈과 일',
     holds: '엽전 자루와 곡식 됫박',
     greet: '네 그릇이 얼마나 큰지 됫박으로 달아 볼게. 그릇보다 많이 담으면 넘쳐.',
     intro: '돈이 담기는 그릇 크기와 일자리를 봅니다.',
+    crop: { zoom: 1.45, down: '22%' },
   },
   {
     id: 'wind', name: '바람신령', seal: '風', keeps: '시기',
     holds: '처마 끝 풍경(風磬)',
     greet: '바람이 불면 종이 울려. 지금 울리는지 같이 들어 보자.',
     intro: '지금이 움직일 때인지 봅니다.',
+    crop: { zoom: 1.5, down: '24%' },
   },
 ];
 

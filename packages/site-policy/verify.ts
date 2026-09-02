@@ -294,8 +294,9 @@ section('9. 신령 — 칸마다 주인이 있는가');
   const cut = renderSpiritRow(new Set(['moon']));
   check('얼굴을 어디서 잘라 낼지 그림마다 따로 정할 수 있다',
     cut.includes(`--sp-zoom:${moon.crop!.zoom}`) && cut.includes(`--sp-down:${moon.crop!.down}`));
+  const plain = { ...moon, id: 'plain', crop: undefined };
   check('정하지 않은 신령은 기본값으로 나간다',
-    !renderSpiritRow(new Set(['flower'])).includes('--sp-zoom'));
+    !renderSpiritHead(plain, '질문', new Set(['plain'])).includes('--sp-zoom'));
 
   // 얼굴 그림이 들어오면 도장 대신 그림이 나가야 한다
   const withFace = renderSpiritRow(new Set(['flower']));
