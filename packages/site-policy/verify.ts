@@ -315,6 +315,15 @@ section('9. 신령 — 칸마다 주인이 있는가');
   const list = renderProducts(false);
   check('상품 목록의 갈래마다 신령이 선다',
     SPIRITS.every((s) => list.includes(s.name)));
+
+  // 첫 화면에서 값부터 보이면 손님이 물러선다. 심사가 보는 가격표에는 그대로 남는다
+  const quiet = renderProducts(false, undefined, undefined, false);
+  check('값을 끄면 첫 화면에 값이 안 나온다',
+    !quiet.includes('19,900원') && !quiet.includes('부가세 포함'));
+  check('값을 끄면 묶음도 빠진다', !quiet.includes('따로 사면'));
+  check('값을 꺼도 가격표로 가는 길은 남는다', quiet.includes('href="/products"'));
+  check('값을 켜면 그대로 다 나온다',
+    list.includes('19,900원') && list.includes('따로 사면'));
 }
 
 console.log(`\n${'═'.repeat(60)}`);

@@ -339,8 +339,13 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
 const home = await page('/');
 check('첫 화면에도 사업자 정보가 붙는다', home.html.includes('220-81-62517'));
 check('첫 화면에서 정책·상품으로 링크', ['/products', '/terms', '/privacy', '/refund'].every((h) => home.html.includes(`href="${h}"`)));
-// 심사는 첫 화면만 본다. 생년월일을 넣어야 나오는 가격은 없는 것과 같다
-check('첫 화면 HTML 자체에 가격이 박혀 있다', home.html.includes('19,900원') && home.html.includes('9,900원'));
+// 첫 화면에서 값부터 보이면 손님이 물러선다. 무엇을 봐 주는지만 보여 준다
+check('첫 화면에는 값이 안 나온다', !home.html.includes('19,900원'));
+check('첫 화면에서 가격표로 가는 길이 있다', home.html.includes('판매 상품과 가격 전체 보기'));
+// 카드사 등록심사는 상품과 가격을 본다. 자바스크립트 없이 서버가 그린 HTML 이어야 한다
+const priced = await page('/products');
+check('가격표 HTML 자체에 값이 박혀 있다',
+  priced.html.includes('19,900원') && priced.html.includes('9,900원'));
 check('가격이 자바스크립트 없이 보인다', home.html.includes('<section class="pr"'));
 check('첫 화면은 여전히 뷰어를 담고 있다', home.html.includes('window.SAJU_CONFIG'));
 // 손님이 보는 순서: 브랜드 → 상품 → 무료 체험. 계산기가 먼저 나오면 안 된다
@@ -400,8 +405,9 @@ const sb = async (method: string, path: string, body?: unknown) => {
 const sbHome = await sb('GET', '/');
 check('심사 대기 중에도 첫 화면이 뜬다', sbHome.status === 200);
 // 심사를 통과해야 결제가 켜지는데, 결제가 켜져야 가격이 보이면 영원히 통과 못 한다
-check('결제가 꺼져 있어도 첫 화면에 가격이 있다', sbHome.text.includes('19,900원'));
-check('결제가 꺼져 있으면 준비 중이라고 알린다', sbHome.text.includes('결제 준비 중'));
+const sbPriced = await sb('GET', '/products');
+check('결제가 꺼져 있어도 가격표에 값이 있다', sbPriced.text.includes('19,900원'));
+check('결제가 꺼져 있으면 준비 중이라고 알린다', sbPriced.text.includes('결제 준비 중'));
 for (const path of ['/products', '/terms', '/privacy', '/refund']) {
   check(`심사 대기 중에도 ${path} 가 뜬다`, (await sb('GET', path)).status === 200);
 }

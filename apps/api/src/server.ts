@@ -126,7 +126,7 @@ ${FOOTER_CSS}</style>
 <body>
 ${renderHero(business, checkout !== null, hero, heroVideo)}
 ${renderSpiritRow(faces)}
-${renderProducts(checkout !== null, images, faces)}
+${renderProducts(checkout !== null, images, faces, false)}
 ${renderTryHeading()}
 ${fragment}
 <style>${VIEWER_SKIN}</style>

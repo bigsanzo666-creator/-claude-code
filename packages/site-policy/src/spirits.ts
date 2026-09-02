@@ -67,7 +67,7 @@ export const SPIRITS: Spirit[] = [
     holds: '복사꽃 가지',
     greet: '누구한테 마음이 가는지, 내가 꽃가지로 짚어 줄게.',
     intro: '마음이 어느 쪽으로 기우는지 봅니다.',
-    crop: { zoom: 1.55, down: '26%' },
+    crop: { zoom: 1.55, down: '16%' },
   },
   {
     id: 'moon', name: '달신령', seal: '月', keeps: '재회',

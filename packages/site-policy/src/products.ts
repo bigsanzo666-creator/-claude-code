@@ -91,7 +91,9 @@ function bold(text: string): string {
   return esc(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 }
 
-function productCard(product: Product, ready: boolean, images: ProductImages, groupQuestion = ''): string {
+function productCard(
+  product: Product, ready: boolean, images: ProductImages, groupQuestion = '', prices = true,
+): string {
   // 21개를 낱장으로 늘어놓으면 아무도 끝까지 못 본다. 그래서 목록은 **그림 격자**다 —
   // 후킹 질문·이름·값만 싣고, 설명과 담기는 내용은 상세 페이지가 맡는다.
   // alt 를 비우는 것은 장식이기 때문이다. 바로 아래에 상품 이름이 글자로 있다.
@@ -104,8 +106,8 @@ function productCard(product: Product, ready: boolean, images: ProductImages, gr
     ${product.hook === groupQuestion ? '' : `<span class="pr-hook">${esc(product.hook)}</span>`}
     <h3>${esc(product.name)}</h3>
   </a>
-  <p class="pr-foot"><span class="pr-price">${won(product.priceKrw)}</span><span class="pr-vat"> (부가세 포함)</span>${
-    ready ? '' : '<span class="pr-soon">결제 준비 중</span>'}</p>
+  ${prices ? `<p class="pr-foot"><span class="pr-price">${won(product.priceKrw)}</span><span class="pr-vat"> (부가세 포함)</span>${
+    ready ? '' : '<span class="pr-soon">결제 준비 중</span>'}</p>` : ''}
 </article>`;
 }
 
@@ -116,7 +118,7 @@ function productCard(product: Product, ready: boolean, images: ProductImages, gr
  * 아무도 그것부터 보지 않는다. 갈래 맨 앞에 한 칸을 다 쓰고, 설명과 담기는 내용까지
  * 여기서 보여 준다.
  */
-function featureCard(product: Product, ready: boolean, images: ProductImages): string {
+function featureCard(product: Product, ready: boolean, images: ProductImages, prices = true): string {
   const items = (CONTENTS[product.id] ?? []).map((t) => `<li>${bold(t)}</li>`).join('');
   const shot = images.has(product.id)
     ? `<span class="pr-shot"><img class="pr-thumb" src="${imageUrl(product.id)}" alt="" width="480" height="640" loading="lazy" decoding="async"></span>`
@@ -130,8 +132,8 @@ function featureCard(product: Product, ready: boolean, images: ProductImages): s
       <h3>${esc(product.name)}</h3>
       <span class="pr-desc">${esc(product.description)}</span>
       ${items ? `<ul class="pr-list">${items}</ul>` : ''}
-      <span class="pr-foot"><span class="pr-price">${won(product.priceKrw)}</span><span class="pr-vat"> (부가세 포함)</span>${
-        ready ? '' : '<span class="pr-soon">결제 준비 중</span>'}</span>
+      ${prices ? `<span class="pr-foot"><span class="pr-price">${won(product.priceKrw)}</span><span class="pr-vat"> (부가세 포함)</span>${
+        ready ? '' : '<span class="pr-soon">결제 준비 중</span>'}</span>` : ''}
     </span>
   </a>
 </article>`;
@@ -178,9 +180,9 @@ export const FONT_LINK = `<link rel="preconnect" href="https://fonts.googleapis.
 
 export const PRODUCTS_CSS = `
 :root{
-  --nb-paper:#F2EEE5; --nb-paper-2:#FAF7F0; --nb-line:#DED5C4; --nb-line-soft:#E9E2D5;
+  --nb-paper:#EBE3D3; --nb-paper-2:#F6F1E5; --nb-line:#D5C9B2; --nb-line-soft:#E0D7C4;
   --nb-ink:#182640; --nb-ink-2:#4C566B; --nb-ink-3:#8B8674; --nb-gold:#9C7C42;
-  --nb-veil-0:rgba(242,238,229,0); --nb-veil-1:rgba(242,238,229,.72);
+  --nb-veil-0:rgba(235,227,211,0); --nb-veil-1:rgba(235,227,211,.72);
   /* 글씨는 두 벌만 쓴다. 아래 무료 만세력 조각이 이미 이 둘을 받아 오므로
      새로 받지 않는다 — 한 페이지에 명조 두 벌, 고딕 두 벌이 도는 것을 막는다 */
   --nb-serif:"Nanum Myeongjo",AppleMyungjo,Batang,serif;
@@ -287,16 +289,27 @@ ${SPIRITS_CSS}`;
  * 갈래 제목을 **질문으로** 단다 — 「연애」라고만 쓰면 안 눌리고
  * 「이 사람, 괜찮을까?」라고 쓰면 눌린다.
  */
+/**
+ * 상품 목록.
+ *
+ * `prices` 를 끄면 값과 묶음이 빠진다. **첫 화면에서 값부터 보이면 손님이
+ * 물러선다** — 아직 뭘 봐 주는지도 모르는 사람에게 계산부터 시키는 셈이다.
+ * 그래서 첫 화면은 무엇을 봐 주는지만 보여 주고, 값은 가격표 페이지에서 본다.
+ *
+ * 값을 아주 없애지는 않는다. 카드사 등록심사가 「상품과 가격이 홈페이지에
+ * 있는가」를 보기 때문에, `/products` 와 상품별 페이지에는 그대로 남는다.
+ */
 export function renderProducts(
   ready: boolean, images: ProductImages = NO_IMAGES, faces: SpiritImages = NO_FACES,
+  prices = true,
 ): string {
   const groups = CATEGORIES.map((c) => {
     const all = productsIn(c.key);
     // 삼합 리포트는 갈래 맨 앞에 한 칸을 다 쓴다. 제일 비싸고 우리만 하는 것이다
     const star = all.find((p) => p.id === FEATURED);
     const cards = [
-      ...(star ? [featureCard(star, ready, images)] : []),
-      ...all.filter((p) => p !== star).map((p) => productCard(p, ready, images, c.question)),
+      ...(star ? [featureCard(star, ready, images, prices)] : []),
+      ...all.filter((p) => p !== star).map((p) => productCard(p, ready, images, c.question, prices)),
     ].join('\n');
     // 갈래마다 주인이 있다. 신령이 질문을 던지고, 그 아래에 그 신령의 물건이 놓인다
     const spirit = spiritOf(c.key);
@@ -318,25 +331,32 @@ ${cards}
 
   return `<section class="pr" id="products">
 <div class="pr-top">
-<h2>판매 상품과 가격</h2>
-<p class="pr-intro">사주 명식·궁합·관상·손금 풀이 자체는 무료이며, 결제 없이 이용하실 수 있습니다.
-아래는 그보다 깊이 들어가는 유료 리포트입니다.</p>
+<h2>${prices ? '판매 상품과 가격' : '무엇을 봐 드리나'}</h2>
+<p class="pr-intro">${prices
+    ? `사주 명식·궁합·관상·손금 풀이 자체는 무료이며, 결제 없이 이용하실 수 있습니다.
+아래는 그보다 깊이 들어가는 유료 리포트입니다.`
+    : `사주 명식·궁합·관상·손금 풀이는 결제 없이 보실 수 있습니다.
+아래는 신령이 한 갈래씩 깊이 들여다보는 것들입니다.`}</p>
 <div class="pr-rule"></div>
 </div>
 ${groups}
-<section class="pr-group">
+${prices ? `<section class="pr-group">
 <p class="pr-cat">묶음</p>
 <h3 class="pr-q">여러 개를 함께 보시려면</h3>
 <div class="pr-grid">
 ${packs}
 </div>
-</section>
-<p class="pr-note">
+</section>` : ''}
+${prices ? `<p class="pr-note">
 묶음 가격 옆의 「따로 사면」은 <strong>구성 상품을 실제로 낱개 판매하는 가격의 합계</strong>입니다.
 판매한 적 없는 정가를 지어내 할인율을 부풀리지 않습니다.<br>
 결제 전에 리포트 일부를 미리 보실 수 있으며, 결제일부터 ${WITHDRAWAL_WINDOW_DAYS}일 이내에
 청약철회가 가능합니다. 자세한 내용은 <a href="/refund">취소·환불 정책</a>을 참고해 주세요.
-</p>
+</p>` : `<p class="pr-note">
+값은 상품마다 다릅니다. <a href="/products">판매 상품과 가격 전체 보기</a><br>
+결제 전에 리포트 일부를 미리 보실 수 있으며, 결제일부터 ${WITHDRAWAL_WINDOW_DAYS}일 이내에
+청약철회가 가능합니다.
+</p>`}
 </section>`;
 }
 
