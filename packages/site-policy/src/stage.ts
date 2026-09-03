@@ -155,14 +155,14 @@ ${SPIRITS.map((sp) => renderSpiritStage(sp, scenes, faces)).join('\n')}
  * 배경 프롬프트(`docs/scene-prompts.md`)에 같은 자리를 못 박아 두었다.
  */
 const SPOTS: Record<string, { x: number; y: number }> = {
-  // 위쪽 22% 는 제목이, 아래쪽 12% 는 무료 사주가 차지한다. 그 사이에만 세운다
-  mountain: { x: 21, y: 27 },   // 왼쪽 위 — 산자락 기와집
-  wind: { x: 76, y: 31 },       // 오른쪽 위 — 처마 끝 풍경
-  flower: { x: 23, y: 44 },     // 왼쪽 — 복사꽃 나무
-  thread: { x: 76, y: 50 },     // 오른쪽 — 붉은 실 걸린 나무
-  mirror: { x: 47, y: 60 },     // 가운데 — 맑은 샘
-  jar: { x: 24, y: 72 },        // 왼쪽 아래 — 곳간과 항아리
-  moon: { x: 73, y: 79 },       // 오른쪽 아래 — 달 비친 연못
+  // 신령계.jpg 안의 장소 자리에 맞춘 값이다. 그림을 새로 뽑으면 여기만 고친다
+  mountain: { x: 23, y: 22 },   // 왼쪽 위 — 산자락 기와집
+  wind: { x: 72, y: 20 },       // 오른쪽 위 — 누각 처마와 풍경
+  flower: { x: 18, y: 40 },     // 왼쪽 — 복사꽃 나무
+  thread: { x: 75, y: 42 },     // 오른쪽 — 붉은 실 걸린 나무
+  mirror: { x: 45, y: 53 },     // 가운데 — 맑은 샘
+  jar: { x: 20, y: 68 },        // 왼쪽 아래 — 곳간과 항아리
+  moon: { x: 77, y: 67 },       // 오른쪽 아래 — 달 비친 연못
 };
 
 /**
@@ -190,7 +190,7 @@ ${pins}
     </div>
     <div class="wd-top">
       <p class="st-kicker" id="stHello">신령계</p>
-      <h2 class="st-h wd-h">누구에게<br><em>물어보시겠습니까</em></h2>
+      <h2 class="st-h wd-h">누구에게 <em>물어보시겠습니까</em></h2>
     </div>
     <div class="wd-bottom">
       <button type="button" class="wd-free" id="stFree">
@@ -332,9 +332,10 @@ body.st-locked{overflow:hidden}
 .wd-tag b{font-family:var(--nb-serif);font-weight:500;font-size:13px;white-space:nowrap}
 .wd-tag i{font-style:normal;font-size:10.5px;letter-spacing:.12em;color:var(--nb-gold)}
 
-.wd-top{position:absolute;left:0;right:0;top:0;padding:26px 24px 40px;pointer-events:none;
-  background:linear-gradient(to bottom,var(--nb-paper),var(--nb-veil-1) 55%,var(--nb-veil-0))}
-.wd-h{font-size:24px;margin:0}
+/* 제목이 두 줄이면 위쪽 신령을 덮는다. 한 줄로 짧게 두고 그림을 살린다 */
+.wd-top{position:absolute;left:0;right:0;top:0;padding:20px 24px 26px;pointer-events:none;
+  background:linear-gradient(to bottom,var(--nb-paper),var(--nb-veil-1) 50%,var(--nb-veil-0))}
+.wd-h{font-size:21px;margin:0;line-height:1.4;word-break:keep-all}
 .wd-bottom{position:absolute;left:0;right:0;bottom:0;padding:44px 20px 22px;
   background:linear-gradient(to top,var(--nb-paper),var(--nb-veil-1) 55%,var(--nb-veil-0))}
 .wd-free{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
@@ -363,7 +364,7 @@ body.st-locked{overflow:hidden}
   .st-h{font-size:38px}
   .wd-pin .st-face{width:72px;height:72px}
   .wd-tag b{font-size:14.5px}
-  .wd-h{font-size:30px}
+  .wd-h{font-size:27px}
   .st-page{padding:56px 24px}
   .st-in{padding-bottom:52px}
   .st-next{bottom:52px}
