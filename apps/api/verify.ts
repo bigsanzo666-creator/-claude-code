@@ -366,8 +366,11 @@ const home = await page('/');
   check('첫 화면에 문이 있다', home.html.includes('id="gateForm"'));
   check('문을 잠그지 않는다 — 상품과 가격이 그대로 보인다',
     home.html.includes('id="products"') && home.html.includes('둘러보기'));
-  check('그림이 움직이되 영상은 아니다',
-    home.html.includes('nbDrift') && !/<video[^>]*gate/.test(home.html));
+  // 배경이 움직이는 것은 CSS 다. 영상은 문이 열릴 때만 쓴다
+  check('배경이 움직이는 것은 영상이 아니다',
+    home.html.includes('nbDrift') && home.html.includes('class="gate-bg"'));
+  check('문 여는 영상은 미리 받지 않는다',
+    !home.html.includes('id="gateOpenVid"') || home.html.includes('preload="none"'));
 
   // 앞은 보여 주고 뒤는 가린다. 아무것도 안 보여 주면 뭘 사는지 모르고,
   // 다 보여 주면 살 이유가 없다
