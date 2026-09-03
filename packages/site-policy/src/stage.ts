@@ -87,8 +87,8 @@ export function renderStage(
     <div class="st-in">
       <p class="st-kicker">${esc(info.serviceName || '늘봄사주')}</p>
       <h1 class="st-h">풍신령이<br><em>문까지 데려다</em> 드립니다</h1>
+      <button type="button" class="st-next" id="stGo">문 앞으로</button>
     </div>
-    <button type="button" class="st-next" id="stGo">문 앞으로</button>
   </section>
 
   <section class="st" id="stGate"${gate}>
@@ -303,7 +303,8 @@ body.st-locked{overflow:hidden}
 .st-go,.st-next{padding:15px 32px;border:1px solid var(--nb-ink);background:var(--nb-ink);
   color:var(--nb-paper-2);font:500 15.5px var(--nb-sans);letter-spacing:.02em;cursor:pointer}
 .st-go:hover,.st-next:hover{background:transparent;color:var(--nb-ink)}
-.st-next{position:absolute;left:24px;bottom:34px}
+/* 글 아래에 그대로 붙는다. 화면 구석에 따로 떠 있으면 넓은 화면에서 글자를 덮는다 */
+.st-next{margin:10px 0 0}
 .st-msg{font-size:13.5px;color:var(--nb-gold)}
 .st-skip{display:block;margin:16px 0 0;padding:0;border:0;background:none;
   font:13px var(--nb-sans);color:var(--nb-ink-3);text-decoration:underline;
@@ -392,7 +393,6 @@ body.st-locked{overflow:hidden}
   .wd-h{font-size:27px}
   .st-page{padding:56px 24px}
   .st-in{padding-bottom:52px}
-  .st-next{bottom:52px}
 }
 @media (prefers-color-scheme:dark){
   .st-go,.st-next{background:var(--nb-gold);border-color:var(--nb-gold);color:#131A26}
