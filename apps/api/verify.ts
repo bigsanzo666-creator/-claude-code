@@ -206,7 +206,7 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   const { join: j } = await import('node:path');
   const {
     findProductImages, findHeroImage, findHeroVideo, strayImages, toProductId,
-    findSpiritImages, straySpiritImages,
+    findSpiritImages, straySpiritImages, findSceneImages, straySceneImages, findGateVideo,
   } = await import('./src/images.ts');
 
   // 한국 사람이 한국 손님에게 파는 물건이다. 파일 이름을 한글로 지어도 붙어야 한다
@@ -251,6 +251,15 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   check('영상은 상품 목록에도 오타 경고에도 끼지 않는다',
     found.size === 3 && !strayImages(dir).includes('hero.mp4'));
   check('폴더가 없어도 죽지 않는다', findProductImages(j(dir, '없는폴더')).size === 0);
+
+  // 문 여는 영상은 장소 폴더에 함께 둔다
+  const scDir = mkdtempSync(j(tmpdir(), 'saju-sc-'));
+  writeFileSync(j(scDir, '문.jpg'), png);
+  writeFileSync(j(scDir, '문열림.mp4'), Buffer.from('0000001c66747970', 'hex'));
+  check('문 여는 영상을 한글 이름으로 찾는다', findGateVideo(scDir)?.type === 'video/mp4');
+  check('영상은 장소 그림에도 오타 경고에도 끼지 않는다',
+    findSceneImages(scDir).size === 1 && !straySceneImages(scDir).includes('문열림.mp4'));
+  check('영상이 없으면 null', findGateVideo(j(scDir, '없는폴더')) === null);
 
   const faces = findSpiritImages(spDir);
   check('신령 얼굴을 영문 아이디로 찾는다', faces.has('flower'));

@@ -282,4 +282,31 @@ export function straySceneImages(dir: string = SCENE_DIR): string[] {
 
 export const ALL_SCENE_IDS = Object.keys(SCENES);
 
+/**
+ * 문이 열리는 영상.
+ *
+ * 손님이 이름을 밝힌 **뒤에** 튼다. 이미 행동한 다음이라 몇 초 기다려도
+ * 답답하지 않다 — 오히려 문이 열리는 것이 상처럼 느껴진다.
+ *
+ * 그래서 첫 화면을 늦추지 않는다. 손님이 이름을 치는 동안 뒤에서 미리 받아
+ * 두면 기다림이 0이 된다.
+ *
+ * **없으면 없는 대로 둔다.** 영상이 없으면 지금처럼 바로 결과로 내려간다.
+ */
+export const GATE_VIDEO_NAMES = ['gate-open', '문열림'];
+
+export function findGateVideo(dir: string = SCENE_DIR): ProductImage | null {
+  let entries: string[];
+  try { entries = readdirSync(dir); } catch { return null; }
+  const want = GATE_VIDEO_NAMES.map(squash);
+  for (const name of entries) {
+    const ext = extname(name).toLowerCase();
+    const type = VIDEO_TYPES[ext];
+    if (type && want.includes(squash(name.slice(0, -ext.length)))) {
+      return { path: join(dir, name), type };
+    }
+  }
+  return null;
+}
+
 export const ALL_PRODUCT_IDS = Object.keys(CATALOG) as ProductId[];

@@ -57,14 +57,22 @@ export const sceneUrl = (id: string) => `/img/scene/${encodeURIComponent(id)}`;
  * 그림이 없으면 종이색 바탕으로 뜬다. 빈 네모를 남기지 않는다 —
  * 상품 그림·신령 얼굴에서 지킨 규칙과 같다.
  */
-export function renderGate(info: BusinessInfo, scenes: SceneImages = NO_SCENES): string {
+export function renderGate(
+  info: BusinessInfo, scenes: SceneImages = NO_SCENES, video = false,
+): string {
   const hours = HOURS.map((h) =>
     `<option value="${esc(h.value)}">${esc(h.label)}</option>`).join('\n      ');
   const shot = scenes.has('gate')
     ? ` style="--nb-gate:url(${sceneUrl('gate')})"` : '';
 
+  // 문이 열리는 장면. 손님이 이름을 밝힌 뒤에만 튼다
+  const open = video ? `
+  <div class="gate-open" id="gateOpen" hidden aria-hidden="true">
+    <video id="gateOpenVid" muted playsinline preload="none"></video>
+  </div>` : '';
+
   return `<section class="gate"${shot} id="gate">
-  <div class="gate-bg" aria-hidden="true"></div>
+  <div class="gate-bg" aria-hidden="true"></div>${open}
   <div class="gate-veil"></div>
   <div class="lp gate-in">
     <p class="gate-kicker nb-rise">신령계 들어가는 문</p>
@@ -129,6 +137,23 @@ export const GATE_SCRIPT = `<script>(function(){
   var f=document.getElementById('gateForm');
   if(!f)return;
   var msg=document.getElementById('gateMsg');
+
+  // 문 여는 장면은 손님이 이름을 치는 동안 뒤에서 받아 둔다.
+  // 첫 화면이 뜨는 것을 늦추지 않으면서, 누를 때는 이미 준비되어 있다
+  var ready=false, gv=document.getElementById('gateOpenVid');
+  if(gv){
+    var c=navigator.connection;
+    var slow=(c&&(c.saveData||/2g/.test(c.effectiveType||'')));
+    if(!slow&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+      var pull=function(){
+        gv.src='/video/gate-open';
+        gv.addEventListener('canplaythrough',function(){ready=true;},{once:true});
+        gv.load();
+      };
+      if('requestIdleCallback' in window)requestIdleCallback(pull,{timeout:2500});
+      else addEventListener('load',function(){setTimeout(pull,500);});
+    }
+  }
   var put=function(id,v){
     var el=document.getElementById(id);
     if(!el)return false;
@@ -151,11 +176,25 @@ export const GATE_SCRIPT = `<script>(function(){
     else if(noTime&&!noTime.checked){ noTime.checked=true;
       noTime.dispatchEvent(new Event('change',{bubbles:true})); }
     msg.textContent = ok ? (name?name+'님, 문이 열렸습니다.':'문이 열렸습니다.') : '';
-    // 아래 조각이 「하나씩 물어보는 화면」으로 떠 있으면 걷어 준다.
-    // 문에서 이미 밝혔는데 또 물으면 손님은 같은 일을 두 번 하게 된다
-    if(typeof window.NB_SKIP_WIZARD==='function')window.NB_SKIP_WIZARD();
-    var go=document.getElementById('out')||document.getElementById('try');
-    if(go)setTimeout(function(){go.scrollIntoView({behavior:'smooth',block:'start'});},60);
+    var enter=function(){
+      // 아래 조각이 「하나씩 물어보는 화면」으로 떠 있으면 걷어 준다.
+      // 문에서 이미 밝혔는데 또 물으면 손님은 같은 일을 두 번 하게 된다
+      if(typeof window.NB_SKIP_WIZARD==='function')window.NB_SKIP_WIZARD();
+      var go=document.getElementById('out')||document.getElementById('try');
+      if(go)setTimeout(function(){go.scrollIntoView({behavior:'smooth',block:'start'});},60);
+    };
+    // 문이 열리는 장면이 있으면 그것부터 보여 준다.
+    // 못 틀거나 오래 걸리면 기다리지 않고 그냥 들어간다 — 손님을 문 앞에 세워 두지 않는다
+    var box=document.getElementById('gateOpen');
+    var vid=document.getElementById('gateOpenVid');
+    if(!box||!vid||!ready||matchMedia('(prefers-reduced-motion: reduce)').matches){enter();return;}
+    var went=false, once=function(){ if(went)return; went=true; box.hidden=true; enter(); };
+    box.hidden=false;
+    vid.addEventListener('ended',once,{once:true});
+    vid.addEventListener('error',once,{once:true});
+    setTimeout(once,6000);
+    var playing=vid.play();
+    if(playing&&playing.catch)playing.catch(once);
   });
 })();</script>`;
 
@@ -204,6 +243,11 @@ export const GATE_CSS = `
   .gate-go{background:var(--nb-gold);border-color:var(--nb-gold);color:#131A26}
   .gate-go:hover,.gate-go:focus{background:transparent;color:var(--nb-gold)}
 }
+
+/* 문이 열리는 장면. 화면을 가득 덮고, 끝나면 사라진다 */
+.gate-open{position:fixed;inset:0;z-index:60;background:var(--nb-paper);
+  display:grid;place-items:center}
+.gate-open video{width:100%;height:100%;object-fit:cover}
 
 /* 그림이 아주 천천히 다가온다.
    영상이 아니라 그림 한 장이다 — 무게가 0이고, 폰이 버벅이지 않는다.

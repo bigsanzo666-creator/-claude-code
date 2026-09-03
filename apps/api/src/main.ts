@@ -17,7 +17,7 @@ import { createPool, migrate, PostgresOrderStore, PostgresReportStore } from '..
 import {
   findProductImages, strayImages, ALL_PRODUCT_IDS,
   findSpiritImages, straySpiritImages, ALL_SPIRIT_IDS,
-  findSceneImages, straySceneImages, ALL_SCENE_IDS,
+  findSceneImages, straySceneImages, ALL_SCENE_IDS, findGateVideo,
 } from './images.ts';
 import { MemoryOrderStore, startApi, type OrderStore, type ReportBox } from './server.ts';
 import { StandbyGateway, standbyGenerate } from './standby.ts';
@@ -119,6 +119,8 @@ if (spiritStrays.length) {
 const sceneImages = findSceneImages();
 const sceneStrays = straySceneImages();
 console.log(`  신령계배경 ${sceneImages.size} / ${ALL_SCENE_IDS.length}장`);
+const gateVideo = findGateVideo();
+console.log(`  문여는영상 ${gateVideo ? '있음' : '없음 (밝히면 바로 들어갑니다)'}`);
 if (sceneStrays.length) {
   console.warn(`  ⚠ 이름이 장소와 맞지 않는 그림 ${sceneStrays.length}개: ${sceneStrays.join(', ')}`);
 }
@@ -136,6 +138,7 @@ startApi({
   images: productImages,
   spiritImages,
   sceneImages,
+  gateVideo,
   orders,
   reportStore,
   generate: hasModelKey

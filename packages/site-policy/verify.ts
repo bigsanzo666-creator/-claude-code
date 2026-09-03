@@ -386,7 +386,24 @@ section('10. 문 — 신령계 들어가는 곳');
 
   // 청월당이 쓰는 그 느낌 — 그림이 천천히 다가오고 글자가 아래에서 올라온다
   check('그림이 천천히 움직인다', GATE_CSS.includes('@keyframes nbDrift'));
-  check('영상이 아니라 그림 한 장이다', !GATE_CSS.includes('video') && !gate.includes('<video'));
+  // 배경이 움직이는 것은 영상이 아니라 CSS 다. 무게가 0이라 폰이 버벅이지 않는다
+  check('움직이는 배경은 영상이 아니다',
+    GATE_CSS.includes('.gate-bg{') && !gate.includes('class="gate-bg"><video'));
+
+  // 문 여는 장면은 밝힌 뒤에만 튼다. 첫 화면을 늦추면 안 된다
+  const withOpen = renderGate(full, new Set(['gate']), true);
+  check('문 여는 영상 자리가 생긴다', withOpen.includes('id="gateOpenVid"'));
+  check('문 여는 영상은 처음엔 감춰져 있다', withOpen.includes('id="gateOpen" hidden'));
+  check('문 여는 영상을 미리 받지 않는다', withOpen.includes('preload="none"'));
+  check('문 여는 영상에 소리가 없다', /id="gateOpenVid"[^>]*muted/.test(withOpen));
+  check('영상이 없으면 자리도 안 만든다', !renderGate(full, new Set(['gate'])).includes('gateOpen'));
+  // 이름을 치는 동안 뒤에서 받아 두면 누를 때 기다림이 0이다
+  check('이름 치는 동안 뒤에서 받아 둔다', GATE_SCRIPT.includes("requestIdleCallback(pull"));
+  // 못 틀거나 오래 걸리면 손님을 문 앞에 세워 두지 않는다
+  check('영상이 안 되면 그냥 들어간다',
+    GATE_SCRIPT.includes("addEventListener('error',once") && GATE_SCRIPT.includes('setTimeout(once,'));
+  check('움직임을 꺼 둔 손님에게는 틀지 않는다',
+    /prefers-reduced-motion[\s\S]{0,80}\{enter\(\);return;\}/.test(GATE_SCRIPT));
   check('글자가 아래에서 올라온다', GATE_CSS.includes('.nb-rise') && gate.includes('nb-rise'));
   check('한 번 올라온 것은 다시 안 내려간다', GATE_SCRIPT.includes('unobserve'));
   // 어지럼증 때문에 움직임을 꺼 둔 손님에게는 아무것도 움직이지 않는다

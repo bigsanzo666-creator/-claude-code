@@ -29,7 +29,7 @@ import {
 } from '../../../packages/site-policy/src/index.ts';
 import {
   findProductImages, findHeroImage, findHeroVideo, findSpiritImages, findSceneImages,
-  type ProductImage,
+  findGateVideo, type ProductImage,
 } from './images.ts';
 import { buildPayload, KIND_OF, type ReadingRequest } from './payload.ts';
 import { buildPreview } from './preview.ts';
@@ -96,6 +96,8 @@ export interface ApiDeps {
   spiritImages?: Map<string, ProductImage>;
   /** 신령계 배경 그림. 없으면 기동할 때 public 폴더를 훑는다 */
   sceneImages?: Map<string, ProductImage>;
+  /** 문이 열리는 영상. `null` 이면 밝히자마자 바로 안으로 들어간다 */
+  gateVideo?: ProductImage | null;
 }
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -111,7 +113,7 @@ const VIEWER_PATH = join(HERE, '..', '..', 'manse-viewer', 'index.html');
 function renderPage(
   checkout: CheckoutConfig | null, business: BusinessInfo, images: ReadonlySet<string>,
   hero = false, heroVideo = false, faces: ReadonlySet<string> = new Set(),
-  scenes: ReadonlySet<string> = new Set(),
+  scenes: ReadonlySet<string> = new Set(), gateVideo = false,
 ): string {
   // 조각은 아티팩트로 따로 쓰일 때를 위해 제 제목을 달고 다닌다.
   // 여기서는 <head> 가 이미 제목을 냈으므로, 본문에 제목이 두 개 되지 않게 걷어낸다
@@ -136,7 +138,7 @@ ${FOOTER_CSS}</style>
 </head>
 <body>
 ${renderHero(business, checkout !== null, hero, heroVideo)}
-${renderGate(business, scenes)}
+${renderGate(business, scenes, gateVideo)}
 ${renderSpiritRow(faces)}
 ${renderProducts(checkout !== null, images, faces, false, scenes)}
 ${renderTryHeading()}
@@ -256,6 +258,42 @@ function validateReading(body: any): ReadingRequest {
   return body as ReadingRequest;
 }
 
+/**
+ * 영상 보내기.
+ *
+ * 브라우저는 영상을 통째로 받지 않고 **조각내어** 요청한다. 그 요청을 못 받아
+ * 주면 재생이 아예 시작되지 않는다. 첫 화면 영상과 문 여는 영상이 같은 규칙을
+ * 쓰므로 한 곳에 둔다 — 두 곳에 두면 언젠가 한쪽만 고친다.
+ */
+function sendVideo(req: IncomingMessage, res: ServerResponse, file: ProductImage): void {
+  const body = readFileSync(file.path);
+  const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
+  const head = {
+    'Content-Type': file.type,
+    'Cache-Control': 'public, max-age=3600',
+    'Accept-Ranges': 'bytes',
+  };
+  if (!range) {
+    res.writeHead(200, { ...head, 'Content-Length': body.length });
+    res.end(body);
+    return;
+  }
+  const start = range[1] ? Number(range[1]) : 0;
+  const end = range[2] ? Math.min(Number(range[2]), body.length - 1) : body.length - 1;
+  if (!(start >= 0 && start <= end && end < body.length)) {
+    res.writeHead(416, { ...head, 'Content-Range': `bytes */${body.length}` });
+    res.end();
+    return;
+  }
+  const slice = body.subarray(start, end + 1);
+  res.writeHead(206, {
+    ...head,
+    'Content-Range': `bytes ${start}-${end}/${body.length}`,
+    'Content-Length': slice.length,
+  });
+  res.end(slice);
+}
+
 export function createApi(deps: ApiDeps) {
   const reports: ReportBox = deps.reportStore ?? new MemoryReportBox();
 
@@ -271,12 +309,14 @@ export function createApi(deps: ApiDeps) {
   const haveFace = new Set(spirits.keys());
   const scenes = deps.sceneImages ?? findSceneImages();
   const haveScene = new Set(scenes.keys());
+  const gateVideo = deps.gateVideo !== undefined ? deps.gateVideo : findGateVideo();
 
   const routes: Record<string, (req: IncomingMessage, res: ServerResponse, id: string) => Promise<void>> = {
     /** 화면. 결제 설정을 주입해 내려준다 */
     'GET /': async (_req, res) => {
       const html = renderPage(
         checkout, business, haveImage, hero !== null, heroVideo !== null, haveFace, haveScene,
+        gateVideo !== null,
       );
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
@@ -367,6 +407,12 @@ export function createApi(deps: ApiDeps) {
       res.end(body);
     },
 
+    /** 문이 열리는 영상. 첫 화면 영상과 같은 방식으로 조각내어 준다 */
+    'GET /video/gate-open': async (req, res) => {
+      if (!gateVideo) throw new HttpError(404, '문 여는 영상이 없습니다.');
+      sendVideo(req, res, gateVideo);
+    },
+
     /** 신령계 배경. 신령 얼굴과 같은 방식이다 */
     'GET /img/scene/:id': async (_req, res, id) => {
       const image = scenes.get(id);
@@ -400,32 +446,7 @@ export function createApi(deps: ApiDeps) {
      */
     'GET /video/hero': async (req, res) => {
       if (!heroVideo) throw new HttpError(404, '첫 화면 영상이 없습니다.');
-      const body = readFileSync(heroVideo.path);
-      const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
-      const head = {
-        'Content-Type': heroVideo.type,
-        'Cache-Control': 'public, max-age=3600',
-        'Accept-Ranges': 'bytes',
-      };
-      if (!range) {
-        res.writeHead(200, { ...head, 'Content-Length': body.length });
-        res.end(body);
-        return;
-      }
-      const start = range[1] ? Number(range[1]) : 0;
-      const end = range[2] ? Math.min(Number(range[2]), body.length - 1) : body.length - 1;
-      if (!(start >= 0 && start <= end && end < body.length)) {
-        res.writeHead(416, { ...head, 'Content-Range': `bytes */${body.length}` });
-        res.end();
-        return;
-      }
-      const slice = body.subarray(start, end + 1);
-      res.writeHead(206, {
-        ...head,
-        'Content-Range': `bytes ${start}-${end}/${body.length}`,
-        'Content-Length': slice.length,
-      });
-      res.end(slice);
+      sendVideo(req, res, heroVideo);
     },
 
     'GET /products': async (_req, res) =>
