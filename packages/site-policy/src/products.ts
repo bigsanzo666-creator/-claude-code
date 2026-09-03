@@ -302,7 +302,7 @@ ${SPIRITS_CSS}`;
  */
 export function renderProducts(
   ready: boolean, images: ProductImages = NO_IMAGES, faces: SpiritImages = NO_FACES,
-  prices = true,
+  prices = true, scenes: ReadonlySet<string> = new Set(),
 ): string {
   const groups = CATEGORIES.map((c) => {
     const all = productsIn(c.key);
@@ -315,7 +315,7 @@ export function renderProducts(
     // 갈래마다 주인이 있다. 신령이 질문을 던지고, 그 아래에 그 신령의 물건이 놓인다
     const spirit = spiritOf(c.key);
     const head = spirit
-      ? renderSpiritHead(spirit, c.question, faces)
+      ? renderSpiritHead(spirit, c.question, faces, scenes)
       : `<h3 class="pr-q">${esc(c.question)}</h3>`;
     return `<section class="pr-group">
 <p class="pr-cat">${esc(c.key)}</p>
@@ -364,7 +364,7 @@ ${prices ? `<p class="pr-note">
 /** 상품만 담은 독립 페이지. 심사가 곧바로 열어볼 수 있는 주소를 만든다 */
 export function renderProductsPage(
   info: BusinessInfo, ready: boolean, footer: string, images: ProductImages = NO_IMAGES,
-  faces: SpiritImages = NO_FACES,
+  faces: SpiritImages = NO_FACES, scenes: ReadonlySet<string> = new Set(),
 ): string {
   const site = show(info, 'serviceName', '서비스 이름');
   return `<!doctype html>
@@ -385,7 +385,7 @@ ${PRODUCTS_CSS}
 </style>
 </head>
 <body>
-${renderProducts(ready, images, faces)}
+${renderProducts(ready, images, faces, true, scenes)}
 <div style="height:24px"></div>
 ${footer}
 </body>

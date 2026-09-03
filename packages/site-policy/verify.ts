@@ -305,6 +305,16 @@ section('9. 신령 — 칸마다 주인이 있는가');
   check('신령 소개에 맡은 칸이 적힌다',
     SPIRITS.every((s) => row.includes(`>${s.keeps}<`)));
 
+  // 신령은 제 터에 선다. 터 그림이 없으면 종이색 바탕에 그대로 선다
+  const onGround = renderSpiritHead(SPIRITS[0]!, '질문', new Set(), new Set(['flower']));
+  check('신령이 제 터 위에 선다',
+    onGround.includes('sp-here') && onGround.includes('--nb-place:url(/img/scene/flower)'));
+  check('터 이름을 함께 적는다', onGround.includes('꽃터'));
+  check('터 그림이 없으면 배경을 걸지 않는다',
+    !renderSpiritHead(SPIRITS[0]!, '질문').includes('--nb-place:url'));
+  check('터도 천천히 움직인다', SPIRITS_CSS.includes('nbDrift'));
+  check('터 위 글자가 읽히도록 베일을 깐다', SPIRITS_CSS.includes('.sp-here .sp-veil'));
+
   const head = renderSpiritHead(SPIRITS[0]!, CATEGORIES[0]!.question);
   check('갈래 머리에서 신령이 질문을 던진다',
     head.includes(CATEGORIES[0]!.question) && head.includes(SPIRITS[0]!.greet));

@@ -204,13 +204,23 @@ function face(spirit: Spirit, faces: SpiritImages, size: number): string {
  * 「이 사람, 어떨까?」라는 글자만 있는 것과, 꽃신령이 그 말을 하고 있는 것은
  * 다른 화면이다.
  */
-export function renderSpiritHead(spirit: Spirit, question: string, faces: SpiritImages = NO_FACES): string {
-  return `<div class="sp-head nb-rise">
-  ${face(spirit, faces, 96)}
+export function renderSpiritHead(
+  spirit: Spirit, question: string, faces: SpiritImages = NO_FACES,
+  scenes: ReadonlySet<string> = new Set(),
+): string {
+  // 신령은 자기 터에 서 있다. 터 그림이 없으면 종이색 바탕에 그대로 선다
+  const ground = scenes.has(spirit.id)
+    ? ` style="--nb-place:url(/img/scene/${encodeURIComponent(spirit.id)})"` : '';
+  return `<div class="sp-head nb-rise${scenes.has(spirit.id) ? ' sp-here' : ''}"${ground}>
+  <div class="sp-ground" aria-hidden="true"></div>
+  <div class="sp-veil" aria-hidden="true"></div>
   <div class="sp-said">
-    <p class="sp-who">${esc(spirit.name)}</p>
-    <h3 class="pr-q">${esc(question)}</h3>
-    <p class="sp-line">${esc(spirit.greet)}</p>
+    ${face(spirit, faces, 96)}
+    <div class="sp-words">
+      <p class="sp-who">${esc(spirit.name)}<span class="sp-place"> · ${esc(spirit.place)}</span></p>
+      <h3 class="pr-q">${esc(question)}</h3>
+      <p class="sp-line">${esc(spirit.greet)}</p>
+    </div>
   </div>
 </div>`;
 }
@@ -276,11 +286,23 @@ export const SPIRITS_CSS = `
   transform:translateY(var(--sp-down,0)) scale(var(--sp-zoom,1))}
 .sp-seal{display:grid;place-items:center;font-family:var(--nb-serif);font-size:26px;color:var(--nb-gold)}
 
-/* 갈래 머리 — 신령이 질문을 던지고 있다 */
-.sp-head{display:flex;align-items:flex-start;gap:14px;margin:0 0 22px}
+/* 갈래 머리 — 신령이 자기 터에 서서 질문을 던지고 있다.
+   터 그림은 배경으로 깔고 그 위에 베일을 한 겹 덮는다. 안 덮으면 글자가 안 읽힌다 */
+.sp-head{position:relative;margin:0 0 22px}
+.sp-here{margin-left:-22px;margin-right:-22px;padding:26px 22px 24px;overflow:hidden}
+.sp-ground{display:none}
+.sp-here .sp-ground{display:block;position:absolute;inset:0;
+  background:var(--nb-paper) center 22%/cover no-repeat;background-image:var(--nb-place,none);
+  animation:nbDrift 34s ease-in-out infinite alternate}
+.sp-veil{display:none}
+.sp-here .sp-veil{display:block;position:absolute;inset:0;background:
+  linear-gradient(to bottom,var(--nb-veil-0),var(--nb-veil-1) 52%,var(--nb-paper) 98%)}
+.sp-said{position:relative;display:flex;align-items:flex-start;gap:14px;min-width:0}
+.sp-words{min-width:0}
+.sp-here .sp-said{padding-top:96px}
 .sp-head .sp-face{width:60px;height:60px}
 .sp-head .pr-q{margin:2px 0 6px}
-.sp-said{min-width:0}
+.sp-place{color:var(--nb-ink-3);letter-spacing:.06em}
 .sp-who{margin:0 0 2px;font-size:12px;letter-spacing:.2em;color:var(--nb-gold)}
 .sp-keeps{color:var(--nb-ink-3);letter-spacing:0}
 .sp-line{margin:0;font-size:14.5px;line-height:1.75;color:var(--nb-ink-2);word-break:keep-all}
@@ -307,7 +329,9 @@ export const SPIRITS_CSS = `
 .sp-intro{margin:0;font-size:12.5px;line-height:1.7;color:var(--nb-ink-2);word-break:keep-all}
 
 @media (min-width:760px){
-  .sp-head{gap:18px}
+  .sp-said{gap:18px}
+  .sp-here{margin:0 0 26px;padding:34px 30px 30px;border:1px solid var(--nb-line-soft)}
+  .sp-here .sp-said{padding-top:120px}
   .sp-head .sp-face{width:76px;height:76px}
   .sp-title{font-size:28px}
   /* 넓은 화면에서는 일곱이 한눈에 들어온다. 밀지 않아도 된다 */

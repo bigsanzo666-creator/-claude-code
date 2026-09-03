@@ -138,7 +138,7 @@ ${FOOTER_CSS}</style>
 ${renderHero(business, checkout !== null, hero, heroVideo)}
 ${renderGate(business, scenes)}
 ${renderSpiritRow(faces)}
-${renderProducts(checkout !== null, images, faces, false)}
+${renderProducts(checkout !== null, images, faces, false, scenes)}
 ${renderTryHeading()}
 ${fragment}
 <style>${VIEWER_SKIN}</style>
@@ -430,7 +430,7 @@ export function createApi(deps: ApiDeps) {
 
     'GET /products': async (_req, res) =>
       sendHtml(res, renderProductsPage(
-        business, checkout !== null, renderFooter(business), haveImage, haveFace,
+        business, checkout !== null, renderFooter(business), haveImage, haveFace, haveScene,
       )),
 
     'GET /terms': async (_req, res) => sendHtml(res, renderTerms(business)),
