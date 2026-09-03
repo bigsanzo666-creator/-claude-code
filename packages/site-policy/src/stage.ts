@@ -387,7 +387,12 @@ body.st-locked{overflow:hidden}
 .sp-item:hover .sp-name{text-decoration:underline;text-underline-offset:3px}
 
 @media (min-width:760px){
-  .st-h{font-size:38px}
+  /* 그림과 영상이 전부 세로(784x1168)다. 넓은 화면에서 가로로 늘려 자르면
+     신령이 화면 밖으로 밀려나고, 신령계 지도의 자리도 그림과 어긋난다.
+     그래서 화면 가운데에 같은 비율의 세로 칸을 두고 그 안에서만 그린다 */
+  .st{left:50%;right:auto;transform:translateX(-50%);
+    width:min(100%,calc(100dvh * 784 / 1168))}
+  .st-h{font-size:34px}
   .wd-pin .st-face{width:72px;height:72px}
   .wd-tag b{font-size:14.5px}
   .wd-h{font-size:27px}
@@ -430,13 +435,24 @@ export const STAGE_SCRIPT = `<script>(function(){
   // 몇 MB 를 아끼려고 흐린 영상을 보여 줄 이유가 없다
   var pull=function(v,src,onReady){
     if(!v||thin)return;
+    var done=false;
+    // canplaythrough 만 기다리면 끝까지 받아질 때까지 그림 한 장으로 머문다.
+    // 첫 그림이 준비되는 순간(canplay) 바로 보여 주고 재생한다
+    var ready=function(){
+      if(done)return; done=true;
+      v.classList.add('on');
+      if(onReady)onReady();
+    };
     var go=function(){
+      v.preload='auto';
       v.src=src;
-      v.addEventListener('canplaythrough',function(){v.classList.add('on');if(onReady)onReady();},{once:true});
+      v.addEventListener('loadeddata',ready);
+      v.addEventListener('canplay',ready);
+      v.addEventListener('canplaythrough',ready);
       v.load();
     };
-    if('requestIdleCallback' in window)requestIdleCallback(go,{timeout:2000});
-    else addEventListener('load',function(){setTimeout(go,300);});
+    if('requestIdleCallback' in window)requestIdleCallback(go,{timeout:600});
+    else setTimeout(go,200);
   };
   var walk=$('stWalkVid'), open=$('stOpenVid');
   var walkReady=false, openReady=false;
