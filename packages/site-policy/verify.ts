@@ -375,11 +375,13 @@ section('10. 들어가는 길 — 전체 화면');
   for (const id of ['stWalk', 'stGate', 'stOpen', 'stWorld', 'stSp-flower']) {
     check(`${id} 장면이 있다`, st.includes(`id="${id}"`));
   }
-  check('신령 일곱이 저마다 판을 갖는다', (st.match(/id="stSp-/g) ?? []).length === 7);
+  // 숫자를 박아 두면 신령이 늘 때마다 여기부터 깨진다. 신령 수를 따라간다
+  check('신령마다 저마다 판을 갖는다', (st.match(/id="stSp-/g) ?? []).length === SPIRITS.length);
   // 격자로 늘어놓으면 그냥 목록이다. 배경 그림 위에 자리마다 세운다
-  check('신령이 배경 그림 위 자리마다 선다', (st.match(/class="wd-pin"/g) ?? []).length === 7);
+  check('신령이 배경 그림 위 자리마다 선다',
+    (st.match(/class="wd-pin"/g) ?? []).length === SPIRITS.length);
   check('신령마다 자리가 다르다',
-    new Set((st.match(/left:[0-9.]+%;top:[0-9.]+%/g) ?? [])).size === 7);
+    new Set((st.match(/left:[0-9.]+%;top:[0-9.]+%/g) ?? [])).size === SPIRITS.length);
   // 위는 제목이, 아래는 무료 사주가 차지한다. 그 사이에만 세워야 안 겹친다
   check('제목·무료 사주와 겹치지 않는다',
     (st.match(/top:([0-9.]+)%/g) ?? []).every((t) => {
@@ -415,9 +417,19 @@ section('10. 들어가는 길 — 전체 화면');
     !renderStage(full, new Set(['gate'])).includes('st-vid'));
   check('그림이 없으면 배경을 걸지 않는다',
     !renderStage(full).includes('--st-shot:url'));
-  // 계산은 만세력 조각이 한다. 두 곳에서 계산하면 언젠가 두 값이 달라진다
-  check('덮개는 계산하지 않고 옮겨 담기만 한다',
-    STAGE_SCRIPT.includes("put('date',date)") && !/calculate|analyze/i.test(STAGE_SCRIPT));
+  // 계산은 만세력 조각이 한다. 두 곳에서 계산하면 언젠가 두 값이 달라진다.
+  // 덮개는 **제 손으로 세지 않고** 그 조각을 불러 쓴다
+  check('덮개는 밝힌 것을 아래 칸으로 옮겨 담는다', STAGE_SCRIPT.includes("put('date',date)"));
+  check('사주는 만세력 조각을 불러서 낸다',
+    STAGE_SCRIPT.includes('MS.calculate({date:date,time:hour||null})')
+    && STAGE_SCRIPT.includes('MS.analyze(ms)'));
+  check('덮개가 제 손으로 간지를 세지 않는다',
+    !/갑을병정|자축인묘|sexagenary|60갑자/.test(STAGE_SCRIPT));
+  // 생년월일은 신령에게 보내지 않는다. 신령이 말하는 데 필요한 것은
+  // 「무슨 날에 태어났는가」가 아니라 「그래서 어떤 사람인가」다
+  check('생년월일을 서버로 보내지 않는다',
+    /post\(\{spirit:id,facts:facts\(\)/.test(STAGE_SCRIPT)
+    && !/JSON\.stringify\([^)]*date:/.test(STAGE_SCRIPT));
   // 영상이 안 받아졌다고 넘겨 버리면 좋은 영상이 폰에서는 거의 안 보인다.
   // 그림을 먼저 깔고 단추를 준다 — 기다리는 사람도 없고 화질을 깎을 이유도 없다
   check('영상을 기다리느라 손님을 붙들지 않는다', st.includes('id="stGo"'));

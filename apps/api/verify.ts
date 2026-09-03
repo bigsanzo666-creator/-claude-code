@@ -371,8 +371,9 @@ const home = await page('/');
   for (const id of ['stWalk', 'stGate', 'stOpen', 'stWorld']) {
     check(`전체 화면에 ${id} 장면이 있다`, home.html.includes(`id="${id}"`));
   }
-  check('신령 일곱이 저마다 판을 갖는다',
-    (home.html.match(/id="stSp-/g) ?? []).length === 7);
+  // 숫자를 박아 두면 신령이 늘 때마다 여기부터 깨진다. 신령 수를 따라간다
+  check('신령마다 저마다 판을 갖는다',
+    (home.html.match(/id="stSp-/g) ?? []).length === SPIRITS.length);
   check('신령계에서 무료 사주를 먼저 건다', home.html.includes('id="stFree"'));
   check('문 앞에서 이름·태어난 날·태어난 시를 받는다',
     ['stName', 'stDate', 'stHour'].every((id) => home.html.includes(`id="${id}"`)));
@@ -438,6 +439,56 @@ const home = await page('/');
   // 못 재는 것을 재는 척하지 않는다. 지금은 손 모양까지다
   check('손금 선은 아직 직접 고르라고 밝힌다',
     v.includes('손금 선은 아직 직접 골라 주셔야 합니다'));
+}
+{
+  // 손님이 신령을 누르면 그 뒤로는 그 신령이 상담한다. 홈페이지가 설명하는 게 아니다
+  const v = home.html;
+  check('신령 판에 주고받는 칸이 있다', /<div class="tk" id="tk-mountain"/.test(v));
+  check('자바스크립트가 꺼져 있으면 상담 칸이 안 보인다',
+    /<div class="tk" id="tk-mountain"[\s\S]{0,200}?hidden>/.test(v));
+  check('신령마다 상담 칸이 하나씩', (v.match(/<div class="tk" id="tk-/g) ?? []).length === SPIRITS.length);
+  // 신령이 답만 하면 안내문이다. 되물어야 상담이다
+  check('되묻는 말을 담을 자리가 있다', v.includes('tk-ask'));
+  check('무엇을 답하지 않는지 화면에 적어 둔다',
+    v.includes('몸·죽음·투자·법으로 다투는 일은 답하지 않습니다'));
+
+  const facts = {
+    name: '민수', dayStem: '갑', dayElement: '목', eight: '갑자 을축 병인 정묘',
+    strong: true, topGod: '식상', lackGod: '관성', topElement: '목', lackElement: '금',
+    timeKnown: true,
+  };
+  // 손님이 앉으면 신령이 먼저 말을 건다
+  const hi = await api('POST', '/api/talk', { spirit: 'mountain', facts });
+  check('신령이 먼저 말을 건다', hi.status === 200 && hi.body.text.length > 20);
+  check('첫 인사에 여덟 글자가 들어간다', hi.body.text.includes('갑자 을축 병인 정묘'));
+
+  // 열쇠가 없어도 답이 나온다. 지금 이 집에는 열쇠가 없다
+  const one = await api('POST', '/api/talk',
+    { spirit: 'mountain', facts, ask: '엄마랑 자꾸 부딪혀요', turn: 0, history: [] });
+  check('열쇠가 없어도 신령이 답한다', one.status === 200 && one.body.text.length > 20);
+  check('모델을 안 불렀다', one.body.byModel === false);
+  check('신령이 되묻는다', typeof one.body.ask === 'string' && one.body.ask.length > 0);
+  check('남은 공짜 횟수를 알려 준다', one.body.left === 2);
+
+  // 세 번째에는 제대로 보라고 하고 상품으로 넘긴다
+  const last = await api('POST', '/api/talk',
+    { spirit: 'mountain', facts, ask: '그래서 어떻게 해요', turn: 2, history: [] });
+  check('세 번째에 상품으로 넘긴다', last.body.left === 0 && last.body.close.length > 0);
+  check('신령이 값을 부르지 않는다', !/원|₩/.test(last.body.close + last.body.text));
+  const over = await api('POST', '/api/talk',
+    { spirit: 'mountain', facts, ask: '한 번 더요', turn: 3, history: [] });
+  check('공짜를 다 쓰면 더 안 받는다', over.status === 429);
+
+  // 넘지 않는 선
+  const med = await api('POST', '/api/talk',
+    { spirit: 'mountain', facts, ask: '암 수술 받아야 할까요', turn: 0, history: [] });
+  check('몸 이야기는 의사에게 보낸다', med.body.text.includes('의사'));
+  const harm = await api('POST', '/api/talk',
+    { spirit: 'mountain', facts, ask: '죽고 싶어요', turn: 0, history: [] });
+  check('목숨 이야기에는 갈 곳을 알려 준다', harm.body.text.includes('109'));
+
+  const bad = await api('POST', '/api/talk', { spirit: '없는신령', facts });
+  check('모르는 신령은 거절한다', bad.status === 400);
 }
 check('첫 화면에도 사업자 정보가 붙는다', home.html.includes('220-81-62517'));
 check('첫 화면에서 정책·상품으로 링크', ['/products', '/terms', '/privacy', '/refund'].every((h) => home.html.includes(`href="${h}"`)));

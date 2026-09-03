@@ -51,7 +51,7 @@ export type ProductId =
  *
  * 순서가 곧 화면의 탭 순서다. 앞이 입구, 뒤가 차별점.
  */
-export type Category = '연애' | '재회' | '궁합' | '가족' | '나' | '돈과 일' | '시기';
+export type Category = '연애' | '재회' | '궁합' | '가족' | '나' | '삼합' | '돈과 일' | '시기';
 
 export interface Product {
   id: ProductId;
@@ -227,7 +227,7 @@ export const CATALOG: Record<ProductId, Product> = {
     priceKrw: 49000,
     description: '세 갈래를 같은 척도로 대조해, 일치하는 것과 엇갈리는 것을 가려 드립니다.',
     previewRatio: 0.12,
-    category: '나',
+    category: '삼합',
     hook: '겉으로 보이는 나와 속의 나는 같을까?',
   },
   /**
@@ -245,7 +245,7 @@ export const CATALOG: Record<ProductId, Product> = {
     priceKrw: 24000,
     description: '생년월일 없이 얼굴과 손만으로 봅니다. 두 갈래가 같은 말을 하는 곳과 엇갈리는 곳을 가려 씁니다.',
     previewRatio: 0.15,
-    category: '나',
+    category: '삼합',
     hook: '생년월일 없이도 볼 수 있을까?',
   },
   'saju-palm-report': {
@@ -254,7 +254,7 @@ export const CATALOG: Record<ProductId, Product> = {
     priceKrw: 29000,
     description: '태어날 때 정해진 것(사주)과 살면서 새겨진 것(손금)을 맞춰 봅니다.',
     previewRatio: 0.15,
-    category: '나',
+    category: '삼합',
     hook: '타고난 대로 살고 있을까?',
   },
   'saju-face-report': {
@@ -263,7 +263,7 @@ export const CATALOG: Record<ProductId, Product> = {
     priceKrw: 29000,
     description: '사주가 말하는 속과 얼굴이 말하는 겉을 대조합니다. 남들이 보는 나와 진짜 나의 거리를 씁니다.',
     previewRatio: 0.15,
-    category: '나',
+    category: '삼합',
     hook: '남들이 보는 나는 진짜 나일까?',
   },
 
@@ -324,6 +324,7 @@ export const CATEGORIES: { key: Category; question: string }[] = [
   { key: '궁합', question: '우리, 잘 맞을까?' },
   { key: '가족', question: '우리 아이는 어떤 아이일까?' },
   { key: '나', question: '나는 어떤 사람일까?' },
+  { key: '삼합', question: '셋이 같은 말을 할까?' },
   { key: '돈과 일', question: '먹고사는 일은 풀릴까?' },
   { key: '시기', question: '지금이 그때일까?' },
 ];

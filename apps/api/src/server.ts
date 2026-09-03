@@ -31,6 +31,9 @@ import {
   findProductImages, findHeroImage, findHeroVideo, findSpiritImages, findSceneImages,
   findGateVideo, findWalkVideo, findGateWebm, findWalkWebm, type ProductImage,
 } from './images.ts';
+import {
+  talk, opening, cleanAsk, cleanFacts, FREE_TURNS, personaOf, type TalkTurn,
+} from '../../../packages/talk/src/index.ts';
 import { buildPayload, KIND_OF, type ReadingRequest } from './payload.ts';
 import { buildPreview } from './preview.ts';
 
@@ -82,6 +85,15 @@ export interface ApiDeps {
   generate: ReportGenerator;
   /** 생성된 리포트 본문 보관. 없으면 메모리에 담는다 */
   reportStore?: ReportBox | null;
+  /**
+   * 신령이 모델로 말할 수 있는가.
+   *
+   * 열쇠가 없으면 `false` 다. 그래도 상담 칸은 그대로 돈다 — 대본이 답한다.
+   * 손님은 신령이 없는 집을 보지 않는다.
+   */
+  talkModel?: boolean;
+  /** 하루에 모델로 답할 수 있는 횟수. 넘으면 대본으로 내려간다 */
+  talkDailyLimit?: number;
   /** 포트원 상점 정보. 없으면 결제 기능이 꺼진 채로 뜬다 */
   checkout?: CheckoutConfig;
   /** 사업자 정보. 없으면 환경변수에서 읽는다 */
@@ -325,6 +337,26 @@ export function createApi(deps: ApiDeps) {
   const gateWebm = deps.gateWebm !== undefined ? deps.gateWebm : findGateWebm();
   const walkWebm = deps.walkWebm !== undefined ? deps.walkWebm : findWalkWebm();
 
+  /**
+   * 하루치 상담 예산.
+   *
+   * 상담은 손님이 누를 때마다 돈이 나간다. 광고가 잘못 터지거나 누가
+   * 재미로 두드리면 **하룻밤에 요금이 불어난다.** 그래서 하루 한도를 두고,
+   * 넘으면 모델을 안 부르고 대본으로 내려간다 — 화면은 그대로 돈다.
+   */
+  const talkLimit = deps.talkDailyLimit ?? Number(process.env.TALK_DAILY_LIMIT ?? 1500);
+  let talkDay = '';
+  let talkSpent = 0;
+  const today = (): string => new Date().toISOString().slice(0, 10);
+  function overTalkBudget(): boolean {
+    if (talkDay !== today()) { talkDay = today(); talkSpent = 0; }
+    return talkSpent >= talkLimit;
+  }
+  function spendTalk(): void {
+    if (talkDay !== today()) { talkDay = today(); talkSpent = 0; }
+    talkSpent += 1;
+  }
+
   const routes: Record<string, (req: IncomingMessage, res: ServerResponse, id: string) => Promise<void>> = {
     /** 화면. 결제 설정을 주입해 내려준다 */
     'GET /': async (_req, res) => {
@@ -539,6 +571,52 @@ export function createApi(deps: ApiDeps) {
         amountKrw: order.amountKrw,
         notice: WITHDRAWAL_NOTICE,
       });
+    },
+
+    /**
+     * 신령과 주고받기.
+     *
+     * 손님이 신령을 누르면 그 뒤로는 **그 신령이 상담한다.** 홈페이지가
+     * 설명하는 것이 아니다.
+     *
+     * 계산은 여기서 하지 않는다. 사주는 이미 화면이 만세력 조각으로 계산해
+     * 두었고, 여기 오는 것은 그 결과(어떤 사람인가)뿐이다. 생년월일 자체는
+     * 오지 않는다 — 신령이 말하는 데 필요하지 않다.
+     */
+    'POST /api/talk': async (req, res) => {
+      const body = await readJson(req);
+      const spiritId = typeof body.spirit === 'string' ? body.spirit : '';
+      if (!personaOf(spiritId)) throw new HttpError(400, '모르는 신령입니다.');
+
+      const facts = cleanFacts(body.facts);
+      const ask = cleanAsk(body.ask);
+      // 손님이 아직 아무 말도 안 했으면 신령이 먼저 건다
+      if (!ask) {
+        const first = opening(spiritId, facts);
+        send(res, 200, { ...first, left: FREE_TURNS, close: '', byModel: false });
+        return;
+      }
+
+      const turn = Number.isFinite(body.turn) ? Math.floor(body.turn as number) : 0;
+      if (turn >= FREE_TURNS) throw new HttpError(429, '공짜로 주고받는 횟수를 다 쓰셨습니다.');
+
+      // 보내온 지난 대화를 그대로 믿지 않는다. 길이와 개수를 잘라서 쓴다
+      const history: TalkTurn[] = Array.isArray(body.history)
+        ? (body.history as unknown[]).slice(-FREE_TURNS * 2).map((t) => {
+          const o = (t ?? {}) as Record<string, unknown>;
+          return {
+            who: o.who === 'spirit' ? ('spirit' as const) : ('guest' as const),
+            text: cleanAsk(o.text),
+          };
+        }).filter((t) => t.text)
+        : [];
+
+      const result = await talk({ spiritId, facts, ask, history, turn }, {
+        useModel: deps.talkModel === true,
+        overBudget: overTalkBudget(),
+      });
+      if (result.byModel) spendTalk();
+      send(res, 200, result);
     },
 
     /** 결제창을 띄우기 직전 */

@@ -98,6 +98,7 @@ if (payable && !databaseUrl) {
 console.log('[api] 기동 상태');
 console.log(`  결제      ${payable ? '켜짐' : '꺼짐 (포트원 설정 없음)'}`);
 console.log(`  리포트    ${hasModelKey ? '켜짐' : '꺼짐 (API 키 없음)'}`);
+console.log(`  신령 상담  ${hasModelKey ? '모델' : '대본 (API 키 없음 — 화면은 그대로 돕니다)'}`);
 console.log(`  저장소    ${storeKind}`);
 console.log(`  사업자정보 ${missing.length ? `미입력 ${missing.length}건` : '완비'}`);
 
@@ -144,6 +145,8 @@ startApi({
   walkVideo,
   orders,
   reportStore,
+  // 열쇠가 없으면 신령은 대본으로 말한다. 상담 칸이 비지는 않는다
+  talkModel: hasModelKey,
   generate: hasModelKey
     ? async ({ kind, data, subject }) => generateReport({ kind: kind as any, data, subject }, { cache })
     : standbyGenerate,

@@ -201,6 +201,8 @@ const SPOTS: Record<string, { x: number; y: number }> = {
   mirror: { x: 50, y: 50 },     // 가운데 — 맑은 샘
   jar: { x: 20, y: 66 },        // 왼쪽 아래 — 곳간과 항아리
   moon: { x: 79, y: 70 },       // 오른쪽 아래 — 달 비친 연못
+  // 돌길 한가운데. 셋을 겹쳐 보는 신령이라 어느 터에도 치우치지 않는다
+  cross: { x: 50, y: 26 },      // 가운데 위 — 돌계단 길
 };
 
 /**
@@ -265,6 +267,29 @@ function renderSpiritStage(
         </div>
       </div>
       <p class="st-sub">${esc(sp.greet)}</p>
+
+      <!--
+        신령과 주고받는 자리.
+
+        여기가 없으면 손님은 「홈페이지가 설명해 주는」 화면을 본다. 신령을
+        눌러 들어왔는데 또 표가 나오면, 신령은 그냥 그림이 된다.
+        그래서 신령이 먼저 말을 걸고, 손님이 답하고, 신령이 되묻는다.
+
+        자바스크립트가 꺼져 있으면 이 칸은 통째로 안 보이고 아래 목록만
+        남는다 — 손님이 못 하게 되는 일은 없다.
+      -->
+      <div class="tk" id="tk-${esc(sp.id)}" data-sp="${esc(sp.id)}" hidden>
+        <div class="tk-log" role="log" aria-live="polite"></div>
+        <form class="tk-row">
+          <label class="tk-l" for="tk-in-${esc(sp.id)}">${esc(sp.name)}에게 물어보기</label>
+          <input class="tk-in" id="tk-in-${esc(sp.id)}" type="text" maxlength="300"
+            autocomplete="off" placeholder="여기에 쓰시면 ${esc(sp.name)}이 답합니다">
+          <button class="tk-go" type="submit">묻기</button>
+        </form>
+        <p class="tk-note">${esc(sp.name)}이 하는 말은 손님의 사주에서 나온 것입니다.
+        몸·죽음·투자·법으로 다투는 일은 답하지 않습니다.</p>
+      </div>
+
       <div class="sp-list">
 ${items}
       </div>
@@ -411,6 +436,34 @@ body.st-locked{overflow:hidden}
 .sp-hook{display:block;font-size:12.5px;color:var(--nb-gold);margin-bottom:4px}
 .sp-item .sp-name{display:block;font-family:var(--nb-serif);font-size:18px;word-break:keep-all}
 .sp-item:hover .sp-name{text-decoration:underline;text-underline-offset:3px}
+
+/* 신령과 주고받는 자리 */
+.tk{margin:0 0 22px}
+.tk[hidden]{display:none}
+.tk-log{display:grid;gap:10px;margin:0 0 14px}
+.tk-say{padding:13px 15px;font-size:14.5px;line-height:1.85;word-break:keep-all;
+  border:1px solid var(--nb-line-soft);background:var(--nb-paper-2)}
+/* 신령의 말은 왼쪽, 손님의 말은 오른쪽. 누가 한 말인지 한눈에 갈린다 */
+.tk-me{justify-self:end;max-width:82%;background:var(--nb-ink);color:var(--nb-paper-2);
+  border-color:var(--nb-ink)}
+.tk-ask{display:block;margin:8px 0 0;color:var(--nb-gold);font-family:var(--nb-serif);font-size:15.5px}
+.tk-wait{color:var(--nb-ink-3);font-style:italic}
+.tk-row{display:flex;gap:8px;align-items:stretch}
+.tk-l{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.tk-in{flex:1 1 auto;min-width:0;padding:13px;font:16px/1.4 var(--nb-sans);
+  color:var(--nb-ink);background:var(--nb-paper-2);border:1px solid var(--nb-line);
+  border-radius:0;appearance:none}
+.tk-in:focus{outline:2px solid var(--nb-gold);outline-offset:-2px}
+.tk-go{flex:0 0 auto;padding:0 20px;border:1px solid var(--nb-ink);background:var(--nb-ink);
+  color:var(--nb-paper-2);font:500 15px var(--nb-sans);cursor:pointer}
+.tk-go:hover{background:transparent;color:var(--nb-ink)}
+.tk-go[disabled]{opacity:.45;cursor:default}
+.tk-note{margin:10px 0 0;font-size:12px;line-height:1.7;color:var(--nb-ink-3);word-break:keep-all}
+@media (prefers-color-scheme:dark){
+  .tk-me{background:var(--nb-gold);border-color:var(--nb-gold);color:#131A26}
+  .tk-go{background:var(--nb-gold);border-color:var(--nb-gold);color:#131A26}
+  .tk-go:hover{background:transparent;color:var(--nb-gold)}
+}
 
 @media (min-width:760px){
   /* 그림과 영상이 전부 세로(784x1168)다. 넓은 화면에서 가로로 늘려 자르면
@@ -639,8 +692,108 @@ export const STAGE_SCRIPT = `<script>(function(){
   stage.addEventListener('click',function(e){
     var card=e.target.closest('.wd-pin');
     if(card){ mark('stSp-'+card.dataset.sp); show('stSp-'+card.dataset.sp);
-      var s=$('stSp-'+card.dataset.sp); if(s)s.scrollTop=0; return; }
+      var s=$('stSp-'+card.dataset.sp); if(s)s.scrollTop=0;
+      openTalk(card.dataset.sp); return; }
     if(e.target.closest('[data-back]')){ history.back(); }
+  });
+
+  /* ─── 신령과 주고받기 ────────────────────────────────────────────
+   *
+   * 손님이 신령을 누르면 그 신령이 먼저 말을 건다. 손님이 답하면 신령이
+   * 받아서 답하고 되묻는다. 세 번까지 공짜다.
+   *
+   * 사주 계산은 **여기서 한다** — 만세력 조각이 이미 이 화면에 실려 있다.
+   * 서버로는 계산 결과(어떤 사람인가)만 간다. 생년월일은 안 보낸다.
+   */
+  var told2={};   // 신령마다 몇 번 주고받았는가
+  var logs={};    // 신령마다 지금까지 주고받은 말
+
+  function facts(){
+    var name=($('stName')&&$('stName').value.trim())||'';
+    var date=$('stDate')&&$('stDate').value;
+    var hour=$('stHour')&&$('stHour').value;
+    var out={name:name,dayStem:'',dayElement:'',eight:'',strong:false,
+      topGod:'',lackGod:'',topElement:'',lackElement:'',timeKnown:!!hour};
+    if(!date||!window.MS||!MS.calculate||!MS.analyze)return out;
+    try{
+      var ms=MS.calculate({date:date,time:hour||null});
+      var an=MS.analyze(ms);
+      var ps=[ms.year,ms.month,ms.day,ms.hour];
+      out.eight=ps.filter(Boolean).map(function(x){return x.stem+x.branch;}).join(' ');
+      out.dayStem=ms.day.stem;
+      out.dayElement=an.dayMaster.element;
+      out.strong=an.strength.verdict==='신강';
+      var g=an.godCounts, keys=Object.keys(g);
+      keys.sort(function(a,b){return g[b]-g[a];});
+      out.topGod=keys[0]||'';
+      out.lackGod=(an.missingGroups&&an.missingGroups[0])||keys[keys.length-1]||'';
+      var el=(an.elements||[]).slice().sort(function(a,b){return b.weight-a.weight;});
+      out.topElement=(el[0]&&el[0].element)||'';
+      out.lackElement=(an.missingElements&&an.missingElements[0])||'';
+    }catch(err){ /* 못 재면 신령은 아는 것 없이 말한다 */ }
+    return out;
+  }
+
+  function bubble(box,who,text,ask){
+    var d=document.createElement('div');
+    d.className='tk-say'+(who==='me'?' tk-me':'');
+    d.textContent=text;
+    if(ask){ var a=document.createElement('b'); a.className='tk-ask'; a.textContent=ask;
+      d.appendChild(a); }
+    box.appendChild(d);
+    return d;
+  }
+
+  function post(body,done,fail){
+    fetch('/api/talk',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body)})
+      .then(function(r){ return r.ok?r.json():Promise.reject(r); })
+      .then(done)['catch'](fail);
+  }
+
+  function openTalk(id){
+    var box=$('tk-'+id); if(!box||box.dataset.on)return;
+    box.dataset.on='1'; box.hidden=false;
+    var log=box.querySelector('.tk-log');
+    logs[id]=[]; told2[id]=0;
+    var w=bubble(log,'sp','','');
+    w.className='tk-say tk-wait'; w.textContent='…';
+    post({spirit:id,facts:facts()},function(r){
+      w.className='tk-say'; w.textContent=r.text;
+      logs[id].push({who:'spirit',text:r.text});
+    },function(){ w.remove(); });
+  }
+
+  stage.addEventListener('submit',function(e){
+    var form=e.target.closest('.tk-row'); if(!form)return;
+    e.preventDefault();
+    var box=form.closest('.tk'), id=box.dataset.sp;
+    var input=form.querySelector('.tk-in'), go=form.querySelector('.tk-go');
+    var text=input.value.trim(); if(!text)return;
+    var log=box.querySelector('.tk-log');
+    bubble(log,'me',text,'');
+    logs[id].push({who:'guest',text:text});
+    input.value=''; input.disabled=true; go.disabled=true;
+    var w=bubble(log,'sp','…','');
+    w.className='tk-say tk-wait';
+    var turn=told2[id]||0;
+    post({spirit:id,facts:facts(),ask:text,history:logs[id],turn:turn},function(r){
+      w.className='tk-say'; w.textContent=r.text;
+      if(r.ask){ var a=document.createElement('b'); a.className='tk-ask'; a.textContent=r.ask;
+        w.appendChild(a); }
+      logs[id].push({who:'spirit',text:r.text});
+      told2[id]=turn+1;
+      if(r.close){
+        bubble(log,'sp',r.close,'');
+        form.remove();
+      } else {
+        input.disabled=false; go.disabled=false; input.focus();
+      }
+      box.scrollIntoView({block:'nearest'});
+    },function(){
+      w.className='tk-say'; w.textContent='지금은 답을 못 하겠구나. 잠시 뒤에 다시 물어 주렴.';
+      input.disabled=false; go.disabled=false;
+    });
   });
 
   var f=$('stForm');
