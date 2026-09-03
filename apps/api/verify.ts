@@ -424,6 +424,21 @@ const home = await page('/');
   check('파일칸을 눈에서만 감춘다', !v.includes('id="facePhoto" accept="image/*" hidden'));
   check('사진 값도 손으로 고칠 수 있다', v.includes('syncFaceForm'));
 }
+{
+  // 손 사진도 얼굴과 같은 약속을 지킨다 — 기기 밖으로 안 나간다
+  const v = home.html;
+  check('사진 고르는 칸이 손금 화면에도 있다', v.includes('id="palmPhoto"'));
+  check('손 사진을 우리 서버로 올리지 않는다',
+    !/palmPhoto[\s\S]{0,4000}?(FormData|new XMLHttpRequest)/.test(v));
+  check('손 점 찍는 도구도 누를 때 받는다', v.includes('hand_landmarker.task'));
+  check('손도 오래 걸리면 포기하고 알려 준다',
+    /loadHandPicker[\s\S]{0,1600}?FACE_WAIT_MS/.test(v));
+  check('손 파일칸도 눈에서만 감춘다', !v.includes('id="palmPhoto" accept="image/*" hidden'));
+  check('손 모양 값도 손으로 고칠 수 있다', v.includes('syncPalmForm'));
+  // 못 재는 것을 재는 척하지 않는다. 지금은 손 모양까지다
+  check('손금 선은 아직 직접 고르라고 밝힌다',
+    v.includes('손금 선은 아직 직접 골라 주셔야 합니다'));
+}
 check('첫 화면에도 사업자 정보가 붙는다', home.html.includes('220-81-62517'));
 check('첫 화면에서 정책·상품으로 링크', ['/products', '/terms', '/privacy', '/refund'].every((h) => home.html.includes(`href="${h}"`)));
 // 첫 화면에서 값부터 보이면 손님이 물러선다. 무엇을 봐 주는지만 보여 준다
