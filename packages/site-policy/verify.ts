@@ -398,8 +398,12 @@ section('10. 들어가는 길 — 전체 화면');
   // 계산은 만세력 조각이 한다. 두 곳에서 계산하면 언젠가 두 값이 달라진다
   check('덮개는 계산하지 않고 옮겨 담기만 한다',
     STAGE_SCRIPT.includes("put('date',date)") && !/calculate|analyze/i.test(STAGE_SCRIPT));
-  check('못 틀거나 오래 걸리면 기다리지 않는다',
-    STAGE_SCRIPT.includes('setTimeout(once,') && STAGE_SCRIPT.includes('if(!walkReady)toGate()'));
+  // 영상이 안 받아졌다고 넘겨 버리면 좋은 영상이 폰에서는 거의 안 보인다.
+  // 그림을 먼저 깔고 단추를 준다 — 기다리는 사람도 없고 화질을 깎을 이유도 없다
+  check('영상을 기다리느라 손님을 붙들지 않는다', st.includes('id="stGo"'));
+  check('안 받아졌다고 장면을 넘겨 버리지도 않는다',
+    !STAGE_SCRIPT.includes('if(!walkReady)toGate()'));
+  check('문 여는 영상은 오래 걸리면 기다리지 않는다', STAGE_SCRIPT.includes('setTimeout(once,'));
   check('움직임을 꺼 둔 손님에게는 틀지 않는다', STAGE_SCRIPT.includes('prefers-reduced-motion'));
 
   // 폰에서 뒤로가기는 제일 많이 누르는 단추다. 우리 화면은 주소가 안 바뀌므로

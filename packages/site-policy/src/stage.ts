@@ -454,8 +454,18 @@ export const STAGE_SCRIPT = `<script>(function(){
   };
   if(walk)walk.addEventListener('ended',toGate,{once:true});
   var go=$('stGo'); if(go)go.addEventListener('click',toGate);
-  // 영상이 없거나 못 받으면 오래 세워 두지 않는다
-  setTimeout(function(){ if(!walkReady)toGate(); }, thin?0:2600);
+  /*
+   * 영상이 아직 안 받아졌다고 **넘겨 버리지 않는다.**
+   *
+   * 넘겨 버리면 좋은 영상이 있어도 폰에서는 거의 안 보인다. 그렇다고
+   * 다 받을 때까지 붙들면 손님이 기다린다.
+   *
+   * 그래서 **그림을 먼저 깔고 단추를 준다.** 손님은 언제든 「문 앞으로」를
+   * 눌러 갈 수 있고, 그동안 영상이 다 받아지면 조용히 겹쳐 재생된다.
+   * 기다리는 사람도 없고, 화질을 깎을 이유도 없다.
+   *
+   * 영상을 아예 못 받는 경우(데이터 절약·느린 연결)에는 그림 한 장만 남는다.
+   */
 
   var put=function(id,v){
     var el=$(id); if(!el)return false;
