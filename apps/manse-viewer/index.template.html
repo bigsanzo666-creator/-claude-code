@@ -108,6 +108,13 @@ input[type=checkbox],input[type=radio]{width:auto;accent-color:var(--seal);margi
 .track{height:8px;background:var(--rule-soft);border-radius:1px;overflow:hidden}
 .fill{height:100%;border-radius:1px;transition:width .35s cubic-bezier(.2,.7,.3,1)}
 .bar .n{text-align:right;font-family:"IBM Plex Mono",monospace;color:var(--ink-2);font-size:.8rem}
+/* 십신은 이름 아래에 쉬운 말이 한 줄 더 붙는다. 오행과 같은 2.2rem 칸에 밀어 넣으면
+   「혼자 / 밀고 / 나가 / 는 힘」처럼 넉 줄로 접힌다. 그래서 이름을 한 줄 위로 올린다 */
+.bar.wide{grid-template-columns:1fr auto;gap:.3rem .7rem}
+.bar.wide > .bl{grid-column:1/-1;line-height:1.5}
+.bar.wide .bl .gl-n{display:inline;margin-left:.45rem}
+.bar.wide .track{grid-column:1}
+.bar.wide .n{grid-column:2}
 
 /* 근거 */
 dl.meta{margin:0;display:grid;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft)}
@@ -511,8 +518,8 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     const max = Math.max(...groups.map((g) => an.strength.scores[g]));
     return groups.map((g) => {
       const v = an.strength.scores[g];
-      return '<div class="bar"><span style="font-weight:500">' + g +
-        '<span class="gl-n" style="display:block">' + esc(GROUP_PLAIN[g] || '') + '</span></span>' +
+      return '<div class="bar wide"><span class="bl" style="font-weight:500">' + g +
+        '<span class="gl-n">' + esc(GROUP_PLAIN[g] || '') + '</span></span>' +
         '<div class="track"><div class="fill" style="width:' + (max ? (v / max) * 100 : 0).toFixed(1) + '%;background:var(--ink-2)"></div></div>' +
         '<span class="n">' + v.toFixed(0) + '</span></div>';
     }).join('');

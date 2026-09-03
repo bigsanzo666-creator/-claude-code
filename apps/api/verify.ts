@@ -366,6 +366,13 @@ const home = await page('/');
   // 문에서 이미 밝혔는데 또 물으면 손님은 같은 일을 두 번 한다
   check('문을 열면 하나씩 묻는 화면이 걷힌다',
     home.html.includes('NB_SKIP_WIZARD'));
+
+  // 십신 이름 옆에 쉬운 말이 한 줄 더 붙는다. 오행과 같은 좁은 칸에 밀어 넣으면
+  // 「혼자 / 밀고 / 나가 / 는 힘」처럼 넉 줄로 접힌다
+  check('십신 막대는 이름을 한 줄 위로 올린다',
+    home.html.includes('bar wide') && home.html.includes('.bar.wide > .bl{grid-column:1/-1'));
+  check('오행 막대는 그대로 한 줄이다',
+    /'<div class="bar"><span class="e-'/.test(home.html));
 }
 {
   // 얼굴 사진은 생체정보다. 서버로 보내는 순간 보관·파기·동의 문제가 전부 따라붙는다.
