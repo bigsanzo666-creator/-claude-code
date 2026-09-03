@@ -208,11 +208,11 @@ export const GATE_SCRIPT = `<script>(function(){
 export const GATE_CSS = `
 .gate{position:relative;overflow:hidden;padding:0;
   background:var(--nb-paper) center top/cover no-repeat;background-image:var(--nb-gate,none)}
-/* 그림 위에 글자가 올라간다. 베일을 너무 두껍게 깔면 그림이 없느니만 못하고,
-   너무 얇으면 글자가 안 읽힌다. 위는 얇게(그림이 보이게), 아래로 갈수록 두껍게 */
+/* 문 그림은 빛이 세다. 글자를 그 위에 얹으면 안 읽힌다.
+   그래서 그림은 **위쪽 띠로만** 쓰고, 글자가 앉는 자리부터는 종이색으로 덮는다 */
 .gate-veil{position:absolute;inset:0;background:
-  linear-gradient(to bottom,var(--nb-veil-0),var(--nb-veil-1) 46%,var(--nb-paper) 97%)}
-.gate-in{position:relative;padding-top:120px;padding-bottom:56px}
+  linear-gradient(to bottom,var(--nb-veil-0),var(--nb-veil-1) 16%,var(--nb-paper) 34%)}
+.gate-in{position:relative;padding-top:168px;padding-bottom:56px}
 .gate-kicker{margin:0 0 12px;font-size:12px;letter-spacing:.26em;color:var(--nb-gold)}
 .gate-h{font-family:var(--nb-serif);font-weight:500;font-size:26px;line-height:1.55;
   letter-spacing:-.01em;word-break:keep-all;margin:0 0 12px}
@@ -236,7 +236,7 @@ export const GATE_CSS = `
 .gate-skip{margin:18px 0 0;font-size:13px;color:var(--nb-ink-3)}
 .gate-skip a{color:var(--nb-gold)}
 @media (min-width:760px){
-  .gate-in{padding-top:170px;padding-bottom:80px}
+  .gate-in{padding-top:250px;padding-bottom:80px}
   .gate-h{font-size:36px}
 }
 @media (prefers-color-scheme:dark){
