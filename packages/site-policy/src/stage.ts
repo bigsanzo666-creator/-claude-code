@@ -441,9 +441,17 @@ export const STAGE_SCRIPT = `<script>(function(){
   var stage=document.getElementById('stage');
   if(!stage)return;
   var $=function(id){return document.getElementById(id);};
-  var calm=matchMedia('(prefers-reduced-motion: reduce)').matches;
   var c=navigator.connection;
-  var thin=calm||(c&&(c.saveData||/2g/.test(c.effectiveType||'')));
+  /*
+   * 영상을 버리는 조건은 **데이터를 아끼는 손님** 하나뿐이다.
+   *
+   * 예전에는 「화면 움직임 줄이기」를 켠 손님에게도 영상을 버렸다.
+   * 그런데 그 설정은 윈도우·맥에서 흔하게 켜져 있고, 켜져 있으면
+   * 크롬이든 엣지든 전부 그림 한 장만 뜬다 — 우리 화면에서 제일 중요한
+   * 장면이 통째로 사라진다. 이 영상은 장식이 아니라 **내용**이다.
+   * 저 혼자 도는 장식(떠다니는 신령 표)은 CSS 에서 따로 멈춘다.
+   */
+  var thin=!!(c&&(c.saveData||/2g/.test(c.effectiveType||'')));
 
   // 자바스크립트가 살아 있을 때만 덮개를 세운다.
   // 꺼져 있으면 지금까지의 화면이 그대로 남는다 — 손님이 못 하게 되는 일은 없다

@@ -424,7 +424,16 @@ section('10. 들어가는 길 — 전체 화면');
   check('안 받아졌다고 장면을 넘겨 버리지도 않는다',
     !STAGE_SCRIPT.includes('if(!walkReady)toGate()'));
   check('문 여는 영상은 오래 걸리면 기다리지 않는다', STAGE_SCRIPT.includes('setTimeout(once,'));
-  check('움직임을 꺼 둔 손님에게는 틀지 않는다', STAGE_SCRIPT.includes('prefers-reduced-motion'));
+  // 「화면 움직임 줄이기」는 윈도우·맥에서 흔하게 켜져 있다. 그걸로 영상을
+  // 버리면 크롬이든 엣지든 그림 한 장만 뜬다 — 제일 중요한 장면이 통째로 사라진다.
+  // 이 영상은 장식이 아니라 내용이다
+  check('움직임을 꺼 뒀다고 영상을 버리지 않는다',
+    !STAGE_SCRIPT.includes("var calm=matchMedia('(prefers-reduced-motion: reduce)')"));
+  check('영상을 버리는 것은 데이터를 아낄 때뿐이다',
+    STAGE_SCRIPT.includes("var thin=!!(c&&(c.saveData||/2g/.test(c.effectiveType||'')));"));
+  // 저 혼자 도는 장식은 그때 멈춘다
+  check('떠다니는 신령 표는 그때 멈춘다',
+    STAGE_CSS.includes('@media (prefers-reduced-motion:reduce){ .wd-pin{animation:none} }'));
 
   // 폰에서 뒤로가기는 제일 많이 누르는 단추다. 우리 화면은 주소가 안 바뀌므로
   // 그냥 두면 한 번에 사이트가 꺼진다 — 잘못 눌러 들어온 손님이 그대로 나간다
