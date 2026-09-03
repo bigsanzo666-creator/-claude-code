@@ -378,7 +378,7 @@ section('10. 들어가는 길 — 전체 화면');
   check('제목·무료 사주와 겹치지 않는다',
     (st.match(/top:([0-9.]+)%/g) ?? []).every((t) => {
       const y = Number(t.slice(4, -1));
-      return y >= 18 && y <= 82;
+      return y >= 10 && y <= 74;
     }));
   check('신령계에서 무료 사주를 먼저 건다', st.includes('id="stFree"') && st.includes('무료'));
   // 아직 뭘 봐 주는지도 모르는 사람에게 계산부터 시키면 물러선다

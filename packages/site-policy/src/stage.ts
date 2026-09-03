@@ -156,13 +156,13 @@ ${SPIRITS.map((sp) => renderSpiritStage(sp, scenes, faces)).join('\n')}
  */
 const SPOTS: Record<string, { x: number; y: number }> = {
   // 신령계.jpg 안의 장소 자리에 맞춘 값이다. 그림을 새로 뽑으면 여기만 고친다
-  mountain: { x: 23, y: 22 },   // 왼쪽 위 — 산자락 기와집
-  wind: { x: 72, y: 20 },       // 오른쪽 위 — 누각 처마와 풍경
-  flower: { x: 18, y: 40 },     // 왼쪽 — 복사꽃 나무
-  thread: { x: 75, y: 42 },     // 오른쪽 — 붉은 실 걸린 나무
-  mirror: { x: 45, y: 53 },     // 가운데 — 맑은 샘
-  jar: { x: 20, y: 68 },        // 왼쪽 아래 — 곳간과 항아리
-  moon: { x: 77, y: 67 },       // 오른쪽 아래 — 달 비친 연못
+  mountain: { x: 21, y: 17 },   // 왼쪽 위 — 산자락 기와집
+  wind: { x: 79, y: 15 },       // 오른쪽 위 — 누각 처마와 풍경
+  flower: { x: 21, y: 34 },     // 왼쪽 — 복사꽃 나무
+  thread: { x: 82, y: 36 },     // 오른쪽 — 붉은 실 걸린 나무
+  mirror: { x: 50, y: 50 },     // 가운데 — 맑은 샘
+  jar: { x: 20, y: 66 },        // 왼쪽 아래 — 곳간과 항아리
+  moon: { x: 79, y: 70 },       // 오른쪽 아래 — 달 비친 연못
 };
 
 /**
@@ -188,11 +188,9 @@ function renderWorld(scenes: SceneImages, faces: SpiritImages): string {
     <div class="st-map">
 ${pins}
     </div>
-    <div class="wd-top">
+    <div class="wd-bottom">
       <p class="st-kicker" id="stHello">신령계</p>
       <h2 class="st-h wd-h">누구에게 <em>물어보시겠습니까</em></h2>
-    </div>
-    <div class="wd-bottom">
       <button type="button" class="wd-free" id="stFree">
         <span class="wd-free-t">먼저, 무료로 보는 내 사주</span>
         <span class="wd-free-go">공짜로 보기 →</span>
@@ -332,12 +330,13 @@ body.st-locked{overflow:hidden}
 .wd-tag b{font-family:var(--nb-serif);font-weight:500;font-size:13px;white-space:nowrap}
 .wd-tag i{font-style:normal;font-size:10.5px;letter-spacing:.12em;color:var(--nb-gold)}
 
-/* 제목이 두 줄이면 위쪽 신령을 덮는다. 한 줄로 짧게 두고 그림을 살린다 */
-.wd-top{position:absolute;left:0;right:0;top:0;padding:20px 24px 26px;pointer-events:none;
-  background:linear-gradient(to bottom,var(--nb-paper),var(--nb-veil-1) 50%,var(--nb-veil-0))}
-.wd-h{font-size:21px;margin:0;line-height:1.4;word-break:keep-all}
-.wd-bottom{position:absolute;left:0;right:0;bottom:0;padding:44px 20px 22px;
-  background:linear-gradient(to top,var(--nb-paper),var(--nb-veil-1) 55%,var(--nb-veil-0))}
+/* 제목을 아래에 둔다. 위에 두면 그림 위쪽의 기와집과 누각을 덮는다.
+   지도가 주인공이고 글자는 그 아래에서 거든다 */
+.wd-h{font-size:21px;margin:0 0 14px;line-height:1.4;word-break:keep-all;
+  max-width:520px;margin-left:auto;margin-right:auto}
+.wd-bottom{position:absolute;left:0;right:0;bottom:0;padding:56px 20px 22px;
+  background:linear-gradient(to top,var(--nb-paper) 44%,var(--nb-veil-1) 76%,var(--nb-veil-0))}
+.wd-bottom .st-kicker{max-width:520px;margin:0 auto 8px}
 .wd-free{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
   max-width:520px;margin:0 auto;padding:15px 20px;border:1px solid var(--nb-gold);
   background:var(--nb-paper-2);cursor:pointer;font:inherit;color:inherit;text-align:left}
