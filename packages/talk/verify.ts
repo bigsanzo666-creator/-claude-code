@@ -17,6 +17,7 @@ import {
   PERSONAS, missingPersonas, plainGod, plainElement, type TalkFacts,
 } from './src/index.ts';
 import { SPIRITS } from '../site-policy/src/spirits.ts';
+import { readFileSync } from 'node:fs';
 
 let passed = 0, failed = 0;
 const failures: string[] = [];
@@ -172,7 +173,17 @@ section('12. 모델이 막혀도 손님은 답을 받는다');
   check('대본이 받았다', r.byModel === false);
 }
 
-section('13. 한도를 넘으면 모델을 안 부른다');
+section('13. 모델 꾸러미가 없어도 서버는 뜬다');
+{
+  // 맨 위에서 불러오면 꾸러미가 빠진 날 서버가 아예 안 뜬다.
+  // 상담 하나 때문에 약관 페이지까지 같이 죽는다 — 전에 pg 로 같은 사고를 냈다
+  const src = readFileSync(new URL('./src/model.ts', import.meta.url), 'utf8');
+  check('모델 꾸러미는 쓸 때 불러온다',
+    !/^import Anthropic from/m.test(src) && src.includes("await import('@anthropic-ai/sdk')"));
+  check('타입만 맨 위에서 가져온다', /^import type Anthropic from/m.test(src));
+}
+
+section('14. 한도를 넘으면 모델을 안 부른다');
 {
   let called = 0;
   const spy = { messages: { create: async () => { called++; return { content: [] }; } } } as any;

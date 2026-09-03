@@ -13,7 +13,7 @@
  * 값을 부르기 시작하면 그때부터 상담이 아니라 호객이다.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import type Anthropic from '@anthropic-ai/sdk';
 import { type TalkFacts, plainGod, plainElement } from './facts.ts';
 import { PERSONAS } from './persona.ts';
 import { spiritById } from './persona.ts';
@@ -99,10 +99,22 @@ export interface AskOptions {
   model?: string;
 }
 
+/**
+ * 모델 꾸러미는 **쓸 때 불러온다.**
+ *
+ * 맨 위에서 불러오면, 꾸러미가 이미지에 안 들어간 날 **서버가 아예 안 뜬다.**
+ * 상담 하나 때문에 약관 페이지까지 같이 죽는 것이다 — 전에 `pg` 로 똑같은
+ * 사고를 한 번 냈다. 여기서 실패하면 대본이 받으면 그만이다.
+ */
+async function loadSdk(): Promise<new () => Anthropic> {
+  const mod = await import('@anthropic-ai/sdk');
+  return (mod.default ?? mod) as unknown as new () => Anthropic;
+}
+
 export async function modelReply(
   spiritId: string, facts: TalkFacts, history: TalkTurn[], options: AskOptions = {},
 ): Promise<ModelReply> {
-  const client = options.client ?? new Anthropic();
+  const client = options.client ?? new (await loadSdk())();
   // 대화가 길어져도 원가가 늘지 않게, 공짜 구간만큼만 들고 간다
   const kept = history.slice(-(FREE_TURNS * 2));
   const res = await client.messages.create({

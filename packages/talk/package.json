@@ -1,0 +1,11 @@
+{
+  "name": "@saju/talk",
+  "version": "0.1.0",
+  "description": "신령이 손님과 주고받는다. 열쇠가 없으면 대본이 답한다.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "verify": "node --experimental-strip-types verify.ts" },
+  "dependencies": { "@anthropic-ai/sdk": "^0.70.0" },
+  "license": "UNLICENSED"
+}
