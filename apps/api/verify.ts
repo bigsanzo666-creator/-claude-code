@@ -338,6 +338,17 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
 
 const home = await page('/');
 {
+  // 카톡에 링크를 붙이면 여기가 간판이 된다. 개발자용 제목이 새어 나가면 안 된다
+  check('링크 이름이 사람 말이다',
+    /<title>[^<]*사주·관상·손금을 한 자리에서<\/title>/.test(home.html));
+  check('본문에 제목이 두 개 남지 않는다',
+    (home.html.match(/<title>/g) ?? []).length === 1);
+  check('카톡 카드가 붙는다',
+    ['og:title', 'og:description', 'og:image', 'og:url'].every((k) => home.html.includes(k)));
+  check('만세력·명식 같은 말이 링크 이름에 안 들어간다',
+    !/<title>[^<]*(만세력|명식)/.test(home.html));
+}
+{
   // 얼굴 사진은 생체정보다. 서버로 보내는 순간 보관·파기·동의 문제가 전부 따라붙는다.
   // 여기서 보는 것은 「보내지 않는다」가 코드에 실제로 그렇게 되어 있는가다
   const v = home.html;

@@ -12,6 +12,7 @@ import {
   renderProducts, renderProductsPage, renderProductPage, renderHero, renderTryHeading,
   LANDING_CSS, PRODUCTS_CSS, FONT_LINK,
   SPIRITS, PITCH, spiritOf, renderSpiritRow, renderSpiritHead, renderSpiritPitch, SPIRITS_CSS,
+  renderSocialHead, HOME_TITLE, HOME_DESCRIPTION, FALLBACK_NAME,
 } from './src/index.ts';
 import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
@@ -186,7 +187,29 @@ check('무료 구간이 있다는 사실을 밝힌다', off.includes('결제 없
 const page = renderProductsPage(full, false, renderFooter(full));
 check('상품 전용 페이지가 완성된 문서', page.startsWith('<!doctype html>') && page.trimEnd().endsWith('</html>'));
 check('상품 전용 페이지에 사업자 정보 동반', page.includes('220-81-62517'));
-check('상품 전용 페이지 제목', page.includes('<title>판매 상품과 가격 · 사주보다</title>'));
+check('상품 전용 페이지 제목', page.includes('<title>사주보다 — 판매 상품과 가격</title>'));
+
+// 카톡에 링크를 붙이면 이 조각이 카드가 된다. 여기가 첫 화면 제목보다 먼저 읽힌다
+{
+  const home = renderSocialHead(full, {
+    title: HOME_TITLE, description: HOME_DESCRIPTION, path: '/', image: true,
+  });
+  check('링크 이름이 사람 말이다',
+    home.includes(`<title>사주보다 — ${HOME_TITLE}</title>`) && !home.includes('명식'));
+  check('카톡 카드에 이름·설명·그림이 다 실린다',
+    ['og:title', 'og:description', 'og:image', 'og:url'].every((k) => home.includes(k)));
+  check('주소를 통째로 적는다 — 카카오톡은 반쪽 주소를 못 읽는다',
+    home.includes('content="https://example.kr/img/hero"')
+    && home.includes('content="https://example.kr/"'));
+  check('그림이 없으면 그림 태그를 안 내보낸다',
+    !renderSocialHead(full, { title: 'ㄱ', description: 'ㄴ' }).includes('og:image'));
+  // 사업자 정보가 비었을 때 「[미입력: 서비스 이름]」이 카톡에 뜨면 그게 더 큰 사고다
+  const bare = renderSocialHead(empty, { title: HOME_TITLE, description: HOME_DESCRIPTION });
+  check('사업자 정보가 비어도 카톡에 미입력이라고 안 뜬다', !bare.includes('미입력'));
+  check('이름이 비면 우리 이름으로 대신한다', bare.includes(FALLBACK_NAME));
+  check('주소가 비면 주소 태그를 아예 안 내보낸다',
+    !bare.includes('og:url') && !bare.includes('canonical'));
+}
 
 section('10. 첫 화면');
 {

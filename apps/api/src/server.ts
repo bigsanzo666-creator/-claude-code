@@ -23,7 +23,7 @@ import {
   loadBusinessInfo, renderFooter, renderTerms, renderPrivacy, renderRefund,
   renderProducts, renderProductsPage, PRODUCTS_CSS,
   renderHero, renderTryHeading, LANDING_CSS, FONT_LINK, renderProductPage,
-  renderSpiritRow,
+  renderSpiritRow, renderSocialHead, HOME_TITLE, HOME_DESCRIPTION,
   type BusinessInfo,
 } from '../../../packages/site-policy/src/index.ts';
 import {
@@ -108,13 +108,18 @@ function renderPage(
   checkout: CheckoutConfig | null, business: BusinessInfo, images: ReadonlySet<string>,
   hero = false, heroVideo = false, faces: ReadonlySet<string> = new Set(),
 ): string {
-  const fragment = readFileSync(VIEWER_PATH, 'utf8');
+  // 조각은 아티팩트로 따로 쓰일 때를 위해 제 제목을 달고 다닌다.
+  // 여기서는 <head> 가 이미 제목을 냈으므로, 본문에 제목이 두 개 되지 않게 걷어낸다
+  const fragment = readFileSync(VIEWER_PATH, 'utf8').replace(/<title>[\s\S]*?<\/title>\s*/i, '');
   const config = JSON.stringify({ apiBase: '', checkout, ready: checkout !== null });
   return `<!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${renderSocialHead(business, {
+    title: HOME_TITLE, description: HOME_DESCRIPTION, path: '/', image: hero,
+  })}
 ${FONT_LINK}
 <style>:root{color-scheme:light dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 ${LANDING_CSS}

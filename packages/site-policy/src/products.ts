@@ -21,6 +21,7 @@ import {
   spiritOf, renderSpiritHead, renderSpiritPitch, SPIRITS_CSS,
   type SpiritImages,
 } from './spirits.ts';
+import { renderSocialHead } from './social.ts';
 
 /** 얼굴 그림이 아직 하나도 없을 때. 도장 한 글자로 자리를 지킨다 */
 const NO_FACES: SpiritImages = new Set();
@@ -371,8 +372,12 @@ export function renderProductsPage(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${renderSocialHead(info, {
+    title: '판매 상품과 가격',
+    description: '사주 명식·궁합·관상·손금 풀이는 결제 없이 보실 수 있습니다. 더 깊이 보는 리포트의 값을 여기에 모두 적어 두었습니다.',
+    path: '/products',
+  })}
 ${FONT_LINK}
-<title>판매 상품과 가격 · ${esc(site)}</title>
 <style>
 :root{color-scheme:light dark}
 body{margin:0}
@@ -418,9 +423,12 @@ export function renderProductPage(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${renderSocialHead(info, {
+    title: product.name,
+    description: `${product.hook} ${product.description}`,
+    path: `/products/${encodeURIComponent(product.id)}`,
+  })}
 ${FONT_LINK}
-<title>${esc(product.name)} · ${esc(site)}</title>
-<meta name="description" content="${esc(product.hook)} ${esc(product.description)}">
 <style>
 :root{color-scheme:light dark}
 body{margin:0}
