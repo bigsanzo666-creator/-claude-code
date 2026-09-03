@@ -60,6 +60,15 @@ export interface StageVideos {
   walk: boolean;
   /** 문이 열리는 장면 */
   open: boolean;
+  /**
+   * 같은 장면의 webm 한 벌.
+   *
+   * mp4(H.264) 를 못 여는 브라우저가 아직 있다. 그런 손님에게는 영상이
+   * 아예 없는 것과 똑같이 보인다 — 그림 한 장이 가만히 있는 화면.
+   * 두 벌을 다 걸어 두면 브라우저가 제가 아는 쪽을 골라 튼다.
+   */
+  walkWebm?: boolean;
+  openWebm?: boolean;
 }
 
 export const NO_VIDEOS: StageVideos = { walk: false, open: false };
@@ -78,11 +87,24 @@ export function renderStage(
   // 첫 화면에서 바로 보이는 영상이다. 자바스크립트가 자리를 잡을 때까지
   // 기다리면 손님은 그림 한 장만 보고 넘어간다. 주소를 여기 박아 두어
   // 브라우저가 화면을 그리면서 같이 받고 같이 튼다
+  // mp4 를 먼저 건다. 폰은 mp4(H.264) 를 칩으로 풀어서 덜 뜨겁고 덜 끊긴다.
+  // mp4 를 못 여는 브라우저만 아래 webm 으로 내려간다
+  const sources = (base: string, webm: boolean) =>
+    `
+      <source src="${base}" type="video/mp4">` +
+    `${webm ? `
+      <source src="${base}.webm" type="video/webm">` : ''}`;
+
   const walk = videos.walk ? `
-    <video class="st-vid" id="stWalkVid" src="/video/gate-walk"
-      autoplay muted playsinline preload="auto" aria-hidden="true"></video>` : '';
+    <video class="st-vid" id="stWalkVid"
+      autoplay muted playsinline preload="auto" aria-hidden="true">${
+      sources('/video/gate-walk', !!videos.walkWebm)}
+    </video>` : '';
   const open = videos.open ? `
-    <video class="st-vid" id="stOpenVid" muted playsinline preload="none" aria-hidden="true"></video>` : '';
+    <video class="st-vid" id="stOpenVid"
+      muted playsinline preload="none" aria-hidden="true">${
+      sources('/video/gate-open', !!videos.openWebm)}
+    </video>` : '';
 
   return `<div class="stage" id="stage" hidden>
 
@@ -437,7 +459,7 @@ export const STAGE_SCRIPT = `<script>(function(){
   // 영상은 뒤에서 받아 둔다. 첫 화면이 뜨는 것을 늦추지 않는다.
   // 그래서 **화질을 깎지 않는다.** 손님이 이름을 치는 동안 다 받아지므로
   // 몇 MB 를 아끼려고 흐린 영상을 보여 줄 이유가 없다
-  var pull=function(v,src,onReady){
+  var pull=function(v,onReady){
     if(!v||thin)return;
     var done=false;
     // canplaythrough 만 기다리면 끝까지 받아질 때까지 그림 한 장으로 머문다.
@@ -449,7 +471,6 @@ export const STAGE_SCRIPT = `<script>(function(){
     };
     var go=function(){
       v.preload='auto';
-      v.src=src;
       v.addEventListener('loadeddata',ready);
       v.addEventListener('canplay',ready);
       v.addEventListener('canplaythrough',ready);
@@ -460,12 +481,14 @@ export const STAGE_SCRIPT = `<script>(function(){
   };
   var walk=$('stWalkVid'), open=$('stOpenVid');
   var openReady=false;
-  pull(open,'/video/gate-open',function(){openReady=true;});
+  pull(open,function(){openReady=true;});
 
   if(walk){
     if(thin){
       // 데이터를 아끼는 손님에게는 그림 한 장만 남긴다
-      walk.removeAttribute('src'); walk.load();
+      walk.removeAttribute('autoplay');
+      while(walk.firstChild)walk.removeChild(walk.firstChild);
+      walk.load();
     } else {
       var lit=function(){ walk.classList.add('on'); };
       walk.addEventListener('loadeddata',lit);

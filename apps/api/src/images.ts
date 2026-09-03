@@ -320,36 +320,44 @@ export const GATE_VIDEO_NAMES = ['gate-open', '문열림'];
 /** 풍신령이 손을 잡고 문까지 데려가는 장면 */
 export const WALK_VIDEO_NAMES = ['walk', '문으로'];
 
+/**
+ * 같은 장면을 mp4 와 webm 두 벌로 찾는다.
+ *
+ * 브라우저마다 알아듣는 영상이 다르다. mp4(H.264) 를 못 여는 브라우저가
+ * 아직 있고, 그런 손님에게는 **영상이 없는 것과 똑같이 보인다** —
+ * 그림 한 장이 가만히 있는 화면. 두 벌을 다 걸어 두면 브라우저가
+ * 제가 아는 쪽을 골라 튼다. 받는 것은 고른 한 벌뿐이다.
+ */
+function findVideo(dir: string, names: string[], ext = '.mp4'): ProductImage | null {
+  let entries: string[];
+  try { entries = readdirSync(dir); } catch { return null; }
+  const want = names.map(squash);
+  const type = VIDEO_TYPES[ext];
+  if (!type) return null;
+  for (const name of entries) {
+    const got = extname(name).toLowerCase();
+    if (got !== ext) continue;
+    if (want.includes(squash(name.slice(0, -got.length)))) {
+      return { path: join(dir, name), type };
+    }
+  }
+  return null;
+}
+
 export function findWalkVideo(dir: string = SCENE_DIR): ProductImage | null {
   return findVideo(dir, WALK_VIDEO_NAMES);
 }
 
-function findVideo(dir: string, names: string[]): ProductImage | null {
-  let entries: string[];
-  try { entries = readdirSync(dir); } catch { return null; }
-  const want = names.map(squash);
-  for (const name of entries) {
-    const ext = extname(name).toLowerCase();
-    const type = VIDEO_TYPES[ext];
-    if (type && want.includes(squash(name.slice(0, -ext.length)))) {
-      return { path: join(dir, name), type };
-    }
-  }
-  return null;
+export function findWalkWebm(dir: string = SCENE_DIR): ProductImage | null {
+  return findVideo(dir, WALK_VIDEO_NAMES, '.webm');
 }
 
 export function findGateVideo(dir: string = SCENE_DIR): ProductImage | null {
-  let entries: string[];
-  try { entries = readdirSync(dir); } catch { return null; }
-  const want = GATE_VIDEO_NAMES.map(squash);
-  for (const name of entries) {
-    const ext = extname(name).toLowerCase();
-    const type = VIDEO_TYPES[ext];
-    if (type && want.includes(squash(name.slice(0, -ext.length)))) {
-      return { path: join(dir, name), type };
-    }
-  }
-  return null;
+  return findVideo(dir, GATE_VIDEO_NAMES);
+}
+
+export function findGateWebm(dir: string = SCENE_DIR): ProductImage | null {
+  return findVideo(dir, GATE_VIDEO_NAMES, '.webm');
 }
 
 export const ALL_PRODUCT_IDS = Object.keys(CATALOG) as ProductId[];

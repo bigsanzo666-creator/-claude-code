@@ -370,7 +370,7 @@ section('9. 신령 — 칸마다 주인이 있는가');
 section('10. 들어가는 길 — 전체 화면');
 {
   const st = renderStage(full, new Set(['path', 'gate', 'world', 'flower']),
-    { walk: true, open: true }, new Set(['flower']));
+    { walk: true, open: true, walkWebm: true, openWebm: true }, new Set(['flower']));
   // 길 · 문 · 열림 · 신령계 · 신령 하나의 판. 스크롤은 글을 읽을 때부터다
   for (const id of ['stWalk', 'stGate', 'stOpen', 'stWorld', 'stSp-flower']) {
     check(`${id} 장면이 있다`, st.includes(`id="${id}"`));
@@ -399,12 +399,18 @@ section('10. 들어가는 길 — 전체 화면');
   // 그림 한 장만 보고 넘어가는 손님이 생긴다
   check('걸어오는 영상은 저 혼자 튼다',
     /id="stWalkVid"[^>]*autoplay/.test(st) && /id="stWalkVid"[^>]*preload="auto"/.test(st));
-  check('걸어오는 영상 주소가 화면에 박혀 있다', st.includes('src="/video/gate-walk"'));
+  check('걸어오는 영상 주소가 화면에 박혀 있다',
+    st.includes('src="/video/gate-walk" type="video/mp4"'));
   // 문 여는 영상은 나중에 쓴다. 첫 화면을 늦출 이유가 없다
   check('문 여는 영상은 미리 받지 않는다', /id="stOpenVid"[^>]*preload="none"/.test(st));
   check('영상에 소리가 없다', (st.match(/class="st-vid"[^>]*muted/g) ?? []).length === 2);
   check('데이터 절약 모드에서는 걸어오는 영상을 버린다',
-    STAGE_SCRIPT.includes("walk.removeAttribute('src')"));
+    STAGE_SCRIPT.includes("walk.removeAttribute('autoplay')")
+    && STAGE_SCRIPT.includes('walk.removeChild(walk.firstChild)'));
+  // mp4 를 못 여는 브라우저에는 영상이 아예 없는 것과 똑같이 보인다
+  check('영상을 두 벌로 건다',
+    st.includes('src="/video/gate-walk.webm" type="video/webm"')
+    && st.includes('src="/video/gate-open.webm" type="video/webm"'));
   check('영상이 없으면 자리도 안 만든다',
     !renderStage(full, new Set(['gate'])).includes('st-vid'));
   check('그림이 없으면 배경을 걸지 않는다',

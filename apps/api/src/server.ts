@@ -29,7 +29,7 @@ import {
 } from '../../../packages/site-policy/src/index.ts';
 import {
   findProductImages, findHeroImage, findHeroVideo, findSpiritImages, findSceneImages,
-  findGateVideo, findWalkVideo, type ProductImage,
+  findGateVideo, findWalkVideo, findGateWebm, findWalkWebm, type ProductImage,
 } from './images.ts';
 import { buildPayload, KIND_OF, type ReadingRequest } from './payload.ts';
 import { buildPreview } from './preview.ts';
@@ -100,6 +100,9 @@ export interface ApiDeps {
   gateVideo?: ProductImage | null;
   /** 풍신령이 문까지 데려가는 영상. `null` 이면 그림만 뜬다 */
   walkVideo?: ProductImage | null;
+  /** 같은 두 장면의 webm 한 벌. mp4 를 못 여는 브라우저가 이쪽을 고른다 */
+  gateWebm?: ProductImage | null;
+  walkWebm?: ProductImage | null;
 }
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -116,6 +119,7 @@ function renderPage(
   checkout: CheckoutConfig | null, business: BusinessInfo, images: ReadonlySet<string>,
   hero = false, heroVideo = false, faces: ReadonlySet<string> = new Set(),
   scenes: ReadonlySet<string> = new Set(), gateVideo = false, walkVideo = false,
+  gateWebm = false, walkWebm = false,
 ): string {
   // 조각은 아티팩트로 따로 쓰일 때를 위해 제 제목을 달고 다닌다.
   // 여기서는 <head> 가 이미 제목을 냈으므로, 본문에 제목이 두 개 되지 않게 걷어낸다
@@ -139,7 +143,7 @@ ${FOOTER_CSS}</style>
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 </head>
 <body>
-${renderStage(business, scenes, { walk: walkVideo, open: gateVideo }, faces)}
+${renderStage(business, scenes, { walk: walkVideo, open: gateVideo, walkWebm, openWebm: gateWebm }, faces)}
 ${renderHero(business, checkout !== null, hero, heroVideo)}
 ${renderSpiritRow(faces)}
 ${renderProducts(checkout !== null, images, faces, false, scenes)}
@@ -317,13 +321,16 @@ export function createApi(deps: ApiDeps) {
   const haveScene = new Set(scenes.keys());
   const gateVideo = deps.gateVideo !== undefined ? deps.gateVideo : findGateVideo();
   const walkVideo = deps.walkVideo !== undefined ? deps.walkVideo : findWalkVideo();
+  // mp4 를 못 여는 브라우저를 위한 두 번째 벌. 없으면 없는 대로 둔다
+  const gateWebm = deps.gateWebm !== undefined ? deps.gateWebm : findGateWebm();
+  const walkWebm = deps.walkWebm !== undefined ? deps.walkWebm : findWalkWebm();
 
   const routes: Record<string, (req: IncomingMessage, res: ServerResponse, id: string) => Promise<void>> = {
     /** 화면. 결제 설정을 주입해 내려준다 */
     'GET /': async (_req, res) => {
       const html = renderPage(
         checkout, business, haveImage, hero !== null, heroVideo !== null, haveFace, haveScene,
-        gateVideo !== null, walkVideo !== null,
+        gateVideo !== null, walkVideo !== null, gateWebm !== null, walkWebm !== null,
       );
       res.writeHead(200, { ...HTML_HEADERS, 'Content-Length': Buffer.byteLength(html) });
       res.end(html);
@@ -421,6 +428,17 @@ export function createApi(deps: ApiDeps) {
     'GET /video/gate-walk': async (req, res) => {
       if (!walkVideo) throw new HttpError(404, '데려가는 영상이 없습니다.');
       sendVideo(req, res, walkVideo);
+    },
+
+    // mp4 를 못 여는 브라우저가 고르는 쪽. 브라우저는 둘 중 하나만 받는다
+    'GET /video/gate-open.webm': async (req, res) => {
+      if (!gateWebm) throw new HttpError(404, '문 여는 영상이 없습니다.');
+      sendVideo(req, res, gateWebm);
+    },
+
+    'GET /video/gate-walk.webm': async (req, res) => {
+      if (!walkWebm) throw new HttpError(404, '데려가는 영상이 없습니다.');
+      sendVideo(req, res, walkWebm);
     },
 
     /** 신령계 배경. 신령 얼굴과 같은 방식이다 */
