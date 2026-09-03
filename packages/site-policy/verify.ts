@@ -287,6 +287,12 @@ section('9. 신령 — 칸마다 주인이 있는가');
     new Set(SPIRITS.map((s) => s.keeps)).size === SPIRITS.length);
   check('신령 아이디가 겹치지 않는다',
     new Set(SPIRITS.map((s) => s.id)).size === SPIRITS.length);
+  // 소리 내어 읽었을 때 다른 뜻으로 들리면 안 된다 (실신령 → 「실신」)
+  check('이름이 나쁜 말로 안 들린다',
+    SPIRITS.every((s) => !/^(실|사|망|병)신령$/.test(s.name)));
+  // 이름을 바꿔도 이미 올려 둔 그림 파일은 옛 이름이다
+  check('옛 이름을 기억해 둔다',
+    SPIRITS.filter((s) => s.aka?.length).length === 6);
   // 얼굴 그림은 나중에 붙는다. 그동안 빈 네모가 남으면 안 그리느니만 못하다
   check('그림이 없어도 얼굴 자리가 도장으로 찬다',
     SPIRITS.every((s) => s.seal.length === 1));
@@ -346,7 +352,7 @@ section('9. 신령 — 칸마다 주인이 있는가');
   // 목록에서 만난 얼굴을 상세에서 다시 만나야 같은 사람이 파는 것이 된다
   const detail = renderProductPage(CATALOG['charm-report']!, full, false, '');
   check('상품 상세에도 그 갈래 신령이 나온다',
-    detail.includes('꽃신령') && detail.includes(PITCH['charm-report']!));
+    detail.includes('도화신령') && detail.includes(PITCH['charm-report']!));
   const list = renderProducts(false);
   check('상품 목록의 갈래마다 신령이 선다',
     SPIRITS.every((s) => list.includes(s.name)));

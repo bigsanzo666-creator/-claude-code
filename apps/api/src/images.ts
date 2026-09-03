@@ -198,7 +198,12 @@ export const SPIRIT_DIR = join(
 
 /** 신령 아이디로 이름을 받는다. 한글 이름으로 저장해도 알아듣는다 */
 const SPIRIT_BY_NAME = new Map<string, string>(
-  SPIRITS.flatMap((s) => [[squash(s.id), s.id], [squash(s.name), s.id]] as [string, string][]),
+  SPIRITS.flatMap((s) => [
+    [squash(s.id), s.id],
+    [squash(s.name), s.id],
+    // 이름을 바꿔도 이미 올려 둔 그림은 옛 이름이다. 그것까지 알아듣는다
+    ...(s.aka ?? []).map((a) => [squash(a), s.id]),
+  ] as [string, string][]),
 );
 
 export function findSpiritImages(dir: string = SPIRIT_DIR): Map<string, ProductImage> {
@@ -312,7 +317,7 @@ export const ALL_SCENE_IDS = Object.keys(SCENES);
  */
 export const GATE_VIDEO_NAMES = ['gate-open', '문열림'];
 
-/** 바람신령이 손을 잡고 문까지 데려가는 장면 */
+/** 풍신령이 손을 잡고 문까지 데려가는 장면 */
 export const WALK_VIDEO_NAMES = ['walk', '문으로'];
 
 export function findWalkVideo(dir: string = SCENE_DIR): ProductImage | null {

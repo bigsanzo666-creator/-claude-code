@@ -6,7 +6,7 @@
  * 아무도 지갑을 안 연다 — 설명만 있는 곳은 누구나 만들 수 있다.
  *
  * 그래서 갈래마다 **신령을 한 명씩 앉힌다.** 손님이 「연애」 칸에 오면
- * 꽃신령이 나와서 말을 걸고, 「가족」 칸에 오면 산신령이 나와서 말을 건다.
+ * 도화신령이 나와서 말을 걸고, 「가족」 칸에 오면 산신령이 나와서 말을 건다.
  * 상품을 파는 것은 이제 표가 아니라 사람(신령)이다.
  *
  * 세 가지를 지킨다.
@@ -40,6 +40,13 @@ export interface Spirit {
   holds: string;
   /** 신령계에서 이 신령이 서 있는 곳. 배경 그림 이름과 같다 */
   place: string;
+  /**
+   * 예전에 쓰던 이름.
+   *
+   * 이름을 바꿔도 **이미 올려 둔 그림 파일은 옛 이름**이다. 그것까지 알아듣게
+   * 남겨 둔다. 이름 한 번 고칠 때마다 그림을 다시 올리게 하면 안 된다.
+   */
+  aka?: string[];
   /** 갈래 맨 위에서 손님에게 거는 말 */
   greet: string;
   /** 첫 화면 소개 줄. 한 줄로 자기가 무엇을 보는지 말한다 */
@@ -65,14 +72,14 @@ export interface Spirit {
  */
 export const SPIRITS: Spirit[] = [
   {
-    id: 'flower', name: '꽃신령', seal: '花', keeps: '연애', place: '꽃터',
+    id: 'flower', name: '도화신령', seal: '桃', aka: ['꽃신령'], keeps: '연애', place: '꽃터',
     holds: '복사꽃 가지',
     greet: '누구한테 마음이 가는지, 내가 꽃가지로 짚어 줄게.',
     intro: '마음이 어느 쪽으로 기우는지 봅니다.',
     crop: { zoom: 1.55, down: '16%' },
   },
   {
-    id: 'moon', name: '달신령', seal: '月', keeps: '재회', place: '달터',
+    id: 'moon', name: '월신령', seal: '月', aka: ['달신령'], keeps: '재회', place: '달터',
     holds: '물에 비친 둥근 달',
     greet: '떠난 사람은 물에 비친 달 같아. 그래도 하늘에 달은 남아 있지.',
     intro: '지나간 사람이 돌아올 자리가 있는지 봅니다.',
@@ -80,7 +87,7 @@ export const SPIRITS: Spirit[] = [
     crop: { zoom: 2.5, down: '66%' },
   },
   {
-    id: 'thread', name: '실신령', seal: '絲', keeps: '궁합', place: '실터',
+    id: 'thread', name: '연신령', seal: '緣', aka: ['실신령'], keeps: '궁합', place: '실터',
     holds: '붉은 실타래',
     greet: '두 사람 사이에 실이 몇 가닥 걸렸는지, 내가 세어 줄게.',
     intro: '두 사람을 이은 실이 튼튼한지 봅니다.',
@@ -94,21 +101,21 @@ export const SPIRITS: Spirit[] = [
     crop: { zoom: 1.55, down: '26%' },
   },
   {
-    id: 'mirror', name: '거울신령', seal: '鏡', keeps: '나', place: '거울터',
+    id: 'mirror', name: '명경신령', seal: '鏡', aka: ['거울신령'], keeps: '나', place: '거울터',
     holds: '오래된 청동 거울',
     greet: '거울은 안 속여. 네가 진짜 어떤 사람인지 비춰 줄게.',
     intro: '내가 어떤 사람인지 있는 그대로 비춥니다.',
     crop: { zoom: 1.55, down: '26%' },
   },
   {
-    id: 'jar', name: '곳간신령', seal: '庫', keeps: '돈과 일', place: '곳간터',
+    id: 'jar', name: '재신령', seal: '財', aka: ['곳간신령'], keeps: '돈과 일', place: '곳간터',
     holds: '엽전 자루와 곡식 됫박',
     greet: '네 그릇이 얼마나 큰지 됫박으로 달아 볼게. 그릇보다 많이 담으면 넘쳐.',
     intro: '돈이 담기는 그릇 크기와 일자리를 봅니다.',
     crop: { zoom: 1.45, down: '22%' },
   },
   {
-    id: 'wind', name: '바람신령', seal: '風', keeps: '시기', place: '바람터',
+    id: 'wind', name: '풍신령', seal: '風', aka: ['바람신령'], keeps: '시기', place: '바람터',
     holds: '처마 끝 풍경(風磬)',
     greet: '바람이 불면 종이 울려. 지금 울리는지 같이 들어 보자.',
     intro: '지금이 움직일 때인지 봅니다.',
@@ -136,16 +143,16 @@ export function spiritFor(category: Category): Spirit | null {
  * 안 채웠다고 화면이 깨지지는 않는다.
  */
 export const PITCH: Record<string, string> = {
-  // 꽃신령 — 연애
+  // 도화신령 — 연애
   'charm-report': '네가 어디가 예쁜지는 내가 첫눈에 알아. 얼굴하고 손금까지 같이 보고 말해 줄게.',
   'single-report': '꽃은 아무 때나 피지 않아. 네 꽃이 피는 달이 언제인지 세어 줄게.',
   'marriage-timing-report': '서두르면 꽃이 진다. 언제가 좋은 때인지 짚어 줄게.',
 
-  // 달신령 — 재회
+  // 월신령 — 재회
   'reunion-report': '물에 비친 달은 못 잡아. 그래도 하늘에 달이 남았는지는 내가 봐 줄게.',
   'letgo-report': '달도 기울었다가 다시 찬다. 네 마음이 가벼워지는 때가 언제인지 짚어 줄게.',
 
-  // 실신령 — 궁합
+  // 연신령 — 궁합
   'compat-report': '두 사람한테 걸린 실을 다 세어 볼게. 어느 가닥이 튼튼하고 어느 가닥이 끊어질 실인지.',
   'crush-compat-report': '아직 실이 한 가닥이구나. 이어질 실인지 아닌지만 빨리 봐 줄게.',
 
@@ -155,7 +162,7 @@ export const PITCH: Record<string, string> = {
   'parent-child-report': '부딪히는 건 누가 나빠서가 아니야. 두 사람 자리가 어긋난 거지. 어디가 어긋났는지 짚어 주마.',
   'latelife-report': '산은 내려올 때가 더 어렵다. 남은 길에 무엇을 챙겨야 하는지 말해 주마.',
 
-  // 거울신령 — 나
+  // 명경신령 — 나
   'saju-report': '네가 어떤 사람으로 태어났는지, 여덟 글자를 다 펴서 보여 줄게.',
   'cross-report': '거울 하나로는 뒤통수를 못 봐. 사주하고 얼굴하고 손금, 거울 세 개를 같이 볼게.',
   'expression-report': '네가 진짜 잘하는 건 따로 있어. 그게 뭔지 비춰 줄게.',
@@ -165,12 +172,12 @@ export const PITCH: Record<string, string> = {
   'saju-palm-report': '태어날 때 정해진 것과 살면서 새겨진 것. 그 둘이 같은 말을 하는지 보자.',
   'saju-face-report': '속은 사주에 있고 겉은 얼굴에 있어. 둘이 얼마나 떨어져 있는지 재 줄게.',
 
-  // 곳간신령 — 돈과 일
+  // 재신령 — 돈과 일
   'wealth-report': '네 그릇이 얼마나 큰지 됫박으로 달아 볼게. 그릇보다 많이 담으면 넘쳐.',
   'career-report': '이 일이 네 자리인지 아닌지는 곳간 문 앞에서 보면 알아.',
   'learning-report': '시험도 계약도 다 문서야. 네 문서가 열리는 때가 언제인지 봐 줄게.',
 
-  // 바람신령 — 시기
+  // 풍신령 — 시기
   'daily-report': '오늘 바람이 어느 쪽에서 부는지, 아침에 알려 줄게.',
   'newyear-report': '올해 바람은 열두 달이 다 달라. 달마다 나눠서 말해 줄게.',
   'travel-report': '떠날 때가 있고 머물 때가 있다. 지금 종이 울리는지 들어 볼게.',
@@ -221,7 +228,7 @@ function face(spirit: Spirit, faces: SpiritImages, size: number): string {
  * 갈래 맨 위에 서는 신령.
  *
  * 갈래 제목(질문)은 그대로 두고, 그 질문을 **누가 묻고 있는지**를 옆에 세운다.
- * 「이 사람, 어떨까?」라는 글자만 있는 것과, 꽃신령이 그 말을 하고 있는 것은
+ * 「이 사람, 어떨까?」라는 글자만 있는 것과, 도화신령이 그 말을 하고 있는 것은
  * 다른 화면이다.
  */
 export function renderSpiritHead(

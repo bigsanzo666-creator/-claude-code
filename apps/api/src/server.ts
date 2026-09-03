@@ -98,7 +98,7 @@ export interface ApiDeps {
   sceneImages?: Map<string, ProductImage>;
   /** 문이 열리는 영상. `null` 이면 밝히자마자 바로 안으로 들어간다 */
   gateVideo?: ProductImage | null;
-  /** 바람신령이 문까지 데려가는 영상. `null` 이면 그림만 뜬다 */
+  /** 풍신령이 문까지 데려가는 영상. `null` 이면 그림만 뜬다 */
   walkVideo?: ProductImage | null;
 }
 
@@ -416,7 +416,7 @@ export function createApi(deps: ApiDeps) {
       sendVideo(req, res, gateVideo);
     },
 
-    /** 바람신령이 문까지 데려가는 영상 */
+    /** 풍신령이 문까지 데려가는 영상 */
     'GET /video/gate-walk': async (req, res) => {
       if (!walkVideo) throw new HttpError(404, '데려가는 영상이 없습니다.');
       sendVideo(req, res, walkVideo);

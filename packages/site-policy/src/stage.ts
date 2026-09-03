@@ -8,7 +8,7 @@
  * 그래서 들어오는 길을 **한 번에 한 장면씩** 보여 준다. 스크롤은 사주가
  * 나온 뒤부터 한다.
  *
- * 1. **길** — 바람신령이 손을 잡고 문까지 데려간다
+ * 1. **길** — 풍신령이 손을 잡고 문까지 데려간다
  * 2. **문** — 문 앞에 서서 이름·태어난 날·태어난 시를 밝힌다
  * 3. **열림** — 문이 열리고 신령계로 들어간다
  *
@@ -56,7 +56,7 @@ const HOURS: { value: string; label: string }[] = [
 ];
 
 export interface StageVideos {
-  /** 바람신령이 문까지 데려가는 장면 */
+  /** 풍신령이 문까지 데려가는 장면 */
   walk: boolean;
   /** 문이 열리는 장면 */
   open: boolean;
@@ -86,7 +86,7 @@ export function renderStage(
     <div class="st-veil"></div>
     <div class="st-in">
       <p class="st-kicker">${esc(info.serviceName || '늘봄사주')}</p>
-      <h1 class="st-h">바람신령이<br><em>문까지 데려다</em> 드립니다</h1>
+      <h1 class="st-h">풍신령이<br><em>문까지 데려다</em> 드립니다</h1>
     </div>
     <button type="button" class="st-next" id="stGo">문 앞으로</button>
   </section>
