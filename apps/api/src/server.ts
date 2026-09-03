@@ -244,11 +244,15 @@ function send(res: ServerResponse, status: number, body: unknown): void {
   res.end(payload);
 }
 
+// 화면을 고쳐 올렸는데 손님 브라우저가 옛 화면을 그대로 보여 주면
+// 고친 것이 없는 것과 같다. 화면은 늘 새로 받아 오게 한다
+const HTML_HEADERS = {
+  'Content-Type': 'text/html; charset=utf-8',
+  'Cache-Control': 'no-cache',
+} as const;
+
 function sendHtml(res: ServerResponse, html: string): void {
-  res.writeHead(200, {
-    'Content-Type': 'text/html; charset=utf-8',
-    'Content-Length': Buffer.byteLength(html),
-  });
+  res.writeHead(200, { ...HTML_HEADERS, 'Content-Length': Buffer.byteLength(html) });
   res.end(html);
 }
 
@@ -321,10 +325,7 @@ export function createApi(deps: ApiDeps) {
         checkout, business, haveImage, hero !== null, heroVideo !== null, haveFace, haveScene,
         gateVideo !== null, walkVideo !== null,
       );
-      res.writeHead(200, {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Content-Length': Buffer.byteLength(html),
-      });
+      res.writeHead(200, { ...HTML_HEADERS, 'Content-Length': Buffer.byteLength(html) });
       res.end(html);
     },
 

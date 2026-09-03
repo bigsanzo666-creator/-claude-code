@@ -75,8 +75,12 @@ export function renderStage(
   const path = scenes.has('path') ? ` style="--st-shot:url(${sceneUrl('path')})"` : '';
   const gate = scenes.has('gate') ? ` style="--st-shot:url(${sceneUrl('gate')})"` : '';
 
+  // 첫 화면에서 바로 보이는 영상이다. 자바스크립트가 자리를 잡을 때까지
+  // 기다리면 손님은 그림 한 장만 보고 넘어간다. 주소를 여기 박아 두어
+  // 브라우저가 화면을 그리면서 같이 받고 같이 튼다
   const walk = videos.walk ? `
-    <video class="st-vid" id="stWalkVid" muted playsinline preload="none" aria-hidden="true"></video>` : '';
+    <video class="st-vid" id="stWalkVid" src="/video/gate-walk"
+      autoplay muted playsinline preload="auto" aria-hidden="true"></video>` : '';
   const open = videos.open ? `
     <video class="st-vid" id="stOpenVid" muted playsinline preload="none" aria-hidden="true"></video>` : '';
 
@@ -455,9 +459,30 @@ export const STAGE_SCRIPT = `<script>(function(){
     else setTimeout(go,200);
   };
   var walk=$('stWalkVid'), open=$('stOpenVid');
-  var walkReady=false, openReady=false;
-  pull(walk,'/video/gate-walk',function(){walkReady=true;walk.play().catch(function(){});});
+  var openReady=false;
   pull(open,'/video/gate-open',function(){openReady=true;});
+
+  if(walk){
+    if(thin){
+      // 데이터를 아끼는 손님에게는 그림 한 장만 남긴다
+      walk.removeAttribute('src'); walk.load();
+    } else {
+      var lit=function(){ walk.classList.add('on'); };
+      walk.addEventListener('loadeddata',lit);
+      walk.addEventListener('canplay',lit);
+      walk.addEventListener('playing',lit);
+      if(walk.readyState>=2)lit();
+      // 브라우저가 저절로 틀지 않는 경우가 있다. 몇 번 더 눌러 본다
+      var kick=function(){ if(walk.paused)walk.play().catch(function(){}); };
+      kick();
+      setTimeout(kick,400); setTimeout(kick,1500);
+      addEventListener('pointerdown',kick,{once:true});
+      addEventListener('keydown',kick,{once:true});
+      document.addEventListener('visibilitychange',function(){
+        if(!document.hidden)kick();
+      });
+    }
+  }
 
   // 길 → 문. 영상이 끝나면 저절로, 안 끝나도 단추로 넘어간다
   var atGate=false;
