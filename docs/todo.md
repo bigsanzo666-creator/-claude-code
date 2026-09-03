@@ -24,8 +24,9 @@
 
 ## 2. 아직 안 한 것
 
-- **손금 선 읽기 (2단계)** — 손 모양(오행)까지는 됐다. 선 찾기는 아직이다.
-  `docs/palm-photo-plan.md` 참고.
+- **손금 선 읽기 (2단계) — 자는 만들었다.** `packages/palmistry/src/lines.ts`,
+  검증 38/0. 화면에는 아직 안 켰다 — 실제 손 사진으로 자리가 맞는지
+  먼저 봐야 한다. `docs/palm-photo-plan.md` 참고.
 - **손금 HAND_CUTS 맞추기** — 실제 손 사진으로 재 보고 값이 한쪽으로 쏠리면
   `packages/palmistry/src/measure.ts` 의 `HAND_CUTS` 를 옮긴다.
 - **관상 CUTS 맞추기** — 실제 얼굴 사진으로 재 보고 값이 한쪽으로 쏠리면
