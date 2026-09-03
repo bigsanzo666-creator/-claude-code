@@ -425,7 +425,9 @@ export const STAGE_SCRIPT = `<script>(function(){
     var el=$(id); if(el)el.classList.add('st-on');
   };
 
-  // 영상은 뒤에서 받아 둔다. 첫 화면이 뜨는 것을 늦추지 않는다
+  // 영상은 뒤에서 받아 둔다. 첫 화면이 뜨는 것을 늦추지 않는다.
+  // 그래서 **화질을 깎지 않는다.** 손님이 이름을 치는 동안 다 받아지므로
+  // 몇 MB 를 아끼려고 흐린 영상을 보여 줄 이유가 없다
   var pull=function(v,src,onReady){
     if(!v||thin)return;
     var go=function(){
