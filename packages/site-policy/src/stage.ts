@@ -130,6 +130,18 @@ export function renderStage(
     </div>
   </section>
 
+  <div class="st-ask" id="stLeave" hidden>
+    <div class="st-ask-box" role="dialog" aria-modal="true" aria-labelledby="stLeaveT">
+      <p class="st-ask-t" id="stLeaveT">신령계를 나가시겠습니까</p>
+      <p class="st-ask-b">나가시면 밝히신 것도 함께 사라집니다.
+      다시 오시려면 처음부터 밝히셔야 합니다.</p>
+      <div class="st-ask-bar">
+        <button type="button" class="st-stay" id="stStay">더 볼래요</button>
+        <button type="button" class="st-leave" id="stLeaveGo">나갈래요</button>
+      </div>
+    </div>
+  </div>
+
 ${renderWorld(scenes, faces)}
 ${SPIRITS.map((sp) => renderSpiritStage(sp, scenes, faces)).join('\n')}
 </div>`;
@@ -346,6 +358,20 @@ body.st-locked{overflow:hidden}
 
 @media (prefers-reduced-motion:reduce){ .wd-pin{animation:none} }
 
+/* 나가시겠습니까 */
+.st-ask{position:absolute;inset:0;z-index:10;display:grid;place-items:center;padding:24px;
+  background:rgba(0,0,0,.42)}
+.st-ask[hidden]{display:none}
+.st-ask-box{width:100%;max-width:360px;padding:26px 24px;background:var(--nb-paper-2);
+  border:1px solid var(--nb-gold);box-sizing:border-box}
+.st-ask-t{margin:0 0 10px;font-family:var(--nb-serif);font-size:20px}
+.st-ask-b{margin:0 0 20px;font-size:14px;line-height:1.8;color:var(--nb-ink-2);word-break:keep-all}
+.st-ask-bar{display:flex;gap:10px}
+.st-stay,.st-leave{flex:1;padding:13px 10px;font:500 15px var(--nb-sans);cursor:pointer;
+  border:1px solid var(--nb-ink)}
+.st-stay{background:var(--nb-ink);color:var(--nb-paper-2)}
+.st-leave{background:none;color:var(--nb-ink-3);border-color:var(--nb-line)}
+
 /* 신령 하나의 판 */
 .st-back{margin:0 0 20px;padding:0;border:0;background:none;cursor:pointer;
   font:13.5px var(--nb-sans);color:var(--nb-gold)}
@@ -420,6 +446,7 @@ export const STAGE_SCRIPT = `<script>(function(){
   var toGate=function(){
     if(atGate)return; atGate=true;
     if(walk){try{walk.pause();}catch(e){}}
+    mark('stGate');
     show('stGate');
     var d=$('stDate'); if(d&&d.focus)setTimeout(function(){d.focus();},200);
   };
@@ -446,12 +473,14 @@ export const STAGE_SCRIPT = `<script>(function(){
   var told=false;
   var toWorld=function(name){
     if(name){ var h=$('stHello'); if(h)h.textContent=name+'님, 신령계에 드셨습니다'; }
+    mark('stWorld');
     show('stWorld');
     var w=$('stWorld'); if(w)w.scrollTop=0;
   };
 
   // 덮개를 걷고 글을 읽는 곳으로. 여기서부터가 스크롤이다
   var read=function(id){
+    mark('read');
     leave();
     if(typeof window.NB_SKIP_WIZARD==='function')window.NB_SKIP_WIZARD();
     var to=document.getElementById(id)||document.getElementById('products');
@@ -461,6 +490,63 @@ export const STAGE_SCRIPT = `<script>(function(){
   var skip=$('stSkip');
   if(skip)skip.addEventListener('click',function(){toWorld('');});
 
+  /**
+   * 뒤로가기.
+   *
+   * 폰에서 뒤로가기는 손님이 제일 많이 누르는 단추다. 그런데 우리 화면은
+   * 주소가 안 바뀌므로, 그냥 두면 **한 번에 사이트가 꺼진다.**
+   * 잘못 눌러 들어온 손님이 신령 하나 보고 나가 버린다.
+   *
+   * 그래서 장면을 옮길 때마다 **되돌아올 자리를 하나씩 쌓아 둔다.**
+   * 뒤로가기는 그 자리를 하나씩 되짚고, 더 되짚을 곳이 없을 때에만
+   * 「나가시겠습니까」를 묻는다.
+   */
+  var back=[];                 // 되돌아갈 장면 이름들
+  var here='stWalk';
+  var asking=false;
+
+  var mark=function(name){
+    if(name===here)return;
+    // 길(들어오는 영상)로는 되돌아가지 않는다. 이미 본 영상을 또 보여 주는 것은
+    // 되돌아가는 것이 아니라 붙잡는 것이다
+    if(here!=='stWalk')back.push(here);
+    here=name;
+    history.pushState({nb:back.length},'',location.href);
+  };
+
+  var ask=function(on){
+    var box=$('stLeave');
+    if(!box)return;
+    asking=on;
+    box.hidden=!on;
+    if(on)history.pushState({nbAsk:1},'',location.href);
+  };
+
+  var stay=$('stStay');
+  if(stay)stay.addEventListener('click',function(){ ask(false); });
+  var out=$('stLeaveGo');
+  if(out)out.addEventListener('click',function(){
+    // 정말 나가겠다면 막지 않는다. 붙잡는 것은 한 번이면 족하다
+    ask(false); back=[]; here='';
+    history.back();
+  });
+
+  // 처음 한 자리를 깔아 둔다. 이게 없으면 첫 뒤로가기가 곧바로 사이트를 닫는다
+  history.pushState({nb:0},'',location.href);
+  addEventListener('popstate',function(){
+    if(asking){ ask(false); return; }
+    if(!here){ return; }          // 나가기로 한 손님은 그냥 보낸다
+    if(back.length){
+      var to=back.pop();
+      here=to;
+      if(stage.hidden){ stage.hidden=false; document.body.classList.add('st-locked'); }
+      show(to);
+      history.pushState({nb:back.length},'',location.href);
+      return;
+    }
+    ask(true);
+  });
+
   var free=$('stFree');
   if(free)free.addEventListener('click',function(){
     read(told?'out':'products');
@@ -468,8 +554,9 @@ export const STAGE_SCRIPT = `<script>(function(){
 
   stage.addEventListener('click',function(e){
     var card=e.target.closest('.wd-pin');
-    if(card){ show('stSp-'+card.dataset.sp); var s=$('stSp-'+card.dataset.sp); if(s)s.scrollTop=0; return; }
-    if(e.target.closest('[data-back]')){ toWorld(''); }
+    if(card){ mark('stSp-'+card.dataset.sp); show('stSp-'+card.dataset.sp);
+      var s=$('stSp-'+card.dataset.sp); if(s)s.scrollTop=0; return; }
+    if(e.target.closest('[data-back]')){ history.back(); }
   });
 
   var f=$('stForm');

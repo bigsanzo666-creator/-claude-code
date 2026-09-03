@@ -401,6 +401,22 @@ section('10. 들어가는 길 — 전체 화면');
   check('못 틀거나 오래 걸리면 기다리지 않는다',
     STAGE_SCRIPT.includes('setTimeout(once,') && STAGE_SCRIPT.includes('if(!walkReady)toGate()'));
   check('움직임을 꺼 둔 손님에게는 틀지 않는다', STAGE_SCRIPT.includes('prefers-reduced-motion'));
+
+  // 폰에서 뒤로가기는 제일 많이 누르는 단추다. 우리 화면은 주소가 안 바뀌므로
+  // 그냥 두면 한 번에 사이트가 꺼진다 — 잘못 눌러 들어온 손님이 그대로 나간다
+  check('뒤로가기가 앞 장면으로 되돌아간다',
+    STAGE_SCRIPT.includes("addEventListener('popstate'") && STAGE_SCRIPT.includes('back.pop()'));
+  check('첫 뒤로가기가 사이트를 닫지 않게 자리를 깔아 둔다',
+    STAGE_SCRIPT.includes("history.pushState({nb:0}"));
+  check('되돌아갈 곳이 없을 때에만 나가겠냐고 묻는다',
+    /if\(back\.length\)[\s\S]{0,320}ask\(true\)/.test(STAGE_SCRIPT));
+  check('나가겠냐고 묻는 창이 있다', st.includes('id="stLeave"') && st.includes('나가시겠습니까'));
+  check('머무를 길과 나갈 길이 다 있다',
+    st.includes('id="stStay"') && st.includes('id="stLeaveGo"'));
+  // 붙잡는 것은 한 번이면 족하다. 정말 나가겠다는 손님을 두 번 막지 않는다
+  check('정말 나가겠다면 막지 않는다', STAGE_SCRIPT.includes('history.back()'));
+  // 이미 본 영상을 또 보여 주는 것은 되돌아가는 것이 아니라 붙잡는 것이다
+  check('들어오는 영상으로는 되돌아가지 않는다', STAGE_SCRIPT.includes("here!=='stWalk'"));
 }
 
 section('11. 문 — 신령계 들어가는 곳');
