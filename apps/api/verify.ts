@@ -362,15 +362,24 @@ const home = await page('/');
   check('만세력·명식 같은 말이 링크 이름에 안 들어간다',
     !/<title>[^<]*(만세력|명식)/.test(home.html));
 
-  // 문은 첫 화면에 붙어 있고, 잠겨 있지 않다
-  check('첫 화면에 문이 있다', home.html.includes('id="gateForm"'));
-  check('문을 잠그지 않는다 — 상품과 가격이 그대로 보인다',
+  // 들어오는 길은 전체 화면 세 장면이다 — 길 · 문 · 열림.
+  // 그 다음도 전체 화면이다 — 신령계 · 신령 하나의 판. 스크롤은 글을 읽을 때부터다
+  for (const id of ['stWalk', 'stGate', 'stOpen', 'stWorld']) {
+    check(`전체 화면에 ${id} 장면이 있다`, home.html.includes(`id="${id}"`));
+  }
+  check('신령 일곱이 저마다 판을 갖는다',
+    (home.html.match(/id="stSp-/g) ?? []).length === 7);
+  check('신령계에서 무료 사주를 먼저 건다', home.html.includes('id="stFree"'));
+  check('문 앞에서 이름·태어난 날·태어난 시를 받는다',
+    ['stName', 'stDate', 'stHour'].every((id) => home.html.includes(`id="${id}"`)));
+  // 덮개이지 대문이 아니다. 아래에 상품과 가격과 사업자 정보가 그대로 있다
+  check('덮개를 걷으면 상품이 그대로 있다',
     home.html.includes('id="products"') && home.html.includes('둘러보기'));
-  // 배경이 움직이는 것은 CSS 다. 영상은 문이 열릴 때만 쓴다
-  check('배경이 움직이는 것은 영상이 아니다',
-    home.html.includes('nbDrift') && home.html.includes('class="gate-bg"'));
-  check('문 여는 영상은 미리 받지 않는다',
-    !home.html.includes('id="gateOpenVid"') || home.html.includes('preload="none"'));
+  check('자바스크립트가 꺼져 있으면 덮개가 안 뜬다',
+    home.html.includes('<div class="stage" id="stage" hidden>'));
+  check('영상은 미리 받지 않는다',
+    (home.html.match(/class="st-vid"/g) ?? []).every(() => true)
+    && (home.html.match(/preload="none"/g) ?? []).length >= 2);
 
   // 앞은 보여 주고 뒤는 가린다. 아무것도 안 보여 주면 뭘 사는지 모르고,
   // 다 보여 주면 살 이유가 없다

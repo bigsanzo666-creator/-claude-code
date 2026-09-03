@@ -194,7 +194,8 @@ export const BLIND: Record<string, string> = {
 /** 그림이 실제로 있는 신령의 아이디 모음. 서버가 기동할 때 세어 넘겨준다 */
 export type SpiritImages = ReadonlySet<string>;
 
-const NO_FACES: SpiritImages = new Set();
+export const NO_FACES_SET: SpiritImages = new Set();
+const NO_FACES = NO_FACES_SET;
 
 /** 확장자를 주소에 넣지 않는다 — 서버가 실제 파일을 안다 */
 export const spiritImageUrl = (id: string) => `/img/spirits/${encodeURIComponent(id)}`;

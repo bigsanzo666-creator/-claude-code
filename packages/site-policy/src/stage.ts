@@ -1,0 +1,455 @@
+/**
+ * 들어가는 길 — 전체 화면 세 장면.
+ *
+ * 지금까지 첫 화면은 **길게 스크롤되는 종이 한 장**이었다. 브랜드 소개가 있고,
+ * 신령이 있고, 상품이 있고, 그 아래 만세력이 있었다. 다 맞는 말인데
+ * 손님은 **어디가 어디인지 모른다.** 「뭘 어떻게 봐야 돼?」로 끝난다.
+ *
+ * 그래서 들어오는 길을 **한 번에 한 장면씩** 보여 준다. 스크롤은 사주가
+ * 나온 뒤부터 한다.
+ *
+ * 1. **길** — 바람신령이 손을 잡고 문까지 데려간다
+ * 2. **문** — 문 앞에 서서 이름·태어난 날·태어난 시를 밝힌다
+ * 3. **열림** — 문이 열리고 신령계로 들어간다
+ *
+ * 광고에서 들어온 손님은 광고에서 이미 1번을 봤다. 그래도 다시 보여 준다 —
+ * 광고를 안 보고 주소로 바로 온 손님도 같은 곳에 도착해야 하기 때문이다.
+ *
+ * ## 덮개이지 대문이 아니다
+ *
+ * 이 세 장면은 **화면을 덮는 것**이지 페이지를 대신하는 것이 아니다.
+ * 아래에는 상품과 가격과 사업자 정보가 그대로 있다.
+ *
+ * 그래야 카드사 등록심사가 상품과 가격을 볼 수 있고, 검색엔진도 읽는다.
+ * 「그냥 둘러보기」를 누르면 덮개가 걷히고 그 화면이 나온다.
+ *
+ * ## 기다리게 하지 않는다
+ *
+ * 영상이 없거나 아직 안 받아졌으면 **그 장면을 건너뛴다.** 손님을 검은 화면
+ * 앞에 세워 두지 않는다. 자바스크립트가 꺼져 있으면 덮개 자체가 안 뜬다.
+ */
+
+import { CATEGORIES, productsIn } from '../../commerce/src/catalog.ts';
+import { type BusinessInfo } from './business.ts';
+import { type SceneImages, NO_SCENES, sceneUrl } from './gate.ts';
+import { SPIRITS, spiritOf, PITCH, type SpiritImages, NO_FACES_SET, spiritImageUrl } from './spirits.ts';
+
+function esc(value: string): string {
+  return value.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+}
+
+/** 태어난 시. 12지지를 시각과 함께 — 「인시」만 쓰면 아무도 모른다 */
+const HOURS: { value: string; label: string }[] = [
+  { value: '', label: '모름 — 시간을 몰라도 됩니다' },
+  { value: '00:30', label: '자시 (밤 11:30 ~ 새벽 1:30)' },
+  { value: '02:30', label: '축시 (새벽 1:30 ~ 3:30)' },
+  { value: '04:30', label: '인시 (새벽 3:30 ~ 5:30)' },
+  { value: '06:30', label: '묘시 (아침 5:30 ~ 7:30)' },
+  { value: '08:30', label: '진시 (아침 7:30 ~ 9:30)' },
+  { value: '10:30', label: '사시 (오전 9:30 ~ 11:30)' },
+  { value: '12:30', label: '오시 (낮 11:30 ~ 오후 1:30)' },
+  { value: '14:30', label: '미시 (오후 1:30 ~ 3:30)' },
+  { value: '16:30', label: '신시 (오후 3:30 ~ 5:30)' },
+  { value: '18:30', label: '유시 (저녁 5:30 ~ 7:30)' },
+  { value: '20:30', label: '술시 (저녁 7:30 ~ 9:30)' },
+  { value: '22:30', label: '해시 (밤 9:30 ~ 11:30)' },
+];
+
+export interface StageVideos {
+  /** 바람신령이 문까지 데려가는 장면 */
+  walk: boolean;
+  /** 문이 열리는 장면 */
+  open: boolean;
+}
+
+export const NO_VIDEOS: StageVideos = { walk: false, open: false };
+
+export function renderStage(
+  info: BusinessInfo, scenes: SceneImages = NO_SCENES, videos: StageVideos = NO_VIDEOS,
+  faces: SpiritImages = NO_FACES_SET,
+): string {
+  const hours = HOURS.map((h) =>
+    `<option value="${esc(h.value)}">${esc(h.label)}</option>`).join('\n        ');
+
+  // 영상을 받기 전에는 그림이 깔려 있다. 검은 네모를 남기지 않는다
+  const path = scenes.has('path') ? ` style="--st-shot:url(${sceneUrl('path')})"` : '';
+  const gate = scenes.has('gate') ? ` style="--st-shot:url(${sceneUrl('gate')})"` : '';
+
+  const walk = videos.walk ? `
+    <video class="st-vid" id="stWalkVid" muted playsinline preload="none" aria-hidden="true"></video>` : '';
+  const open = videos.open ? `
+    <video class="st-vid" id="stOpenVid" muted playsinline preload="none" aria-hidden="true"></video>` : '';
+
+  return `<div class="stage" id="stage" hidden>
+
+  <section class="st st-on" id="stWalk"${path}>${walk}
+    <div class="st-veil"></div>
+    <div class="st-in">
+      <p class="st-kicker">${esc(info.serviceName || '늘봄사주')}</p>
+      <h1 class="st-h">바람신령이<br><em>문까지 데려다</em> 드립니다</h1>
+    </div>
+    <button type="button" class="st-next" id="stGo">문 앞으로</button>
+  </section>
+
+  <section class="st" id="stGate"${gate}>
+    <div class="st-veil st-veil-2"></div>
+    <div class="st-in">
+      <p class="st-kicker">신령계 들어가는 문</p>
+      <h2 class="st-h">문을 열려면<br><em>이름을 밝히셔야</em> 합니다</h2>
+      <p class="st-sub">밝히신 것은 이 자리에서만 씁니다.
+      어디로도 보내지 않고, 저장하지도 않습니다.</p>
+
+      <form class="st-form" id="stForm" novalidate>
+        <label class="st-f">
+          <span class="st-l">이름</span>
+          <input type="text" id="stName" maxlength="10" autocomplete="name" placeholder="홍길동">
+        </label>
+        <label class="st-f">
+          <span class="st-l">태어난 날</span>
+          <input type="date" id="stDate" min="1900-01-01" max="2100-12-31" required>
+        </label>
+        <label class="st-f st-wide">
+          <span class="st-l">태어난 시</span>
+          <select id="stHour">
+        ${hours}
+          </select>
+        </label>
+        <div class="st-bar">
+          <button type="submit" class="st-go">문을 엽니다</button>
+          <span class="st-msg" id="stMsg" role="status"></span>
+        </div>
+      </form>
+
+      <button type="button" class="st-skip" id="stSkip">밝히지 않고 그냥 둘러보기</button>
+    </div>
+  </section>
+
+  <section class="st" id="stOpen">${open}
+    <div class="st-in st-mid">
+      <p class="st-open-t">문이 열립니다</p>
+    </div>
+  </section>
+
+${renderWorld(scenes, faces)}
+${SPIRITS.map((sp) => renderSpiritStage(sp, scenes, faces)).join('\n')}
+</div>`;
+}
+
+/**
+ * 신령계 — 누구에게 물을지 고르는 화면.
+ *
+ * 상품 스물다섯 개를 늘어놓으면 아무도 못 고른다. **사람 일곱**이면 고른다.
+ * 손님은 상품 이름이 아니라 「내가 지금 누구한테 물어봐야 하지」로 고른다.
+ *
+ * 맨 위에는 **무료 사주**를 크게 건다. 이미 태어난 날을 받았으므로 볼 것이
+ * 이미 있다. 값을 묻기 전에 먼저 주는 것이 순서다.
+ */
+function renderWorld(scenes: SceneImages, faces: SpiritImages): string {
+  const shot = scenes.has('world') ? ` style="--st-shot:url(${sceneUrl('world')})"` : '';
+  const cards = SPIRITS.map((sp) => `      <button type="button" class="wd-card" data-sp="${esc(sp.id)}">
+        ${stageFace(sp.id, sp.seal, faces, 92)}
+        <span class="wd-name">${esc(sp.name)}</span>
+        <span class="wd-keep">${esc(sp.keeps)}</span>
+      </button>`).join('\n');
+
+  return `  <section class="st st-scroll" id="stWorld"${shot}>
+    <div class="st-veil st-veil-3"></div>
+    <div class="st-page">
+      <p class="st-kicker" id="stHello">신령계</p>
+      <h2 class="st-h wd-h">누구에게<br><em>물어보시겠습니까</em></h2>
+
+      <button type="button" class="wd-free" id="stFree">
+        <span class="wd-free-t">먼저, 무료로 보는 내 사주</span>
+        <span class="wd-free-b">태어난 날을 이미 밝히셨습니다. 여덟 글자와 풀이가 바로 나옵니다.</span>
+        <span class="wd-free-go">공짜로 보기 →</span>
+      </button>
+
+      <div class="wd-grid">
+${cards}
+      </div>
+    </div>
+  </section>`;
+}
+
+/**
+ * 신령 하나의 판 — 무엇을 볼지 고르는 화면.
+ *
+ * 값은 여기서 말하지 않는다. 아직 뭘 봐 주는지도 모르는 사람에게 계산부터
+ * 시키면 물러선다. 값은 고르고 들어간 화면에서 본다.
+ */
+function renderSpiritStage(
+  sp: (typeof SPIRITS)[number], scenes: SceneImages, faces: SpiritImages,
+): string {
+  const shot = scenes.has(sp.id) ? ` style="--st-shot:url(${sceneUrl(sp.id)})"` : '';
+  const question = CATEGORIES.find((c) => c.key === sp.keeps)?.question ?? '';
+  const items = productsIn(sp.keeps).map((p) => `      <a class="sp-item" href="/products/${encodeURIComponent(p.id)}">
+        <span class="sp-hook">${esc(p.hook)}</span>
+        <span class="sp-name">${esc(p.name)}</span>
+      </a>`).join('\n');
+
+  return `  <section class="st st-scroll" id="stSp-${esc(sp.id)}"${shot}>
+    <div class="st-veil st-veil-3"></div>
+    <div class="st-page">
+      <button type="button" class="st-back" data-back="1">← 신령계로</button>
+      <div class="sp-top">
+        ${stageFace(sp.id, sp.seal, faces, 84)}
+        <div>
+          <p class="st-kicker">${esc(sp.name)} · ${esc(sp.place)}</p>
+          <h2 class="st-h sp-q">${esc(question)}</h2>
+        </div>
+      </div>
+      <p class="st-sub">${esc(sp.greet)}</p>
+      <div class="sp-list">
+${items}
+      </div>
+    </div>
+  </section>`;
+}
+
+/** 얼굴 그림이 없으면 한자 도장으로 자리를 지킨다 */
+function stageFace(id: string, seal: string, faces: SpiritImages, size: number): string {
+  if (!faces.has(id)) {
+    return `<span class="st-face st-seal" aria-hidden="true">${esc(seal)}</span>`;
+  }
+  return `<span class="st-face"><img src="${spiritImageUrl(id)}" alt=""
+    width="${size}" height="${size}" loading="lazy" decoding="async"></span>`;
+}
+
+/**
+ * 들어가는 길 스타일.
+ *
+ * 색은 새로 만들지 않는다. 상품 화면이 정해 둔 `--nb-*` 를 그대로 쓴다.
+ * 높이는 `100dvh` 를 쓴다 — 폰에서 주소창이 접혔다 펴질 때 `100vh` 는
+ * 화면 아래가 잘린다.
+ */
+export const STAGE_CSS = `
+.stage{position:fixed;inset:0;z-index:80;background:var(--nb-paper);
+  font:16px/1.75 var(--nb-sans);color:var(--nb-ink)}
+.stage[hidden]{display:none}
+/* 덮개가 떠 있는 동안 뒤 화면은 움직이지 않는다 */
+body.st-locked{overflow:hidden}
+
+.st{position:absolute;inset:0;display:none;overflow:hidden;
+  background:var(--nb-paper) center top/cover no-repeat;background-image:var(--st-shot,none)}
+.st.st-on{display:block}
+.st-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  opacity:0;transition:opacity .5s ease}
+.st-vid.on{opacity:1}
+.st-veil{position:absolute;inset:0;background:
+  linear-gradient(to bottom,var(--nb-veil-0),var(--nb-veil-0) 34%,var(--nb-paper) 92%)}
+.st-veil-2{background:
+  linear-gradient(to bottom,var(--nb-veil-0),var(--nb-veil-1) 17%,var(--nb-paper) 33%)}
+
+.st-in{position:absolute;left:0;right:0;bottom:0;padding:0 24px 34px;
+  max-width:560px;margin:0 auto;box-sizing:border-box}
+.st-mid{top:0;display:grid;place-items:center;padding:0}
+.st-kicker{margin:0 0 12px;font-size:12px;letter-spacing:.26em;color:var(--nb-gold)}
+.st-h{font-family:var(--nb-serif);font-weight:500;font-size:27px;line-height:1.55;
+  letter-spacing:-.01em;word-break:keep-all;margin:0 0 12px}
+.st-h em{font-style:normal;color:var(--nb-gold)}
+.st-sub{margin:0 0 22px;font-size:14.5px;line-height:1.8;color:var(--nb-ink-2);
+  max-width:26em;word-break:keep-all}
+.st-open-t{font-family:var(--nb-serif);font-size:19px;letter-spacing:.24em;color:var(--nb-gold)}
+
+.st-form{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.st-f{display:block;min-width:0}
+.st-wide{grid-column:1/-1}
+.st-l{display:block;margin:0 0 6px;font-size:12px;letter-spacing:.16em;color:var(--nb-gold)}
+.st-f input,.st-f select{width:100%;box-sizing:border-box;padding:13px;
+  font:16px/1.4 var(--nb-sans);color:var(--nb-ink);background:var(--nb-paper-2);
+  border:1px solid var(--nb-line);border-radius:0;appearance:none}
+.st-f input:focus,.st-f select:focus{outline:2px solid var(--nb-gold);outline-offset:-2px}
+.st-bar{grid-column:1/-1;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.st-go,.st-next{padding:15px 32px;border:1px solid var(--nb-ink);background:var(--nb-ink);
+  color:var(--nb-paper-2);font:500 15.5px var(--nb-sans);letter-spacing:.02em;cursor:pointer}
+.st-go:hover,.st-next:hover{background:transparent;color:var(--nb-ink)}
+.st-next{position:absolute;left:24px;bottom:34px}
+.st-msg{font-size:13.5px;color:var(--nb-gold)}
+.st-skip{display:block;margin:16px 0 0;padding:0;border:0;background:none;
+  font:13px var(--nb-sans);color:var(--nb-ink-3);text-decoration:underline;
+  text-underline-offset:3px;cursor:pointer}
+
+/* 신령계·신령 판은 안에서 조금 움직일 수 있다. 뒤 화면으로 넘어가는 스크롤이 아니라
+   이 화면 안에서만 도는 것이다 */
+.st-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch}
+.st-page{position:relative;padding:34px 24px 40px;max-width:720px;margin:0 auto;
+  min-height:100%;box-sizing:border-box}
+.st-veil-3{background:linear-gradient(to bottom,var(--nb-veil-1),var(--nb-paper) 30%);
+  position:fixed}
+
+.st-face{display:block;width:64px;height:64px;border-radius:50%;overflow:hidden;
+  background:var(--nb-paper-2);border:1px solid var(--nb-line-soft);flex:0 0 auto}
+.st-face img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 15%}
+.st-seal{display:grid;place-items:center;font-family:var(--nb-serif);font-size:26px;
+  color:var(--nb-gold)}
+
+/* 신령계 */
+.wd-h{margin-bottom:20px}
+.wd-free{display:block;width:100%;text-align:left;margin:0 0 24px;padding:20px 22px;
+  border:1px solid var(--nb-gold);background:var(--nb-paper-2);cursor:pointer;
+  font:inherit;color:inherit}
+.wd-free:hover{background:var(--nb-paper)}
+.wd-free-t{display:block;font-family:var(--nb-serif);font-size:19px;margin-bottom:6px}
+.wd-free-b{display:block;font-size:13.5px;line-height:1.75;color:var(--nb-ink-2);
+  word-break:keep-all}
+.wd-free-go{display:block;margin-top:12px;font-size:14px;color:var(--nb-gold)}
+.wd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 10px}
+.wd-card{display:grid;justify-items:center;gap:6px;padding:0;border:0;background:none;
+  cursor:pointer;font:inherit;color:inherit}
+.wd-card .st-face{width:56px;height:56px}
+.wd-card .st-seal{font-size:22px}
+.wd-card:hover .st-face{border-color:var(--nb-gold)}
+.wd-name{font-family:var(--nb-serif);font-size:13.5px}
+.wd-keep{font-size:11px;letter-spacing:.12em;color:var(--nb-gold)}
+
+/* 신령 하나의 판 */
+.st-back{margin:0 0 20px;padding:0;border:0;background:none;cursor:pointer;
+  font:13.5px var(--nb-sans);color:var(--nb-gold)}
+.sp-top{display:flex;align-items:center;gap:14px;margin:0 0 14px}
+.sp-q{font-size:24px;margin:0}
+.sp-list{display:grid;gap:0;margin-top:22px}
+.sp-item{display:block;padding:18px 0;border-top:1px solid var(--nb-line-soft);
+  text-decoration:none;color:inherit}
+.sp-item:last-child{border-bottom:1px solid var(--nb-line-soft)}
+.sp-hook{display:block;font-size:12.5px;color:var(--nb-gold);margin-bottom:4px}
+.sp-item .sp-name{display:block;font-family:var(--nb-serif);font-size:18px;word-break:keep-all}
+.sp-item:hover .sp-name{text-decoration:underline;text-underline-offset:3px}
+
+@media (min-width:760px){
+  .st-h{font-size:38px}
+  .wd-grid{grid-template-columns:repeat(7,1fr);gap:18px 12px}
+  .wd-card .st-face{width:76px;height:76px}
+  .st-page{padding:56px 24px}
+  .st-in{padding-bottom:52px}
+  .st-next{bottom:52px}
+}
+@media (prefers-color-scheme:dark){
+  .st-go,.st-next{background:var(--nb-gold);border-color:var(--nb-gold);color:#131A26}
+  .st-go:hover,.st-next:hover{background:transparent;color:var(--nb-gold)}
+}`;
+
+/**
+ * 들어가는 손놀림.
+ *
+ * 세 장면을 넘기고, 밝힌 것을 아래 만세력 칸에 옮겨 담고, 덮개를 걷는다.
+ * **여기서 계산하지 않는다** — 계산은 이미 조각 안에 있고, 두 곳에서
+ * 계산하면 언젠가 두 값이 달라진다.
+ */
+export const STAGE_SCRIPT = `<script>(function(){
+  var stage=document.getElementById('stage');
+  if(!stage)return;
+  var $=function(id){return document.getElementById(id);};
+  var calm=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var c=navigator.connection;
+  var thin=calm||(c&&(c.saveData||/2g/.test(c.effectiveType||'')));
+
+  // 자바스크립트가 살아 있을 때만 덮개를 세운다.
+  // 꺼져 있으면 지금까지의 화면이 그대로 남는다 — 손님이 못 하게 되는 일은 없다
+  stage.hidden=false;
+  document.body.classList.add('st-locked');
+
+  var show=function(id){
+    var all=stage.querySelectorAll('.st');
+    for(var i=0;i<all.length;i++)all[i].classList.remove('st-on');
+    var el=$(id); if(el)el.classList.add('st-on');
+  };
+
+  // 영상은 뒤에서 받아 둔다. 첫 화면이 뜨는 것을 늦추지 않는다
+  var pull=function(v,src,onReady){
+    if(!v||thin)return;
+    var go=function(){
+      v.src=src;
+      v.addEventListener('canplaythrough',function(){v.classList.add('on');if(onReady)onReady();},{once:true});
+      v.load();
+    };
+    if('requestIdleCallback' in window)requestIdleCallback(go,{timeout:2000});
+    else addEventListener('load',function(){setTimeout(go,300);});
+  };
+  var walk=$('stWalkVid'), open=$('stOpenVid');
+  var walkReady=false, openReady=false;
+  pull(walk,'/video/gate-walk',function(){walkReady=true;walk.play().catch(function(){});});
+  pull(open,'/video/gate-open',function(){openReady=true;});
+
+  // 길 → 문. 영상이 끝나면 저절로, 안 끝나도 단추로 넘어간다
+  var atGate=false;
+  var toGate=function(){
+    if(atGate)return; atGate=true;
+    if(walk){try{walk.pause();}catch(e){}}
+    show('stGate');
+    var d=$('stDate'); if(d&&d.focus)setTimeout(function(){d.focus();},200);
+  };
+  if(walk)walk.addEventListener('ended',toGate,{once:true});
+  var go=$('stGo'); if(go)go.addEventListener('click',toGate);
+  // 영상이 없거나 못 받으면 오래 세워 두지 않는다
+  setTimeout(function(){ if(!walkReady)toGate(); }, thin?0:2600);
+
+  var put=function(id,v){
+    var el=$(id); if(!el)return false;
+    el.value=v;
+    el.dispatchEvent(new Event('input',{bubbles:true}));
+    el.dispatchEvent(new Event('change',{bubbles:true}));
+    return true;
+  };
+
+  var leave=function(){
+    stage.hidden=true;
+    document.body.classList.remove('st-locked');
+  };
+
+  // 문이 열리면 신령계로. 덮개는 그대로 있고 장면만 바뀐다 —
+  // 신령계와 신령 판도 전체 화면이다. 스크롤은 글을 읽을 때부터다
+  var told=false;
+  var toWorld=function(name){
+    if(name){ var h=$('stHello'); if(h)h.textContent=name+'님, 신령계에 드셨습니다'; }
+    show('stWorld');
+    var w=$('stWorld'); if(w)w.scrollTop=0;
+  };
+
+  // 덮개를 걷고 글을 읽는 곳으로. 여기서부터가 스크롤이다
+  var read=function(id){
+    leave();
+    if(typeof window.NB_SKIP_WIZARD==='function')window.NB_SKIP_WIZARD();
+    var to=document.getElementById(id)||document.getElementById('products');
+    if(to)setTimeout(function(){to.scrollIntoView({behavior:'smooth',block:'start'});},60);
+  };
+
+  var skip=$('stSkip');
+  if(skip)skip.addEventListener('click',function(){toWorld('');});
+
+  var free=$('stFree');
+  if(free)free.addEventListener('click',function(){
+    read(told?'out':'products');
+  });
+
+  stage.addEventListener('click',function(e){
+    var card=e.target.closest('.wd-card');
+    if(card){ show('stSp-'+card.dataset.sp); var s=$('stSp-'+card.dataset.sp); if(s)s.scrollTop=0; return; }
+    if(e.target.closest('[data-back]')){ toWorld(''); }
+  });
+
+  var f=$('stForm');
+  if(f)f.addEventListener('submit',function(e){
+    e.preventDefault();
+    var name=$('stName').value.trim();
+    var date=$('stDate').value;
+    var hour=$('stHour').value;
+    if(!date){ $('stMsg').textContent='태어난 날을 알려 주세요.'; return; }
+    put('date',date);
+    if(name)put('name',name);
+    var noTime=document.getElementById('notime');
+    if(hour){ put('time',hour); if(noTime&&noTime.checked){noTime.checked=false;
+      noTime.dispatchEvent(new Event('change',{bubbles:true}));} }
+    else if(noTime&&!noTime.checked){ noTime.checked=true;
+      noTime.dispatchEvent(new Event('change',{bubbles:true})); }
+
+    told=true;
+    // 문이 열리는 장면. 못 틀거나 오래 걸리면 기다리지 않고 그냥 들어간다
+    if(!open||!openReady){ toWorld(name); return; }
+    show('stOpen');
+    var went=false, once=function(){ if(went)return; went=true; toWorld(name); };
+    open.addEventListener('ended',once,{once:true});
+    open.addEventListener('error',once,{once:true});
+    setTimeout(once,5000);
+    var p=open.play(); if(p&&p.catch)p.catch(once);
+  });
+})();</script>`;

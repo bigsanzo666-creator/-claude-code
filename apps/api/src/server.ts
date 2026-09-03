@@ -24,12 +24,12 @@ import {
   renderProducts, renderProductsPage, PRODUCTS_CSS,
   renderHero, renderTryHeading, LANDING_CSS, FONT_LINK, renderProductPage,
   renderSpiritRow, renderSocialHead, HOME_TITLE, HOME_DESCRIPTION,
-  renderGate, GATE_CSS, GATE_SCRIPT,
+  renderStage, STAGE_CSS, STAGE_SCRIPT,
   type BusinessInfo,
 } from '../../../packages/site-policy/src/index.ts';
 import {
   findProductImages, findHeroImage, findHeroVideo, findSpiritImages, findSceneImages,
-  findGateVideo, type ProductImage,
+  findGateVideo, findWalkVideo, type ProductImage,
 } from './images.ts';
 import { buildPayload, KIND_OF, type ReadingRequest } from './payload.ts';
 import { buildPreview } from './preview.ts';
@@ -98,6 +98,8 @@ export interface ApiDeps {
   sceneImages?: Map<string, ProductImage>;
   /** 문이 열리는 영상. `null` 이면 밝히자마자 바로 안으로 들어간다 */
   gateVideo?: ProductImage | null;
+  /** 바람신령이 문까지 데려가는 영상. `null` 이면 그림만 뜬다 */
+  walkVideo?: ProductImage | null;
 }
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -113,7 +115,7 @@ const VIEWER_PATH = join(HERE, '..', '..', 'manse-viewer', 'index.html');
 function renderPage(
   checkout: CheckoutConfig | null, business: BusinessInfo, images: ReadonlySet<string>,
   hero = false, heroVideo = false, faces: ReadonlySet<string> = new Set(),
-  scenes: ReadonlySet<string> = new Set(), gateVideo = false,
+  scenes: ReadonlySet<string> = new Set(), gateVideo = false, walkVideo = false,
 ): string {
   // 조각은 아티팩트로 따로 쓰일 때를 위해 제 제목을 달고 다닌다.
   // 여기서는 <head> 가 이미 제목을 냈으므로, 본문에 제목이 두 개 되지 않게 걷어낸다
@@ -131,21 +133,21 @@ ${FONT_LINK}
 <style>:root{color-scheme:light dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 ${LANDING_CSS}
 ${PRODUCTS_CSS}
-${GATE_CSS}
+${STAGE_CSS}
 ${FOOTER_CSS}</style>
 <script>window.SAJU_CONFIG = ${config};</script>
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 </head>
 <body>
+${renderStage(business, scenes, { walk: walkVideo, open: gateVideo }, faces)}
 ${renderHero(business, checkout !== null, hero, heroVideo)}
-${renderGate(business, scenes, gateVideo)}
 ${renderSpiritRow(faces)}
 ${renderProducts(checkout !== null, images, faces, false, scenes)}
 ${renderTryHeading()}
 ${fragment}
 <style>${VIEWER_SKIN}</style>
 ${renderFooter(business)}
-${GATE_SCRIPT}
+${STAGE_SCRIPT}
 </body>
 </html>`;
 }
@@ -310,13 +312,14 @@ export function createApi(deps: ApiDeps) {
   const scenes = deps.sceneImages ?? findSceneImages();
   const haveScene = new Set(scenes.keys());
   const gateVideo = deps.gateVideo !== undefined ? deps.gateVideo : findGateVideo();
+  const walkVideo = deps.walkVideo !== undefined ? deps.walkVideo : findWalkVideo();
 
   const routes: Record<string, (req: IncomingMessage, res: ServerResponse, id: string) => Promise<void>> = {
     /** 화면. 결제 설정을 주입해 내려준다 */
     'GET /': async (_req, res) => {
       const html = renderPage(
         checkout, business, haveImage, hero !== null, heroVideo !== null, haveFace, haveScene,
-        gateVideo !== null,
+        gateVideo !== null, walkVideo !== null,
       );
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
@@ -411,6 +414,12 @@ export function createApi(deps: ApiDeps) {
     'GET /video/gate-open': async (req, res) => {
       if (!gateVideo) throw new HttpError(404, '문 여는 영상이 없습니다.');
       sendVideo(req, res, gateVideo);
+    },
+
+    /** 바람신령이 문까지 데려가는 영상 */
+    'GET /video/gate-walk': async (req, res) => {
+      if (!walkVideo) throw new HttpError(404, '데려가는 영상이 없습니다.');
+      sendVideo(req, res, walkVideo);
     },
 
     /** 신령계 배경. 신령 얼굴과 같은 방식이다 */

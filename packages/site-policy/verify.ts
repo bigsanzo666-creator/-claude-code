@@ -14,6 +14,7 @@ import {
   SPIRITS, PITCH, spiritOf, renderSpiritRow, renderSpiritHead, renderSpiritPitch, SPIRITS_CSS,
   renderSocialHead, HOME_TITLE, HOME_DESCRIPTION, FALLBACK_NAME,
   renderGate, GATE_CSS, GATE_SCRIPT, sceneUrl,
+  renderStage, STAGE_CSS, STAGE_SCRIPT,
 } from './src/index.ts';
 import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
@@ -360,7 +361,39 @@ section('9. 신령 — 칸마다 주인이 있는가');
     list.includes('19,900원') && list.includes('따로 사면'));
 }
 
-section('10. 문 — 신령계 들어가는 곳');
+section('10. 들어가는 길 — 전체 화면');
+{
+  const st = renderStage(full, new Set(['path', 'gate', 'world', 'flower']),
+    { walk: true, open: true }, new Set(['flower']));
+  // 길 · 문 · 열림 · 신령계 · 신령 하나의 판. 스크롤은 글을 읽을 때부터다
+  for (const id of ['stWalk', 'stGate', 'stOpen', 'stWorld', 'stSp-flower']) {
+    check(`${id} 장면이 있다`, st.includes(`id="${id}"`));
+  }
+  check('신령 일곱이 저마다 판을 갖는다', (st.match(/id="stSp-/g) ?? []).length === 7);
+  check('신령계에서 무료 사주를 먼저 건다', st.includes('id="stFree"') && st.includes('무료'));
+  // 아직 뭘 봐 주는지도 모르는 사람에게 계산부터 시키면 물러선다
+  check('고르는 화면에는 값이 없다', !/[0-9],[0-9]{3}원/.test(st));
+  check('신령 판에서 상품으로 이어진다', st.includes('href="/products/charm-report"'));
+  // 덮개이지 대문이 아니다 — 카드사 심사와 검색엔진이 아래를 봐야 한다
+  check('자바스크립트가 꺼져 있으면 안 뜬다', st.includes('id="stage" hidden'));
+  check('밝히지 않고 둘러볼 수 있다', st.includes('id="stSkip"'));
+  check('덮개가 떠 있는 동안 뒤는 안 움직인다', STAGE_CSS.includes('body.st-locked{overflow:hidden}'));
+  // 폰에서 주소창이 접혔다 펴질 때 100vh 는 화면 아래가 잘린다
+  check('영상은 미리 받지 않는다', (st.match(/preload="none"/g) ?? []).length === 2);
+  check('영상에 소리가 없다', (st.match(/class="st-vid"[^>]*muted/g) ?? []).length === 2);
+  check('영상이 없으면 자리도 안 만든다',
+    !renderStage(full, new Set(['gate'])).includes('st-vid'));
+  check('그림이 없으면 배경을 걸지 않는다',
+    !renderStage(full).includes('--st-shot:url'));
+  // 계산은 만세력 조각이 한다. 두 곳에서 계산하면 언젠가 두 값이 달라진다
+  check('덮개는 계산하지 않고 옮겨 담기만 한다',
+    STAGE_SCRIPT.includes("put('date',date)") && !/calculate|analyze/i.test(STAGE_SCRIPT));
+  check('못 틀거나 오래 걸리면 기다리지 않는다',
+    STAGE_SCRIPT.includes('setTimeout(once,') && STAGE_SCRIPT.includes('if(!walkReady)toGate()'));
+  check('움직임을 꺼 둔 손님에게는 틀지 않는다', STAGE_SCRIPT.includes('prefers-reduced-motion'));
+}
+
+section('11. 문 — 신령계 들어가는 곳');
 {
   const gate = renderGate(full, new Set(['gate']));
   check('문에서 이름·태어난 날·태어난 시를 받는다',

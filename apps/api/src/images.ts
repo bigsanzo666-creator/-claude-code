@@ -246,6 +246,7 @@ export const SCENE_DIR = join(
 export const SCENES: Record<string, string> = {
   gate: '문',
   world: '신령계',
+  path: '산길',
   ...Object.fromEntries(SPIRITS.map((s) => [s.id, s.place])),
 };
 
@@ -294,6 +295,27 @@ export const ALL_SCENE_IDS = Object.keys(SCENES);
  * **없으면 없는 대로 둔다.** 영상이 없으면 지금처럼 바로 결과로 내려간다.
  */
 export const GATE_VIDEO_NAMES = ['gate-open', '문열림'];
+
+/** 바람신령이 손을 잡고 문까지 데려가는 장면 */
+export const WALK_VIDEO_NAMES = ['walk', '문으로'];
+
+export function findWalkVideo(dir: string = SCENE_DIR): ProductImage | null {
+  return findVideo(dir, WALK_VIDEO_NAMES);
+}
+
+function findVideo(dir: string, names: string[]): ProductImage | null {
+  let entries: string[];
+  try { entries = readdirSync(dir); } catch { return null; }
+  const want = names.map(squash);
+  for (const name of entries) {
+    const ext = extname(name).toLowerCase();
+    const type = VIDEO_TYPES[ext];
+    if (type && want.includes(squash(name.slice(0, -ext.length)))) {
+      return { path: join(dir, name), type };
+    }
+  }
+  return null;
+}
 
 export function findGateVideo(dir: string = SCENE_DIR): ProductImage | null {
   let entries: string[];
