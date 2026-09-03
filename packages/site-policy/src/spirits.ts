@@ -143,6 +143,7 @@ export const PITCH: Record<string, string> = {
 
   // 달신령 — 재회
   'reunion-report': '물에 비친 달은 못 잡아. 그래도 하늘에 달이 남았는지는 내가 봐 줄게.',
+  'letgo-report': '달도 기울었다가 다시 찬다. 네 마음이 가벼워지는 때가 언제인지 짚어 줄게.',
 
   // 실신령 — 궁합
   'compat-report': '두 사람한테 걸린 실을 다 세어 볼게. 어느 가닥이 튼튼하고 어느 가닥이 끊어질 실인지.',
@@ -160,6 +161,9 @@ export const PITCH: Record<string, string> = {
   'expression-report': '네가 진짜 잘하는 건 따로 있어. 그게 뭔지 비춰 줄게.',
   'peers-report': '사람 때문에 힘든 데는 자리가 있어. 네 자리가 어딘지 보여 줄게.',
   'helper-report': '널 도울 사람이 어느 쪽에서 오는지, 거울에 비친다.',
+  'face-palm-report': '태어난 날을 몰라도 된다. 얼굴하고 손바닥, 그 둘만 있으면 봐 줄게.',
+  'saju-palm-report': '태어날 때 정해진 것과 살면서 새겨진 것. 그 둘이 같은 말을 하는지 보자.',
+  'saju-face-report': '속은 사주에 있고 겉은 얼굴에 있어. 둘이 얼마나 떨어져 있는지 재 줄게.',
 
   // 곳간신령 — 돈과 일
   'wealth-report': '네 그릇이 얼마나 큰지 됫박으로 달아 볼게. 그릇보다 많이 담으면 넘쳐.',
@@ -182,6 +186,7 @@ export const PITCH: Record<string, string> = {
 export const BLIND: Record<string, string> = {
   'saju-report': '여기서부터는 앞으로 열 해가 어떻게 흐르는지다. 거울을 더 깊이 들여다봐야 보인다.',
   'cross-report': '거울 하나로는 뒤통수를 못 본다. 얼굴과 손금까지 겹쳐 봐야 여기가 보인다.',
+  'saju-face-report': '겉과 속이 어디서 갈라지는지는 여기서부터다.',
   'compat-report': '실이 몇 가닥인지는 봤지. 어느 가닥이 먼저 끊어지는지는 여기서부터다.',
   'newyear-report': '올해 바람이 어느 쪽에서 부는지, 달마다 나눠 보는 건 여기서부터다.',
 };

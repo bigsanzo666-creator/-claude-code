@@ -32,13 +32,15 @@ export type ProductId =
   // 연애 — 입구
   | 'charm-report' | 'single-report' | 'marriage-timing-report'
   // 재회
-  | 'reunion-report'
+  | 'reunion-report' | 'letgo-report'
   // 궁합
   | 'compat-report' | 'crush-compat-report'
   // 가족 — 차별점
   | 'child-report' | 'child-aptitude-report' | 'parent-child-report' | 'latelife-report'
   // 나
   | 'saju-report' | 'cross-report' | 'peers-report' | 'expression-report' | 'helper-report'
+  // 나 — 골라 보기. 삼합이 부담스러운 손님이 한 갈래씩 고른다
+  | 'face-palm-report' | 'saju-palm-report' | 'saju-face-report'
   // 돈과 일
   | 'wealth-report' | 'career-report' | 'learning-report'
   // 시기
@@ -120,6 +122,25 @@ export const CATALOG: Record<ProductId, Product> = {
     category: '재회',
     hook: '다시 만날 수 있을까?',
     needsPartner: true,
+  },
+
+  /**
+   * 재회 칸의 두 번째.
+   *
+   * 재회를 보러 오는 사람의 절반은 사실 「돌아올까」가 아니라
+   * 「언제까지 이래야 하나」를 묻는다. 그런데 우리에게는 앞의 질문만 있었다.
+   *
+   * 돌아온다고 지어내지 않는다. **언제 마음이 가벼워지는지**를 대운·세운에서
+   * 짚어 주는 것이 우리가 실제로 할 수 있는 일이다.
+   */
+  'letgo-report': {
+    id: 'letgo-report',
+    name: '마음 정리 — 언제쯤 괜찮아질까',
+    priceKrw: 14900,
+    description: '대운과 세운의 흐름에서 이 마음이 가벼워지는 구간을 짚습니다. 돌아온다고 지어내지 않습니다.',
+    previewRatio: 0.2,
+    category: '재회',
+    hook: '언제쯤 괜찮아질까?',
   },
 
   // ── 궁합 ────────────────────────────────────────────────
@@ -209,6 +230,43 @@ export const CATALOG: Record<ProductId, Product> = {
     category: '나',
     hook: '겉으로 보이는 나와 속의 나는 같을까?',
   },
+  /**
+   * 골라 보기 세 가지.
+   *
+   * 삼합(49,000원)은 우리만 하는 것이지만, 처음 온 손님에게는 큰 값이다.
+   * 그렇다고 사주 하나만 보면 우리에게 올 이유가 없다 — 그건 어디서나 한다.
+   *
+   * 그래서 **두 갈래씩 대조하는 것**을 사이에 둔다. 우리가 잘하는 대조는
+   * 그대로 하면서, 값은 삼합의 절반이다.
+   */
+  'face-palm-report': {
+    id: 'face-palm-report',
+    name: '얼굴과 손 — 관상 × 손금',
+    priceKrw: 24000,
+    description: '생년월일 없이 얼굴과 손만으로 봅니다. 두 갈래가 같은 말을 하는 곳과 엇갈리는 곳을 가려 씁니다.',
+    previewRatio: 0.15,
+    category: '나',
+    hook: '생년월일 없이도 볼 수 있을까?',
+  },
+  'saju-palm-report': {
+    id: 'saju-palm-report',
+    name: '타고난 것과 살아온 것 — 사주 × 손금',
+    priceKrw: 29000,
+    description: '태어날 때 정해진 것(사주)과 살면서 새겨진 것(손금)을 맞춰 봅니다.',
+    previewRatio: 0.15,
+    category: '나',
+    hook: '타고난 대로 살고 있을까?',
+  },
+  'saju-face-report': {
+    id: 'saju-face-report',
+    name: '속과 겉 — 사주 × 관상',
+    priceKrw: 29000,
+    description: '사주가 말하는 속과 얼굴이 말하는 겉을 대조합니다. 남들이 보는 나와 진짜 나의 거리를 씁니다.',
+    previewRatio: 0.15,
+    category: '나',
+    hook: '남들이 보는 나는 진짜 나일까?',
+  },
+
   'expression-report': topic('expression-report', 'expression', '재능운', '나',
     '내가 진짜 잘하는 건 뭘까?',
     '식상(食傷)으로 본 표현력과 재능, 밖으로 내놓는 힘을 씁니다.'),

@@ -46,7 +46,8 @@ const CROSS_PRICE = CATALOG['cross-report'].priceKrw;
 // ── A. 상품 ────────────────────────────────────────────────────
 section('A. 상품과 미리보기');
 
-check('상품 21종', Object.keys(CATALOG).length === 21, `${Object.keys(CATALOG).length}개`);
+const COUNT = Object.keys(CATALOG).length;
+check('상품이 스무 개는 넘는다', COUNT >= 21, `${COUNT}개`);
 // 시장 1위의 24개 중 연애 계열이 71%였다. 입구를 그쪽에 둔다
 const loveish = ['연애', '재회', '궁합'].reduce((n, c) => n + productsIn(c as any).length, 0);
 check('연애·재회·궁합에 입구를 둔다', loveish >= 6, `${loveish}종`);
@@ -60,8 +61,19 @@ check('모든 상품에 후킹 질문이 있다', Object.values(CATALOG).every((
   '「재물운」이라고만 쓰면 안 눌린다');
 check('갈래마다 상품이 있다', CATEGORIES.every((c) => productsIn(c.key).length > 0));
 check('갈래 제목도 질문이다', CATEGORIES.every((c) => c.question.endsWith('?')));
-check('식별자가 겹치지 않는다', new Set(Object.values(CATALOG).map((p) => p.id)).size === 21);
+check('식별자가 겹치지 않는다', new Set(Object.values(CATALOG).map((p) => p.id)).size === COUNT);
 check('id 와 키가 일치', Object.entries(CATALOG).every(([k, v]) => k === v.id));
+
+// 삼합(49,000원)이 부담스러운 손님이 한 갈래씩 고른다. 그래도 우리가 잘하는
+// 「대조」는 남아 있어야 한다 — 사주 하나만 파는 것은 어디서나 한다
+const PICKS = ['face-palm-report', 'saju-palm-report', 'saju-face-report'] as const;
+check('골라 보기 세 가지가 있다', PICKS.every((id) => CATALOG[id]));
+check('골라 보기는 삼합보다 싸다',
+  PICKS.every((id) => CATALOG[id].priceKrw < CATALOG['cross-report'].priceKrw));
+check('골라 보기는 낱개 하나보다 비싸다',
+  PICKS.every((id) => CATALOG[id].priceKrw > CATALOG['saju-report'].priceKrw));
+// 얼굴과 손만 보는 것은 생년월일이 없어도 된다. 그게 이 상품의 존재 이유다
+check('얼굴과 손은 상대가 필요 없다', !CATALOG['face-palm-report'].needsPartner);
 
 // ── 묶음 ────────────────────────────────────────────────────
 check('묶음 구성이 카탈로그와 어긋나지 않는다', throwsSync(() => assertPackagesValid()) === null);

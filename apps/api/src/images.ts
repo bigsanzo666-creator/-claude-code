@@ -65,6 +65,10 @@ const KOREAN_NAMES: Record<string, string> = {
   '오늘운세': 'daily-report',
   '신년운세': 'newyear-report',
   '이동운': 'travel-report',
+  '마음정리': 'letgo-report',
+  '얼굴과손': 'face-palm-report',
+  '사주손금': 'saju-palm-report',
+  '사주관상': 'saju-face-report',
 };
 
 /** 띄어쓰기·밑줄·유니코드 조합 차이를 지운다 — 「돈 그릇」도 「돈그릇」으로 본다 */

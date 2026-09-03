@@ -71,7 +71,12 @@ const reading = { productId: 'cross-report', birth: BIRTH };
 section('A. 상품과 미리보기 (결제 전, 원가 0)');
 
 const products = await api('GET', '/api/products');
-check('상품 목록 조회', products.status === 200 && products.body.products.length === 21, `${products.body.products.length}종`);
+// 상품은 늘어난다. 개수를 못 박으면 하나 늘 때마다 여기가 깨진다 —
+// 봐야 할 것은 「카탈로그에 있는 것이 다 나오는가」다
+const { CATALOG: LIVE } = await import('../../packages/commerce/src/catalog.ts');
+check('상품 목록 조회',
+  products.status === 200 && products.body.products.length === Object.keys(LIVE).length,
+  `${products.body.products.length}종`);
 check('목록에 청약철회 고지 포함', products.body.notice.includes('청약철회가 제한'));
 
 const preview = await api('POST', '/api/preview', reading);
