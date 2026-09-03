@@ -260,6 +260,10 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   check('영상은 장소 그림에도 오타 경고에도 끼지 않는다',
     findSceneImages(scDir).size === 1 && !straySceneImages(scDir).includes('문열림.mp4'));
   check('영상이 없으면 null', findGateVideo(j(scDir, '없는폴더')) === null);
+  // 사장님이 파일을 어떤 이름으로 저장하실지 프로그램이 정할 일이 아니다
+  writeFileSync(j(scDir, '신령계장소.jpg'), png);
+  check('같은 장소를 여러 이름으로 알아듣는다',
+    findSceneImages(scDir).has('world') && !straySceneImages(scDir).includes('신령계장소.jpg'));
 
   const faces = findSpiritImages(spDir);
   check('신령 얼굴을 영문 아이디로 찾는다', faces.has('flower'));

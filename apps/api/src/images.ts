@@ -250,9 +250,25 @@ export const SCENES: Record<string, string> = {
   ...Object.fromEntries(SPIRITS.map((s) => [s.id, s.place])),
 };
 
+/**
+ * 한 장소를 여러 이름으로 부를 수 있다.
+ *
+ * 사장님이 파일을 어떤 이름으로 저장하실지 프로그램이 정할 일이 아니다.
+ * 뜻이 같으면 다 알아듣는다.
+ */
+const SCENE_ALIASES: Record<string, string[]> = {
+  world: ['신령계장소', '신령계지도', '신령계배경'],
+  path: ['길', '산길배경'],
+  gate: ['대문', '돌문'],
+};
+
 const SCENE_BY_NAME = new Map<string, string>(
   Object.entries(SCENES).flatMap(([id, korean]) =>
-    [[squash(id), id], [squash(korean), id]] as [string, string][]),
+    [
+      [squash(id), id],
+      [squash(korean), id],
+      ...(SCENE_ALIASES[id] ?? []).map((a) => [squash(a), id]),
+    ] as [string, string][]),
 );
 
 export function findSceneImages(dir: string = SCENE_DIR): Map<string, ProductImage> {

@@ -2,7 +2,10 @@
 
 파일 이름 (한글·영어 둘 다 됨, jpg/png/webp 아무거나):
 
-  문.jpg        또는  gate.jpg      — 신령계 들어가는 문
+  문.jpg        또는  gate.jpg      — 신령계 들어가는 문 (대문·돌문 도 됨)
+  신령계.jpg    또는  world.jpg     — 신령들이 흩어져 있는 지도
+                                     (신령계장소·신령계지도·신령계배경 도 됨)
+  산길.jpg      또는  path.jpg      — 문으로 가는 길 (길 도 됨)
   꽃터.jpg      또는  flower.jpg    — 꽃신령이 있는 곳
   달터.jpg      또는  moon.jpg      — 달신령이 있는 곳
   실터.jpg      또는  thread.jpg    — 실신령이 있는 곳
