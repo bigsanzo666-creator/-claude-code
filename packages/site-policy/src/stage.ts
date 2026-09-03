@@ -144,29 +144,59 @@ ${SPIRITS.map((sp) => renderSpiritStage(sp, scenes, faces)).join('\n')}
  * 맨 위에는 **무료 사주**를 크게 건다. 이미 태어난 날을 받았으므로 볼 것이
  * 이미 있다. 값을 묻기 전에 먼저 주는 것이 순서다.
  */
+/**
+ * 신령들이 서 있는 자리.
+ *
+ * 배경 그림(`신령계`) 안의 장소와 **같은 자리**여야 한다. 그림에는 기와집이
+ * 왼쪽 위에 있는데 산신령이 오른쪽 아래에 서 있으면 지도가 아니라 그냥
+ * 그림 위에 얹은 단추다.
+ *
+ * 값은 그림 가로·세로에 대한 %다. 그림을 새로 뽑으면 **여기 숫자만 고친다.**
+ * 배경 프롬프트(`docs/scene-prompts.md`)에 같은 자리를 못 박아 두었다.
+ */
+const SPOTS: Record<string, { x: number; y: number }> = {
+  // 위쪽 22% 는 제목이, 아래쪽 12% 는 무료 사주가 차지한다. 그 사이에만 세운다
+  mountain: { x: 21, y: 27 },   // 왼쪽 위 — 산자락 기와집
+  wind: { x: 76, y: 31 },       // 오른쪽 위 — 처마 끝 풍경
+  flower: { x: 23, y: 44 },     // 왼쪽 — 복사꽃 나무
+  thread: { x: 76, y: 50 },     // 오른쪽 — 붉은 실 걸린 나무
+  mirror: { x: 47, y: 60 },     // 가운데 — 맑은 샘
+  jar: { x: 24, y: 72 },        // 왼쪽 아래 — 곳간과 항아리
+  moon: { x: 73, y: 79 },       // 오른쪽 아래 — 달 비친 연못
+};
+
+/**
+ * 신령계 — 누구에게 물을지 고르는 화면.
+ *
+ * 격자로 늘어놓으면 그냥 목록이다. **배경 그림 위에 신령을 자리마다 세운다.**
+ * 손님은 상품 이름이 아니라 「저기 저 사람한테 물어볼까」로 고른다.
+ *
+ * 맨 아래에 **무료 사주**를 걸어 둔다. 값을 묻기 전에 먼저 주는 것이 순서다.
+ */
 function renderWorld(scenes: SceneImages, faces: SpiritImages): string {
   const shot = scenes.has('world') ? ` style="--st-shot:url(${sceneUrl('world')})"` : '';
-  const cards = SPIRITS.map((sp) => `      <button type="button" class="wd-card" data-sp="${esc(sp.id)}">
-        ${stageFace(sp.id, sp.seal, faces, 92)}
-        <span class="wd-name">${esc(sp.name)}</span>
-        <span class="wd-keep">${esc(sp.keeps)}</span>
-      </button>`).join('\n');
+  const pins = SPIRITS.map((sp) => {
+    const at = SPOTS[sp.id] ?? { x: 50, y: 50 };
+    return `      <button type="button" class="wd-pin" data-sp="${esc(sp.id)}"
+        style="left:${at.x}%;top:${at.y}%" aria-label="${esc(sp.name)} — ${esc(sp.keeps)}">
+        ${stageFace(sp.id, sp.seal, faces, 72)}
+        <span class="wd-tag"><b>${esc(sp.name)}</b><i>${esc(sp.keeps)}</i></span>
+      </button>`;
+  }).join('\n');
 
-  return `  <section class="st st-scroll" id="stWorld"${shot}>
-    <div class="st-veil st-veil-3"></div>
-    <div class="st-page">
+  return `  <section class="st" id="stWorld"${shot}>
+    <div class="st-map">
+${pins}
+    </div>
+    <div class="wd-top">
       <p class="st-kicker" id="stHello">신령계</p>
       <h2 class="st-h wd-h">누구에게<br><em>물어보시겠습니까</em></h2>
-
+    </div>
+    <div class="wd-bottom">
       <button type="button" class="wd-free" id="stFree">
         <span class="wd-free-t">먼저, 무료로 보는 내 사주</span>
-        <span class="wd-free-b">태어난 날을 이미 밝히셨습니다. 여덟 글자와 풀이가 바로 나옵니다.</span>
         <span class="wd-free-go">공짜로 보기 →</span>
       </button>
-
-      <div class="wd-grid">
-${cards}
-      </div>
     </div>
   </section>`;
 }
@@ -283,24 +313,38 @@ body.st-locked{overflow:hidden}
 .st-seal{display:grid;place-items:center;font-family:var(--nb-serif);font-size:26px;
   color:var(--nb-gold)}
 
-/* 신령계 */
-.wd-h{margin-bottom:20px}
-.wd-free{display:block;width:100%;text-align:left;margin:0 0 24px;padding:20px 22px;
-  border:1px solid var(--nb-gold);background:var(--nb-paper-2);cursor:pointer;
-  font:inherit;color:inherit}
+/* 신령계 — 배경 그림 위에 신령이 자리마다 서 있다 */
+#stWorld{background-position:center;background-size:cover}
+.st-map{position:absolute;inset:0}
+.wd-pin{position:absolute;transform:translate(-50%,-50%);display:grid;justify-items:center;
+  gap:5px;padding:0;border:0;background:none;cursor:pointer;font:inherit;color:inherit;
+  animation:wdFloat 5.5s ease-in-out infinite alternate}
+.wd-pin:nth-child(2n){animation-duration:6.5s}
+.wd-pin:nth-child(3n){animation-duration:7.5s}
+@keyframes wdFloat{from{transform:translate(-50%,-50%)}to{transform:translate(-50%,calc(-50% - 7px))}}
+.wd-pin .st-face{width:54px;height:54px;
+  box-shadow:0 0 0 1px var(--nb-paper-2),0 6px 18px rgba(0,0,0,.28)}
+.wd-pin .st-seal{font-size:21px}
+.wd-pin:hover .st-face,.wd-pin:focus-visible .st-face{border-color:var(--nb-gold);
+  box-shadow:0 0 0 2px var(--nb-gold),0 6px 18px rgba(0,0,0,.28)}
+.wd-tag{display:grid;justify-items:center;padding:3px 9px;background:var(--nb-veil-1);
+  backdrop-filter:blur(2px)}
+.wd-tag b{font-family:var(--nb-serif);font-weight:500;font-size:13px;white-space:nowrap}
+.wd-tag i{font-style:normal;font-size:10.5px;letter-spacing:.12em;color:var(--nb-gold)}
+
+.wd-top{position:absolute;left:0;right:0;top:0;padding:26px 24px 40px;pointer-events:none;
+  background:linear-gradient(to bottom,var(--nb-paper),var(--nb-veil-1) 55%,var(--nb-veil-0))}
+.wd-h{font-size:24px;margin:0}
+.wd-bottom{position:absolute;left:0;right:0;bottom:0;padding:44px 20px 22px;
+  background:linear-gradient(to top,var(--nb-paper),var(--nb-veil-1) 55%,var(--nb-veil-0))}
+.wd-free{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
+  max-width:520px;margin:0 auto;padding:15px 20px;border:1px solid var(--nb-gold);
+  background:var(--nb-paper-2);cursor:pointer;font:inherit;color:inherit;text-align:left}
 .wd-free:hover{background:var(--nb-paper)}
-.wd-free-t{display:block;font-family:var(--nb-serif);font-size:19px;margin-bottom:6px}
-.wd-free-b{display:block;font-size:13.5px;line-height:1.75;color:var(--nb-ink-2);
-  word-break:keep-all}
-.wd-free-go{display:block;margin-top:12px;font-size:14px;color:var(--nb-gold)}
-.wd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 10px}
-.wd-card{display:grid;justify-items:center;gap:6px;padding:0;border:0;background:none;
-  cursor:pointer;font:inherit;color:inherit}
-.wd-card .st-face{width:56px;height:56px}
-.wd-card .st-seal{font-size:22px}
-.wd-card:hover .st-face{border-color:var(--nb-gold)}
-.wd-name{font-family:var(--nb-serif);font-size:13.5px}
-.wd-keep{font-size:11px;letter-spacing:.12em;color:var(--nb-gold)}
+.wd-free-t{font-family:var(--nb-serif);font-size:16.5px;word-break:keep-all}
+.wd-free-go{font-size:13.5px;color:var(--nb-gold);white-space:nowrap}
+
+@media (prefers-reduced-motion:reduce){ .wd-pin{animation:none} }
 
 /* 신령 하나의 판 */
 .st-back{margin:0 0 20px;padding:0;border:0;background:none;cursor:pointer;
@@ -317,8 +361,9 @@ body.st-locked{overflow:hidden}
 
 @media (min-width:760px){
   .st-h{font-size:38px}
-  .wd-grid{grid-template-columns:repeat(7,1fr);gap:18px 12px}
-  .wd-card .st-face{width:76px;height:76px}
+  .wd-pin .st-face{width:72px;height:72px}
+  .wd-tag b{font-size:14.5px}
+  .wd-h{font-size:30px}
   .st-page{padding:56px 24px}
   .st-in{padding-bottom:52px}
   .st-next{bottom:52px}
@@ -422,7 +467,7 @@ export const STAGE_SCRIPT = `<script>(function(){
   });
 
   stage.addEventListener('click',function(e){
-    var card=e.target.closest('.wd-card');
+    var card=e.target.closest('.wd-pin');
     if(card){ show('stSp-'+card.dataset.sp); var s=$('stSp-'+card.dataset.sp); if(s)s.scrollTop=0; return; }
     if(e.target.closest('[data-back]')){ toWorld(''); }
   });

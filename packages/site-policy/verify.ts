@@ -370,6 +370,16 @@ section('10. 들어가는 길 — 전체 화면');
     check(`${id} 장면이 있다`, st.includes(`id="${id}"`));
   }
   check('신령 일곱이 저마다 판을 갖는다', (st.match(/id="stSp-/g) ?? []).length === 7);
+  // 격자로 늘어놓으면 그냥 목록이다. 배경 그림 위에 자리마다 세운다
+  check('신령이 배경 그림 위 자리마다 선다', (st.match(/class="wd-pin"/g) ?? []).length === 7);
+  check('신령마다 자리가 다르다',
+    new Set((st.match(/left:[0-9.]+%;top:[0-9.]+%/g) ?? [])).size === 7);
+  // 위는 제목이, 아래는 무료 사주가 차지한다. 그 사이에만 세워야 안 겹친다
+  check('제목·무료 사주와 겹치지 않는다',
+    (st.match(/top:([0-9.]+)%/g) ?? []).every((t) => {
+      const y = Number(t.slice(4, -1));
+      return y >= 22 && y <= 84;
+    }));
   check('신령계에서 무료 사주를 먼저 건다', st.includes('id="stFree"') && st.includes('무료'));
   // 아직 뭘 봐 주는지도 모르는 사람에게 계산부터 시키면 물러선다
   check('고르는 화면에는 값이 없다', !/[0-9],[0-9]{3}원/.test(st));
