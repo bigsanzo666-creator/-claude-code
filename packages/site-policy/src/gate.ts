@@ -151,8 +151,11 @@ export const GATE_SCRIPT = `<script>(function(){
     else if(noTime&&!noTime.checked){ noTime.checked=true;
       noTime.dispatchEvent(new Event('change',{bubbles:true})); }
     msg.textContent = ok ? (name?name+'님, 문이 열렸습니다.':'문이 열렸습니다.') : '';
-    var go=document.getElementById('try')||document.getElementById('out');
-    if(go)go.scrollIntoView({behavior:'smooth',block:'start'});
+    // 아래 조각이 「하나씩 물어보는 화면」으로 떠 있으면 걷어 준다.
+    // 문에서 이미 밝혔는데 또 물으면 손님은 같은 일을 두 번 하게 된다
+    if(typeof window.NB_SKIP_WIZARD==='function')window.NB_SKIP_WIZARD();
+    var go=document.getElementById('out')||document.getElementById('try');
+    if(go)setTimeout(function(){go.scrollIntoView({behavior:'smooth',block:'start'});},60);
   });
 })();</script>`;
 

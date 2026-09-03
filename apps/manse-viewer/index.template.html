@@ -209,6 +209,24 @@ body.pair .who{display:block}
 .mini .c .p{font-family:"IBM Plex Mono",monospace;font-size:.6rem;color:var(--ink-3);letter-spacing:.06em}
 .mini .c .g{font-family:"Nanum Myeongjo",serif;font-size:1.3rem;font-weight:700;line-height:1.15}
 
+/* 가림막 — 앞은 보여 주고 뒤는 가린다 */
+.veil{position:relative;margin:0}
+.veil-peek{max-height:190px;overflow:hidden}
+.veil-fog{position:absolute;left:0;right:0;top:40px;height:150px;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(255,255,255,0),var(--surface-2) 86%)}
+.veil-ask{position:relative;margin:-8px 0 0;padding:1.4rem 1.3rem 1.5rem;
+  border:1px solid var(--rule);border-top:2px solid var(--gold,#9C7C42);
+  background:var(--surface-2);text-align:center}
+.veil-face{width:64px;height:64px;border-radius:50%;object-fit:cover;object-position:center 15%;
+  display:block;margin:0 auto .7rem;border:1px solid var(--rule)}
+.veil-who{margin:0 0 .4rem;font-size:.78rem;letter-spacing:.2em;color:var(--gold,#9C7C42)}
+.veil-line{margin:0 auto .3rem;max-width:28em;font-size:1rem;line-height:1.75}
+.veil-what{margin:0 auto 1.1rem;max-width:30em;font-size:.85rem;line-height:1.8;color:var(--ink-3)}
+.veil-go{display:inline-block;padding:.85rem 1.6rem;background:var(--ink);color:var(--surface-2);
+  text-decoration:none;font-size:.95rem;font-weight:500;border:1px solid var(--ink)}
+.veil-go:hover,.veil-go:focus{background:transparent;color:var(--ink)}
+.veil-note{margin:.9rem 0 0;font-size:.78rem;color:var(--ink-3)}
+
 /* 사진으로 재는 칸 */
 .shot{margin:0 0 1.1rem;padding:1rem 1.1rem;border:1px solid var(--rule);border-radius:10px}
 .shot-t{margin:0 0 .3rem;font-size:.95rem;font-weight:600}
@@ -812,6 +830,44 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     });
   }
 
+  /**
+   * 가림막.
+   *
+   * 문에서 생년월일을 받았으니 사주는 이미 나와 있다. **앞은 보여 주고
+   * 뒤는 가린다.** 아무것도 안 보여 주면 손님은 뭘 사는지 모르고,
+   * 다 보여 주면 살 이유가 없다.
+   *
+   * 가리는 것은 **없는 것을 파는 것이 아니다.** 가려진 내용은 이미 계산되어
+   * 있고, 리포트를 사면 그 내용을 사람이 읽을 수 있게 풀어서 준다.
+   *
+   * 막고 서는 것은 신령이다. 「결제하세요」라고 하지 않고
+   * 신령이 「여기서부터는 더 봐야 보인다」고 말한다.
+   */
+  function veiled(inner, spiritId, productId) {
+    var sp = null;
+    for (var i = 0; i < MS.SPIRITS.length; i++) {
+      if (MS.SPIRITS[i].id === spiritId) sp = MS.SPIRITS[i];
+    }
+    var product = MS.CATALOG[productId];
+    if (!sp || !product) return inner;   // 짝이 안 맞으면 가리지 않는다
+
+    var won = product.priceKrw.toLocaleString('ko-KR') + '원';
+    return '<div class="veil">' +
+      '<div class="veil-peek">' + inner + '</div>' +
+      '<div class="veil-fog"></div>' +
+      '<div class="veil-ask">' +
+        '<img class="veil-face" src="/img/spirits/' + sp.id + '" alt="" ' +
+          'onerror="this.remove()" width="64" height="64" loading="lazy">' +
+        '<p class="veil-who">' + esc(sp.name) + '</p>' +
+        '<p class="veil-line">' + esc(MS.BLIND[productId] || MS.PITCH[productId] || sp.greet) + '</p>' +
+        '<p class="veil-what">여기서부터는 ' + esc(product.name) + '에서 마저 풀어 드립니다.</p>' +
+        '<a class="veil-go" href="/products/' + encodeURIComponent(productId) + '">' +
+          '이어서 보기 · ' + won + '</a>' +
+        '<p class="veil-note">여기까지는 결제 없이 언제든 보실 수 있습니다.</p>' +
+      '</div>' +
+    '</div>';
+  }
+
   function crossPanel(xv) {
     var rows = xv.comparisons.map(function (c) {
       var scores = c.readings.map(function (r) {
@@ -1205,13 +1261,16 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
       panel('오늘의 일진', todayPanel(today, todayLabel)) +
 
       '<div style="height:1.6rem"></div>' +
-      panel('대운 <span class="label" style="font-family:inherit">10년 단위</span>', daeunPanel(an, daeun, cur, age)) +
-
-      '<div style="height:1.6rem"></div>' +
-      panel('세운 <span class="label" style="font-family:inherit">해마다</span>', yearsPanel(years)) +
-
-      '<div style="height:1.6rem"></div>' +
-      panel('관계와 신살', relationsPanel(an)) +
+      // 여기서부터가 손님이 제일 궁금해하는 것이다 — 언제 좋아지는가.
+      // 그래서 여기에 가림막을 세운다
+      veiled(
+        panel('앞으로의 흐름 <span class="label" style="font-family:inherit">대운 · 세운</span>',
+          daeunPanel(an, daeun, cur, age) +
+          '<div style="height:1.6rem"></div>' +
+          yearsPanel(years) +
+          '<div style="height:1.6rem"></div>' +
+          relationsPanel(an)),
+        'mirror', 'saju-report') +
 
       '<div style="height:1.6rem"></div>' +
       panel('지장간', hiddenPanel(an)) +
@@ -1386,6 +1445,12 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
       if (document.body.classList.contains('wiz')) finish();
     }, { capture: true });
   });
+
+  // 문(첫 화면)에서 생년월일을 받고 들어오면 마법사는 물러난다.
+  // 이미 밝힌 것을 또 물으면 손님은 두 번 일하게 된다
+  window.NB_SKIP_WIZARD = function () {
+    if (document.body.classList.contains('wiz')) finish();
+  };
 
   document.body.classList.add('wiz');
   show();

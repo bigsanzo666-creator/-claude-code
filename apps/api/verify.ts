@@ -354,6 +354,18 @@ const home = await page('/');
     home.html.includes('id="products"') && home.html.includes('둘러보기'));
   check('그림이 움직이되 영상은 아니다',
     home.html.includes('nbDrift') && !/<video[^>]*gate/.test(home.html));
+
+  // 앞은 보여 주고 뒤는 가린다. 아무것도 안 보여 주면 뭘 사는지 모르고,
+  // 다 보여 주면 살 이유가 없다
+  check('가림막을 세울 줄 안다', home.html.includes('veil-ask') && home.html.includes('veiled('));
+  check('가림막 앞에서 신령이 말한다', home.html.includes('MS.BLIND['));
+  check('가림막에 값과 갈 곳이 적힌다',
+    home.html.includes('이어서 보기') && home.html.includes('veil-go'));
+  check('가린 뒤에도 여기까지는 공짜라고 밝힌다',
+    home.html.includes('여기까지는 결제 없이'));
+  // 문에서 이미 밝혔는데 또 물으면 손님은 같은 일을 두 번 한다
+  check('문을 열면 하나씩 묻는 화면이 걷힌다',
+    home.html.includes('NB_SKIP_WIZARD'));
 }
 {
   // 얼굴 사진은 생체정보다. 서버로 보내는 순간 보관·파기·동의 문제가 전부 따라붙는다.

@@ -172,6 +172,20 @@ export const PITCH: Record<string, string> = {
   'travel-report': '떠날 때가 있고 머물 때가 있다. 지금 종이 울리는지 들어 볼게.',
 };
 
+/**
+ * 가림막 앞에서 신령이 하는 말.
+ *
+ * `PITCH` 와 다르다. `PITCH` 는 「이 상품은 이런 것입니다」이고,
+ * 여기는 **손님이 이미 앞부분을 다 보고 난 뒤**에 하는 말이다.
+ * 이미 본 것을 또 말하면 안 사고 나간다.
+ */
+export const BLIND: Record<string, string> = {
+  'saju-report': '여기서부터는 앞으로 열 해가 어떻게 흐르는지다. 거울을 더 깊이 들여다봐야 보인다.',
+  'cross-report': '거울 하나로는 뒤통수를 못 본다. 얼굴과 손금까지 겹쳐 봐야 여기가 보인다.',
+  'compat-report': '실이 몇 가닥인지는 봤지. 어느 가닥이 먼저 끊어지는지는 여기서부터다.',
+  'newyear-report': '올해 바람이 어느 쪽에서 부는지, 달마다 나눠 보는 건 여기서부터다.',
+};
+
 /** 그림이 실제로 있는 신령의 아이디 모음. 서버가 기동할 때 세어 넘겨준다 */
 export type SpiritImages = ReadonlySet<string>;
 

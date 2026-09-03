@@ -12,4 +12,6 @@ export {
   readPalm, NEUTRAL_PALM_FEATURES, PALM_FEATURE_LABEL, PALM_FEATURE_DOMAIN,
   PALM_LEVEL_LABELS, HAND_SHAPE_SHORT, HAND_SHAPE_LABEL, HAND_CHOICE_NOTE,
 } from '../../packages/palmistry/src/index.ts';
+export { SPIRITS, PITCH, BLIND, spiritOf } from '../../packages/site-policy/src/spirits.ts';
+export { CATALOG } from '../../packages/commerce/src/catalog.ts';
 export { Checkout, portOnePay, CheckoutError } from '../../packages/checkout-client/src/index.ts';
