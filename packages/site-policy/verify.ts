@@ -13,6 +13,7 @@ import {
   LANDING_CSS, PRODUCTS_CSS, FONT_LINK,
   SPIRITS, PITCH, spiritOf, renderSpiritRow, renderSpiritHead, renderSpiritPitch, SPIRITS_CSS,
   renderSocialHead, HOME_TITLE, HOME_DESCRIPTION, FALLBACK_NAME,
+  renderGate, GATE_CSS, GATE_SCRIPT, sceneUrl,
 } from './src/index.ts';
 import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
@@ -347,6 +348,41 @@ section('9. 신령 — 칸마다 주인이 있는가');
   check('값을 꺼도 가격표로 가는 길은 남는다', quiet.includes('href="/products"'));
   check('값을 켜면 그대로 다 나온다',
     list.includes('19,900원') && list.includes('따로 사면'));
+}
+
+section('10. 문 — 신령계 들어가는 곳');
+{
+  const gate = renderGate(full, new Set(['gate']));
+  check('문에서 이름·태어난 날·태어난 시를 받는다',
+    ['gateName', 'gateDate', 'gateHour'].every((id) => gate.includes(`id="${id}"`)));
+  check('태어난 시를 12지지로 고르게 한다', gate.includes('인시') && gate.includes('해시'));
+  check('시간을 몰라도 된다고 알린다', gate.includes('시간을 몰라도 됩니다'));
+  // 「정보를 입력하세요」와 「이름을 밝히시오」는 다른 화면이다
+  check('입장 의식처럼 말한다', gate.includes('밝히셔야') && gate.includes('문을 엽니다'));
+  check('밝힌 것을 어디로도 보내지 않는다고 못 박는다',
+    gate.includes('어디로도 보내지 않고'));
+  // 막아 두면 카드사 심사가 상품과 가격을 못 본다
+  check('문을 잠그지 않는다 — 둘러보기가 남아 있다',
+    gate.includes('href="#products"') && gate.includes('둘러보기'));
+  check('문 그림이 있으면 배경으로 깐다', gate.includes(`--nb-gate:url(${sceneUrl('gate')})`));
+  check('문 그림이 없으면 걸지 않는다', !renderGate(full).includes('--nb-gate:url'));
+
+  // 계산은 만세력 조각이 한다. 두 곳에서 계산하면 언젠가 두 값이 달라진다
+  check('문은 계산하지 않고 아래 칸에 옮겨 담기만 한다',
+    GATE_SCRIPT.includes("put('date',date)")
+    && !/calculate|analyze|manseryeok/i.test(GATE_SCRIPT));
+  check('옮겨 담은 뒤 다시 그리게 한다', GATE_SCRIPT.includes("new Event('change'"));
+  check('시각을 모르면 모름으로 표시한다', GATE_SCRIPT.includes('notime'));
+
+  // 청월당이 쓰는 그 느낌 — 그림이 천천히 다가오고 글자가 아래에서 올라온다
+  check('그림이 천천히 움직인다', GATE_CSS.includes('@keyframes nbDrift'));
+  check('영상이 아니라 그림 한 장이다', !GATE_CSS.includes('video') && !gate.includes('<video'));
+  check('글자가 아래에서 올라온다', GATE_CSS.includes('.nb-rise') && gate.includes('nb-rise'));
+  check('한 번 올라온 것은 다시 안 내려간다', GATE_SCRIPT.includes('unobserve'));
+  // 어지럼증 때문에 움직임을 꺼 둔 손님에게는 아무것도 움직이지 않는다
+  check('움직임 줄이기를 켠 손님은 움직임이 없다',
+    GATE_CSS.includes('prefers-reduced-motion') && GATE_SCRIPT.includes('prefers-reduced-motion'));
+  check('그때도 글자는 보인다', /prefers-reduced-motion[\s\S]{0,200}\.nb-rise\{opacity:1/.test(GATE_CSS));
 }
 
 console.log(`\n${'═'.repeat(60)}`);

@@ -347,6 +347,13 @@ const home = await page('/');
     ['og:title', 'og:description', 'og:image', 'og:url'].every((k) => home.html.includes(k)));
   check('만세력·명식 같은 말이 링크 이름에 안 들어간다',
     !/<title>[^<]*(만세력|명식)/.test(home.html));
+
+  // 문은 첫 화면에 붙어 있고, 잠겨 있지 않다
+  check('첫 화면에 문이 있다', home.html.includes('id="gateForm"'));
+  check('문을 잠그지 않는다 — 상품과 가격이 그대로 보인다',
+    home.html.includes('id="products"') && home.html.includes('둘러보기'));
+  check('그림이 움직이되 영상은 아니다',
+    home.html.includes('nbDrift') && !/<video[^>]*gate/.test(home.html));
 }
 {
   // 얼굴 사진은 생체정보다. 서버로 보내는 순간 보관·파기·동의 문제가 전부 따라붙는다.

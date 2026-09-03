@@ -38,6 +38,8 @@ export interface Spirit {
   keeps: Category;
   /** 손에 들고 다니는 것. 그림을 그릴 때도 이 물건이 기준이 된다 */
   holds: string;
+  /** 신령계에서 이 신령이 서 있는 곳. 배경 그림 이름과 같다 */
+  place: string;
   /** 갈래 맨 위에서 손님에게 거는 말 */
   greet: string;
   /** 첫 화면 소개 줄. 한 줄로 자기가 무엇을 보는지 말한다 */
@@ -63,14 +65,14 @@ export interface Spirit {
  */
 export const SPIRITS: Spirit[] = [
   {
-    id: 'flower', name: '꽃신령', seal: '花', keeps: '연애',
+    id: 'flower', name: '꽃신령', seal: '花', keeps: '연애', place: '꽃터',
     holds: '복사꽃 가지',
     greet: '누구한테 마음이 가는지, 내가 꽃가지로 짚어 줄게.',
     intro: '마음이 어느 쪽으로 기우는지 봅니다.',
     crop: { zoom: 1.55, down: '16%' },
   },
   {
-    id: 'moon', name: '달신령', seal: '月', keeps: '재회',
+    id: 'moon', name: '달신령', seal: '月', keeps: '재회', place: '달터',
     holds: '물에 비친 둥근 달',
     greet: '떠난 사람은 물에 비친 달 같아. 그래도 하늘에 달은 남아 있지.',
     intro: '지나간 사람이 돌아올 자리가 있는지 봅니다.',
@@ -78,35 +80,35 @@ export const SPIRITS: Spirit[] = [
     crop: { zoom: 2.5, down: '66%' },
   },
   {
-    id: 'thread', name: '실신령', seal: '絲', keeps: '궁합',
+    id: 'thread', name: '실신령', seal: '絲', keeps: '궁합', place: '실터',
     holds: '붉은 실타래',
     greet: '두 사람 사이에 실이 몇 가닥 걸렸는지, 내가 세어 줄게.',
     intro: '두 사람을 이은 실이 튼튼한지 봅니다.',
     crop: { zoom: 1.7, down: '34%' },
   },
   {
-    id: 'mountain', name: '산신령', seal: '山', keeps: '가족',
+    id: 'mountain', name: '산신령', seal: '山', keeps: '가족', place: '산터',
     holds: '지팡이와 곁에 앉은 호랑이',
     greet: '이 집 일은 내가 제일 오래 봤단다. 앉아 보렴.',
     intro: '집안 사람들 사이를 봅니다.',
     crop: { zoom: 1.55, down: '26%' },
   },
   {
-    id: 'mirror', name: '거울신령', seal: '鏡', keeps: '나',
+    id: 'mirror', name: '거울신령', seal: '鏡', keeps: '나', place: '거울터',
     holds: '오래된 청동 거울',
     greet: '거울은 안 속여. 네가 진짜 어떤 사람인지 비춰 줄게.',
     intro: '내가 어떤 사람인지 있는 그대로 비춥니다.',
     crop: { zoom: 1.55, down: '26%' },
   },
   {
-    id: 'jar', name: '곳간신령', seal: '庫', keeps: '돈과 일',
+    id: 'jar', name: '곳간신령', seal: '庫', keeps: '돈과 일', place: '곳간터',
     holds: '엽전 자루와 곡식 됫박',
     greet: '네 그릇이 얼마나 큰지 됫박으로 달아 볼게. 그릇보다 많이 담으면 넘쳐.',
     intro: '돈이 담기는 그릇 크기와 일자리를 봅니다.',
     crop: { zoom: 1.45, down: '22%' },
   },
   {
-    id: 'wind', name: '바람신령', seal: '風', keeps: '시기',
+    id: 'wind', name: '바람신령', seal: '風', keeps: '시기', place: '바람터',
     holds: '처마 끝 풍경(風磬)',
     greet: '바람이 불면 종이 울려. 지금 울리는지 같이 들어 보자.',
     intro: '지금이 움직일 때인지 봅니다.',
@@ -203,7 +205,7 @@ function face(spirit: Spirit, faces: SpiritImages, size: number): string {
  * 다른 화면이다.
  */
 export function renderSpiritHead(spirit: Spirit, question: string, faces: SpiritImages = NO_FACES): string {
-  return `<div class="sp-head">
+  return `<div class="sp-head nb-rise">
   ${face(spirit, faces, 96)}
   <div class="sp-said">
     <p class="sp-who">${esc(spirit.name)}</p>
@@ -240,7 +242,7 @@ export function renderSpiritPitch(
  * 한 줄로 서 있으면, 스물한 개 표가 일곱 사람의 가게로 바뀐다.
  */
 export function renderSpiritRow(faces: SpiritImages = NO_FACES): string {
-  const cards = SPIRITS.map((s) => `  <li class="sp-card">
+  const cards = SPIRITS.map((s) => `  <li class="sp-card nb-rise">
     ${face(s, faces, 120)}
     <p class="sp-name">${esc(s.name)}</p>
     <p class="sp-keeps">${esc(s.keeps)}</p>

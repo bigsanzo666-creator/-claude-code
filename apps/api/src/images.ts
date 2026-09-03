@@ -225,4 +225,57 @@ export function straySpiritImages(dir: string = SPIRIT_DIR): string[] {
 
 export const ALL_SPIRIT_IDS = SPIRITS.map((s) => s.id);
 
+/**
+ * 신령계 배경 그림.
+ *
+ * 신령 얼굴과 또 다른 폴더를 쓴다. 얼굴은 사람이고 이것은 장소다 —
+ * 한 폴더에 섞으면 「이름이 틀린 파일」로 잡힌다.
+ *
+ * 문 하나(`gate`), 전체 풍경 하나(`world`), 그리고 신령마다 자기 터.
+ * **없으면 없는 대로 둔다.** 배경이 없는 자리는 종이색으로 남는다.
+ */
+export const SCENE_DIR = join(
+  dirname(fileURLToPath(import.meta.url)), '..', 'public', 'scene',
+);
+
+/** 장소 아이디와 한글 이름. 한글로 저장해도 영어로 저장해도 알아듣는다 */
+export const SCENES: Record<string, string> = {
+  gate: '문',
+  world: '신령계',
+  ...Object.fromEntries(SPIRITS.map((s) => [s.id, s.place])),
+};
+
+const SCENE_BY_NAME = new Map<string, string>(
+  Object.entries(SCENES).flatMap(([id, korean]) =>
+    [[squash(id), id], [squash(korean), id]] as [string, string][]),
+);
+
+export function findSceneImages(dir: string = SCENE_DIR): Map<string, ProductImage> {
+  const found = new Map<string, ProductImage>();
+  let entries: string[];
+  try { entries = readdirSync(dir); } catch { return found; }
+  for (const name of entries) {
+    const ext = extname(name).toLowerCase();
+    const type = TYPES[ext];
+    if (!type) continue;
+    const id = SCENE_BY_NAME.get(squash(name.slice(0, -ext.length)));
+    if (!id || found.has(id)) continue;
+    found.set(id, { path: join(dir, name), type });
+  }
+  return found;
+}
+
+/** 장소 폴더에 있는데 이름을 못 알아들은 파일 — 기동 로그로 알려준다 */
+export function straySceneImages(dir: string = SCENE_DIR): string[] {
+  try {
+    return readdirSync(dir)
+      .filter((n) => TYPES[extname(n).toLowerCase()])
+      .filter((n) => !SCENE_BY_NAME.has(squash(n.slice(0, -extname(n).length))));
+  } catch {
+    return [];
+  }
+}
+
+export const ALL_SCENE_IDS = Object.keys(SCENES);
+
 export const ALL_PRODUCT_IDS = Object.keys(CATALOG) as ProductId[];

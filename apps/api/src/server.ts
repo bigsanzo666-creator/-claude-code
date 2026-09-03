@@ -24,10 +24,12 @@ import {
   renderProducts, renderProductsPage, PRODUCTS_CSS,
   renderHero, renderTryHeading, LANDING_CSS, FONT_LINK, renderProductPage,
   renderSpiritRow, renderSocialHead, HOME_TITLE, HOME_DESCRIPTION,
+  renderGate, GATE_CSS, GATE_SCRIPT,
   type BusinessInfo,
 } from '../../../packages/site-policy/src/index.ts';
 import {
-  findProductImages, findHeroImage, findHeroVideo, findSpiritImages, type ProductImage,
+  findProductImages, findHeroImage, findHeroVideo, findSpiritImages, findSceneImages,
+  type ProductImage,
 } from './images.ts';
 import { buildPayload, KIND_OF, type ReadingRequest } from './payload.ts';
 import { buildPreview } from './preview.ts';
@@ -92,6 +94,8 @@ export interface ApiDeps {
   heroVideo?: ProductImage | null;
   /** 신령 얼굴 그림. 없으면 기동할 때 public 폴더를 훑는다 */
   spiritImages?: Map<string, ProductImage>;
+  /** 신령계 배경 그림. 없으면 기동할 때 public 폴더를 훑는다 */
+  sceneImages?: Map<string, ProductImage>;
 }
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -107,6 +111,7 @@ const VIEWER_PATH = join(HERE, '..', '..', 'manse-viewer', 'index.html');
 function renderPage(
   checkout: CheckoutConfig | null, business: BusinessInfo, images: ReadonlySet<string>,
   hero = false, heroVideo = false, faces: ReadonlySet<string> = new Set(),
+  scenes: ReadonlySet<string> = new Set(),
 ): string {
   // 조각은 아티팩트로 따로 쓰일 때를 위해 제 제목을 달고 다닌다.
   // 여기서는 <head> 가 이미 제목을 냈으므로, 본문에 제목이 두 개 되지 않게 걷어낸다
@@ -124,18 +129,21 @@ ${FONT_LINK}
 <style>:root{color-scheme:light dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 ${LANDING_CSS}
 ${PRODUCTS_CSS}
+${GATE_CSS}
 ${FOOTER_CSS}</style>
 <script>window.SAJU_CONFIG = ${config};</script>
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 </head>
 <body>
 ${renderHero(business, checkout !== null, hero, heroVideo)}
+${renderGate(business, scenes)}
 ${renderSpiritRow(faces)}
 ${renderProducts(checkout !== null, images, faces, false)}
 ${renderTryHeading()}
 ${fragment}
 <style>${VIEWER_SKIN}</style>
 ${renderFooter(business)}
+${GATE_SCRIPT}
 </body>
 </html>`;
 }
@@ -261,11 +269,15 @@ export function createApi(deps: ApiDeps) {
   // 신령 얼굴도 같이 훑는다. 없는 얼굴은 한자 도장으로 나가므로 몇 장이든 상관없다
   const spirits = deps.spiritImages ?? findSpiritImages();
   const haveFace = new Set(spirits.keys());
+  const scenes = deps.sceneImages ?? findSceneImages();
+  const haveScene = new Set(scenes.keys());
 
   const routes: Record<string, (req: IncomingMessage, res: ServerResponse, id: string) => Promise<void>> = {
     /** 화면. 결제 설정을 주입해 내려준다 */
     'GET /': async (_req, res) => {
-      const html = renderPage(checkout, business, haveImage, hero !== null, heroVideo !== null, haveFace);
+      const html = renderPage(
+        checkout, business, haveImage, hero !== null, heroVideo !== null, haveFace, haveScene,
+      );
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Length': Buffer.byteLength(html),
@@ -346,6 +358,19 @@ export function createApi(deps: ApiDeps) {
     'GET /img/spirits/:id': async (_req, res, id) => {
       const image = spirits.get(id);
       if (!image) throw new HttpError(404, `신령 그림이 없습니다: ${id}`);
+      const body = readFileSync(image.path);
+      res.writeHead(200, {
+        'Content-Type': image.type,
+        'Content-Length': body.length,
+        'Cache-Control': 'public, max-age=3600',
+      });
+      res.end(body);
+    },
+
+    /** 신령계 배경. 신령 얼굴과 같은 방식이다 */
+    'GET /img/scene/:id': async (_req, res, id) => {
+      const image = scenes.get(id);
+      if (!image) throw new HttpError(404, `배경 그림이 없습니다: ${id}`);
       const body = readFileSync(image.path);
       res.writeHead(200, {
         'Content-Type': image.type,
@@ -580,6 +605,9 @@ export function createApi(deps: ApiDeps) {
       } else if (parts[0] === 'img' && parts[1] === 'spirits' && parts[2] && !parts[3]) {
         id = parts[2];
         key = `${req.method} /img/spirits/:id`;
+      } else if (parts[0] === 'img' && parts[1] === 'scene' && parts[2] && !parts[3]) {
+        id = parts[2];
+        key = `${req.method} /img/scene/:id`;
       }
 
       const route = routes[key];

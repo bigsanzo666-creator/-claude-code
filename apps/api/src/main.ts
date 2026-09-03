@@ -17,6 +17,7 @@ import { createPool, migrate, PostgresOrderStore, PostgresReportStore } from '..
 import {
   findProductImages, strayImages, ALL_PRODUCT_IDS,
   findSpiritImages, straySpiritImages, ALL_SPIRIT_IDS,
+  findSceneImages, straySceneImages, ALL_SCENE_IDS,
 } from './images.ts';
 import { MemoryOrderStore, startApi, type OrderStore, type ReportBox } from './server.ts';
 import { StandbyGateway, standbyGenerate } from './standby.ts';
@@ -114,6 +115,13 @@ console.log(`  신령얼굴  ${spiritImages.size} / ${ALL_SPIRIT_IDS.length}장`
 if (spiritStrays.length) {
   console.warn(`  ⚠ 이름이 신령과 맞지 않는 그림 ${spiritStrays.length}개: ${spiritStrays.join(', ')}`);
 }
+// 신령계 배경. 없는 자리는 종이색으로 남는다
+const sceneImages = findSceneImages();
+const sceneStrays = straySceneImages();
+console.log(`  신령계배경 ${sceneImages.size} / ${ALL_SCENE_IDS.length}장`);
+if (sceneStrays.length) {
+  console.warn(`  ⚠ 이름이 장소와 맞지 않는 그림 ${sceneStrays.length}개: ${sceneStrays.join(', ')}`);
+}
 if (missing.length) {
   console.warn(`[api] 심사 전에 채울 것: ${missing.join(', ')}`);
 }
@@ -127,6 +135,7 @@ startApi({
   business,
   images: productImages,
   spiritImages,
+  sceneImages,
   orders,
   reportStore,
   generate: hasModelKey
