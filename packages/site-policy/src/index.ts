@@ -6,3 +6,4 @@ export * from './spirits.ts';
 export * from './social.ts';
 export * from './gate.ts';
 export * from './stage.ts';
+export * from './why.ts';

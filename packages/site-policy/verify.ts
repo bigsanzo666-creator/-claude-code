@@ -15,6 +15,7 @@ import {
   renderSocialHead, HOME_TITLE, HOME_DESCRIPTION, FALLBACK_NAME,
   renderGate, GATE_CSS, GATE_SCRIPT, sceneUrl,
   renderStage, STAGE_CSS, STAGE_SCRIPT,
+  renderWhy, WHY_CSS, LAYERS, CLAIMS,
 } from './src/index.ts';
 import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
@@ -540,6 +541,52 @@ section('11. 문 — 신령계 들어가는 곳');
   check('움직임 줄이기를 켠 손님은 움직임이 없다',
     GATE_CSS.includes('prefers-reduced-motion') && GATE_SCRIPT.includes('prefers-reduced-motion'));
   check('그때도 글자는 보인다', /prefers-reduced-motion[\s\S]{0,200}\.nb-rise\{opacity:1/.test(GATE_CSS));
+}
+
+
+// ─── 「왜 늘봄이냐」 판 ────────────────────────────────────────
+{
+  section('왜 늘봄이냐');
+
+  const why = renderWhy();
+  const store = renderProducts(true);
+  const st = renderStage(full, new Set(['world']));
+
+  check('상품 페이지에 판이 실린다', store.includes('class="why"'));
+  check('신령 판에도 한 벌 실린다', st.includes('id="stWhy"'));
+
+  // 신령이 여덟이어도 글은 한 벌이면 된다. 여덟 벌이면 페이지만 무거워진다
+  check('신령이 여덟이어도 판은 한 벌',
+    (st.match(/class="why"/g) ?? []).length === 1,
+    `${(st.match(/class="why"/g) ?? []).length}벌`);
+  check('풀이를 펼칠 때 복사해 넣는다', STAGE_SCRIPT.includes("getElementById('stWhy')"));
+
+  // 계산과 서술의 경계가 이 판의 알맹이다. 그 경계가 흐려지면 자랑이 거짓말이 된다
+  check('네 층이 다 있다', LAYERS.length === 4);
+  check('계산은 규칙이 한다', LAYERS.slice(0, 3).every((l) => l.by === '규칙'));
+  check('모델은 마지막 한 층만 맡는다',
+    LAYERS.filter((l) => l.by === 'AI').length === 1 && LAYERS[3].by === 'AI');
+
+  // 이 판은 파는 자리가 아니라 의심에 답하는 자리다
+  check('값을 말하지 않는다', !/[0-9],[0-9]{3}원|원<\/|가격/.test(why));
+  check('상품 이름을 팔지 않는다',
+    !Object.values(CATALOG).some((p) => why.includes(p.name)));
+
+  // 적어 둔 자랑은 코드가 실제로 하는 것이어야 한다
+  const body = CLAIMS.map((c) => c.head + c.body).join(' ');
+  check('절기를 계산한다는 말이 있다', body.includes('절기') && body.includes('오차'));
+  check('진태양시로 시주를 세운다는 말이 있다',
+    body.includes('진태양시') && body.includes('서머타임'));
+  check('셋을 겹쳐 본다는 말이 있다', body.includes('엇갈림') || body.includes('엇갈리는'));
+  check('사진이 안 나간다는 말이 있다',
+    body.includes('기기 밖으로 나가지 않습니다') && body.includes('서버로 보내지 않'));
+
+  // 「반드시」, 「100%」 같은 말은 이 판에서도 쓰지 않는다
+  check('단정하는 말을 안 쓴다', !/반드시|100%|절대적/.test(why));
+
+  check('판의 CSS가 상품 묶음에 실린다', PRODUCTS_CSS.includes('.why-stack'));
+  check('넓은 화면에서 두 칸으로 눕는다',
+    /min-width:760px[\s\S]{0,400}\.why-grid\{grid-template-columns:1fr 1fr/.test(WHY_CSS));
 }
 
 console.log(`\n${'═'.repeat(60)}`);

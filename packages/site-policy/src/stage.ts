@@ -30,6 +30,7 @@
  */
 
 import { CATEGORIES, productsIn } from '../../commerce/src/catalog.ts';
+import { renderWhy } from './why.ts';
 import { type BusinessInfo } from './business.ts';
 import { type SceneImages, NO_SCENES, sceneUrl } from './gate.ts';
 import { SPIRITS, spiritOf, PITCH, type SpiritImages, NO_FACES_SET, spiritImageUrl } from './spirits.ts';
@@ -179,6 +180,12 @@ export function renderStage(
 
 ${renderWorld(scenes, faces, clips, clipWebms)}
 ${SPIRITS.map((sp) => renderSpiritStage(sp, scenes, faces)).join('\n')}
+
+  <!--
+    「왜 늘봄이냐」 판. 신령이 여덟이라고 이 글을 여덟 벌 실으면 페이지만
+    무거워진다. 한 벌만 두고, 손님이 풀이를 펼칠 때 그 안으로 복사해 넣는다.
+  -->
+  <template id="stWhy">${renderWhy()}</template>
 </div>`;
 }
 
@@ -1184,6 +1191,9 @@ export const STAGE_SCRIPT = `<script>(function(){
         panel.appendChild(mk('p','rd-cut',
           '태어난 날을 밝히면 네 여덟 글자와 십 년 운까지 여기 펼쳐 준다.'));
       }
+      // 여기서 「그래서 이 집 계산을 믿어도 되나」가 생긴다. 그 자리에 답을 둔다
+      var why=document.getElementById('stWhy');
+      if(why&&why.content)panel.appendChild(why.content.cloneNode(true));
       if(more)panel.appendChild(mk('p','sp-taste-more',more));
       var go=mk('a','sp-buy','자세히 보기');
       go.href=item.dataset.href;

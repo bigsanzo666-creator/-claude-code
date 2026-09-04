@@ -21,6 +21,7 @@ import {
   spiritOf, renderSpiritHead, renderSpiritPitch, SPIRITS_CSS,
   type SpiritImages,
 } from './spirits.ts';
+import { renderWhy, WHY_CSS } from './why.ts';
 import { renderSocialHead } from './social.ts';
 
 /** 얼굴 그림이 아직 하나도 없을 때. 도장 한 글자로 자리를 지킨다 */
@@ -306,7 +307,8 @@ body{background:var(--nb-paper)}
   .pr-wide .pr-shot{aspect-ratio:auto;height:100%;border-bottom:0;border-right:1px solid var(--nb-line)}
   .pr-body{align-self:center;padding:40px 38px}
 }
-${SPIRITS_CSS}`;
+${SPIRITS_CSS}
+${WHY_CSS}`;
 
 /**
  * 상품 목록 한 덩어리. 화면에도 붙이고 전용 페이지에도 쓴다.
@@ -373,6 +375,7 @@ ${prices ? `<section class="pr-group">
 ${packs}
 </div>
 </section>` : ''}
+${renderWhy()}
 ${prices ? `<p class="pr-note">
 묶음 가격 옆의 「따로 사면」은 <strong>구성 상품을 실제로 낱개 판매하는 가격의 합계</strong>입니다.
 판매한 적 없는 정가를 지어내 할인율을 부풀리지 않습니다.<br>
