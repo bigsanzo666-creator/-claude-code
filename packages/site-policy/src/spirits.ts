@@ -123,7 +123,8 @@ export const SPIRITS: Spirit[] = [
     holds: '실 세 가닥이 하나로 꼬인 매듭',
     greet: '사주는 타고난 것, 얼굴은 드러난 것, 손금은 살아온 것이야. 셋을 겹쳐야 네가 보여.',
     intro: '사주·관상·손금 셋을 겹쳐서 봅니다.',
-    crop: { zoom: 1.55, down: '26%' },
+    // 그림에서 얼굴이 작게 들어왔다. 다른 신령들과 얼굴 크기를 맞춘다
+    crop: { zoom: 1.95, down: '30%' },
   },
   {
     id: 'jar', name: '재신령', seal: '財', aka: ['곳간신령'], keeps: '돈과 일', place: '곳간터',
