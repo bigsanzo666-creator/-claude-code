@@ -409,6 +409,13 @@ section('10. 들어가는 길 — 전체 화면');
   check('신령을 누르면 그 자리에서 먼저 말을 건다',
     (st.match(/class="wd-peek"/g) ?? []).length === SPIRITS.length);
   check('신령마다 봐 주는 것을 손님 말로 적어 둔다', st.includes('이런 것을 봐 준다'));
+  // 끝까지 내려온 손님에게 갈 곳을 준다. 막히면 위로 되짚어 올라가다 그냥 나간다
+  check('판 맨 아래에도 나가는 길이 있다',
+    (st.match(/class="sp-back" data-back="1"/g) ?? []).length === SPIRITS.length);
+  // 칸 하나가 화면을 다 먹으면 넷을 보는 데 네 번을 넘겨야 한다. 그건 고르는 게 아니라 스크롤이다
+  check('고르는 칸은 그림을 옆에 작게 둔다',
+    STAGE_CSS.includes('.sp-item{display:grid;grid-template-columns:96px 1fr'));
+  check('이름이 그림 밑으로 흘러내리지 않는다', st.includes('class="sp-text"'));
   check('그 판에서 들어갈 수도, 다른 신령을 볼 수도 있다',
     st.includes('data-peek-go="mountain"') && st.includes('data-peek-x="1"'));
   // 뒤로가기가 판만 닫지 않고 신령계까지 나가 버리면 손님이 길을 잃는다

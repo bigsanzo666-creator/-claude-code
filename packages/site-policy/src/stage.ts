@@ -302,8 +302,10 @@ function renderSpiritStage(
   const items = productsIn(sp.keeps).map((p) => `      <button type="button" class="sp-item"
         data-taste="${esc(p.id)}" data-href="/products/${encodeURIComponent(p.id)}">
         <span class="sp-shot" style="--sp-pic:url(/img/products/${encodeURIComponent(p.id)})"></span>
-        <span class="sp-hook">${esc(p.hook)}</span>
-        <span class="sp-name">${esc(p.name)}</span>
+        <span class="sp-text">
+          <span class="sp-hook">${esc(p.hook)}</span>
+          <span class="sp-name">${esc(p.name)}</span>
+        </span>
       </button>`).join('\n');
 
   const plain = productsIn(sp.keeps).map((p) =>
@@ -364,6 +366,11 @@ ${items}
       <noscript><div class="sp-plain">
 ${plain}
       </div></noscript>
+      <!--
+        끝까지 내려온 손님에게 갈 곳을 준다. 여기가 막히면 위로 다시
+        올라가서 「← 신령계로」를 찾아야 한다 — 그러다 그냥 나간다.
+      -->
+      <button type="button" class="sp-back" data-back="1">← 다른 신령 보러 가기</button>
     </div>
   </section>`;
 }
@@ -523,25 +530,41 @@ body.st-locked{overflow:hidden}
   font:13.5px var(--nb-sans);color:var(--nb-gold)}
 .sp-top{display:flex;align-items:center;gap:14px;margin:0 0 14px}
 .sp-q{font-size:24px;margin:0}
-/* 신령이 내미는 칸 — 표가 아니라 고르는 것이라 크게 둔다 */
+/*
+ * 신령이 내미는 칸.
+ *
+ * 처음에는 그림을 큼직하게 위에 얹었는데, 칸 하나가 화면을 거의 다
+ * 먹었다. 넷을 보려면 네 번을 넘겨야 하고, 글은 적은데 옅은 그림만
+ * 길게 이어져서 **화면이 비어 보였다.**
+ *
+ * 그래서 그림을 왼쪽에 작게 두고 글을 옆에 세웠다. 넷이 한 화면에
+ * 들어오면 그때부터 「고르는 것」이 된다 — 그 전에는 스크롤이다.
+ */
 .sp-l{margin:26px 0 12px;font-size:11.5px;letter-spacing:.2em;color:var(--nb-gold)}
-.sp-list{display:grid;gap:12px}
-.sp-item{display:block;width:100%;padding:0 0 16px;text-align:left;cursor:pointer;
+.sp-list{display:grid;gap:10px}
+.sp-item{display:grid;grid-template-columns:96px 1fr;align-items:stretch;gap:0;
+  width:100%;padding:0;text-align:left;cursor:pointer;
   color:inherit;background:var(--nb-paper-2);border:1px solid var(--nb-line-soft);
   border-radius:0;overflow:hidden;font:inherit}
 .sp-item:hover,.sp-item:focus-visible{border-color:var(--nb-gold)}
 /* 그림·영상 자리. 없으면 종이색 한 칸으로 남는다 — 검은 네모를 안 만든다 */
-.sp-shot{display:block;aspect-ratio:16/9;margin:0 0 14px;
+.sp-shot{display:block;align-self:stretch;min-height:88px;
   background:var(--nb-paper) var(--sp-pic) center/cover no-repeat}
-.sp-vid{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;margin:0 0 14px}
-.sp-hook{display:block;padding:0 16px;font-size:12.5px;color:var(--nb-gold);margin-bottom:5px}
-.sp-item .sp-name{display:block;padding:0 16px;font-family:var(--nb-serif);font-size:18px;
-  line-height:1.45;word-break:keep-all}
+/* 글 두 줄은 한 덩어리로 묶어 오른쪽 칸을 통째로 쓴다.
+   따로 두면 이름이 그림 밑으로 흘러내린다 */
+.sp-text{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:12px 14px}
+.sp-hook{font-size:12.5px;color:var(--nb-gold);word-break:keep-all;line-height:1.5}
+.sp-item .sp-name{font-family:var(--nb-serif);font-size:16.5px;line-height:1.4;
+  word-break:keep-all}
 .sp-plain{display:grid;gap:10px;margin-top:20px}
+.sp-back{display:block;width:100%;margin:26px 0 0;padding:15px;
+  border:1px solid var(--nb-line);background:none;color:var(--nb-ink-2);
+  font:14.5px var(--nb-sans);cursor:pointer}
+.sp-back:hover{border-color:var(--nb-gold);color:var(--nb-ink)}
 .sp-plain a{color:var(--nb-ink);font-size:15px}
 
 /* 고른 칸 안에서 신령이 그 자리에서 봐 주는 말 */
-.sp-taste{padding:16px;margin:0 16px;border-top:1px solid var(--nb-line-soft);
+.sp-taste{grid-column:1/-1;padding:16px;margin:0 14px 14px;border-top:1px solid var(--nb-line-soft);
   font-size:14.5px;line-height:1.9;word-break:keep-all;cursor:auto}
 .sp-taste p{margin:0 0 10px}
 .sp-taste p:last-of-type{margin-bottom:0}
