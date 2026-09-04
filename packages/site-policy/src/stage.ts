@@ -286,10 +286,25 @@ function renderSpiritStage(
 ): string {
   const shot = scenes.has(sp.id) ? ` style="--st-shot:url(${sceneUrl(sp.id)})"` : '';
   const question = CATEGORIES.find((c) => c.key === sp.keeps)?.question ?? '';
-  const items = productsIn(sp.keeps).map((p) => `      <a class="sp-item" href="/products/${encodeURIComponent(p.id)}">
+  /*
+   * 고르는 칸.
+   *
+   * `<a>` 가 아니라 `<button>` 이다 — 누르면 **화면을 떠나지 않고** 그
+   * 자리에서 신령이 한 조각 봐 준다. 값을 보러 가는 것은 그다음이다.
+   *
+   * 그래도 주소(`data-href`)를 들고 있다. 자바스크립트가 꺼져 있으면
+   * 아래 `<noscript>` 의 링크가 그대로 남으므로 손님이 못 하게 되는
+   * 일은 없고, 카드사 심사와 검색엔진도 상품과 값을 볼 수 있다.
+   */
+  const items = productsIn(sp.keeps).map((p) => `      <button type="button" class="sp-item"
+        data-taste="${esc(p.id)}" data-href="/products/${encodeURIComponent(p.id)}">
+        <span class="sp-shot" style="--sp-pic:url(/img/products/${encodeURIComponent(p.id)})"></span>
         <span class="sp-hook">${esc(p.hook)}</span>
         <span class="sp-name">${esc(p.name)}</span>
-      </a>`).join('\n');
+      </button>`).join('\n');
+
+  const plain = productsIn(sp.keeps).map((p) =>
+    `      <a href="/products/${encodeURIComponent(p.id)}">${esc(p.name)}</a>`).join('\n');
 
   return `  <section class="st st-scroll" id="stSp-${esc(sp.id)}"${shot}>
     <div class="st-veil st-veil-3"></div>
@@ -326,9 +341,26 @@ function renderSpiritStage(
         몸·죽음·투자·법으로 다투는 일은 답하지 않습니다.</p>
       </div>
 
+      <!--
+        신령이 「무엇부터 보고 싶으냐」 하고 내미는 것.
+
+        예전에는 여기가 상품 목록이었다. 신령을 눌러 들어왔는데 표가
+        나오면 신령은 그냥 그림이 된다.
+
+        이제 큰 칸으로 내민다. 고르면 **그 자리에서 한 조각 봐 준다** —
+        값을 받기 전에 먼저 주는 것이 순서다.
+
+        칸마다 3~5초 영상이 들어갈 자리를 만들어 뒀다. 영상이 없으면
+        상품 그림으로 돌고, 올리면 자동으로 영상으로 바뀐다. 그 영상은
+        그대로 인스타·틱톡·네이버 클립 소재가 된다.
+      -->
+      <p class="sp-l" id="spAsk-${esc(sp.id)}">무엇부터 보시겠습니까</p>
       <div class="sp-list">
 ${items}
       </div>
+      <noscript><div class="sp-plain">
+${plain}
+      </div></noscript>
     </div>
   </section>`;
 }
@@ -465,13 +497,38 @@ body.st-locked{overflow:hidden}
   font:13.5px var(--nb-sans);color:var(--nb-gold)}
 .sp-top{display:flex;align-items:center;gap:14px;margin:0 0 14px}
 .sp-q{font-size:24px;margin:0}
-.sp-list{display:grid;gap:0;margin-top:22px}
-.sp-item{display:block;padding:18px 0;border-top:1px solid var(--nb-line-soft);
-  text-decoration:none;color:inherit}
-.sp-item:last-child{border-bottom:1px solid var(--nb-line-soft)}
-.sp-hook{display:block;font-size:12.5px;color:var(--nb-gold);margin-bottom:4px}
-.sp-item .sp-name{display:block;font-family:var(--nb-serif);font-size:18px;word-break:keep-all}
-.sp-item:hover .sp-name{text-decoration:underline;text-underline-offset:3px}
+/* 신령이 내미는 칸 — 표가 아니라 고르는 것이라 크게 둔다 */
+.sp-l{margin:26px 0 12px;font-size:11.5px;letter-spacing:.2em;color:var(--nb-gold)}
+.sp-list{display:grid;gap:12px}
+.sp-item{display:block;width:100%;padding:0 0 16px;text-align:left;cursor:pointer;
+  color:inherit;background:var(--nb-paper-2);border:1px solid var(--nb-line-soft);
+  border-radius:0;overflow:hidden;font:inherit}
+.sp-item:hover,.sp-item:focus-visible{border-color:var(--nb-gold)}
+/* 그림·영상 자리. 없으면 종이색 한 칸으로 남는다 — 검은 네모를 안 만든다 */
+.sp-shot{display:block;aspect-ratio:16/9;margin:0 0 14px;
+  background:var(--nb-paper) var(--sp-pic) center/cover no-repeat}
+.sp-vid{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;margin:0 0 14px}
+.sp-hook{display:block;padding:0 16px;font-size:12.5px;color:var(--nb-gold);margin-bottom:5px}
+.sp-item .sp-name{display:block;padding:0 16px;font-family:var(--nb-serif);font-size:18px;
+  line-height:1.45;word-break:keep-all}
+.sp-plain{display:grid;gap:10px;margin-top:20px}
+.sp-plain a{color:var(--nb-ink);font-size:15px}
+
+/* 고른 칸 안에서 신령이 그 자리에서 봐 주는 말 */
+.sp-taste{padding:16px;margin:0 16px;border-top:1px solid var(--nb-line-soft);
+  font-size:14.5px;line-height:1.9;word-break:keep-all;cursor:auto}
+.sp-taste p{margin:0 0 10px}
+.sp-taste p:last-of-type{margin-bottom:0}
+.sp-taste-more{margin:14px 0 0;padding-top:14px;border-top:1px dashed var(--nb-line);
+  font-family:var(--nb-serif);font-size:15px;color:var(--nb-gold);line-height:1.75}
+.sp-buy{display:block;width:100%;margin:14px 0 0;padding:14px;text-align:center;
+  text-decoration:none;border:1px solid var(--nb-ink);background:var(--nb-ink);
+  color:var(--nb-paper-2);font:500 15px var(--nb-sans)}
+.sp-buy:hover{background:transparent;color:var(--nb-ink)}
+@media (prefers-color-scheme:dark){
+  .sp-buy{background:var(--nb-gold);border-color:var(--nb-gold);color:#131A26}
+  .sp-buy:hover{background:transparent;color:var(--nb-gold)}
+}
 
 /* 신령을 누르면 그 자리에서 앞으로 나오는 판 */
 .wd-peek{position:absolute;inset:0;z-index:12;display:grid;place-items:center;padding:22px;
@@ -837,12 +894,13 @@ export const STAGE_SCRIPT = `<script>(function(){
     return d;
   }
 
-  function post(body,done,fail){
-    fetch('/api/talk',{method:'POST',headers:{'Content-Type':'application/json'},
+  function post2(url,body,done,fail){
+    fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify(body)})
       .then(function(r){ return r.ok?r.json():Promise.reject(r); })
       .then(done)['catch'](fail);
   }
+  function post(body,done,fail){ post2('/api/talk',body,done,fail); }
 
   function openTalk(id){
     var box=$('tk-'+id); if(!box||box.dataset.on)return;
@@ -856,6 +914,48 @@ export const STAGE_SCRIPT = `<script>(function(){
       logs[id].push({who:'spirit',text:r.text});
     },function(){ w.remove(); });
   }
+
+  /*
+   * 칸을 고르면 **그 자리에서 신령이 한 조각 봐 준다.**
+   *
+   * 화면을 떠나 값부터 보여 주면, 아직 뭘 봐 주는지도 모르는 사람에게
+   * 계산부터 시키는 것이다. 먼저 주고, 그다음에 값을 본다.
+   *
+   * 한 번 받아 온 것은 그대로 둔다. 다시 누르면 접혔다 펴진다 —
+   * 같은 것을 서버에 두 번 묻지 않는다.
+   */
+  stage.addEventListener('click',function(e){
+    var item=e.target.closest('[data-taste]'); if(!item)return;
+    if(e.target.closest('.sp-taste'))return;   // 풀이 안을 누른 것은 넘긴다
+    var had=item.querySelector('.sp-taste');
+    if(had){ had.hidden=!had.hidden; return; }
+
+    var box=document.createElement('div');
+    box.className='sp-taste';
+    box.textContent='…';
+    item.appendChild(box);
+
+    post2('/api/taste',{product:item.dataset.taste,facts:facts()},function(r){
+      box.textContent='';
+      (r.lines||[]).forEach(function(t){
+        var p=document.createElement('p'); p.textContent=t; box.appendChild(p);
+      });
+      if(r.more){
+        var m=document.createElement('p'); m.className='sp-taste-more'; m.textContent=r.more;
+        box.appendChild(m);
+      }
+      var go=document.createElement('a');
+      go.className='sp-buy'; go.href=item.dataset.href; go.textContent='자세히 보기';
+      box.appendChild(go);
+      box.scrollIntoView({block:'nearest',behavior:'smooth'});
+    },function(){
+      // 못 받아 오면 값을 보러 갈 길은 그대로 열어 둔다
+      box.textContent='';
+      var go=document.createElement('a');
+      go.className='sp-buy'; go.href=item.dataset.href; go.textContent='자세히 보기';
+      box.appendChild(go);
+    });
+  });
 
   stage.addEventListener('submit',function(e){
     var form=e.target.closest('.tk-row'); if(!form)return;

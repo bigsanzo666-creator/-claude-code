@@ -489,6 +489,25 @@ const home = await page('/');
 
   const bad = await api('POST', '/api/talk', { spirit: '없는신령', facts });
   check('모르는 신령은 거절한다', bad.status === 400);
+
+  // 고르면 값을 받기 전에 먼저 한 조각을 준다. 표만 보여 주면 아무도 안 산다
+  const t = await api('POST', '/api/taste', { product: 'child-report', facts });
+  check('고르면 그 자리에서 봐 준다', t.status === 200 && t.body.lines.length >= 2);
+  check('그 손님 사주에서 나온 말이다', t.body.lines[0].includes('제 힘으로 미는'));
+  check('끊는 자리를 신령이 직접 말한다', t.body.more.length > 10);
+  check('신령이 값을 부르지 않는다', !/원|₩/.test(t.body.lines.join(' ') + t.body.more));
+  const noSuch = await api('POST', '/api/taste', { product: '없는상품', facts });
+  check('모르는 상품은 거절한다', noSuch.status === 400);
+}
+{
+  // 신령을 눌러 들어왔는데 표가 나오면 신령은 그냥 그림이 된다
+  const v = home.html;
+  check('상품이 고르는 칸으로 나온다', v.includes('data-taste="child-report"'));
+  check('칸마다 영상·그림 자리가 있다', v.includes('class="sp-shot"'));
+  check('신령이 무엇부터 볼지 묻는다', v.includes('무엇부터 보시겠습니까'));
+  // 자바스크립트가 꺼져 있어도, 카드사 심사와 검색엔진은 상품과 값을 봐야 한다
+  check('자바스크립트가 꺼져 있으면 링크가 남는다',
+    /<noscript><div class="sp-plain">[\s\S]{0,600}?href="\/products\//.test(v));
 }
 check('첫 화면에도 사업자 정보가 붙는다', home.html.includes('220-81-62517'));
 check('첫 화면에서 정책·상품으로 링크', ['/products', '/terms', '/privacy', '/refund'].every((h) => home.html.includes(`href="${h}"`)));

@@ -32,7 +32,8 @@ import {
   findGateVideo, findWalkVideo, findGateWebm, findWalkWebm, type ProductImage,
 } from './images.ts';
 import {
-  talk, opening, cleanAsk, cleanFacts, FREE_TURNS, personaOf, type TalkTurn,
+  talk, opening, cleanAsk, cleanFacts, FREE_TURNS, personaOf, taste, chooseAsk,
+  type TalkTurn,
 } from '../../../packages/talk/src/index.ts';
 import { buildPayload, KIND_OF, type ReadingRequest } from './payload.ts';
 import { buildPreview } from './preview.ts';
@@ -617,6 +618,22 @@ export function createApi(deps: ApiDeps) {
       });
       if (result.byModel) spendTalk();
       send(res, 200, result);
+    },
+
+    /**
+     * 신령이 상품 하나를 그 자리에서 봐 주는 말.
+     *
+     * 손님이 「이거 볼래」 하고 고르면 **값을 받기 전에 먼저 한 조각을
+     * 준다.** 표만 보여 주고 사라고 하면 아무도 안 산다.
+     *
+     * 여기서 하는 말은 전부 손님의 사주에서 나온 것이다. 모델을 부르지
+     * 않으므로 손님이 몇 번을 눌러도 원가가 0이다.
+     */
+    'POST /api/taste': async (req, res) => {
+      const body = await readJson(req);
+      const productId = typeof body.product === 'string' ? body.product : '';
+      if (!CATALOG[productId as ProductId]) throw new HttpError(400, '모르는 상품입니다.');
+      send(res, 200, taste(productId, cleanFacts(body.facts)));
     },
 
     /** 결제창을 띄우기 직전 */

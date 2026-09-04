@@ -15,6 +15,7 @@ import {
   talk, opening, FREE_TURNS, blockOf, cleanAsk, cleanFacts, MAX_ASK,
   scriptedReply, intentOf, buildSystem, splitAsk, TALK_MODEL, TALK_MAX_TOKENS,
   PERSONAS, missingPersonas, plainGod, plainElement, type TalkFacts,
+  taste, chooseAsk, EMPTY_FACTS,
 } from './src/index.ts';
 import { SPIRITS } from '../site-policy/src/spirits.ts';
 import { readFileSync } from 'node:fs';
@@ -194,6 +195,38 @@ section('14. 한도를 넘으면 모델을 안 부른다');
   await talk({ spiritId: 'wind', facts: F, ask: '주식 사도 되나요', history: [], turn: 0 },
     { useModel: true, client: spy });
   check('막히는 물음은 부르기 전에 막는다', called === 0);
+}
+
+section('15. 고르면 그 자리에서 한 조각 봐 준다');
+{
+  const t = taste('child-report', F);
+  check('풀이가 두 줄 이상 나온다', t.lines.length >= 2, `${t.lines.length}줄`);
+  check('그 손님 사주에서 나온 말이다',
+    t.lines.some((l) => l.includes('제 힘으로 미는')) && t.lines.some((l) => l.includes(plainGod(F.topGod))));
+  check('끊는 자리를 신령이 직접 말한다', t.more.length > 10);
+  // 값을 신령이 부르면 그때부터 상담이 아니라 호객이다
+  check('값이나 상품 이름을 말하지 않는다',
+    !/원|₩/.test(t.lines.join(' ') + t.more) && !t.lines.join(' ').includes('리포트'));
+
+  // 갈래마다 다른 말을 해야 한다. 같으면 여덟 신령이 한 명이다
+  const said = ['child-report', 'reunion-report', 'wealth-report', 'cross-report']
+    .map((id) => taste(id, F).lines[0]);
+  check('갈래마다 다르게 말한다', new Set(said).size === 4);
+
+  // 신강·신약이 뒤집히면 말도 뒤집혀야 한다
+  const weak = taste('child-report', { ...F, strong: false });
+  check('힘의 방향이 바뀌면 말도 바뀐다', weak.lines[0] !== t.lines[0]);
+
+  // 아는 게 없어도 빈 화면을 주지 않는다
+  const bare = taste('child-report', { ...EMPTY_FACTS });
+  check('아는 게 없어도 말은 나온다', bare.lines.length >= 1);
+
+  check('모르는 상품은 거절한다', (() => {
+    try { taste('없는상품', F); return false; } catch { return true; }
+  })());
+
+  const ask = chooseAsk(F);
+  check('무엇부터 보고 싶은지 묻는다', ask.includes('무엇부터'));
 }
 
 console.log(`\n${'═'.repeat(60)}`);
