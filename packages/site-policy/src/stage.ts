@@ -236,7 +236,43 @@ ${pins}
         <span class="wd-free-go">공짜로 보기 →</span>
       </button>
     </div>
+${renderPeeks(faces)}
   </section>`;
+}
+
+/**
+ * 신령을 눌렀을 때 **그 자리에서** 나와 말을 거는 판.
+ *
+ * 전에는 누르는 순간 화면이 통째로 넘어갔다. 그러면 손님은 뭘 봐 주는
+ * 곳인지도 모르고 들어갔다가, 아니면 뒤로 나와야 한다. 그 한 번이
+ * 손님을 잃는 자리다.
+ *
+ * 그래서 화면은 그대로 두고 **신령만 앞으로 나온다.** 자기가 무엇을 봐
+ * 주는지 손님 말로 세 줄 말하고, 그래도 보겠다고 하면 그때 들어간다.
+ *
+ * 여덟 개를 다 그려서 감춰 둔다. 누를 때 서버에 다시 묻지 않으므로
+ * 손가락을 대는 순간 바로 뜬다 — 기다림이 0이다.
+ */
+function renderPeeks(faces: SpiritImages): string {
+  return SPIRITS.map((sp) => {
+    const asks = productsIn(sp.keeps).slice(0, 3)
+      .map((p) => `        <li>${esc(p.hook)}</li>`).join('\n');
+    return `    <div class="wd-peek" id="wdPeek-${esc(sp.id)}" hidden>
+      <div class="wd-peek-in" role="dialog" aria-label="${esc(sp.name)}">
+        ${stageFace(sp.id, sp.seal, faces, 96)}
+        <p class="st-kicker">${esc(sp.name)} · ${esc(sp.place)}</p>
+        <p class="wd-peek-say">${esc(sp.greet)}</p>
+        <p class="wd-peek-l">이런 것을 봐 준다</p>
+        <ul class="wd-peek-list">
+${asks}
+        </ul>
+        <button type="button" class="wd-peek-go" data-peek-go="${esc(sp.id)}">
+          ${esc(sp.name)}에게 물어보기
+        </button>
+        <button type="button" class="wd-peek-x" data-peek-x="1">다른 신령 볼래요</button>
+      </div>
+    </div>`;
+  }).join('\n');
 }
 
 /**
@@ -436,6 +472,33 @@ body.st-locked{overflow:hidden}
 .sp-hook{display:block;font-size:12.5px;color:var(--nb-gold);margin-bottom:4px}
 .sp-item .sp-name{display:block;font-family:var(--nb-serif);font-size:18px;word-break:keep-all}
 .sp-item:hover .sp-name{text-decoration:underline;text-underline-offset:3px}
+
+/* 신령을 누르면 그 자리에서 앞으로 나오는 판 */
+.wd-peek{position:absolute;inset:0;z-index:12;display:grid;place-items:center;padding:22px;
+  background:var(--nb-veil-1)}
+.wd-peek[hidden]{display:none}
+.wd-peek-in{width:100%;max-width:340px;padding:24px 22px 20px;text-align:center;
+  background:var(--nb-paper-2);border:1px solid var(--nb-line);
+  animation:wdRise .28s ease both}
+@keyframes wdRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.wd-peek-in .st-face{width:96px;height:96px;margin:0 auto 14px}
+.wd-peek-say{margin:8px 0 18px;font-family:var(--nb-serif);font-size:17px;line-height:1.7;
+  word-break:keep-all}
+.wd-peek-l{margin:0 0 8px;font-size:11.5px;letter-spacing:.2em;color:var(--nb-gold)}
+.wd-peek-list{margin:0 0 20px;padding:0;list-style:none;display:grid;gap:7px}
+.wd-peek-list li{font-size:14px;line-height:1.6;color:var(--nb-ink-2);word-break:keep-all}
+.wd-peek-list li::before{content:'· '}
+.wd-peek-go{display:block;width:100%;padding:15px;border:1px solid var(--nb-ink);
+  background:var(--nb-ink);color:var(--nb-paper-2);font:500 15.5px var(--nb-sans);cursor:pointer}
+.wd-peek-go:hover{background:transparent;color:var(--nb-ink)}
+.wd-peek-x{display:block;width:100%;margin:12px 0 0;padding:0;border:0;background:none;
+  font:13px var(--nb-sans);color:var(--nb-ink-3);text-decoration:underline;
+  text-underline-offset:3px;cursor:pointer}
+@media (prefers-color-scheme:dark){
+  .wd-peek-go{background:var(--nb-gold);border-color:var(--nb-gold);color:#131A26}
+  .wd-peek-go:hover{background:transparent;color:var(--nb-gold)}
+}
+@media (prefers-reduced-motion:reduce){ .wd-peek-in{animation:none} }
 
 /* 신령과 주고받는 자리 */
 .tk{margin:0 0 22px}
@@ -672,6 +735,8 @@ export const STAGE_SCRIPT = `<script>(function(){
   history.pushState({nb:0},'',location.href);
   addEventListener('popstate',function(){
     if(asking){ ask(false); return; }
+    // 신령이 앞에 나와 있으면, 뒤로가기는 그 판만 닫는다
+    if(peeking){ closePeek(); return; }
     if(!here){ return; }          // 나가기로 한 손님은 그냥 보낸다
     if(back.length){
       var to=back.pop();
@@ -689,11 +754,39 @@ export const STAGE_SCRIPT = `<script>(function(){
     read(told?'out':'products');
   });
 
+  /*
+   * 신령을 누르면 **화면은 그대로 두고 신령만 앞으로 나온다.**
+   *
+   * 누르자마자 화면을 통째로 넘기면, 손님은 뭘 봐 주는 곳인지도 모르고
+   * 들어갔다가 아니면 뒤로 나와야 한다. 그 한 번에 손님을 잃는다.
+   */
+  var peeking=null;
+  var closePeek=function(){
+    if(!peeking)return;
+    var box=$('wdPeek-'+peeking); if(box)box.hidden=true;
+    peeking=null;
+  };
+  var openPeek=function(id){
+    var box=$('wdPeek-'+id); if(!box)return;
+    closePeek();
+    box.hidden=false; peeking=id;
+    var go=box.querySelector('.wd-peek-go'); if(go&&go.focus)go.focus();
+    // 뒤로가기 한 번에 이 판만 닫히게, 자리를 하나 만들어 둔다
+    history.pushState({nb:'peek'},'',location.href);
+  };
+  var enter=function(id){
+    closePeek();
+    mark('stSp-'+id); show('stSp-'+id);
+    var s=$('stSp-'+id); if(s)s.scrollTop=0;
+    openTalk(id);
+  };
+
   stage.addEventListener('click',function(e){
-    var card=e.target.closest('.wd-pin');
-    if(card){ mark('stSp-'+card.dataset.sp); show('stSp-'+card.dataset.sp);
-      var s=$('stSp-'+card.dataset.sp); if(s)s.scrollTop=0;
-      openTalk(card.dataset.sp); return; }
+    var pin=e.target.closest('.wd-pin');
+    if(pin){ openPeek(pin.dataset.sp); return; }
+    var go=e.target.closest('[data-peek-go]');
+    if(go){ enter(go.dataset.peekGo); return; }
+    if(e.target.closest('[data-peek-x]')){ history.back(); return; }
     if(e.target.closest('[data-back]')){ history.back(); }
   });
 

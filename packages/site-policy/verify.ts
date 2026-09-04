@@ -395,6 +395,16 @@ section('10. 들어가는 길 — 전체 화면');
   // 덮개이지 대문이 아니다 — 카드사 심사와 검색엔진이 아래를 봐야 한다
   check('자바스크립트가 꺼져 있으면 안 뜬다', st.includes('id="stage" hidden'));
   check('밝히지 않고 둘러볼 수 있다', st.includes('id="stSkip"'));
+  // 누르자마자 화면을 통째로 넘기면, 손님은 뭘 봐 주는 곳인지도 모르고
+  // 들어갔다가 아니면 뒤로 나와야 한다. 그 한 번에 손님을 잃는다
+  check('신령을 누르면 그 자리에서 먼저 말을 건다',
+    (st.match(/class="wd-peek"/g) ?? []).length === SPIRITS.length);
+  check('신령마다 봐 주는 것을 손님 말로 적어 둔다', st.includes('이런 것을 봐 준다'));
+  check('그 판에서 들어갈 수도, 다른 신령을 볼 수도 있다',
+    st.includes('data-peek-go="mountain"') && st.includes('data-peek-x="1"'));
+  // 뒤로가기가 판만 닫지 않고 신령계까지 나가 버리면 손님이 길을 잃는다
+  check('뒤로가기 한 번은 그 판만 닫는다',
+    STAGE_SCRIPT.includes('if(peeking){ closePeek(); return; }'));
   check('덮개가 떠 있는 동안 뒤는 안 움직인다', STAGE_CSS.includes('body.st-locked{overflow:hidden}'));
   // 폰에서 주소창이 접혔다 펴질 때 100vh 는 화면 아래가 잘린다
   // 걸어오는 영상은 첫 화면에서 바로 보인다. 자바스크립트를 기다리면
