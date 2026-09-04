@@ -10,7 +10,7 @@
 
 import { createServer } from 'node:http';
 import { chromium } from 'playwright';
-import { FakeGateway, CATALOG } from '../../packages/commerce/src/index.ts';
+import { FakeGateway, CATALOG, upsellFor } from '../../packages/commerce/src/index.ts';
 import { createApi, MemoryOrderStore } from '../api/src/server.ts';
 
 let passed = 0, failed = 0;
@@ -98,6 +98,15 @@ await page.addInitScript(() => {
 section('A. 페이지 로드');
 
 await page.goto(base, { waitUntil: 'domcontentloaded' });
+
+/*
+ * 첫 화면은 신령계 판이 덮고 있다.
+ *
+ * 이 검증이 보려는 것은 그 아래 만세력 화면의 **결제 흐름**이다. 판 자체는
+ * site-policy 검증이 따로 본다. 그래서 여기서는 판을 걷어내고 시작한다 —
+ * 안 걷으면 마법사 단추가 판에 가려 눌리지 않는다.
+ */
+await page.evaluate(() => document.getElementById('stage')?.remove());
 
 /**
  * 입력 마법사를 끝까지 넘긴다.
@@ -190,6 +199,45 @@ check('다시 시도할 수 있다고 안내', err.includes('다시 시도'));
 check('취소해도 리포트는 안 나옴', (await page.locator('.bought').count()) === 0);
 check('결제창은 두 번 호출됨',
   (await page.evaluate(() => (window as any).__payCalls.length)) === 2);
+
+// ── E. 하나 더 얹기 ────────────────────────────────────────────
+section('E. 묶음 끼워 팔기');
+
+const pack = upsellFor('cross-report')!;
+const single = CATALOG['cross-report'].priceKrw;
+const add = pack.priceKrw - single;
+
+check('끼워 파는 칸이 보임', (await page.locator('.up').count()) === 1);
+check('얹는 금액을 보여 줌',
+  ((await page.locator('.up-p').textContent()) ?? '').includes(add.toLocaleString('ko-KR')),
+  (await page.locator('.up-p').textContent()) ?? '');
+// 판 적 없는 정가를 지어내지 않는다. 「따로 사면」은 낱개 판매가의 합계다
+const apart = pack.members.reduce((sum, m) => sum + CATALOG[m].priceKrw, 0);
+check('따로 사면 값이 낱개 합계',
+  ((await page.locator('.up-s').first().textContent()) ?? '').includes(apart.toLocaleString('ko-KR')));
+
+await page.locator('#packBox').check();
+// 켜면 묶음 것으로 미리보기를 다시 받는다. 값이 바뀔 때까지 기다린다
+await page.waitForFunction(
+  (won) => (document.querySelector('.buy .price')?.textContent ?? '').includes(won),
+  pack.priceKrw.toLocaleString('ko-KR'), { timeout: 10000 });
+check('값이 묶음값으로 바뀜', true, pack.priceKrw.toLocaleString('ko-KR') + '원');
+check('편마다 무엇이 담기는지 다시 보여 줌',
+  (await page.locator('.will li').count()) > 0);
+// 사려는 물건이 바뀌었으므로 앞의 동의는 무효다
+check('동의가 풀림', !(await page.locator('#agree').isChecked()));
+check('결제 버튼이 다시 잠김', await page.locator('#payBtn').isDisabled());
+
+await page.locator('#agree').check();
+await page.waitForFunction(() => !(document.querySelector('#payBtn') as HTMLButtonElement)?.disabled);
+await page.evaluate(() => { (window as any).__payMode = 'ok'; });
+await page.locator('#payBtn').click();
+await page.waitForSelector('.bought', { timeout: 30000 });
+
+const calls = await page.evaluate(() => (window as any).__payCalls);
+check('묶음값으로 결제됨', calls[calls.length - 1].totalAmount === pack.priceKrw,
+  `${calls[calls.length - 1].totalAmount}원`);
+check('묶음도 리포트가 나옴', (await page.locator('.bought').count()) === 1);
 
 check('전 과정에 자바스크립트 오류 없음', codeErrors().length === 0, codeErrors()[0] ?? '');
 

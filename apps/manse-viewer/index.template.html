@@ -274,6 +274,14 @@ body.pair #panelF,body.pair #panelP{display:none}
 .will li::before{content:"·";color:var(--seal);margin-right:.5rem}
 .samp{background:var(--surface-2);border:1px solid var(--rule-soft);padding:1rem 1.1rem;font-size:.9rem;line-height:1.75;color:var(--ink-2);white-space:pre-wrap}
 .samp .cut{display:block;margin-top:.7rem;color:var(--ink-3);font-size:.82rem}
+.up{display:grid;grid-template-columns:auto 1fr auto;align-items:start;gap:.75rem;padding:.95rem 1.05rem;border:1px solid var(--rule);background:var(--surface-2);cursor:pointer}
+.up-on{border-color:var(--seal);background:var(--surface)}
+.up input{margin:.15rem 0 0}
+.up-t{display:grid;gap:.25rem}
+.up-h{font-size:.95rem;font-weight:600;color:var(--ink)}
+.up-m{font-size:.83rem;color:var(--ink-2);line-height:1.6}
+.up-s{font-size:.8rem;color:var(--ink-2)}
+.up-p{font-family:"Nanum Myeongjo",serif;font-size:1.05rem;font-weight:700;color:var(--seal);font-variant-numeric:tabular-nums;white-space:nowrap}
 .legal{border:1px solid var(--rule);background:var(--surface-2);padding:.9rem 1.05rem;font-size:.85rem;line-height:1.7;color:var(--ink-2)}
 .agree{display:flex;gap:.55rem;align-items:flex-start;margin-top:.8rem;cursor:pointer;font-size:.87rem;color:var(--ink)}
 .agree input{margin-top:.3rem}
@@ -1009,9 +1017,42 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   var checkout = null;
   // previewTried: 실패해도 다시 요청하지 않기 위한 표시.
   // 이게 없으면 실패 → render → 재요청 → 실패가 무한히 돈다.
-  var buyState = { previewed: null, previewTried: false, agreed: false, busy: false, result: null, error: null };
+  /*
+   * pick  — 지금 사려는 것. null 이면 단품(교차검증 리포트)
+   * offer — 그것을 품은 묶음. 한 번 받아 두면 껐다 켰다 할 수 있다
+   */
+  var buyState = { previewed: null, previewTried: false, agreed: false, busy: false,
+                   result: null, error: null, pick: null, offer: null };
 
   function money(n) { return n.toLocaleString('ko-KR') + '원'; }
+
+  /**
+   * 하나 더 얹는 칸.
+   *
+   * 손님이 보는 것은 묶음 값이 아니라 **「여기서 얼마 더」**다. 그래서 얹는
+   * 금액을 제일 크게 쓴다. 「따로 사면」은 구성 상품의 실제 판매가 합계다 —
+   * 판 적 없는 정가를 지어내 할인율을 부풀리지 않는다.
+   *
+   * 켜면 미리보기를 묶음 것으로 다시 받는다. 무엇이 담기는지 보지 않은 채
+   * 결제로 넘기지 않는다.
+   */
+  function upsellRow() {
+    var o = buyState.offer;
+    if (!o) return '';
+    var on = buyState.pick === o.id;
+    var names = o.members.map(function (m) { return esc(m.name); }).join(' + ');
+    return '<label class="up' + (on ? ' up-on' : '') + '">' +
+      '<input type="checkbox" id="packBox"' + (on ? ' checked' : '') + '>' +
+      '<span class="up-t">' +
+        '<b class="up-h">' + esc(o.name) + '으로 함께 받기</b>' +
+        '<span class="up-m">' + names + '</span>' +
+        '<span class="up-s">따로 사면 ' + money(o.apartKrw) + ' · ' +
+          money(o.saveKrw) + ' 아낍니다</span>' +
+        (o.needsPartner ? '<span class="up-s">상대의 생년월일이 필요합니다</span>' : '') +
+      '</span>' +
+      '<span class="up-p">' + (on ? '−' : '+') + money(Math.abs(o.addKrw)) + '</span>' +
+    '</label>';
+  }
 
   function paywallPanel(xv) {
     var p = buyState.previewed;
@@ -1043,6 +1084,8 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
             '<div class="samp">' + esc(p.preview.sample) +
             '<span class="cut">' + esc(p.preview.sampleNotice) + '</span></div></div>' +
 
+          upsellRow() +
+
           '<div class="legal">' + esc(p.notice) +
             '<label class="agree"><input type="checkbox" id="agree"' + (buyState.agreed ? ' checked' : '') + '>' +
             '<span>위 내용을 확인했습니다.</span></label></div>' +
@@ -1070,6 +1113,16 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   };
 
   function wirePaywall(reading) {
+    var box = $('packBox');
+    if (box) {
+      box.addEventListener('change', function () {
+        buyState.pick = box.checked ? buyState.offer.id : null;
+        // 사려는 것이 바뀌면 앞의 미리보기와 동의는 다른 물건 것이 된다
+        buyState.previewed = null; buyState.previewTried = false;
+        buyState.agreed = false; buyState.error = null;
+        render();
+      });
+    }
     var agree = $('agree');
     if (agree) {
       agree.addEventListener('change', function () { buyState.agreed = agree.checked; render(); });
@@ -1279,7 +1332,7 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     if (!CFG.ready) return;
 
     var reading = {
-      productId: 'cross-report',
+      productId: buyState.pick || 'cross-report',
       birth: {
         date: $('date').value, time: $('notime').checked ? null : $('time').value,
         longitude: parseFloat($('place').value), gender: $('gender').value,
@@ -1292,7 +1345,10 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     if (!buyState.previewed && !buyState.previewTried && !buyState.busy) {
       buyState.previewTried = true;
       checkout.preview(reading).then(function (p) {
-        buyState.previewed = p; render();
+        buyState.previewed = p;
+        // 묶음을 고르면 서버가 더 내밀지 않는다. 되돌아갈 수 있게 들고 있는다
+        if (p.upsell) buyState.offer = p.upsell;
+        render();
       }).catch(function (e) {
         buyState.error = '미리보기를 불러오지 못했습니다. ' + e.message; render();
       });

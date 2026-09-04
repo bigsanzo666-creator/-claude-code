@@ -6,7 +6,8 @@
  * 필드를 직접 고치는 대신 전이 함수만 두면 그 두 가지를 구조적으로 막을 수 있다.
  */
 
-import { getProduct, type ProductId } from './catalog.ts';
+import { type ProductId } from './catalog.ts';
+import { orderable } from './orderable.ts';
 
 export type OrderStatus =
   /** 주문서 생성. 아직 결제창도 안 띄웠다 */
@@ -56,7 +57,8 @@ export interface CreateOrderInput {
 }
 
 export function createOrder(input: CreateOrderInput): Order {
-  const product = getProduct(input.productId);
+  // 단품이든 묶음이든 값은 여기서만 정한다. 화면이 보낸 금액은 쓰지 않는다
+  const product = orderable(input.productId);
   const now = (input.now ?? new Date()).toISOString();
 
   if (!input.inputHash) throw new Error('inputHash가 없습니다. 이용권을 묶을 대상이 없습니다.');

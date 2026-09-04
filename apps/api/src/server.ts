@@ -16,6 +16,7 @@ import { randomUUID } from 'node:crypto';
 import {
   CATALOG, getProduct, createOrder, markPending, markFulfilled, markViewed,
   hasEntitlement, assessRefund, refundNotice, confirmPayment, refundOrder, failOrder,
+  orderable, isOrderable, upsellFor,
   WITHDRAWAL_NOTICE, type Order, type PaymentGateway, type ProductId,
 } from '../../../packages/commerce/src/index.ts';
 import { cacheKey } from '../../../packages/report/src/cache.ts';
@@ -36,7 +37,7 @@ import {
   talk, opening, cleanAsk, cleanFacts, FREE_TURNS, personaOf, taste, chooseAsk,
   type TalkTurn,
 } from '../../../packages/talk/src/index.ts';
-import { buildPayload, KIND_OF, type ReadingRequest } from './payload.ts';
+import { buildPayload, buildPayloads, KIND_OF, type ReadingRequest } from './payload.ts';
 import { buildPreview } from './preview.ts';
 
 /** 주문 저장소. 배포 전에 Postgres 구현체로 갈아끼운다. */
@@ -278,11 +279,40 @@ function sendHtml(res: ServerResponse, html: string): void {
   res.end(html);
 }
 
+/**
+ * 단품을 보고 있는 손님에게 내밀 묶음 하나.
+ *
+ * 「따로 사면 얼마」는 구성 상품의 **실제 판매가 합계**다. 판 적 없는 정가를
+ * 지어내 할인율을 부풀리지 않는다. 얹는 금액(addKrw)을 함께 주는 이유는,
+ * 손님이 보는 것이 묶음 값이 아니라 「여기서 얼마 더」이기 때문이다.
+ */
+function upsellOffer(productId: string) {
+  const pack = upsellFor(productId);
+  if (!pack) return null;
+  const here = orderable(productId).priceKrw;
+  const apart = pack.members.reduce((sum, m) => sum + CATALOG[m].priceKrw, 0);
+  return {
+    id: pack.id,
+    name: pack.name,
+    priceKrw: pack.priceKrw,
+    /** 지금 사려던 것에서 더 내는 돈 */
+    addKrw: pack.priceKrw - here,
+    apartKrw: apart,
+    saveKrw: apart - pack.priceKrw,
+    needsPartner: pack.needsPartner,
+    members: pack.members.map((m) => ({ id: m, name: CATALOG[m].name, priceKrw: CATALOG[m].priceKrw })),
+  };
+}
+
 function validateReading(body: any): ReadingRequest {
   if (!body || typeof body !== 'object') throw new HttpError(400, '요청 본문이 필요합니다.');
-  const productId = body.productId as ProductId;
-  if (!CATALOG[productId]) throw new HttpError(400, `알 수 없는 상품입니다: ${body.productId}`);
+  const productId = String(body.productId ?? '');
+  if (!isOrderable(productId)) throw new HttpError(400, `알 수 없는 상품입니다: ${body.productId}`);
   if (!body.birth?.date) throw new HttpError(400, '생년월일이 필요합니다.');
+  // 궁합이 든 묶음은 상대의 생년월일이 있어야 만들 수 있다. 결제 전에 말한다
+  if (orderable(productId).needsPartner && !body.partner?.date) {
+    throw new HttpError(400, '이 상품에는 상대의 생년월일이 필요합니다.');
+  }
   return body as ReadingRequest;
 }
 
@@ -553,12 +583,23 @@ export function createApi(deps: ApiDeps) {
      */
     'POST /api/preview': async (req, res) => {
       const reading = validateReading(await readJson(req));
-      const product = getProduct(reading.productId);
-      const { data } = buildPayload(reading);
+      const item = orderable(reading.productId);
+      const parts = buildPayloads(reading);
+      const each = parts.map((part) => ({
+        productId: part.productId,
+        name: CATALOG[part.productId].name,
+        preview: buildPreview(part.productId, part.data, item.previewRatio),
+      }));
+      // 묶음이면 편마다 무엇이 담기는지 이름을 붙여 늘어놓는다
+      const contents = item.isPackage
+        ? each.flatMap((e) => e.preview.contents.map((c: string) => `${e.name} — ${c}`))
+        : each[0].preview.contents;
       send(res, 200, {
-        product,
+        product: item,
         notice: WITHDRAWAL_NOTICE,
-        preview: buildPreview(reading.productId, data, product.previewRatio),
+        preview: { ...each[0].preview, contents },
+        // 단품을 보고 있으면 이것을 품은 묶음을 함께 알려 준다
+        upsell: item.isPackage ? null : upsellOffer(item.id),
       });
     },
 
@@ -573,12 +614,27 @@ export function createApi(deps: ApiDeps) {
       if (body.acknowledgedNotice !== true) {
         throw new HttpError(400, '청약철회 제한 고지에 대한 확인이 필요합니다.');
       }
-      const { kind, data, subject } = buildPayload(reading);
-      const inputHash = cacheKey({
-        input: { kind: kind as any, data, subject },
-        model: 'claude-opus-5',
-        effort: 'medium',
-      });
+      const parts = buildPayloads(reading);
+      const subject = parts[0].subject;
+      /*
+       * 이용권은 「이 입력으로 만든 것」에 묶인다. 묶음은 편이 여럿이므로
+       * 편 전체를 하나로 묶어 지문을 뜬다 — 한 편만 바뀌어도 다른 주문이 된다.
+       */
+      const inputHash = parts.length === 1
+        ? cacheKey({
+          input: { kind: parts[0].kind as any, data: parts[0].data, subject },
+          model: 'claude-opus-5',
+          effort: 'medium',
+        })
+        : cacheKey({
+          input: {
+            kind: parts[0].kind as any,
+            data: { 묶음: reading.productId, 편: parts.map((x) => ({ 상품: x.productId, 자료: x.data })) },
+            subject,
+          },
+          model: 'claude-opus-5',
+          effort: 'medium',
+        });
 
       const order = createOrder({
         id: `ord_${randomUUID()}`,
@@ -688,9 +744,19 @@ export function createApi(deps: ApiDeps) {
       }
 
       const reading = (stored as any).reading as ReadingRequest;
-      const { kind, data, subject } = buildPayload(reading);
-      const { text } = await deps.generate({ kind, data, subject });
-      await reports.set(id, stored.inputHash, text);
+      const parts = buildPayloads(reading);
+      /*
+       * 묶음이라도 주문은 한 건, 이용권도 하나다. 편마다 만들어 한 벌로 붙인다.
+       * 한꺼번에 부르지 않고 차례로 부른다 — 세 편을 동시에 던지면 한도에 걸린다.
+       */
+      const chunks: string[] = [];
+      for (const part of parts) {
+        const made = await deps.generate({ kind: part.kind, data: part.data, subject: part.subject });
+        chunks.push(parts.length === 1
+          ? made.text
+          : `# ${CATALOG[part.productId].name}\n\n${made.text}`);
+      }
+      await reports.set(id, stored.inputHash, chunks.join('\n\n---\n\n'));
 
       const done = markFulfilled(paid);
       await save(stored, done);

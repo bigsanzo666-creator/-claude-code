@@ -9,6 +9,7 @@
 import { createServer } from 'node:http';
 import {
   CATALOG, FakeGateway, markPaid, markPending, createOrder,
+  PACKAGES, bundleMath, orderable, upsellFor,
 } from '../../packages/commerce/src/index.ts';
 import { loadBusinessInfo, SPIRITS } from '../../packages/site-policy/src/index.ts';
 import { findSpiritVideos } from './src/images.ts';
@@ -722,6 +723,68 @@ section('H. 저장소 장애가 사이트를 죽이지 않는다');
   check('그 뒤에도 정책 페이지가 뜬다', (await call('/terms')) === 200);
   srv.close();
 }
+
+
+// ── H. 묶음 사기 ────────────────────────────────────────────────
+section('H. 묶음도 살 수 있다');
+
+const PACK = 'samhap-pack';
+const pack = PACKAGES[PACK];
+const packMath = bundleMath(PACK);
+const packReading = { productId: PACK, birth: BIRTH };
+
+// 못 사는 것을 내밀면 속이는 것이다. 묶음이 결제까지 가야 끼워 팔 수 있다
+check('묶음도 살 수 있는 것으로 잡힌다', orderable(PACK).members.length === pack.members.length);
+
+const packPreview = await api('POST', '/api/preview', packReading);
+check('묶음 미리보기가 뜬다', packPreview.status === 200, packPreview.body.error);
+check('묶음 값은 묶음표에서 온다',
+  packPreview.body.product.priceKrw === packMath.bundleKrw, `${packPreview.body.product.priceKrw}원`);
+check('편마다 무엇이 담기는지 이름이 붙는다',
+  packPreview.body.preview.contents.some((c: string) => c.startsWith(CATALOG[pack.members[0]].name + ' — ')));
+check('묶음을 보는 손님에게 또 묶음을 내밀지 않는다', packPreview.body.upsell === null);
+
+// 단품을 보는 손님에게는 그것을 품은 묶음을 내민다
+const single = await api('POST', '/api/preview', reading);
+const offer = single.body.upsell;
+check('단품 미리보기에 묶음이 함께 온다', offer !== null && typeof offer.id === 'string');
+check('얹는 금액을 알려 준다', offer.addKrw === offer.priceKrw - CATALOG['cross-report'].priceKrw);
+// 판 적 없는 정가를 지어내지 않는다 — 낱개 판매가의 합계가 「따로 사면」이다
+check('따로 사면 값은 낱개 판매가의 합계',
+  offer.apartKrw === offer.members.reduce((a: number, m: any) => a + m.priceKrw, 0));
+check('절약액은 그 차액', offer.saveKrw === offer.apartKrw - offer.priceKrw);
+check('제일 싼 묶음을 내민다', offer.id === upsellFor('cross-report')!.id);
+
+const before = generateCalls;
+const packOrder = await api('POST', '/api/orders',
+  { ...packReading, acknowledgedNotice: true, previewShown: true });
+check('묶음 주문이 생긴다', packOrder.status === 201, packOrder.body.error);
+check('금액은 묶음값으로 고정',
+  packOrder.body.order.amountKrw === packMath.bundleKrw, `${packOrder.body.order.amountKrw}원`);
+check('묶음 주문에도 지문이 붙는다', /^[0-9a-f]{64}$/.test(packOrder.body.order.inputHash));
+check('주문서를 만드는 동안 모델을 부르지 않는다', generateCalls === before);
+
+const packId: string = packOrder.body.order.id;
+await api('POST', `/api/orders/${packId}/pending`);
+gateway.put({ paymentId: packId, status: 'paid', amountKrw: packMath.bundleKrw,
+  merchantOrderId: packId, method: 'card', paidAt: new Date().toISOString(), raw: {} });
+const packDone = await api('POST', `/api/orders/${packId}/confirm`, { paymentId: packId });
+check('묶음 결제가 확정된다', packDone.status === 200 && packDone.body.order.status === 'fulfilled',
+  packDone.body.error);
+check('편 수만큼 만든다', generateCalls === before + pack.members.length,
+  `${generateCalls - before}편`);
+
+const packReport = await api('GET', `/api/orders/${packId}/report`);
+check('한 벌로 붙여 준다', packReport.status === 200);
+check('편마다 제목이 붙는다',
+  pack.members.every((m) => packReport.body.text.includes(`# ${CATALOG[m].name}`)));
+
+// 주문은 한 건, 이용권도 하나. 환불·열람 규칙을 건드리지 않았다
+check('묶음도 주문은 한 건', typeof packReport.body.order.id === 'string');
+
+const badPack = await api('POST', '/api/orders',
+  { productId: 'no-such-pack', birth: BIRTH, acknowledgedNotice: true });
+check('없는 묶음은 거부', badPack.status === 400);
 
 server.close();
 console.log(`\n${'═'.repeat(60)}`);

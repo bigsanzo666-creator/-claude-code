@@ -14,6 +14,7 @@ import {
   assessRefund, addBusinessDays, WITHDRAWAL_NOTICE, WITHDRAWAL_WINDOW_DAYS, refundNotice,
   FakeGateway, confirmPayment, refundOrder, PaymentVerificationError,
   type Order,
+  orderable, isOrderable, upsellFor, upgradeCostKrw,
 } from './src/index.ts';
 
 let passed = 0, failed = 0;
@@ -246,6 +247,48 @@ gw3.put({ paymentId: 'pay_ok', status: 'paid', amountKrw: CROSS_PRICE, merchantO
 const blocked = await throwsAsync(() => refundOrder({ ...viewedFull, paymentId: 'pay_ok' }, gw3, day(1)));
 check('환불 불가 건은 PG를 부르기 전에 막힘', blocked !== null && gw3.cancelled.length === 0,
   '정책 판정이 먼저, 돈은 그 다음');
+
+
+section('살 수 있는 것 — 단품과 묶음');
+
+check('단품은 자기 자신 한 편', orderable('cross-report').members.length === 1);
+check('단품 값은 카탈로그에서', orderable('cross-report').priceKrw === CATALOG['cross-report'].priceKrw);
+check('묶음도 살 수 있다', isOrderable('samhap-pack'));
+check('모르는 것은 못 산다', !isOrderable('free-lunch'));
+
+let threw = false;
+try { orderable('free-lunch'); } catch { threw = true; }
+check('모르는 것을 사려 하면 던진다', threw);
+
+for (const pack of Object.values(PACKAGES)) {
+  const o = orderable(pack.id);
+  const math = bundleMath(pack.id);
+  check(`${pack.name} 값은 묶음표에서`, o.priceKrw === math.bundleKrw);
+  check(`${pack.name} 편 수가 맞는다`, o.members.length === pack.members.length);
+  // 미리보기로 다 읽히면 살 이유가 없어진다. 제일 인색한 쪽에 맞춘다
+  check(`${pack.name} 미리보기 분량은 제일 적은 것에 맞춘다`,
+    o.previewRatio === Math.min(...pack.members.map((m) => CATALOG[m].previewRatio)));
+  // 궁합이 든 묶음은 상대의 생년월일이 있어야 만들 수 있다
+  check(`${pack.name} 상대 필요 여부가 구성에서 온다`,
+    o.needsPartner === pack.members.some((m) => CATALOG[m].needsPartner === true));
+}
+
+// 얹기 쉬우려면 제일 싼 것부터 내밀어야 한다
+const offer = upsellFor('cross-report');
+check('단품을 품은 묶음을 찾아 준다', offer !== null);
+if (offer) {
+  const all = Object.values(PACKAGES).filter((p) => (p.members as string[]).includes('cross-report'));
+  check('그중 제일 싼 것을 내민다',
+    offer.priceKrw === Math.min(...all.map((p) => bundleMath(p.id).bundleKrw)));
+  check('얹는 금액은 두 값의 차',
+    upgradeCostKrw('cross-report', offer.id) === offer.priceKrw - CATALOG['cross-report'].priceKrw);
+  check('얹는 금액은 0보다 크다', upgradeCostKrw('cross-report', offer.id) > 0);
+}
+check('어느 묶음에도 없으면 안 내민다',
+  Object.values(CATALOG).every((p) => {
+    const has = Object.values(PACKAGES).some((k) => (k.members as string[]).includes(p.id));
+    return has === (upsellFor(p.id) !== null);
+  }));
 
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} / 실패 ${failed}`);

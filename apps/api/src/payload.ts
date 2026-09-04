@@ -1,3 +1,4 @@
+import { orderable } from '../../../packages/commerce/src/orderable.ts';
 /**
  * 리포트에 넘길 데이터를 서버가 직접 만든다.
  *
@@ -70,6 +71,21 @@ function sajuBundle(birth: BirthInput) {
   const daeun = calculateDaeun(ms, birth.gender ?? '남', an.yongsin);
   const year = new Date().getFullYear();
   return { ms, an, daeun, age: year - ms.meta.solarYear, year };
+}
+
+/**
+ * 묶음이면 편마다 하나씩, 단품이면 한 편.
+ *
+ * 묶음도 리포트를 새로 쓰는 것이 아니라 **구성 상품을 그대로 여러 편 만든다.**
+ * 그래야 낱개로 산 사람과 묶음으로 산 사람이 같은 글을 받는다.
+ */
+export function buildPayloads(
+  req: ReadingRequest,
+): { productId: ProductId; kind: ReportKind; data: unknown; subject: string }[] {
+  return orderable(req.productId).members.map((productId) => ({
+    productId,
+    ...buildPayload({ ...req, productId }),
+  }));
 }
 
 /** 상품별로 리포트에 실을 데이터를 조립한다. */
