@@ -11,6 +11,7 @@ import {
   CATALOG, FakeGateway, markPaid, markPending, createOrder,
 } from '../../packages/commerce/src/index.ts';
 import { loadBusinessInfo, SPIRITS } from '../../packages/site-policy/src/index.ts';
+import { findSpiritVideos } from './src/images.ts';
 import { createApi, MemoryOrderStore } from './src/server.ts';
 import { StandbyGateway, standbyGenerate } from './src/standby.ts';
 
@@ -374,13 +375,17 @@ const home = await page('/');
   // 숫자를 박아 두면 신령이 늘 때마다 여기부터 깨진다. 신령 수를 따라간다
   check('신령마다 저마다 판을 갖는다',
     (home.html.match(/id="stSp-/g) ?? []).length === SPIRITS.length);
-  // 영상이 올라온 신령은 살아 움직인다. 없는 신령은 얼굴 그림이 그대로 돈다
-  check('영상이 있으면 신령이 움직인다',
-    home.html.includes('src="/video/spirits/flower" type="video/mp4"'));
-  check('mp4 를 못 여는 브라우저도 본다',
-    home.html.includes('src="/video/spirits/flower.webm" type="video/webm"'));
+  // 영상이 올라온 신령은 살아 움직인다. 없는 신령은 얼굴 그림이 그대로 돈다.
+  // 신령 하나에 영상을 더 올릴 때마다 여기가 깨지면 안 되므로, 폴더를 따라간다
+  const clips = findSpiritVideos();
+  check('영상이 올라온 신령은 움직인다',
+    [...clips.keys()].every((id) => home.html.includes(`src="/video/spirits/${id}" type="video/mp4"`)),
+    `${clips.size}명`);
   check('영상이 없는 신령은 얼굴 그림으로 남는다',
-    !home.html.includes('/video/spirits/mountain"'));
+    (home.html.match(/<source src="\/video\/spirits\/[^".]+" type="video\/mp4"/g) ?? []).length === clips.size);
+  const webms = findSpiritVideos(undefined, '.webm');
+  check('mp4 를 못 여는 브라우저도 본다',
+    [...webms.keys()].every((id) => home.html.includes(`src="/video/spirits/${id}.webm"`)));
   check('신령계에서 무료 사주를 먼저 건다', home.html.includes('id="stFree"'));
   check('문 앞에서 이름·태어난 날·태어난 시를 받는다',
     ['stName', 'stDate', 'stHour'].every((id) => home.html.includes(`id="${id}"`)));
