@@ -221,11 +221,40 @@ export function findSpiritImages(dir: string = SPIRIT_DIR): Map<string, ProductI
   return found;
 }
 
+/**
+ * 신령이 살아 움직이는 3~5초 영상.
+ *
+ * 얼굴 그림과 **같은 폴더에 같은 이름**으로 둔다 — `도화신령.jpg` 옆에
+ * `도화신령.mp4`. 사장님이 파일 두 벌을 따로 관리하지 않게 하려는 것이다.
+ *
+ * 없으면 없는 대로 간다. 그림이 그대로 돌고, 올리는 순간 영상으로 바뀐다.
+ * 그래서 여덟을 한 번에 다 만들 필요가 없다 — 하나씩 올려도 된다.
+ *
+ * 이 영상은 사이트에만 쓰는 것이 아니다. 인스타·틱톡·네이버 클립에
+ * 그대로 올리는 광고 소재다 (`docs/growth-notes.md`).
+ */
+export function findSpiritVideos(dir: string = SPIRIT_DIR, ext = '.mp4'): Map<string, ProductImage> {
+  const found = new Map<string, ProductImage>();
+  let entries: string[];
+  try { entries = readdirSync(dir); } catch { return found; }
+  const type = VIDEO_TYPES[ext];
+  if (!type) return found;
+  for (const name of entries) {
+    const got = extname(name).toLowerCase();
+    if (got !== ext) continue;
+    const id = SPIRIT_BY_NAME.get(squash(name.slice(0, -got.length)));
+    if (!id || found.has(id)) continue;
+    found.set(id, { path: join(dir, name), type });
+  }
+  return found;
+}
+
 /** 신령 폴더에 있는데 이름을 못 알아들은 파일 — 기동 로그로 알려준다 */
 export function straySpiritImages(dir: string = SPIRIT_DIR): string[] {
   try {
     return readdirSync(dir)
-      .filter((n) => TYPES[extname(n).toLowerCase()])
+      // 그림이든 영상이든 이름을 못 알아들으면 알려 준다
+      .filter((n) => TYPES[extname(n).toLowerCase()] || VIDEO_TYPES[extname(n).toLowerCase()])
       .filter((n) => !SPIRIT_BY_NAME.has(squash(n.slice(0, -extname(n).length))));
   } catch {
     return [];

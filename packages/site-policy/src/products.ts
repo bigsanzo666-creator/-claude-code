@@ -202,10 +202,21 @@ export const FONT_LINK = `<link rel="preconnect" href="https://fonts.googleapis.
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=IBM+Plex+Sans+KR:wght@300;400;500;600&display=swap">`;
 
 export const PRODUCTS_CSS = `
+/*
+ * 색은 **한지 한 벌뿐이다.**
+ *
+ * 어두운 모드로 뒤집히게 두었더니, 폰을 어둡게 쓰는 손님에게는 이 집이
+ * 통째로 검은 화면이 됐다. 사주를 보러 온 사람에게 어두운 화면을 내미는
+ * 것은 파는 물건과도 안 맞는다 — 우리가 파는 것은 「그래서 어떻게 하면
+ * 되는가」이지 무거운 기분이 아니다.
+ *
+ * 그래서 밝은 쪽 하나로 못 박고, 종이색도 한 단계 올렸다.
+ */
 :root{
-  --nb-paper:#EBE3D3; --nb-paper-2:#F6F1E5; --nb-line:#D5C9B2; --nb-line-soft:#E0D7C4;
-  --nb-ink:#182640; --nb-ink-2:#4C566B; --nb-ink-3:#8B8674; --nb-gold:#9C7C42;
-  --nb-veil-0:rgba(235,227,211,0); --nb-veil-1:rgba(235,227,211,.72);
+  color-scheme:light;
+  --nb-paper:#F4EFE3; --nb-paper-2:#FCFAF4; --nb-line:#E0D6C2; --nb-line-soft:#EBE4D6;
+  --nb-ink:#1B2A45; --nb-ink-2:#525C72; --nb-ink-3:#948E7C; --nb-gold:#96742F;
+  --nb-veil-0:rgba(244,239,227,0); --nb-veil-1:rgba(244,239,227,.72);
   /* 글씨는 두 벌만 쓴다. 아래 무료 만세력 조각이 이미 이 둘을 받아 오므로
      새로 받지 않는다 — 한 페이지에 명조 두 벌, 고딕 두 벌이 도는 것을 막는다 */
   --nb-serif:"Nanum Myeongjo",AppleMyungjo,Batang,serif;
@@ -294,14 +305,6 @@ body{background:var(--nb-paper)}
   .pr-wide>.pr-link>*{min-width:0}
   .pr-wide .pr-shot{aspect-ratio:auto;height:100%;border-bottom:0;border-right:1px solid var(--nb-line)}
   .pr-body{align-self:center;padding:40px 38px}
-}
-@media (prefers-color-scheme:dark){
-  :root{
-    --nb-paper:#131A26; --nb-paper-2:#1A2231; --nb-line:#2E3A4D; --nb-line-soft:#25303F;
-    --nb-ink:#E9E3D6; --nb-ink-2:#A6AFC0; --nb-ink-3:#7B8394; --nb-gold:#C2A063;
-    --nb-veil-0:rgba(19,26,38,0); --nb-veil-1:rgba(19,26,38,.78);
-  }
-  .pr-badge{color:#131A26}
 }
 ${SPIRITS_CSS}`;
 

@@ -105,10 +105,7 @@ export const LANDING_CSS = `
 @media (min-width:1180px){
   .lp-hero h1{font-size:52px}
 }
-@media (prefers-color-scheme:dark){
-  .lp-cta{background:var(--nb-gold);border-color:var(--nb-gold);color:#131A26}
-  .lp-cta:hover,.lp-cta:focus{background:transparent;color:var(--nb-gold)}
-}`;
+`;
 
 /**
  * 첫 화면 머리.

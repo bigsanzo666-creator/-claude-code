@@ -374,6 +374,13 @@ const home = await page('/');
   // 숫자를 박아 두면 신령이 늘 때마다 여기부터 깨진다. 신령 수를 따라간다
   check('신령마다 저마다 판을 갖는다',
     (home.html.match(/id="stSp-/g) ?? []).length === SPIRITS.length);
+  // 영상이 올라온 신령은 살아 움직인다. 없는 신령은 얼굴 그림이 그대로 돈다
+  check('영상이 있으면 신령이 움직인다',
+    home.html.includes('src="/video/spirits/flower" type="video/mp4"'));
+  check('mp4 를 못 여는 브라우저도 본다',
+    home.html.includes('src="/video/spirits/flower.webm" type="video/webm"'));
+  check('영상이 없는 신령은 얼굴 그림으로 남는다',
+    !home.html.includes('/video/spirits/mountain"'));
   check('신령계에서 무료 사주를 먼저 건다', home.html.includes('id="stFree"'));
   check('문 앞에서 이름·태어난 날·태어난 시를 받는다',
     ['stName', 'stDate', 'stHour'].every((id) => home.html.includes(`id="${id}"`)));
@@ -531,7 +538,10 @@ check('VSOP87 같은 말이 첫 화면 상단에 없다',
   home.html.indexOf('VSOP87') === -1 || home.html.indexOf('VSOP87') > iTry);
 check('푸터 스타일이 함께 나간다', home.html.includes('.biz-rows'));
 // 색을 한 곳에서만 정한다 — 첫 화면·목록·상세가 서로 다른 색으로 뜨면 그림이 겉돈다
-check('색이 토큰 한 곳에서 나온다', home.html.includes('--nb-ink:#182640'));
+check('색이 토큰 한 곳에서 나온다', home.html.includes('--nb-ink:#1B2A45'));
+// 폰을 어둡게 쓰는 손님에게도 같은 한지 한 벌이 나가야 한다
+check('밝은 쪽 하나로 못 박는다',
+  home.html.includes('color-scheme:light') && !home.html.includes('prefers-color-scheme:dark'));
 // 무료 만세력 조각은 자기 색을 들고 온다. 한 장의 종이로 보이도록 덮어 준다
 check('무료 화면 색을 우리 색으로 맞춘다', home.html.includes('--paper:var(--nb-paper)'));
 // 관상 칸의 이름표가 버튼 오른쪽으로 밀려 나 있었다. 한 줄짜리로 세워 둔다

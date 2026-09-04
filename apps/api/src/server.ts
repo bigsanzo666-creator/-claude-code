@@ -29,7 +29,8 @@ import {
 } from '../../../packages/site-policy/src/index.ts';
 import {
   findProductImages, findHeroImage, findHeroVideo, findSpiritImages, findSceneImages,
-  findGateVideo, findWalkVideo, findGateWebm, findWalkWebm, type ProductImage,
+  findGateVideo, findWalkVideo, findGateWebm, findWalkWebm, findSpiritVideos,
+  type ProductImage,
 } from './images.ts';
 import {
   talk, opening, cleanAsk, cleanFacts, FREE_TURNS, personaOf, taste, chooseAsk,
@@ -116,6 +117,9 @@ export interface ApiDeps {
   /** 같은 두 장면의 webm 한 벌. mp4 를 못 여는 브라우저가 이쪽을 고른다 */
   gateWebm?: ProductImage | null;
   walkWebm?: ProductImage | null;
+  /** 신령이 움직이는 3~5초 영상. 없으면 얼굴 그림이 그대로 돈다 */
+  spiritVideos?: Map<string, ProductImage>;
+  spiritWebms?: Map<string, ProductImage>;
 }
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -133,6 +137,7 @@ function renderPage(
   hero = false, heroVideo = false, faces: ReadonlySet<string> = new Set(),
   scenes: ReadonlySet<string> = new Set(), gateVideo = false, walkVideo = false,
   gateWebm = false, walkWebm = false,
+  clips: ReadonlySet<string> = new Set(), clipWebms: ReadonlySet<string> = new Set(),
 ): string {
   // 조각은 아티팩트로 따로 쓰일 때를 위해 제 제목을 달고 다닌다.
   // 여기서는 <head> 가 이미 제목을 냈으므로, 본문에 제목이 두 개 되지 않게 걷어낸다
@@ -147,7 +152,7 @@ ${renderSocialHead(business, {
     title: HOME_TITLE, description: HOME_DESCRIPTION, path: '/', image: hero,
   })}
 ${FONT_LINK}
-<style>:root{color-scheme:light dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 ${LANDING_CSS}
 ${PRODUCTS_CSS}
 ${STAGE_CSS}
@@ -156,7 +161,7 @@ ${FOOTER_CSS}</style>
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 </head>
 <body>
-${renderStage(business, scenes, { walk: walkVideo, open: gateVideo, walkWebm, openWebm: gateWebm }, faces)}
+${renderStage(business, scenes, { walk: walkVideo, open: gateVideo, walkWebm, openWebm: gateWebm }, faces, clips, clipWebms)}
 ${renderHero(business, checkout !== null, hero, heroVideo)}
 ${renderSpiritRow(faces)}
 ${renderProducts(checkout !== null, images, faces, false, scenes)}
@@ -330,6 +335,10 @@ export function createApi(deps: ApiDeps) {
   // 신령 얼굴도 같이 훑는다. 없는 얼굴은 한자 도장으로 나가므로 몇 장이든 상관없다
   const spirits = deps.spiritImages ?? findSpiritImages();
   const haveFace = new Set(spirits.keys());
+  // 신령이 살아 움직이는 3~5초 영상. 없으면 얼굴 그림이 그대로 돈다
+  const spiritVideos = deps.spiritVideos ?? findSpiritVideos();
+  const spiritWebms = deps.spiritWebms ?? findSpiritVideos(undefined, '.webm');
+  const haveClip = new Set([...spiritVideos.keys(), ...spiritWebms.keys()]);
   const scenes = deps.sceneImages ?? findSceneImages();
   const haveScene = new Set(scenes.keys());
   const gateVideo = deps.gateVideo !== undefined ? deps.gateVideo : findGateVideo();
@@ -364,6 +373,7 @@ export function createApi(deps: ApiDeps) {
       const html = renderPage(
         checkout, business, haveImage, hero !== null, heroVideo !== null, haveFace, haveScene,
         gateVideo !== null, walkVideo !== null, gateWebm !== null, walkWebm !== null,
+        haveClip, new Set(spiritWebms.keys()),
       );
       res.writeHead(200, { ...HTML_HEADERS, 'Content-Length': Buffer.byteLength(html) });
       res.end(html);
@@ -439,6 +449,19 @@ export function createApi(deps: ApiDeps) {
      * 상품 그림과 똑같은 방식이다 — 기동할 때 만들어 둔 표에서만 꺼내므로
      * 요청 문자열로 파일을 찾는 일이 없다.
      */
+    /**
+     * 신령이 움직이는 짧은 영상. 얼굴 그림과 같은 폴더에 같은 이름으로 둔다.
+     *
+     * `flower` 면 mp4, `flower.webm` 이면 webm 이다. 브라우저가 `<source>`
+     * 두 줄 중에 제가 아는 쪽 하나만 골라 받는다.
+     */
+    'GET /video/spirits/:id': async (req, res, id) => {
+      const webm = id.endsWith('.webm');
+      const clip = webm ? spiritWebms.get(id.slice(0, -5)) : spiritVideos.get(id);
+      if (!clip) throw new HttpError(404, `신령 영상이 없습니다: ${id}`);
+      sendVideo(req, res, clip);
+    },
+
     'GET /img/spirits/:id': async (_req, res, id) => {
       const image = spirits.get(id);
       if (!image) throw new HttpError(404, `신령 그림이 없습니다: ${id}`);
@@ -746,6 +769,9 @@ export function createApi(deps: ApiDeps) {
       } else if (parts[0] === 'img' && parts[1] === 'products' && parts[2] && !parts[3]) {
         id = parts[2];
         key = `${req.method} /img/products/:id`;
+      } else if (parts[0] === 'video' && parts[1] === 'spirits' && parts[2] && !parts[3]) {
+        id = parts[2];
+        key = `${req.method} /video/spirits/:id`;
       } else if (parts[0] === 'img' && parts[1] === 'spirits' && parts[2] && !parts[3]) {
         id = parts[2];
         key = `${req.method} /img/spirits/:id`;

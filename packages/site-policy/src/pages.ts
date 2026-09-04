@@ -62,9 +62,9 @@ export function renderFooter(info: BusinessInfo): string {
 }
 
 const CSS = `
-:root{--fg:#1b1b1f;--muted:#5c5c66;--line:#e3e3ea;--bg:#fbfbfd;--accent:#5b3fa8}
-:root:not([data-theme="light"]){}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--fg:#e8e8ee;--muted:#a0a0ad;--line:#33333d;--bg:#16161a;--accent:#b9a4f0}}
+/* 정책 페이지도 본 화면과 같은 한지 한 벌이다. 여기만 검게 뒤집히면 딴 집 같다 */
+:root{color-scheme:light;
+  --fg:#1B2A45;--muted:#525C72;--line:#EBE4D6;--bg:#F4EFE3;--accent:#96742F}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.75 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
 main{max-width:720px;margin:0 auto;padding:32px 20px 64px}

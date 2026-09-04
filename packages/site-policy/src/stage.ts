@@ -76,6 +76,7 @@ export const NO_VIDEOS: StageVideos = { walk: false, open: false };
 export function renderStage(
   info: BusinessInfo, scenes: SceneImages = NO_SCENES, videos: StageVideos = NO_VIDEOS,
   faces: SpiritImages = NO_FACES_SET,
+  clips: SpiritImages = NO_FACES_SET, clipWebms: SpiritImages = NO_FACES_SET,
 ): string {
   const hours = HOURS.map((h) =>
     `<option value="${esc(h.value)}">${esc(h.label)}</option>`).join('\n        ');
@@ -168,7 +169,7 @@ export function renderStage(
     </div>
   </div>
 
-${renderWorld(scenes, faces)}
+${renderWorld(scenes, faces, clips, clipWebms)}
 ${SPIRITS.map((sp) => renderSpiritStage(sp, scenes, faces)).join('\n')}
 </div>`;
 }
@@ -213,7 +214,9 @@ const SPOTS: Record<string, { x: number; y: number }> = {
  *
  * 맨 아래에 **무료 사주**를 걸어 둔다. 값을 묻기 전에 먼저 주는 것이 순서다.
  */
-function renderWorld(scenes: SceneImages, faces: SpiritImages): string {
+function renderWorld(
+  scenes: SceneImages, faces: SpiritImages, clips: SpiritImages, clipWebms: SpiritImages,
+): string {
   const shot = scenes.has('world') ? ` style="--st-shot:url(${sceneUrl('world')})"` : '';
   const pins = SPIRITS.map((sp) => {
     const at = SPOTS[sp.id] ?? { x: 50, y: 50 };
@@ -236,7 +239,7 @@ ${pins}
         <span class="wd-free-go">공짜로 보기 →</span>
       </button>
     </div>
-${renderPeeks(faces)}
+${renderPeeks(faces, clips, clipWebms)}
   </section>`;
 }
 
@@ -253,13 +256,13 @@ ${renderPeeks(faces)}
  * 여덟 개를 다 그려서 감춰 둔다. 누를 때 서버에 다시 묻지 않으므로
  * 손가락을 대는 순간 바로 뜬다 — 기다림이 0이다.
  */
-function renderPeeks(faces: SpiritImages): string {
+function renderPeeks(faces: SpiritImages, clips: SpiritImages, webms: SpiritImages): string {
   return SPIRITS.map((sp) => {
     const asks = productsIn(sp.keeps).slice(0, 3)
       .map((p) => `        <li>${esc(p.hook)}</li>`).join('\n');
     return `    <div class="wd-peek" id="wdPeek-${esc(sp.id)}" hidden>
       <div class="wd-peek-in" role="dialog" aria-label="${esc(sp.name)}">
-        ${stageFace(sp.id, sp.seal, faces, 96)}
+        ${spiritClip(sp.id, sp.seal, faces, clips, webms)}
         <p class="st-kicker">${esc(sp.name)} · ${esc(sp.place)}</p>
         <p class="wd-peek-say">${esc(sp.greet)}</p>
         <p class="wd-peek-l">이런 것을 봐 준다</p>
@@ -363,6 +366,29 @@ ${plain}
       </div></noscript>
     </div>
   </section>`;
+}
+
+/**
+ * 신령이 앞으로 나올 때 보이는 것.
+ *
+ * 영상이 있으면 **살아 움직이는 신령**이 나오고, 없으면 얼굴 그림이
+ * 그대로 나온다. 그림도 없으면 한자 도장 한 글자다. 어느 쪽이든
+ * 빈 네모를 남기지 않는다.
+ *
+ * 영상은 소리 없이 저 혼자 돈다. 손님이 누르지 않아도 움직인다 —
+ * 그게 「살아 있다」로 보이는 자리다.
+ */
+function spiritClip(
+  id: string, seal: string, faces: SpiritImages, clips: SpiritImages, webms: SpiritImages,
+): string {
+  if (!clips.has(id)) return stageFace(id, seal, faces, 96);
+  const webm = webms.has(id)
+    ? `\n          <source src="/video/spirits/${encodeURIComponent(id)}.webm" type="video/webm">` : '';
+  return `<span class="wd-peek-clip">
+        <video autoplay muted loop playsinline preload="auto" aria-hidden="true">
+          <source src="/video/spirits/${encodeURIComponent(id)}" type="video/mp4">${webm}
+        </video>
+      </span>`;
 }
 
 /** 얼굴 그림이 없으면 한자 도장으로 자리를 지킨다 */
@@ -525,11 +551,6 @@ body.st-locked{overflow:hidden}
   text-decoration:none;border:1px solid var(--nb-ink);background:var(--nb-ink);
   color:var(--nb-paper-2);font:500 15px var(--nb-sans)}
 .sp-buy:hover{background:transparent;color:var(--nb-ink)}
-@media (prefers-color-scheme:dark){
-  .sp-buy{background:var(--nb-gold);border-color:var(--nb-gold);color:#131A26}
-  .sp-buy:hover{background:transparent;color:var(--nb-gold)}
-}
-
 /* 신령을 누르면 그 자리에서 앞으로 나오는 판 */
 .wd-peek{position:absolute;inset:0;z-index:12;display:grid;place-items:center;padding:22px;
   background:var(--nb-veil-1)}
@@ -539,6 +560,10 @@ body.st-locked{overflow:hidden}
   animation:wdRise .28s ease both}
 @keyframes wdRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .wd-peek-in .st-face{width:96px;height:96px;margin:0 auto 14px}
+/* 영상이 올라오면 얼굴 동그라미 대신 신령이 살아 움직인다 */
+.wd-peek-clip{display:block;width:100%;aspect-ratio:3/4;max-height:46dvh;margin:-24px -22px 14px;
+  width:calc(100% + 44px);overflow:hidden;background:var(--nb-paper)}
+.wd-peek-clip video{display:block;width:100%;height:100%;object-fit:cover}
 .wd-peek-say{margin:8px 0 18px;font-family:var(--nb-serif);font-size:17px;line-height:1.7;
   word-break:keep-all}
 .wd-peek-l{margin:0 0 8px;font-size:11.5px;letter-spacing:.2em;color:var(--nb-gold)}
@@ -551,10 +576,6 @@ body.st-locked{overflow:hidden}
 .wd-peek-x{display:block;width:100%;margin:12px 0 0;padding:0;border:0;background:none;
   font:13px var(--nb-sans);color:var(--nb-ink-3);text-decoration:underline;
   text-underline-offset:3px;cursor:pointer}
-@media (prefers-color-scheme:dark){
-  .wd-peek-go{background:var(--nb-gold);border-color:var(--nb-gold);color:#131A26}
-  .wd-peek-go:hover{background:transparent;color:var(--nb-gold)}
-}
 @media (prefers-reduced-motion:reduce){ .wd-peek-in{animation:none} }
 
 /* 신령과 주고받는 자리 */
@@ -579,12 +600,6 @@ body.st-locked{overflow:hidden}
 .tk-go:hover{background:transparent;color:var(--nb-ink)}
 .tk-go[disabled]{opacity:.45;cursor:default}
 .tk-note{margin:10px 0 0;font-size:12px;line-height:1.7;color:var(--nb-ink-3);word-break:keep-all}
-@media (prefers-color-scheme:dark){
-  .tk-me{background:var(--nb-gold);border-color:var(--nb-gold);color:#131A26}
-  .tk-go{background:var(--nb-gold);border-color:var(--nb-gold);color:#131A26}
-  .tk-go:hover{background:transparent;color:var(--nb-gold)}
-}
-
 @media (min-width:760px){
   /* 그림과 영상이 전부 세로(784x1168)다. 넓은 화면에서 가로로 늘려 자르면
      신령이 화면 밖으로 밀려나고, 신령계 지도의 자리도 그림과 어긋난다.
@@ -598,10 +613,7 @@ body.st-locked{overflow:hidden}
   .st-page{padding:56px 24px}
   .st-in{padding-bottom:52px}
 }
-@media (prefers-color-scheme:dark){
-  .st-go,.st-next{background:var(--nb-gold);border-color:var(--nb-gold);color:#131A26}
-  .st-go:hover,.st-next:hover{background:transparent;color:var(--nb-gold)}
-}`;
+`;
 
 /**
  * 들어가는 손놀림.

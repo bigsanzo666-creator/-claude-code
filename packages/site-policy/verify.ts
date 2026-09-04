@@ -82,7 +82,9 @@ for (const [name, html] of pages) {
   check(`${name}: 사업자 정보 동반`, html.includes('220-81-62517'));
   check(`${name}: 시행일 표시`, html.includes(POLICY_EFFECTIVE_DATE));
   check(`${name}: 개정판 번호 표시`, html.includes('제1.1판'));
-  check(`${name}: 다크 모드 대응`, html.includes('prefers-color-scheme'));
+  // 정책 페이지만 검게 뒤집히면 딴 집처럼 보인다. 본 화면과 같은 한지 한 벌이다
+  check(`${name}: 밝은 쪽 하나로 못 박는다`,
+    html.includes('color-scheme:light') && !html.includes('prefers-color-scheme:dark'));
 }
 
 section('5. 약관과 환불 로직의 일치');
@@ -249,7 +251,14 @@ section('10. 첫 화면');
   check('로고가 인장보다 크다', LANDING_CSS.includes('.lp-name{font-family:var(--nb-serif);font-size:20px')
     && LANDING_CSS.includes('.lp-seal{width:26px'));
 
-  check('다크 모드 대응', LANDING_CSS.includes('prefers-color-scheme') && PRODUCTS_CSS.includes('prefers-color-scheme'));
+  // 폰을 어둡게 쓰는 손님에게 이 집이 통째로 검은 화면이 되고 있었다.
+  // 사주를 보러 온 사람에게 어두운 화면을 내미는 것은 파는 물건과도 안 맞는다
+  check('색은 한지 한 벌뿐이다',
+    PRODUCTS_CSS.includes('color-scheme:light')
+    && !PRODUCTS_CSS.includes('prefers-color-scheme:dark')
+    && !LANDING_CSS.includes('prefers-color-scheme:dark')
+    && !STAGE_CSS.includes('prefers-color-scheme:dark'));
+  check('종이색이 한 단계 밝다', PRODUCTS_CSS.includes('--nb-paper:#F4EFE3'));
 
   // 그림이 없으면 배경을 걸지 않는다 — 회색 네모를 남기지 않는 것은 상품 그림과 같은 규칙이다
   check('첫 화면 그림이 있으면 배경으로 깐다', renderHero(full, true, true).includes('url(/img/hero)'));

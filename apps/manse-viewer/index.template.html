@@ -12,16 +12,6 @@
   --wood:#3E7C59; --fire:#B2321F; --earth:#8A6D33; --metal:#5E6A75; --water:#2F5578;
   --field:#FFFFFF;
 }
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --paper:#131619; --surface:#1B1F24; --surface-2:#22272D;
-    --ink:#E4E7EA; --ink-2:#98A1AB; --ink-3:#727C87;
-    --rule:#2E343B; --rule-soft:#242A30;
-    --seal:#D8664C; --seal-soft:#33221E;
-    --wood:#6FB58C; --fire:#E0664F; --earth:#C9A863; --metal:#A3AEB8; --water:#6D9BC9;
-    --field:#12161A;
-  }
-}
 :root[data-theme="dark"]{
   --paper:#131619; --surface:#1B1F24; --surface-2:#22272D;
   --ink:#E4E7EA; --ink-2:#98A1AB; --ink-3:#727C87;
@@ -1462,10 +1452,6 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .wiz-dot.on{background:#5b3fa8}
 .wiz-skip{display:block;margin-top:.9rem;font-size:13px;color:var(--ink-3);
   background:none;border:0;cursor:pointer;font-family:inherit;text-decoration:underline}
-@media (prefers-color-scheme:dark){
-.wiz-next{background:#b9a4f0;color:#16161a}
-.wiz-dot.on{background:#b9a4f0}
-}
 </style>
 <script>
 /*

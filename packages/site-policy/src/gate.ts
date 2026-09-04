@@ -239,11 +239,6 @@ export const GATE_CSS = `
   .gate-in{padding-top:250px;padding-bottom:80px}
   .gate-h{font-size:36px}
 }
-@media (prefers-color-scheme:dark){
-  .gate-go{background:var(--nb-gold);border-color:var(--nb-gold);color:#131A26}
-  .gate-go:hover,.gate-go:focus{background:transparent;color:var(--nb-gold)}
-}
-
 /* 문이 열리는 장면. 화면을 가득 덮고, 끝나면 사라진다 */
 .gate-open{position:fixed;inset:0;z-index:60;background:var(--nb-paper);
   display:grid;place-items:center}
