@@ -3,6 +3,7 @@ export { calculate, formatMyeongsik } from '../../packages/manseryeok/src/index.
 export {
   analyze, GOD_MEANING,
   calculateDaeun, currentDaeun, annualLuck, dailyLuck,
+  freeReading,
 } from '../../packages/saju-rules/src/index.ts';
 export { compatibility } from '../../packages/saju-rules/src/index.ts';
 export { sajuToTraits, crossValidate } from '../../packages/saju-rules/src/index.ts';

@@ -650,6 +650,13 @@ section('주제별 분리 (상품을 열 개로 나누기 위한 것)');
   const rt = freeReading(noTime, analyze(noTime), { gender: '여', todayYear: 2026 });
   check('시를 몰라도 세 줄은 나온다', rt.eight.length === 3);
 
+  // 일간은 저울에 올리지 않으므로 무게가 0으로 나온다. 그렇다고 「없다」가 아니다
+  check('제 일간의 기운을 없다고 하지 않는다',
+    !an.missingElements.includes(an.dayMaster.element),
+    `일간 ${an.dayMaster.element}, 없는 기운 [${an.missingElements.join('·')}]`);
+  check('제 기운 막대에는 자신이라고 표를 단다',
+    r.bars.filter((b) => b.self).length === 1);
+
   check('쉬운 말 표가 다섯씩',
     Object.keys(GOD_PLAIN).length === 5 && Object.keys(ELEMENT_PLAIN).length === 5);
 }

@@ -135,6 +135,14 @@ export function renderStage(
           <span class="st-l">태어난 날</span>
           <input type="date" id="stDate" min="1900-01-01" max="2100-12-31" required>
         </label>
+        <label class="st-f">
+          <span class="st-l">성별 <em class="st-why">십 년 운에 씁니다</em></span>
+          <select id="stSex">
+            <option value="">고르지 않음</option>
+            <option value="남">남자</option>
+            <option value="여">여자</option>
+          </select>
+        </label>
         <label class="st-f st-wide">
           <span class="st-l">태어난 시</span>
           <select id="stHour">
@@ -300,7 +308,8 @@ function renderSpiritStage(
    * 일은 없고, 카드사 심사와 검색엔진도 상품과 값을 볼 수 있다.
    */
   const items = productsIn(sp.keeps).map((p) => `      <button type="button" class="sp-item"
-        data-taste="${esc(p.id)}" data-href="/products/${encodeURIComponent(p.id)}">
+        data-taste="${esc(p.id)}" data-href="/products/${encodeURIComponent(p.id)}"
+        data-name="${esc(p.name)}" data-price="${p.priceKrw}">
         <span class="sp-shot" style="--sp-pic:url(/img/products/${encodeURIComponent(p.id)})"></span>
         <span class="sp-text">
           <span class="sp-hook">${esc(p.hook)}</span>
@@ -363,6 +372,16 @@ function renderSpiritStage(
       <div class="sp-list">
 ${items}
       </div>
+      <!--
+        고른 것을 신령이 그 자리에서 길게 풀어 주는 자리.
+
+        세 줄로는 아무도 사지 않는다. 여덟 글자 표, 오행 무게, 힘의 방향,
+        채워야 할 기운, 십 년 운까지 **값을 받기 전에 먼저 다 보여준다.**
+        전부 이 브라우저가 계산한 것이라 서버도 모델도 부르지 않고,
+        생년월일은 여전히 이 화면 밖으로 나가지 않는다.
+      -->
+      <div class="sp-read" id="spRead-${esc(sp.id)}" hidden></div>
+
       <noscript><div class="sp-plain">
 ${plain}
       </div></noscript>
@@ -371,6 +390,16 @@ ${plain}
         올라가서 「← 신령계로」를 찾아야 한다 — 그러다 그냥 나간다.
       -->
       <button type="button" class="sp-back" data-back="1">← 다른 신령 보러 가기</button>
+
+      <!--
+        아래에 붙어 다니는 띠. 손님이 아무리 내려가도 사는 길이 사라지지
+        않는다. 고르기 전에는 없다 — 고른 것이 없는데 값부터 들이밀지 않는다.
+      -->
+      <div class="sp-bar" id="spBar-${esc(sp.id)}" hidden>
+        <a class="sp-bar-go" href="/products">
+          <b class="sp-bar-n"></b><span class="sp-bar-p"></span>
+        </a>
+      </div>
     </div>
   </section>`;
 }
@@ -563,17 +592,85 @@ body.st-locked{overflow:hidden}
 .sp-back:hover{border-color:var(--nb-gold);color:var(--nb-ink)}
 .sp-plain a{color:var(--nb-ink);font-size:15px}
 
-/* 고른 칸 안에서 신령이 그 자리에서 봐 주는 말 */
-.sp-taste{grid-column:1/-1;padding:16px;margin:0 14px 14px;border-top:1px solid var(--nb-line-soft);
-  font-size:14.5px;line-height:1.9;word-break:keep-all;cursor:auto}
-.sp-taste p{margin:0 0 10px}
-.sp-taste p:last-of-type{margin-bottom:0}
+/* 신령이 여기서 끊고 리포트로 넘기는 말 */
 .sp-taste-more{margin:14px 0 0;padding-top:14px;border-top:1px dashed var(--nb-line);
   font-family:var(--nb-serif);font-size:15px;color:var(--nb-gold);line-height:1.75}
 .sp-buy{display:block;width:100%;margin:14px 0 0;padding:14px;text-align:center;
   text-decoration:none;border:1px solid var(--nb-ink);background:var(--nb-ink);
   color:var(--nb-paper-2);font:500 15px var(--nb-sans)}
 .sp-buy:hover{background:transparent;color:var(--nb-ink)}
+
+/* 왜 묻는지 밝히면 손님이 덜 도망간다 */
+.st-why{font-style:normal;font-size:11px;letter-spacing:0;color:var(--nb-ink-3)}
+
+/*
+ * 값을 받기 전에 펼쳐 주는 긴 풀이.
+ *
+ * 여기가 짧으면 손님은 「돈부터 내라는 데」로 읽는다. 표와 막대와 십 년 운이
+ * 실제로 눈앞에 깔려야 「이건 진짜로 계산했구나」가 된다.
+ */
+.sp-read{margin:18px 0 0;padding:20px 0 0;border-top:1px solid var(--nb-line)}
+.sp-read[hidden]{display:none}
+.rd-say{font-size:15px;line-height:1.95;word-break:keep-all}
+.rd-say p{margin:0 0 12px}
+.rd-say p:last-child{margin:0}
+.rd-head{margin:16px 0 0;font-family:var(--nb-serif);font-size:16px;color:var(--nb-gold)}
+.rd-b{margin:26px 0 0}
+.rd-t{margin:0 0 10px;font-size:11.5px;letter-spacing:.2em;color:var(--nb-gold);font-weight:400}
+.rd-b p{margin:0 0 10px;font-size:14.5px;line-height:1.9;word-break:keep-all}
+.rd-b p:last-child{margin:0}
+
+/* 여덟 글자 표 — 글자는 크게, 십신은 그 밑에 작게 */
+.rd-tb{width:100%;border-collapse:collapse;font-size:13px}
+.rd-tb th{padding:6px 4px;text-align:center;font-weight:400;font-size:11px;
+  letter-spacing:.14em;color:var(--nb-ink-3);border-bottom:1px solid var(--nb-line)}
+.rd-tb td{padding:9px 4px;text-align:center;border-bottom:1px solid var(--nb-line-soft)}
+.rd-tb td:first-child{color:var(--nb-ink-3);font-size:12px}
+.rd-ch{display:block;font-family:var(--nb-serif);font-size:19px;line-height:1.3}
+.rd-god{display:block;font-size:11px;color:var(--nb-ink-3);margin-top:2px}
+
+/* 오행 막대 */
+.rd-bar{display:grid;grid-template-columns:1fr 90px 34px;align-items:center;gap:10px;
+  margin:0 0 8px;font-size:13px}
+.rd-bar-t{display:block;height:7px;background:var(--nb-line-soft)}
+.rd-bar-t i{display:block;height:100%;background:var(--nb-gold)}
+.rd-bar-n{text-align:right;color:var(--nb-ink-3);font-size:12px}
+/* 아예 없는 기운은 눈에 띄어야 한다 — 비어 있는 것이 알맹이다 */
+.rd-zero .rd-bar-l{color:var(--nb-ink-3)}
+.rd-zero .rd-bar-n{color:var(--nb-gold)}
+
+/* 십 년 운 — 옆으로 밀어 본다. 지금 자리에 표를 단다 */
+.rd-luck{display:flex;gap:8px;overflow-x:auto;padding:2px 0 8px;
+  -webkit-overflow-scrolling:touch}
+.rd-lk{flex:0 0 auto;width:96px;padding:10px 8px;text-align:center;
+  border:1px solid var(--nb-line-soft);background:var(--nb-paper-2)}
+.rd-lk b{display:block;font-family:var(--nb-serif);font-size:17px;font-weight:400}
+.rd-lk span{display:block;font-size:11px;color:var(--nb-ink-3);margin-top:3px}
+.rd-lk em{display:block;font-style:normal;font-size:11.5px;margin-top:6px;color:var(--nb-ink-2)}
+.rd-now{border-color:var(--nb-gold);background:var(--nb-paper)}
+.rd-now b{color:var(--nb-gold)}
+.rd-badge{display:inline-block;margin-top:6px;padding:2px 7px;font-size:10.5px;
+  letter-spacing:.1em;background:var(--nb-gold);color:var(--nb-paper-2)}
+.rd-note{margin:0;padding-left:16px;font-size:13.5px;line-height:1.85;color:var(--nb-ink-2)}
+.rd-note li{margin:0 0 6px;word-break:keep-all}
+.rd-cut{margin:24px 0 0;padding-top:16px;border-top:1px dashed var(--nb-line);
+  font-family:var(--nb-serif);font-size:15px;line-height:1.8;color:var(--nb-gold);
+  word-break:keep-all}
+
+/*
+ * 맨 아래에 붙어 다니는 띠.
+ *
+ * position:sticky 라서 판이 스크롤되는 내내 바닥에 붙어 있고, 판을 벗어나면
+ * 같이 사라진다 — 다른 신령의 판까지 따라다니지 않는다.
+ */
+.sp-bar{position:sticky;bottom:0;z-index:6;margin:20px -24px -40px;padding:10px 24px 14px;
+  background:linear-gradient(var(--nb-veil-0),var(--nb-paper) 34%)}
+.sp-bar[hidden]{display:none}
+.sp-bar-go{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:15px 18px;text-decoration:none;border:1px solid var(--nb-ink);
+  background:var(--nb-ink);color:var(--nb-paper-2)}
+.sp-bar-n{font:500 15px var(--nb-sans);word-break:keep-all}
+.sp-bar-p{flex:0 0 auto;font:500 15px var(--nb-sans)}
 /* 신령을 누르면 그 자리에서 앞으로 나오는 판 */
 .wd-peek{position:absolute;inset:0;z-index:12;display:grid;place-items:center;padding:22px;
   background:var(--nb-veil-1)}
@@ -951,44 +1048,153 @@ export const STAGE_SCRIPT = `<script>(function(){
   }
 
   /*
-   * 칸을 고르면 **그 자리에서 신령이 한 조각 봐 준다.**
+   * 고르는 칸을 누르면 신령이 **그 자리에서 길게** 풀어 준다.
    *
-   * 화면을 떠나 값부터 보여 주면, 아직 뭘 봐 주는지도 모르는 사람에게
-   * 계산부터 시키는 것이다. 먼저 주고, 그다음에 값을 본다.
+   * 세 줄만 주고 값을 부르면 손님은 「돈부터 내라는 데」로 읽는다. 여덟 글자
+   * 표와 오행 무게와 십 년 운까지 눈앞에 깔려야 「진짜로 계산했구나」가 되고,
+   * 거기까지 읽은 손님이 산다.
    *
-   * 한 번 받아 온 것은 그대로 둔다. 다시 누르면 접혔다 펴진다 —
-   * 같은 것을 서버에 두 번 묻지 않는다.
+   * 신령이 하는 말만 서버에서 오고(모델을 부르지 않는 정해진 문장이다),
+   * 표·막대·십 년 운은 이 브라우저가 만든다. 그래서 손님 한 명당 드는 돈이
+   * 0이고, 생년월일은 여전히 이 화면 밖으로 나가지 않는다.
    */
+  function mk(tag,cls,text){
+    var d=document.createElement(tag);
+    if(cls)d.className=cls;
+    if(text!=null)d.textContent=text;
+    return d;
+  }
+  function won(n){ return Number(n).toLocaleString('ko-KR')+'원'; }
+
+  function reading(){
+    var date=$('stDate')&&$('stDate').value;
+    if(!date||!window.MS||!MS.calculate||!MS.analyze||!MS.freeReading)return null;
+    try{
+      var hour=$('stHour')&&$('stHour').value;
+      var sexEl=$('stSex'), sex=(sexEl&&sexEl.value)||null;
+      var ms=MS.calculate({date:date,time:hour||null});
+      return MS.freeReading(ms,MS.analyze(ms),
+        {gender:sex,todayYear:new Date().getFullYear()});
+    }catch(err){ return null; }   // 못 재면 신령의 말만 남는다
+  }
+
+  function block(panel,title){
+    var b=mk('section','rd-b'); b.appendChild(mk('h3','rd-t',title));
+    panel.appendChild(b); return b;
+  }
+
+  function drawEight(panel,rows){
+    var b=block(panel,'네 여덟 글자'), t=mk('table','rd-tb'), hr=mk('tr');
+    ['자리','천간','지지','기세'].forEach(function(h){ hr.appendChild(mk('th',null,h)); });
+    var hh=mk('thead'); hh.appendChild(hr); t.appendChild(hh);
+    var tb=mk('tbody');
+    rows.forEach(function(row){
+      var tr=mk('tr');
+      tr.appendChild(mk('td',null,row.position));
+      [[row.stem,row.stemGod],[row.branch,row.branchGod]].forEach(function(pair){
+        var td=mk('td');
+        td.appendChild(mk('span','rd-ch',pair[0]));
+        td.appendChild(mk('span','rd-god',pair[1]));
+        tr.appendChild(td);
+      });
+      tr.appendChild(mk('td',null,row.stage));
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb); b.appendChild(t);
+  }
+
+  function drawBars(panel,bars){
+    var b=block(panel,'다섯 기운, 고르게 있나');
+    bars.forEach(function(x){
+      // 아예 없는 기운도 한 줄을 차지한다. 비어 있는 것이 알맹이다.
+      // 다만 제 일간의 기운은 저울에 안 올린 것뿐이라 「없다」로 그리지 않는다
+      var row=mk('div','rd-bar'+(x.pct===0&&!x.self?' rd-zero':''));
+      row.appendChild(mk('span','rd-bar-l',
+        x.element+' · '+x.plain+(x.self?' — 너 자신':'')));
+      var t=mk('span','rd-bar-t'), f=mk('i');
+      f.style.width=Math.max(x.pct,1)+'%'; t.appendChild(f);
+      row.appendChild(t);
+      row.appendChild(mk('span','rd-bar-n',x.pct+'%'));
+      b.appendChild(row);
+    });
+  }
+
+  function drawLuck(panel,list,title){
+    if(!list||!list.length)return;
+    var b=block(panel,title), wrap=mk('div','rd-luck');
+    list.forEach(function(l){
+      var c=mk('div','rd-lk'+(l.now?' rd-now':''));
+      c.appendChild(mk('b',null,l.ganzhi));
+      c.appendChild(mk('span',null,l.ages||String(l.year)));
+      if(l.years)c.appendChild(mk('span',null,l.years));
+      c.appendChild(mk('em',null,l.say));
+      if(l.now)c.appendChild(mk('span','rd-badge','지금'));
+      wrap.appendChild(c);
+    });
+    b.appendChild(wrap);
+  }
+
   stage.addEventListener('click',function(e){
     var item=e.target.closest('[data-taste]'); if(!item)return;
-    if(e.target.closest('.sp-taste'))return;   // 풀이 안을 누른 것은 넘긴다
-    var had=item.querySelector('.sp-taste');
-    if(had){ had.hidden=!had.hidden; return; }
+    var page=item.closest('.st-page'); if(!page)return;
+    var panel=page.querySelector('.sp-read'); if(!panel)return;
 
-    var box=document.createElement('div');
-    box.className='sp-taste';
-    box.textContent='…';
-    item.appendChild(box);
+    // 같은 것을 다시 누르면 접는다
+    if(panel.dataset.of===item.dataset.taste&&!panel.hidden){ panel.hidden=true; return; }
+    panel.dataset.of=item.dataset.taste;
+    panel.hidden=false;
+    panel.textContent='';
+    panel.appendChild(mk('p','rd-head','…'));
 
-    post2('/api/taste',{product:item.dataset.taste,facts:facts()},function(r){
-      box.textContent='';
-      (r.lines||[]).forEach(function(t){
-        var p=document.createElement('p'); p.textContent=t; box.appendChild(p);
-      });
-      if(r.more){
-        var m=document.createElement('p'); m.className='sp-taste-more'; m.textContent=r.more;
-        box.appendChild(m);
+    // 고른 순간부터 사는 길이 바닥에 붙어 다닌다
+    var bar=page.querySelector('.sp-bar');
+    if(bar){
+      bar.hidden=false;
+      bar.querySelector('.sp-bar-go').href=item.dataset.href;
+      bar.querySelector('.sp-bar-n').textContent=item.dataset.name;
+      bar.querySelector('.sp-bar-p').textContent=won(item.dataset.price);
+    }
+
+    var r=reading();
+
+    function draw(words,more){
+      panel.textContent='';
+      if(words&&words.length){
+        var say=mk('div','rd-say');
+        words.forEach(function(t){ say.appendChild(mk('p',null,t)); });
+        panel.appendChild(say);
       }
-      var go=document.createElement('a');
-      go.className='sp-buy'; go.href=item.dataset.href; go.textContent='자세히 보기';
-      box.appendChild(go);
-      box.scrollIntoView({block:'nearest',behavior:'smooth'});
+      if(r){
+        if(r.head)panel.appendChild(mk('p','rd-head',r.head));
+        drawEight(panel,r.eight);
+        drawBars(panel,r.bars);
+        var b=block(panel,'네 힘은 어느 쪽인가');
+        b.appendChild(mk('p',null,r.strength.verdict+' — '+r.strength.say));
+        b.appendChild(mk('p',null,r.fill.say));
+        drawLuck(panel,r.luck,'십 년마다 갈리는 판');
+        drawLuck(panel,r.years,'올해부터 세 해');
+        if(r.notes&&r.notes.length){
+          var nb=block(panel,'네 여덟 글자에서 눈에 띄는 것'), ul=mk('ul','rd-note');
+          r.notes.forEach(function(n){ ul.appendChild(mk('li',null,n)); });
+          nb.appendChild(ul);
+        }
+        panel.appendChild(mk('p','rd-cut',r.cut));
+      }else{
+        // 안 밝히고 들어온 손님. 무엇을 더 볼 수 있는지만 알려 준다
+        panel.appendChild(mk('p','rd-cut',
+          '태어난 날을 밝히면 네 여덟 글자와 십 년 운까지 여기 펼쳐 준다.'));
+      }
+      if(more)panel.appendChild(mk('p','sp-taste-more',more));
+      var go=mk('a','sp-buy','자세히 보기');
+      go.href=item.dataset.href;
+      panel.appendChild(go);
+      panel.scrollIntoView({block:'nearest',behavior:'smooth'});
+    }
+
+    post2('/api/taste',{product:item.dataset.taste,facts:facts()},function(res){
+      draw(res.lines,res.more);
     },function(){
-      // 못 받아 오면 값을 보러 갈 길은 그대로 열어 둔다
-      box.textContent='';
-      var go=document.createElement('a');
-      go.className='sp-buy'; go.href=item.dataset.href; go.textContent='자세히 보기';
-      box.appendChild(go);
+      draw(null,null);   // 신령의 말이 못 와도 펼친 것은 그대로 남는다
     });
   });
 

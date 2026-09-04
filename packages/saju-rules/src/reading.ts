@@ -66,6 +66,8 @@ export interface ReadBar {
   pct: number;
   /** 겉으로 드러난 글자 수 */
   visible: number;
+  /** 네 일간 자신의 기운인가. 일간은 저울에 올리지 않으므로 무게가 0으로 나온다 */
+  self: boolean;
 }
 
 /** 십 년 운 한 칸 */
@@ -131,6 +133,7 @@ export function freeReading(ms: Myeongsik, an: Analysis, opts: ReadingOptions): 
     plain: plainElement(e.element),
     pct: Math.round(e.weight),
     visible: e.visibleCount,
+    self: e.element === an.dayMaster.element,
   }));
 
   const strong = an.strength.verdict === '신강';
@@ -173,8 +176,8 @@ export function freeReading(ms: Myeongsik, an: Analysis, opts: ReadingOptions): 
 
   const top = [...an.elements].sort((a, b) => b.weight - a.weight)[0];
   const head =
-    `${ms.day.stem} 일간, ${an.dayMaster.element}. ` +
-    (top ? `${plainElement(top.element)}이 제일 두껍다.` : '');
+    `너는 ${ms.day.stem}, ${plainElement(an.dayMaster.element)}이야.` +
+    (top ? ` 여덟 글자 중에는 ${plainElement(top.element)}이 제일 두껍다.` : '');
 
   return {
     head,

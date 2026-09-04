@@ -113,7 +113,16 @@ export function analyze(ms: Myeongsik): Analysis {
   const sinsal = findSinsal(ms);
 
   const missingGroups = GROUPS.filter((g) => godCounts[g] === 0);
-  const missingElements = elements.filter((e) => e.weight === 0).map((e) => e.element);
+  /*
+   * 「없는 오행」은 무게가 0인 것이 아니라 **글자로도 안 보이는 것**이다.
+   *
+   * 일간은 저울에 올리지 않는다 — 재는 주체이지 재어지는 것이 아니다. 그래서
+   * 계수 일간인 사람도 수의 무게는 0으로 나온다. 그것을 「수가 전혀 없다」고
+   * 말해 버리면 제 일간을 없다고 하는 셈이라, 손님이 첫 줄에서 우리를 접는다.
+   */
+  const missingElements = elements
+    .filter((e) => e.weight === 0 && e.visibleCount === 0)
+    .map((e) => e.element);
 
   return {
     dayMaster: {
