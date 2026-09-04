@@ -56,28 +56,10 @@ export function cleanFacts(raw: unknown): TalkFacts {
   };
 }
 
-/** 십신 그룹을 여덟 살이 알아듣는 말로 */
-export const GOD_PLAIN: Record<string, string> = {
-  비겁: '혼자 밀고 나가는 힘',
-  식상: '밖으로 내보이는 힘',
-  재성: '쥐고 굴리는 힘',
-  관성: '지키고 견디는 힘',
-  인성: '받아들이고 배우는 힘',
-};
-
-/** 오행을 여덟 살이 알아듣는 말로 */
-export const ELEMENT_PLAIN: Record<string, string> = {
-  목: '뻗어 나가는 기운',
-  화: '타오르는 기운',
-  토: '품고 버티는 기운',
-  금: '자르고 맺는 기운',
-  수: '흐르고 스며드는 기운',
-};
-
-export function plainGod(god: string): string {
-  return GOD_PLAIN[god] ?? god;
-}
-
-export function plainElement(element: string): string {
-  return ELEMENT_PLAIN[element] ?? element;
-}
+/**
+ * 십신·오행을 쉬운 말로 옮기는 표는 룰 엔진이 갖고 있다.
+ * 같은 말을 두 군데 두면 언젠가 둘이 달라진다.
+ */
+export {
+  GOD_PLAIN, ELEMENT_PLAIN, plainGod, plainElement,
+} from '../../saju-rules/src/reading.ts';

@@ -14,6 +14,7 @@ import {
   calculateDaeun, currentDaeun, annualLuck, dailyLuck, dailyLuckRange,
   compatibility, sajuToTraits, crossValidate,
   allTopics, extractTopic, ALL_TOPICS, TOPIC_LABELS,
+  freeReading, GOD_PLAIN, ELEMENT_PLAIN,
 } from './src/index.ts';
 import { readFace, NEUTRAL_FEATURES } from '../physiognomy/src/index.ts';
 import { readPalm, NEUTRAL_PALM_FEATURES } from '../palmistry/src/index.ts';
@@ -603,6 +604,54 @@ section('주제별 분리 (상품을 열 개로 나누기 위한 것)');
   const helper = extractTopic(other, 'helper');
   check('신살 근거는 판정 기준을 밝힌다',
     helper.count === 0 || helper.evidence.every((e) => e.where.includes('—')));
+}
+
+
+// ─── 무료로 펼치는 긴 풀이 ───────────────────────────────────
+{
+  section('무료 풀이');
+
+  const ms = calculate({ date: '1990-09-25', time: '14:30', longitude: 126.978, gender: '남' });
+  const an = analyze(ms);
+  const r = freeReading(ms, an, { gender: '남', todayYear: 2026 });
+
+  check('여덟 글자가 네 줄 나온다', r.eight.length === 4);
+  check('일간 자리는 십신 대신 「나」', r.eight.some((row) => row.stemGod === '나'));
+  check('오행 막대는 다섯 개', r.bars.length === 5);
+  check('막대 무게 합이 100 언저리',
+    Math.abs(r.bars.reduce((a, b) => a + b.pct, 0) - 100) <= 2,
+    `${r.bars.reduce((a, b) => a + b.pct, 0)}`);
+  check('막대에 쉬운 말이 붙는다', r.bars.every((b) => b.plain !== b.element));
+
+  check('힘의 방향을 말한다', ['신강', '중화', '신약'].includes(r.strength.verdict));
+  check('채워야 할 기운을 쉬운 말로', r.fill.say.length > 0);
+
+  check('십 년 운이 나온다', r.luck.length === 10);
+  check('지금 지나는 십 년은 하나뿐',
+    r.luck.filter((l) => l.now).length <= 1);
+  check('십 년 운마다 붙는지 부딪히는지 말한다',
+    r.luck.every((l) => l.say.length > 0));
+  check('올해부터 세 해', r.years.length === 3 && r.years[0].year === 2026 && r.years[0].now);
+
+  // 성별을 모르면 대운의 방향을 정할 수 없다. 없는 값을 지어내지 않는다
+  const noSex = freeReading(ms, an, { gender: null, todayYear: 2026 });
+  check('성별을 모르면 십 년 운을 내지 않는다', noSex.luck.length === 0);
+  check('그래도 나머지는 다 준다', noSex.eight.length === 4 && noSex.bars.length === 5);
+
+  // 같은 명식이면 언제나 같은 풀이가 나와야 한다
+  const again = freeReading(ms, an, { gender: '남', todayYear: 2026 });
+  check('같은 명식이면 같은 풀이', JSON.stringify(again) === JSON.stringify(r));
+
+  // 끊는 자리를 스스로 말한다 — 손님이 속았다고 느끼지 않게
+  check('어디서 끊는지 밝힌다', r.cut.length > 20);
+
+  // 시를 모르는 손님도 있다
+  const noTime = calculate({ date: '1990-09-25', longitude: 126.978, gender: '여' });
+  const rt = freeReading(noTime, analyze(noTime), { gender: '여', todayYear: 2026 });
+  check('시를 몰라도 세 줄은 나온다', rt.eight.length === 3);
+
+  check('쉬운 말 표가 다섯씩',
+    Object.keys(GOD_PLAIN).length === 5 && Object.keys(ELEMENT_PLAIN).length === 5);
 }
 
 console.log(`\n${'═'.repeat(60)}`);

@@ -32,6 +32,7 @@ export * from '../../korean/src/index.ts';
 export * from './toTraits.ts';
 export * from './crossValidate.ts';
 export * from './topics.ts';
+export * from './reading.ts';
 
 export interface PillarAnalysis {
   position: PillarName;
