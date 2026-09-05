@@ -1,0 +1,1694 @@
+<title>내 사주 무료로 보기 · 사주 · 궁합 · 관상 · 손금</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+:root{
+  --paper:#E8EAED; --surface:#F6F7F9; --surface-2:#FDFDFE;
+  --ink:#16191D; --ink-2:#575E66; --ink-3:#828A93;
+  --rule:#C6CBD1; --rule-soft:#DCE0E5;
+  --seal:#A8321E; --seal-soft:#EADDD9;
+  --wood:#3E7C59; --fire:#B2321F; --earth:#8A6D33; --metal:#5E6A75; --water:#2F5578;
+  --field:#FFFFFF;
+}
+:root[data-theme="dark"]{
+  --paper:#131619; --surface:#1B1F24; --surface-2:#22272D;
+  --ink:#E4E7EA; --ink-2:#98A1AB; --ink-3:#727C87;
+  --rule:#2E343B; --rule-soft:#242A30;
+  --seal:#D8664C; --seal-soft:#33221E;
+  --wood:#6FB58C; --fire:#E0664F; --earth:#C9A863; --metal:#A3AEB8; --water:#6D9BC9;
+  --field:#12161A;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;
+  font-weight:300; font-size:16px; line-height:1.7; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:560px;margin:0 auto;padding:0 20px}
+h1,h2,.glyph{font-family:"Nanum Myeongjo",Georgia,serif;text-wrap:balance}
+h1{font-size:clamp(1.7rem,4vw,2.4rem);font-weight:800;letter-spacing:-.02em;margin:0}
+h2{font-size:1.05rem;font-weight:700;margin:0 0 .9rem;letter-spacing:-.01em}
+.label{font-family:"IBM Plex Mono",monospace;font-size:.7rem;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+.mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+
+header{background:var(--surface);border-bottom:1px solid var(--rule);padding:2.2rem 0 1.9rem}
+.seal{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1.5px solid var(--seal);border-radius:3px;color:var(--seal);font-family:"Nanum Myeongjo",serif;font-weight:700;flex:none}
+.kick{display:flex;gap:1rem;align-items:center;margin-bottom:1rem}
+header p{margin:.7rem 0 0;color:var(--ink-2);max-width:60ch;font-size:.95rem}
+
+main{padding:1.9rem 0 3.5rem;display:grid;gap:1.6rem}
+/* 격자 칸은 기본이 min-width:auto 라 **안쪽 내용만큼 벌어진다.**
+   그래서 390px 폰에서 패널이 936px가 됐고, 그 바람에 가운데 정렬이 어긋나고
+   아래쪽 배경이 화면 폭보다 좁게 잘려 보였다. 한 줄이 세 가지 증상을 만들었다. */
+main>*{min-width:0}
+
+/* form */
+.panel{background:var(--surface);border:1px solid var(--rule-soft)}
+.panel-in{padding:1.3rem 1.35rem}
+.grid{display:grid;gap:1rem 1.15rem;grid-template-columns:repeat(auto-fit,minmax(165px,1fr))}
+/* 격자 칸은 기본이 min-width:auto 라, 안에 든 <select> 의 가장 긴 항목만큼 벌어진다.
+   「야자시 — 23시부터 다음날」 하나 때문에 폰에서 화면이 936px로 늘어났고,
+   그 바람에 가운데 정렬이 어긋나고 아래쪽 배경이 화면 폭보다 좁게 잘려 보였다. */
+.grid>*,.fgrid>*{min-width:0}
+.grid select,.grid input,.fgrid select,.fgrid input{max-width:100%}
+.f{display:flex;flex-direction:column;gap:.35rem;min-width:0}
+.f > .label{color:var(--ink-2)}
+input,select{
+  font:inherit;font-size:.93rem;font-weight:400;color:var(--ink);background:var(--field);
+  border:1px solid var(--rule);border-radius:2px;padding:.5rem .6rem;width:100%;
+  font-family:"IBM Plex Mono",monospace;
+}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--seal);outline-offset:1px}
+input[type=checkbox],input[type=radio]{width:auto;accent-color:var(--seal);margin:0}
+.opt{display:flex;align-items:center;gap:.45rem;font-size:.86rem;color:var(--ink-2);cursor:pointer;font-weight:400}
+.opts{display:flex;flex-wrap:wrap;gap:.45rem 1.2rem;margin-top:1.05rem;padding-top:1.05rem;border-top:1px solid var(--rule-soft)}
+
+/* 쉬운 말 — 큰 글씨는 쉬운 말, 명리 용어는 옆에 작게 */
+.pl-lead{font-family:"Nanum Myeongjo",Georgia,serif;font-size:1.35rem;font-weight:700;
+  line-height:1.5;margin:1.4rem 0 .35rem}
+.pl-lead:first-child{margin-top:0}
+.pl-body{font-size:1rem;line-height:1.75;color:var(--ink-2);margin:0}
+.pl-sub{font-size:.95rem;font-weight:600;margin:1.4rem 0 .5rem}
+.pl-list{list-style:none;padding:0;margin:0}
+.pl-list li{font-size:1rem;line-height:1.7;padding:.45rem 0 .45rem .95rem;
+  border-left:2px solid var(--rule);margin-bottom:.35rem}
+.pl-list.warn li{border-left-color:var(--seal)}
+.gl-t{font-size:.76rem;color:var(--ink-3);margin-left:.35rem}
+.gl-n{font-size:.76rem;font-weight:400;color:var(--ink-3);margin-left:.4rem}
+.ax .an .gl-n{display:block;margin:.15rem 0 0}
+
+/* 명식 */
+.chart{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule);background:var(--rule-soft);gap:1px}
+.col{background:var(--surface);display:flex;flex-direction:column;align-items:center;padding:.85rem .3rem 1rem;gap:.1rem;min-width:0}
+.col .pos{font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.1em;color:var(--ink-3);text-transform:uppercase}
+.cell{display:flex;flex-direction:column;align-items:center;margin-top:.5rem}
+.glyph{font-size:clamp(2rem,7vw,2.9rem);font-weight:700;line-height:1.05}
+.rd{font-size:.76rem;color:var(--ink-3);margin-top:.1rem}
+.col.self{background:var(--surface-2);box-shadow:inset 0 0 0 2px var(--seal)}
+.col.self .pos{color:var(--seal)}
+.e-목{color:var(--wood)} .e-화{color:var(--fire)} .e-토{color:var(--earth)}
+.e-금{color:var(--metal)} .e-수{color:var(--water)}
+.empty{color:var(--ink-3);font-size:1.6rem;margin-top:1.4rem}
+
+/* 오행 */
+.bars{display:grid;gap:.5rem}
+.bar{display:grid;grid-template-columns:2.2rem 1fr 1.6rem;align-items:center;gap:.6rem;font-size:.86rem}
+.track{height:8px;background:var(--rule-soft);border-radius:1px;overflow:hidden}
+.fill{height:100%;border-radius:1px;transition:width .35s cubic-bezier(.2,.7,.3,1)}
+.bar .n{text-align:right;font-family:"IBM Plex Mono",monospace;color:var(--ink-2);font-size:.8rem}
+/* 십신은 이름 아래에 쉬운 말이 한 줄 더 붙는다. 오행과 같은 2.2rem 칸에 밀어 넣으면
+   「혼자 / 밀고 / 나가 / 는 힘」처럼 넉 줄로 접힌다. 그래서 이름을 한 줄 위로 올린다 */
+.bar.wide{grid-template-columns:1fr auto;gap:.3rem .7rem}
+.bar.wide > .bl{grid-column:1/-1;line-height:1.5}
+.bar.wide .bl .gl-n{display:inline;margin-left:.45rem}
+.bar.wide .track{grid-column:1}
+.bar.wide .n{grid-column:2}
+
+/* 근거 */
+dl.meta{margin:0;display:grid;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft)}
+dl.meta > div{background:var(--surface);padding:.6rem .9rem;display:grid;grid-template-columns:1fr;gap:.1rem}
+@media(min-width:560px){dl.meta > div{grid-template-columns:9.5rem 1fr;gap:1rem;align-items:baseline}}
+dl.meta dt{font-family:"IBM Plex Mono",monospace;font-size:.72rem;letter-spacing:.05em;color:var(--ink-3)}
+dl.meta dd{margin:0;font-size:.88rem;color:var(--ink)}
+dl.meta dd .sub{color:var(--ink-3);font-size:.8rem}
+.flag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.08em;padding:.08rem .4rem;border-radius:2px;background:var(--seal-soft);color:var(--seal);margin-left:.35rem}
+
+.err{background:var(--seal-soft);color:var(--seal);padding:.7rem .95rem;font-size:.88rem;border-left:3px solid var(--seal)}
+.note{color:var(--ink-3);font-size:.82rem;line-height:1.65;margin:0}
+footer{border-top:1px solid var(--rule);background:var(--surface);padding:1.7rem 0 2.6rem}
+
+/* 십신 */
+.god{font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.03em;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--rule-soft);border-radius:2px;padding:.05rem .3rem;margin-top:.25rem}
+.god.self{background:var(--seal-soft);color:var(--seal);border-color:transparent}
+
+/* 강약 미터 */
+.meter{position:relative;height:26px;background:var(--rule-soft);border-radius:2px;overflow:hidden;margin:.2rem 0 .55rem}
+.meter .zone{position:absolute;top:0;bottom:0;background:var(--surface-2);opacity:.75}
+.meter .mk{position:absolute;top:0;bottom:0;width:3px;background:var(--seal);border-radius:2px}
+.meter .tick{position:absolute;top:0;bottom:0;width:1px;background:var(--rule)}
+.scale{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:.68rem;color:var(--ink-3)}
+.verdict{white-space:nowrap;font-family:"Nanum Myeongjo",serif;font-size:1.5rem;font-weight:800;color:var(--seal);line-height:1}
+
+/* 목록 */
+ul.hl{list-style:none;margin:0;padding:0;display:grid;gap:.6rem}
+ul.hl li{font-size:.9rem;line-height:1.65;color:var(--ink-2);padding-left:1.05rem;position:relative}
+ul.hl li::before{content:"—";position:absolute;left:0;color:var(--seal)}
+ul.hl li strong{color:var(--ink);font-weight:600}
+ul.why{list-style:none;margin:0;padding:0;display:grid;gap:.35rem}
+ul.why li{font-size:.84rem;line-height:1.6;color:var(--ink-3);padding-left:.9rem;position:relative}
+ul.why li::before{content:"·";position:absolute;left:.15rem}
+
+/* 태그 */
+.tags{display:flex;flex-wrap:wrap;gap:.45rem}
+.tag{border:1px solid var(--rule);border-radius:2px;padding:.3rem .55rem;font-size:.82rem;background:var(--surface-2)}
+.tag b{font-weight:600}
+.tag .t-note{display:block;color:var(--ink-3);font-size:.76rem;line-height:1.5;margin-top:.1rem}
+.tag.warn{border-color:var(--seal);background:var(--seal-soft)}
+.tag.warn b{color:var(--seal)}
+
+.school{font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.06em;color:var(--ink-3);margin-top:.7rem;display:block}
+.two{display:grid;gap:1.6rem}
+@media(min-width:720px){.two{grid-template-columns:1fr 1fr}}
+
+/* 운 */
+.favor-유리{--fv:var(--wood)} .favor-불리{--fv:var(--seal)} .favor-중립{--fv:var(--ink-3)}
+.tl{display:flex;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft);overflow-x:auto}
+.tl .u{background:var(--surface);min-width:88px;flex:1;padding:.6rem .5rem .7rem;display:flex;flex-direction:column;align-items:center;gap:.15rem;position:relative}
+.tl .u::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--fv)}
+.tl .u.now{background:var(--surface-2);box-shadow:inset 0 0 0 2px var(--seal)}
+.tl .age{font-family:"IBM Plex Mono",monospace;font-size:.66rem;color:var(--ink-3);margin-top:.2rem}
+.tl .gz{font-family:"Nanum Myeongjo",serif;font-size:1.45rem;font-weight:700;line-height:1.1}
+.tl .g{font-size:.68rem;color:var(--ink-2);text-align:center;line-height:1.35}
+.tl .now-tag{font-family:"IBM Plex Mono",monospace;font-size:.6rem;letter-spacing:.08em;color:var(--seal)}
+
+.yrs{display:grid;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft)}
+.yr{background:var(--surface);display:grid;grid-template-columns:4.6rem 3.2rem 1fr auto;gap:.7rem;align-items:baseline;padding:.5rem .8rem;font-size:.86rem;border-left:3px solid var(--fv)}
+.yr.now{background:var(--surface-2)}
+.yr .y{font-family:"IBM Plex Mono",monospace;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.yr .gz{font-family:"Nanum Myeongjo",serif;font-size:1.05rem;font-weight:700}
+.yr .n{font-size:.79rem;color:var(--ink-3);line-height:1.5}
+.yr .fv{font-size:.75rem;color:var(--fv);font-weight:500;white-space:nowrap}
+
+.today{display:flex;gap:1.1rem;align-items:center;flex-wrap:wrap}
+.today .big{font-family:"Nanum Myeongjo",serif;font-size:2.5rem;font-weight:800;line-height:1;color:var(--fv)}
+.today .meta2{font-size:.86rem;color:var(--ink-2);line-height:1.6}
+
+/* 모드 탭 */
+.tabs{display:flex;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft);margin-bottom:1.6rem;width:fit-content}
+.tab{font:inherit;font-size:.9rem;font-weight:400;color:var(--ink-2);background:var(--surface);border:0;padding:.55rem 1.4rem;cursor:pointer}
+.tab.on{background:var(--surface-2);color:var(--seal);font-weight:600;box-shadow:inset 0 -2px 0 var(--seal)}
+
+.pair-only{display:none}
+body.pair .pair-only{display:flex}
+#panelB{display:none}
+body.pair #panelB{display:block}
+body.pair #panelA .who::after{content:"  ·  첫 번째 사람"}
+.who{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.13em;text-transform:uppercase;color:var(--seal);margin:0 0 .8rem;display:none}
+body.pair .who{display:block}
+
+/* 궁합 결과 */
+.verd{display:flex;align-items:baseline;gap:.9rem;flex-wrap:wrap;margin-bottom:.9rem}
+.verd .num{font-family:"Nanum Myeongjo",serif;font-size:3rem;font-weight:800;line-height:1;color:var(--seal);font-variant-numeric:tabular-nums}
+.verd .gr{font-family:"Nanum Myeongjo",serif;font-size:1.3rem;font-weight:700}
+.axes{display:grid;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft)}
+.ax{background:var(--surface);padding:.8rem .95rem;display:grid;grid-template-columns:1fr auto;gap:.15rem .8rem;align-items:baseline}
+.ax .an{font-weight:500;font-size:.92rem}
+.ax .as{font-family:"IBM Plex Mono",monospace;font-size:.86rem;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ax .abar{grid-column:1/-1;height:5px;background:var(--rule-soft);border-radius:1px;overflow:hidden;margin:.3rem 0 .35rem}
+.ax .abar i{display:block;height:100%;background:var(--fv)}
+.ax .ar{grid-column:1/-1;font-size:.85rem;line-height:1.6;color:var(--ink-3)}
+.ax.hi{--fv:var(--wood)} .ax.mid{--fv:var(--ink-3)} .ax.lo{--fv:var(--seal)}
+
+.mini{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft)}
+.mini .c{background:var(--surface);text-align:center;padding:.5rem .2rem .6rem}
+.mini .c .p{font-family:"IBM Plex Mono",monospace;font-size:.6rem;color:var(--ink-3);letter-spacing:.06em}
+.mini .c .g{font-family:"Nanum Myeongjo",serif;font-size:1.3rem;font-weight:700;line-height:1.15}
+
+/* 가림막 — 앞은 보여 주고 뒤는 가린다 */
+.veil{position:relative;margin:0}
+.veil-peek{max-height:190px;overflow:hidden}
+.veil-fog{position:absolute;left:0;right:0;top:40px;height:150px;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(255,255,255,0),var(--surface-2) 86%)}
+.veil-ask{position:relative;margin:-8px 0 0;padding:1.4rem 1.3rem 1.5rem;
+  border:1px solid var(--rule);border-top:2px solid var(--gold,#9C7C42);
+  background:var(--surface-2);text-align:center}
+.veil-face{width:64px;height:64px;border-radius:50%;object-fit:cover;object-position:center 15%;
+  display:block;margin:0 auto .7rem;border:1px solid var(--rule)}
+.veil-who{margin:0 0 .4rem;font-size:.78rem;letter-spacing:.2em;color:var(--gold,#9C7C42)}
+.veil-line{margin:0 auto .3rem;max-width:28em;font-size:1rem;line-height:1.75}
+.veil-what{margin:0 auto 1.1rem;max-width:30em;font-size:.85rem;line-height:1.8;color:var(--ink-3)}
+.veil-go{display:inline-block;padding:.85rem 1.6rem;background:var(--ink);color:var(--surface-2);
+  text-decoration:none;font-size:.95rem;font-weight:500;border:1px solid var(--ink)}
+.veil-go:hover,.veil-go:focus{background:transparent;color:var(--ink)}
+.veil-note{margin:.9rem 0 0;font-size:.78rem;color:var(--ink-3)}
+
+/* 사진으로 재는 칸 */
+.shot{margin:0 0 1.1rem;padding:1rem 1.1rem;border:1px solid var(--rule);border-radius:10px}
+.shot-t{margin:0 0 .3rem;font-size:.95rem;font-weight:600}
+.shot-b{margin:0 0 .9rem;font-size:.8rem;line-height:1.7;color:var(--ink-3)}
+.shot-pick{display:inline-block;position:relative;cursor:pointer}
+/* 파일칸은 눈에서만 감춘다. hidden 으로 없애면 키보드로 고를 수 없다 */
+.shot-pick input{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.shot-pick > span{display:inline-block;padding:.6rem 1.2rem;border:1px solid currentColor;
+  border-radius:999px;font-size:.88rem}
+.shot-pick:hover > span{opacity:.75}
+.shot-msg{margin:.7rem 0 0;font-size:.82rem;line-height:1.7;min-height:1.2em}
+.shot-msg.bad{color:var(--seal)}
+.shot-view{margin:.9rem 0 0}
+.shot-view canvas{display:block;max-width:220px;width:100%;height:auto;border-radius:8px;
+  border:1px solid var(--rule)}
+
+/* 관상 폼 */
+#panelF,#panelP{display:none}
+body.face #panelF,body.face #panelP{display:block}
+body.face #panelB{display:none}
+body.pair #panelF,body.pair #panelP{display:none}
+.fgrid{display:grid;gap:.8rem 1.1rem;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.fg{display:grid;grid-template-columns:1fr auto;gap:.15rem .6rem;align-items:center}
+.fg .fl{font-size:.86rem}
+.fg .fp{font-family:"IBM Plex Mono",monospace;font-size:.66rem;color:var(--ink-3);grid-column:1}
+.seg{display:flex;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft);grid-row:1/span 2}
+.seg button{font:inherit;font-size:.78rem;font-weight:400;color:var(--ink-2);background:var(--surface);border:0;padding:.32rem .55rem;cursor:pointer;min-width:2.6rem}
+.seg button.on{background:var(--seal-soft);color:var(--seal);font-weight:600}
+
+/* 교차검증 */
+.pro{border:1px solid var(--seal);position:relative}
+.pro::before{content:"유료 구간";position:absolute;top:-1px;right:-1px;font-family:"IBM Plex Mono",monospace;font-size:.62rem;letter-spacing:.1em;background:var(--seal);color:var(--paper);padding:.15rem .5rem}
+.xv{display:grid;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft)}
+.xr{background:var(--surface);padding:.7rem .9rem;display:grid;grid-template-columns:5.5rem 1fr auto;gap:.2rem .8rem;align-items:center;border-left:3px solid var(--xc)}
+.xr.v일치{--xc:var(--wood)} .xr.v엇갈림{--xc:var(--seal)} .xr.v단독{--xc:var(--rule)} .xr.v해당{--xc:transparent}
+.xr .xa{font-weight:500;font-size:.9rem}
+.xr .xs{display:flex;gap:.5rem;flex-wrap:wrap;font-family:"IBM Plex Mono",monospace;font-size:.76rem;color:var(--ink-3)}
+.xr .xs b{color:var(--ink-2);font-weight:500}
+.xr .xv2{font-size:.78rem;color:var(--xc);font-weight:500;white-space:nowrap}
+.xr .xt{grid-column:1/-1;font-size:.85rem;line-height:1.6;color:var(--ink-3);margin-top:.25rem}
+
+/* 결제 */
+.buy{display:grid;gap:1rem}
+.buy .price{font-family:"Nanum Myeongjo",serif;font-size:2rem;font-weight:800;line-height:1;color:var(--seal);font-variant-numeric:tabular-nums}
+.buy .row{display:flex;align-items:baseline;gap:.8rem;flex-wrap:wrap}
+.will{display:grid;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft)}
+.will li{background:var(--surface);padding:.5rem .85rem;font-size:.87rem;list-style:none}
+.will li::before{content:"·";color:var(--seal);margin-right:.5rem}
+.samp{background:var(--surface-2);border:1px solid var(--rule-soft);padding:1rem 1.1rem;font-size:.9rem;line-height:1.75;color:var(--ink-2);white-space:pre-wrap}
+.samp .cut{display:block;margin-top:.7rem;color:var(--ink-3);font-size:.82rem}
+.up{display:grid;grid-template-columns:auto 1fr auto;align-items:start;gap:.75rem;padding:.95rem 1.05rem;border:1px solid var(--rule);background:var(--surface-2);cursor:pointer}
+.up-on{border-color:var(--seal);background:var(--surface)}
+.up input{margin:.15rem 0 0}
+.up-t{display:grid;gap:.25rem}
+.up-h{font-size:.95rem;font-weight:600;color:var(--ink)}
+.up-m{font-size:.83rem;color:var(--ink-2);line-height:1.6}
+.up-s{font-size:.8rem;color:var(--ink-2)}
+.up-p{font-family:"Nanum Myeongjo",serif;font-size:1.05rem;font-weight:700;color:var(--seal);font-variant-numeric:tabular-nums;white-space:nowrap}
+.legal{border:1px solid var(--rule);background:var(--surface-2);padding:.9rem 1.05rem;font-size:.85rem;line-height:1.7;color:var(--ink-2)}
+.agree{display:flex;gap:.55rem;align-items:flex-start;margin-top:.8rem;cursor:pointer;font-size:.87rem;color:var(--ink)}
+.agree input{margin-top:.3rem}
+button.pay{font:inherit;font-size:.95rem;font-weight:600;color:var(--paper);background:var(--seal);border:0;border-radius:2px;padding:.8rem 1.4rem;cursor:pointer;justify-self:start}
+button.pay:disabled{background:var(--rule);color:var(--ink-3);cursor:not-allowed}
+button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.step{font-family:"IBM Plex Mono",monospace;font-size:.8rem;color:var(--ink-2)}
+.bought{white-space:pre-wrap;line-height:1.85;font-size:.95rem}
+.bought h2,.bought h3{font-family:"Nanum Myeongjo",serif}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+
+<main class="wrap">
+
+  <div class="tabs" role="tablist">
+    <button class="tab on" id="tabSolo" type="button" role="tab" aria-selected="true">나의 사주</button>
+    <button class="tab" id="tabPair" type="button" role="tab" aria-selected="false">궁합</button>
+    <button class="tab" id="tabFace" type="button" role="tab" aria-selected="false">관상 · 손금 · 교차검증</button>
+  </div>
+
+  <section class="panel" id="panelA"><div class="panel-in">
+    <p class="who">A</p>
+    <h2>출생 정보</h2>
+    <div class="grid">
+      <div class="f pair-only"><label class="label" for="name">이름 <span style="text-transform:none;letter-spacing:0">— 선택</span></label><input type="text" id="name" value="" placeholder="A" maxlength="10"></div>
+      <div class="f"><label class="label" for="date">생년월일 (양력)</label><input type="date" id="date" value="1990-05-15" min="1900-01-01" max="2100-12-31"></div>
+      <div class="f"><label class="label" for="time">출생 시각</label><input type="time" id="time" value="14:30"></div>
+      <div class="f"><label class="label" for="place">출생 지역</label>
+        <select id="place">
+          <option value="126.978" selected>서울</option>
+          <option value="126.705">인천</option>
+          <option value="127.385">대전</option>
+          <option value="126.851">광주</option>
+          <option value="128.601">대구</option>
+          <option value="129.075">부산</option>
+          <option value="129.311">울산</option>
+          <option value="127.729">춘천</option>
+          <option value="128.896">강릉</option>
+          <option value="127.148">전주</option>
+          <option value="129.365">포항</option>
+          <option value="126.531">제주</option>
+        </select>
+      </div>
+      <div class="f"><label class="label" for="gender">성별 <span style="text-transform:none;letter-spacing:0">— 대운 방향</span></label>
+        <select id="gender"><option value="남" selected>남</option><option value="여">여</option></select>
+      </div>
+      <div class="f"><label class="label" for="yaja">자시(子時) 처리</label>
+        <select id="yaja">
+          <option value="midnight" selected>00시 기준 (현대 통용)</option>
+          <option value="yaja">야자시 — 23시부터 다음날</option>
+        </select>
+      </div>
+    </div>
+    <div class="opts">
+      <label class="opt"><input type="checkbox" id="notime"> 출생 시각을 모름</label>
+      <label class="opt"><input type="checkbox" id="tst" checked> 진태양시 보정</label>
+      <label class="opt"><input type="checkbox" id="eot" checked> 균시차까지 반영</label>
+    </div>
+  </div></section>
+
+  <div style="height:1.2rem"></div>
+  <section class="panel" id="panelB"><div class="panel-in">
+    <p class="who" style="display:block">B &nbsp;·&nbsp; 두 번째 사람</p>
+    <h2>상대의 출생 정보</h2>
+    <div class="grid">
+      <div class="f"><label class="label" for="b-name">이름 <span style="text-transform:none;letter-spacing:0">— 선택</span></label><input type="text" id="b-name" value="" placeholder="B" maxlength="10"></div>
+      <div class="f"><label class="label" for="b-date">생년월일 (양력)</label><input type="date" id="b-date" value="1993-11-03" min="1900-01-01" max="2100-12-31"></div>
+      <div class="f"><label class="label" for="b-time">출생 시각</label><input type="time" id="b-time" value="09:20"></div>
+      <div class="f"><label class="label" for="b-place">출생 지역</label>
+        <select id="b-place">
+          <option value="126.978" selected>서울</option><option value="126.705">인천</option>
+          <option value="127.385">대전</option><option value="126.851">광주</option>
+          <option value="128.601">대구</option><option value="129.075">부산</option>
+          <option value="129.311">울산</option><option value="127.729">춘천</option>
+          <option value="128.896">강릉</option><option value="127.148">전주</option>
+          <option value="129.365">포항</option><option value="126.531">제주</option>
+        </select>
+      </div>
+      <div class="f"><label class="label" for="b-gender">성별</label>
+        <select id="b-gender"><option value="여" selected>여</option><option value="남">남</option></select>
+      </div>
+    </div>
+    <div class="opts">
+      <label class="opt"><input type="checkbox" id="b-notime"> 출생 시각을 모름</label>
+    </div>
+  </div></section>
+
+  <div style="height:1.2rem"></div>
+  <section class="panel" id="panelF"><div class="panel-in">
+    <h2>얼굴 특징</h2>
+    <div class="shot" id="faceShot">
+      <div class="shot-head">
+        <p class="shot-t">사진으로 재 드립니다</p>
+        <p class="shot-b">얼굴 사진 한 장이면 아래 값을 저희가 채웁니다.
+        <strong>사진은 이 기기 밖으로 나가지 않습니다.</strong> 저장하지도, 서버로 보내지도 않습니다.</p>
+      </div>
+      <label class="shot-pick">
+        <input type="file" id="facePhoto" accept="image/*">
+        <span>사진 고르기</span>
+      </label>
+      <p class="shot-msg" id="faceShotMsg" role="status"></p>
+      <div class="shot-view" id="faceShotView" hidden><canvas id="faceShotCanvas"></canvas></div>
+    </div>
+    <p class="note" style="margin:0 0 1.1rem">직접 고르셔도 됩니다. 부위마다 해당하는 쪽을 고르세요.
+    각 부위는 관상의 십이궁(十二宮)에 대응합니다.</p>
+    <div class="fgrid" id="faceForm"></div>
+  </div></section>
+
+  <div style="height:1.2rem"></div>
+  <section class="panel" id="panelP"><div class="panel-in">
+    <h2>손금</h2>
+    <div class="shot" id="palmShot">
+      <div class="shot-head">
+        <p class="shot-t">손 사진으로 재 드립니다</p>
+        <p class="shot-b">손바닥을 펴서 정면으로 찍으시면 손 모양(오행)을 저희가 채웁니다.
+        <strong>사진은 이 기기 밖으로 나가지 않습니다.</strong>
+        손금 선은 아직 직접 골라 주셔야 합니다.</p>
+      </div>
+      <label class="shot-pick">
+        <input type="file" id="palmPhoto" accept="image/*">
+        <span>손 사진 고르기</span>
+      </label>
+      <p class="shot-msg" id="palmShotMsg" role="status"></p>
+      <div class="shot-view" id="palmShotView" hidden><canvas id="palmShotCanvas"></canvas></div>
+    </div>
+    <p class="note" style="margin:0 0 1.1rem" id="handNote"></p>
+    <div class="fgrid" id="palmForm"></div>
+  </div></section>
+
+  <div style="height:1.6rem"></div>
+  <section id="out"></section>
+
+</main>
+
+<footer><div class="wrap">
+  <p class="note">계산은 전부 이 브라우저 안에서 이뤄지며, 입력한 생년월일은 어디로도 전송되지 않습니다.<br>
+  절기 시각은 VSOP87 절단 급수로 계산하며 공표된 분점·지점 시각과 1분 이내로 일치합니다. 자시 처리는 유파마다 견해가 갈리는 영역이라 선택지로 두었습니다.</p>
+</div></footer>
+
+<script>/*__ENGINE__*/</script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const out = $('out');
+  const ELS = ['목', '화', '토', '금', '수'];
+  const VAR = { 목: 'wood', 화: 'fire', 토: 'earth', 금: 'metal', 수: 'water' };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const panel = (title, body) => '<div class="panel"><div class="panel-in"><h2>' + title + '</h2>' + body + '</div></div>';
+
+  function pillarColumn(pillar, pa, position, isSelf) {
+    if (!pillar) {
+      return '<div class="col"><span class="pos">' + position + '</span>' +
+        '<div class="empty" aria-label="시주 없음">—</div>' +
+        '<span class="rd" style="margin-top:1.1rem">시각 미상</span></div>';
+    }
+    const cell = (hanja, reading, element, god, selfTag) =>
+      '<div class="cell"><span class="glyph e-' + element + '">' + hanja + '</span>' +
+      '<span class="rd">' + reading + ' · ' + element + '</span>' +
+      '<span class="god' + (selfTag ? ' self' : '') + '">' + god + '</span></div>';
+
+    return '<div class="col' + (isSelf ? ' self' : '') + '">' +
+      '<span class="pos">' + position + '</span>' +
+      cell(pillar.stemHanja, pillar.stem, pillar.element.stem, pa && pa.stemGod ? pa.stemGod : '일간', isSelf) +
+      cell(pillar.branchHanja, pillar.branch, pillar.element.branch, pa ? pa.branchGod : '—', false) +
+      (pa ? '<span class="rd" style="margin-top:.5rem;color:var(--ink-3)">' + pa.stage + '</span>' : '') +
+      '</div>';
+  }
+
+  /**
+   * 쉬운 말 사전.
+   *
+   * 여기가 이 사이트의 존재 이유다. 사주 보는 곳은 많지만 대부분 명리 용어를
+   * 그대로 던진다. 손님은 「신강」「용신」「식상」이 무슨 말인지 모른 채
+   * 화면을 닫는다. **큰 글씨는 쉬운 말, 명리 용어는 옆에 작게.**
+   */
+  var STEM_PLAIN = {
+    갑: '큰 나무 같은 사람입니다. 곧게 자라고 앞에 서려 합니다.',
+    을: '풀과 넝쿨 같은 사람입니다. 부드럽지만 끈질깁니다.',
+    병: '한낮의 해 같은 사람입니다. 밝고 숨기지 못합니다.',
+    정: '촛불 같은 사람입니다. 조용히 오래 비춥니다.',
+    무: '넓은 땅 같은 사람입니다. 든든하고 잘 흔들리지 않습니다.',
+    기: '텃밭 흙 같은 사람입니다. 품고 길러 냅니다.',
+    경: '쇠와 바위 같은 사람입니다. 단단하고 밀어붙입니다.',
+    신: '보석과 칼날 같은 사람입니다. 야무지고 날이 서 있습니다.',
+    임: '큰 물 같은 사람입니다. 넓게 흐르고 다 담아냅니다.',
+    계: '이슬과 빗물 같은 사람입니다. 스며들고 살핍니다.',
+  };
+  var GROUP_PLAIN = {
+    비겁: '혼자 밀고 나가는 힘',
+    식상: '밖으로 드러내는 힘',
+    재성: '돈을 벌고 챙기는 힘',
+    관성: '맡고 견디는 힘',
+    인성: '배우고 받는 힘',
+  };
+  var VERDICT_PLAIN = {
+    신강: ['기운이 센 편입니다', '힘이 남는 쪽이라, 쓸 곳을 만들어 주면 좋습니다.'],
+    신약: ['기운이 여린 편입니다', '힘이 모자란 쪽이라, 채워 주면 좋습니다.'],
+    중화: ['기운이 고른 편입니다', '한쪽으로 치우치지 않아, 때에 맞춰 쓰면 됩니다.'],
+  };
+
+  /** 어려운 말 뒤에 뜻을 붙인다 */
+  function gloss(term, meaning) {
+    return '<span class="gl">' + esc(term) + '<span class="gl-n">' + esc(meaning) + '</span></span>';
+  }
+
+  /**
+   * 맨 위에 두는 쉬운 말 요약.
+   *
+   * 한자표보다 **먼저** 나온다. 여덟 글자를 읽을 줄 아는 손님은 열에 하나도
+   * 안 된다. 나머지 아홉에게 먼저 말을 걸어야 한다.
+   */
+  function plainPanel(an) {
+    var dm = an.dayMaster;
+    var v = VERDICT_PLAIN[an.strength.verdict] || ['', ''];
+    var need = an.yongsin.primary.map(function (g) {
+      return '<li>' + esc(GROUP_PLAIN[g] || g) + ' <span class="gl-t">' + esc(g) + '</span></li>';
+    }).join('');
+    var enough = an.yongsin.avoid.map(function (g) {
+      return '<li>' + esc(GROUP_PLAIN[g] || g) + ' <span class="gl-t">' + esc(g) + '</span></li>';
+    }).join('');
+
+    return '<p class="pl-lead">당신은 <b class="e-' + dm.element + '">' + esc(dm.stem + dm.element) + '</b> 입니다</p>' +
+      '<p class="pl-body">' + esc(STEM_PLAIN[dm.stem] || '') + '</p>' +
+
+      '<p class="pl-lead">' + esc(v[0]) + '</p>' +
+      '<p class="pl-body">' + esc(v[1]) + '</p>' +
+
+      (need ? '<p class="pl-sub">지금 있으면 좋은 것</p><ul class="pl-list">' + need + '</ul>' : '') +
+      (enough ? '<p class="pl-sub">이미 넉넉한 것 — 더 하면 오히려 힘듭니다</p><ul class="pl-list warn">' + enough + '</ul>' : '') +
+      (an.yongsin.seasonalNote ? '<p class="pl-body">' + esc(an.yongsin.seasonalNote) + '</p>' : '') +
+
+      '<p class="note" style="margin-top:1.1rem">아래는 사주 원문입니다. 어려운 말에는 옆에 뜻을 달아 두었습니다. ' +
+      '몰라도 위의 내용만 보시면 됩니다.</p>';
+  }
+
+  function elementBars(an) {
+    return an.elements.map((e) =>
+      '<div class="bar"><span class="e-' + e.element + '" style="font-weight:500">' + e.element + '</span>' +
+      '<div class="track"><div class="fill" style="width:' + e.weight.toFixed(1) + '%;background:var(--' + VAR[e.element] + ')"></div></div>' +
+      '<span class="n">' + e.weight.toFixed(0) + '</span></div>').join('');
+  }
+
+  function godBars(an) {
+    const groups = ['비겁', '식상', '재성', '관성', '인성'];
+    const max = Math.max(...groups.map((g) => an.strength.scores[g]));
+    return groups.map((g) => {
+      const v = an.strength.scores[g];
+      return '<div class="bar wide"><span class="bl" style="font-weight:500">' + g +
+        '<span class="gl-n">' + esc(GROUP_PLAIN[g] || '') + '</span></span>' +
+        '<div class="track"><div class="fill" style="width:' + (max ? (v / max) * 100 : 0).toFixed(1) + '%;background:var(--ink-2)"></div></div>' +
+        '<span class="n">' + v.toFixed(0) + '</span></div>';
+    }).join('');
+  }
+
+  function strengthPanel(an) {
+    const s = an.strength;
+    const pos = Math.max(0, Math.min(100, s.supportRatio));
+    return '<div style="display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-bottom:.15rem">' +
+        '<span class="verdict">' + s.verdict + '</span>' +
+        '<span class="mono" style="color:var(--ink-2);font-size:.86rem">돕는 힘 ' + s.supportRatio + '%</span>' +
+      '</div>' +
+      '<p class="pl-body" style="margin:.1rem 0 .5rem">' +
+        esc((VERDICT_PLAIN[s.verdict] || [''])[0]) + '</p>' +
+      '<div class="meter">' +
+        '<div class="zone" style="left:45%;width:10%"></div>' +
+        '<div class="tick" style="left:45%"></div><div class="tick" style="left:55%"></div>' +
+        '<div class="mk" style="left:calc(' + pos + '% - 1.5px)"></div>' +
+      '</div>' +
+      '<div class="scale"><span>신약 · 0</span><span>중화 45–55</span><span>100 · 신강</span></div>' +
+      '<ul class="why" style="margin-top:.9rem">' + s.reasoning.map((r) => '<li>' + esc(r) + '</li>').join('') + '</ul>';
+  }
+
+  function yongsinPanel(an) {
+    const y = an.yongsin;
+    return '<div class="tags" style="margin-bottom:.7rem">' +
+        y.primary.map((g) => '<span class="tag"><b>' + esc(GROUP_PLAIN[g] || g) + '</b>' +
+          '<span class="t-note">' + g + ' · 있으면 좋음</span></span>').join('') +
+        y.avoid.map((g) => '<span class="tag warn"><b>' + esc(GROUP_PLAIN[g] || g) + '</b>' +
+          '<span class="t-note">' + g + ' · 이미 넉넉함</span></span>').join('') +
+      '</div>' +
+      '<ul class="why"><li>' + esc(y.reasoning) + '</li>' +
+        (y.seasonalNote ? '<li>' + esc(y.seasonalNote) + '</li>' : '') + '</ul>' +
+      '<span class="school">' + esc(y.school) + '</span>';
+  }
+
+  function relationsPanel(an) {
+    if (!an.relations.length && !an.sinsal.length) {
+      return '<p class="note">합·충·형도, 눈에 띄는 신살도 없습니다. 글자끼리 얽힘이 적은 구성입니다.</p>';
+    }
+    const rel = an.relations.map((r) => {
+      const bad = r.kind === '지지충' || r.kind === '천간충' || r.kind === '형';
+      return '<span class="tag' + (bad ? ' warn' : '') + '"><b>' + esc(r.name) + '</b>' +
+        '<span class="t-note">' + esc(r.positions.join('·')) + (r.becomes ? ' → ' + r.becomes : '') + '<br>' + esc(r.note) + '</span></span>';
+    }).join('');
+    const sin = an.sinsal.map((s) =>
+      '<span class="tag"><b>' + esc(s.name) + '</b><span class="t-note">' +
+      esc(s.positions.join('·')) + ' · ' + esc(s.basis) + '<br>' + esc(s.note) + '</span></span>').join('');
+    return (rel ? '<p class="label" style="margin:0 0 .5rem">합 · 충 · 형</p><div class="tags" style="margin-bottom:1.1rem">' + rel + '</div>' : '') +
+      (sin ? '<p class="label" style="margin:0 0 .5rem">신살</p><div class="tags">' + sin + '</div>' : '');
+  }
+
+  function hiddenPanel(an) {
+    const rows = an.pillars.map((p) =>
+      '<div><dt>' + p.position + ' ' + p.branch + '</dt><dd>' +
+      p.hidden.map((h) => '<span class="mono">' + h.stem + '</span> <span class="sub">' + h.role + ' · ' + h.god + '</span>').join(' &nbsp;/&nbsp; ') +
+      '</dd></div>').join('');
+    return '<dl class="meta">' + rows + '</dl>' +
+      '<p class="note" style="margin-top:.8rem">지지는 겉 글자 하나지만 속에 여러 천간을 품습니다. 이걸 빼고 세면 명식의 실제 무게가 달라집니다.</p>';
+  }
+
+  function daeunPanel(an, daeun, cur, age) {
+    const cells = daeun.periods.map((p) => {
+      const isNow = cur && p.index === cur.index;
+      return '<div class="u favor-' + p.favor + (isNow ? ' now' : '') + '">' +
+        '<span class="age">' + p.startAge + '–' + p.endAge + '세</span>' +
+        '<span class="gz e-' + p.pillar.element.stem + '">' + p.pillar.stemHanja + p.pillar.branchHanja + '</span>' +
+        '<span class="g">' + p.stemGod + '<br>' + p.branchGod + '</span>' +
+        (isNow ? '<span class="now-tag">지금</span>' : '') +
+        '</div>';
+    }).join('');
+
+    const detail = cur
+      ? '<p class="note" style="margin-top:.9rem"><strong>지금은 ' + cur.index + '번째 대운 ' +
+          esc(cur.pillar.stem + cur.pillar.branch) + ' (' + cur.startAge + '~' + cur.endAge + '세).</strong> ' +
+          '천간은 ' + cur.stemGod + ', 지지는 ' + cur.branchGod + ' — 용신 기준 <strong style="color:var(--' +
+          (cur.favor === '유리' ? 'wood' : cur.favor === '불리' ? 'seal' : 'ink-2') + ')">' + cur.favor + '</strong>.' +
+          (cur.interactions.length ? '<br>' + cur.interactions.map(esc).join(' · ') : '') + '</p>'
+      : '<p class="note" style="margin-top:.9rem">아직 첫 대운(' + daeun.startAge + '세) 전입니다. 그 전까지는 월주의 기운이 이어진다고 봅니다.</p>';
+
+    return '<div class="tl">' + cells + '</div>' + detail +
+      '<ul class="why" style="margin-top:.9rem"><li>' + esc(daeun.directionReason) + '</li>' +
+      '<li>' + esc(daeun.basis) + '</li></ul>' +
+      '<span class="school">대운수는 3일을 1년으로 환산합니다. 반올림 여부는 유파에 따라 갈리며, 여기서는 ' +
+      daeun.startAgeExact.toFixed(2) + '년을 반올림해 ' + daeun.startAge + '로 씁니다.</span>';
+  }
+
+  function yearsPanel(years) {
+    return '<div class="yrs">' + years.map((y, i) =>
+      '<div class="yr favor-' + y.favor + (i === 0 ? ' now' : '') + '">' +
+        '<span class="y">' + y.year + '년</span>' +
+        '<span class="gz e-' + y.pillar.element.stem + '">' + y.pillar.stemHanja + y.pillar.branchHanja + '</span>' +
+        '<span class="n">' + y.age + '세 · ' + y.stemGod + '/' + y.branchGod +
+          (y.interactions.length ? '<br>' + esc(y.interactions.join(' · ')) : '') + '</span>' +
+        '<span class="fv">' + y.favor + '</span>' +
+      '</div>').join('') + '</div>';
+  }
+
+  function todayPanel(today, label) {
+    return '<div class="today favor-' + today.favor + '">' +
+        '<span class="big">' + today.pillar.stemHanja + today.pillar.branchHanja + '</span>' +
+        '<span class="meta2"><strong>' + esc(label) + '</strong>의 일진은 ' +
+          esc(today.pillar.stem + today.pillar.branch) + '.<br>' +
+          '내 일간 기준 천간 ' + today.stemGod + ', 지지 ' + today.branchGod + ' — ' +
+          '<strong style="color:var(--fv)">' + today.favor + '</strong>.' +
+          (today.interactions.length ? '<br>' + esc(today.interactions.join(' · ')) : '') +
+        '</span></div>' +
+      '<p class="note" style="margin-top:.9rem">일진은 매일 바뀝니다. 명식은 그대로인데 오늘의 간지와 맺는 관계만 달라집니다.</p>';
+  }
+
+  var faceState = null;
+  var SEG = { low: '작음', mid: '보통', high: '큼' };
+  var SEG_LABELS = {
+    foreheadWidth: ['좁음', '보통', '넓음'], browThickness: ['옅음', '보통', '짙음'],
+    eyeSize: ['작음', '보통', '큼'], noseBridge: ['낮음', '보통', '높음'],
+    noseWing: ['작음', '보통', '큼'], mouthSize: ['작음', '보통', '큼'],
+    lipThickness: ['얇음', '보통', '두꺼움'], jawDevelopment: ['갸름', '보통', '발달'],
+    cheekbone: ['평평', '보통', '발달'],
+  };
+
+  var palmState = null;
+
+  function segRow(label, domain, key, values, labels, current, ns) {
+    var segs = values.map(function (v, i) {
+      return '<button type="button" data-ns="' + ns + '" data-k="' + key + '" data-v="' + v + '"' +
+        (current === v ? ' class="on"' : '') + '>' + labels[i] + '</button>';
+    }).join('');
+    return '<div class="fg"><span class="fl">' + label + '</span>' +
+      '<span class="seg">' + segs + '</span>' +
+      '<span class="fp">' + domain + '</span></div>';
+  }
+
+  function buildPalmForm() {
+    if (palmState) return;
+    // 전부 '보통'이면 대조가 성립하지 않으므로 몇 개는 특징이 드러난 값으로 시작한다
+    palmState = Object.assign({}, MS.NEUTRAL_PALM_FEATURES, {
+      lifeLength: 'high', headLength: 'high', heartLength: 'high', fateClarity: 'high',
+    });
+
+    $('handNote').textContent = MS.HAND_CHOICE_NOTE;
+
+    var keys = Object.keys(MS.PALM_FEATURE_LABEL);
+    var html = keys.map(function (k) {
+      return segRow(MS.PALM_FEATURE_LABEL[k], MS.PALM_FEATURE_DOMAIN[k], k,
+        ['low', 'mid', 'high'], MS.PALM_LEVEL_LABELS[k], palmState[k], 'palm');
+    }).join('');
+
+    var shapes = Object.keys(MS.HAND_SHAPE_SHORT);
+    html += segRow('손 모양', '오행 분류', 'handShape', shapes,
+      shapes.map(function (v) { return MS.HAND_SHAPE_SHORT[v]; }), palmState.handShape, 'palm');
+    html += segRow('막쥔손금', '두뇌선과 감정선이 하나', 'simianLine',
+      ['no', 'yes'], ['없음', '있음'], palmState.simianLine ? 'yes' : 'no', 'palm');
+
+    var host = $('palmForm');
+    host.innerHTML = html;
+    host.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-k]');
+      if (!b) return;
+      var v = b.dataset.v;
+      palmState[b.dataset.k] = b.dataset.k === 'simianLine' ? v === 'yes' : v;
+      var group = b.parentElement.querySelectorAll('button');
+      for (var i = 0; i < group.length; i++) group[i].classList.remove('on');
+      b.classList.add('on');
+      render();
+    });
+    wirePalmPhoto();
+  }
+
+  /**
+   * 손 사진으로 손 모양 재기.
+   *
+   * 얼굴과 같은 방식이다 — 사진은 기기 밖으로 안 나가고, 점 뽑는 도구는
+   * 누를 때 받고, 안 되면 손으로 고르는 칸이 그대로 남는다.
+   *
+   * **아직 손 모양(오행)까지만 잰다.** 손금 선은 정해진 점이 없어서 훨씬
+   * 어렵다. 억지로 내밀지 않고, 못 재는 것은 못 잰다고 말한다.
+   */
+  var handPicker = null;
+
+  function loadHandPicker() {
+    if (handPicker) return handPicker;
+    var got = import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14')
+      .then(function (V) {
+        return V.FilesetResolver.forVisionTasks(FACE_WASM).then(function (fs) {
+          return V.HandLandmarker.createFromOptions(fs, {
+            baseOptions: {
+              modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/'
+                + 'hand_landmarker/float16/1/hand_landmarker.task',
+              delegate: 'GPU',
+            },
+            runningMode: 'IMAGE', numHands: 1,
+          });
+        });
+      });
+    var giveUp = new Promise(function (_, reject) {
+      setTimeout(function () {
+        reject(new Error('인터넷이 느려서 사진 재기를 못 했습니다. 아래에서 직접 골라 주세요.'));
+      }, FACE_WAIT_MS);
+    });
+    handPicker = Promise.race([got, giveUp])
+      .catch(function (err) { handPicker = null; throw err; });
+    return handPicker;
+  }
+
+  function syncPalmForm() {
+    var host = $('palmForm');
+    var all = host.querySelectorAll('button[data-k]');
+    for (var i = 0; i < all.length; i++) {
+      var b = all[i];
+      var want = palmState[b.dataset.k];
+      if (b.dataset.k === 'simianLine') want = want ? 'yes' : 'no';
+      b.classList.toggle('on', want === b.dataset.v);
+    }
+  }
+
+  function wirePalmPhoto() {
+    var input = $('palmPhoto'), msg = $('palmShotMsg');
+    if (!input || input.dataset.wired) return;
+    input.dataset.wired = '1';
+
+    var say = function (text, bad) {
+      msg.textContent = text;
+      msg.classList.toggle('bad', !!bad);
+    };
+
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
+      if (!file) return;
+      say('사진을 읽고 있습니다…');
+
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var view = $('palmShotView'), cv = $('palmShotCanvas');
+        var w = 220, h = Math.round(img.naturalHeight * (w / img.naturalWidth));
+        cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        view.hidden = false;
+        say('손을 찾고 있습니다… 처음 한 번은 조금 걸립니다.');
+        loadHandPicker().then(function (picker) {
+          var res = picker.detect(img);
+          URL.revokeObjectURL(url);
+          var marks = res && res.landmarks && res.landmarks[0];
+          if (!marks) throw new Error('사진에서 손을 못 찾았습니다. 손바닥을 펴서 크게 찍어 주세요.');
+          var m = MS.measureHand(marks);
+          palmState = Object.assign({}, palmState, { handShape: m.shape });
+          syncPalmForm();
+          render();
+          say(MS.HAND_MEASURE_NOTE);
+        }).catch(function (err) {
+          URL.revokeObjectURL(url);
+          var text = (err && err.message) || '';
+          if (!text || /import|fetch|network|Failed|module/i.test(text)) {
+            text = '사진 재기를 지금은 못 씁니다. 아래에서 직접 골라 주세요.';
+          }
+          say(text, true);
+        });
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(url);
+        say('사진을 열지 못했습니다. 다른 사진으로 해 주세요.', true);
+      };
+      img.src = url;
+    });
+  }
+
+  function buildFaceForm() {
+    if (faceState) return;
+    // 기본값은 특징이 몇 개 드러난 얼굴로 둔다 — 전부 '보통'이면 교차검증이 성립하지 않는다
+    faceState = Object.assign({}, MS.NEUTRAL_FEATURES, {
+      foreheadWidth: 'high', noseWing: 'high', jawDevelopment: 'low', eyeSize: 'high',
+    });
+
+    var host = $('faceForm');
+    var keys = Object.keys(SEG_LABELS);
+    var html = keys.map(function (k) {
+      var labels = SEG_LABELS[k];
+      var segs = ['low', 'mid', 'high'].map(function (v, i) {
+        return '<button type="button" data-k="' + k + '" data-v="' + v + '"' +
+          (faceState[k] === v ? ' class="on"' : '') + '>' + labels[i] + '</button>';
+      }).join('');
+      return '<div class="fg"><span class="fl">' + MS.FEATURE_LABEL[k] + '</span>' +
+        '<span class="seg">' + segs + '</span>' +
+        '<span class="fp">' + MS.FEATURE_PALACE[k] + '</span></div>';
+    }).join('');
+
+    var shapes = Object.keys(MS.FACE_SHAPE_LABEL).map(function (v) {
+      return '<button type="button" data-k="faceShape" data-v="' + v + '"' +
+        (faceState.faceShape === v ? ' class="on"' : '') + '>' + MS.FACE_SHAPE_LABEL[v] + '</button>';
+    }).join('');
+    html += '<div class="fg" style="grid-column:1/-1"><span class="fl">얼굴형</span>' +
+      '<span class="seg">' + shapes + '</span><span class="fp">전체 골격</span></div>';
+
+    host.innerHTML = html;
+    host.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-k]');
+      if (!b) return;
+      faceState[b.dataset.k] = b.dataset.v;
+      var group = b.parentElement.querySelectorAll('button');
+      for (var i = 0; i < group.length; i++) group[i].classList.remove('on');
+      b.classList.add('on');
+      render();
+    });
+    wireFacePhoto();
+  }
+
+  /**
+   * 사진으로 관상 재기.
+   *
+   * **사진은 이 기기 밖으로 나가지 않는다.** 브라우저 안에서 얼굴 점만 뽑고
+   * 사진은 바로 버린다. 얼굴 사진은 생체정보라, 서버로 보내는 순간 보관·파기·
+   * 동의 문제가 전부 따라붙는다. 보내지 않으면 그 문제가 애초에 없다.
+   *
+   * 점 뽑는 도구(MediaPipe)는 **누를 때 비로소 받는다.** 3MB짜리를 첫 화면부터
+   * 받으면 사진을 안 쓸 손님까지 기다리게 된다.
+   *
+   * 받아지지 않으면 조용히 물러난다. 아래 손으로 고르는 칸이 그대로 남아 있으므로
+   * 손님이 못 하게 되는 일은 없다.
+   */
+  var FACE_WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
+  var FACE_MODEL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/'
+    + 'face_landmarker/float16/1/face_landmarker.task';
+  var facePicker = null;
+
+  /** 이보다 오래 걸리면 포기한다. 손님을 하염없이 기다리게 두지 않는다 */
+  var FACE_WAIT_MS = 25000;
+
+  function loadFacePicker() {
+    if (facePicker) return facePicker;
+    var got = import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14')
+      .then(function (V) {
+        return V.FilesetResolver.forVisionTasks(FACE_WASM).then(function (fs) {
+          return V.FaceLandmarker.createFromOptions(fs, {
+            baseOptions: { modelAssetPath: FACE_MODEL, delegate: 'GPU' },
+            runningMode: 'IMAGE', numFaces: 1,
+          });
+        });
+      });
+    var giveUp = new Promise(function (_, reject) {
+      setTimeout(function () {
+        reject(new Error('인터넷이 느려서 사진 재기를 못 했습니다. 아래에서 직접 골라 주세요.'));
+      }, FACE_WAIT_MS);
+    });
+    facePicker = Promise.race([got, giveUp])
+      .catch(function (err) { facePicker = null; throw err; });
+    return facePicker;
+  }
+
+  /** 사진을 화면에 잠깐 보여 준다. 어디에도 올리지 않는다 */
+  function showShot(img) {
+    var view = $('faceShotView'), cv = $('faceShotCanvas');
+    var w = 220, h = Math.round(img.naturalHeight * (w / img.naturalWidth));
+    cv.width = w; cv.height = h;
+    cv.getContext('2d').drawImage(img, 0, 0, w, h);
+    view.hidden = false;
+  }
+
+  /** 잰 값을 아래 칸에 그대로 눌러 준다. 손님이 보고 고칠 수 있어야 한다 */
+  function syncFaceForm() {
+    var host = $('faceForm');
+    var all = host.querySelectorAll('button[data-k]');
+    for (var i = 0; i < all.length; i++) {
+      var b = all[i];
+      b.classList.toggle('on', faceState[b.dataset.k] === b.dataset.v);
+    }
+  }
+
+  function wireFacePhoto() {
+    var input = $('facePhoto'), msg = $('faceShotMsg');
+    if (!input || input.dataset.wired) return;
+    input.dataset.wired = '1';
+
+    var say = function (text, bad) {
+      msg.textContent = text;
+      msg.classList.toggle('bad', !!bad);
+    };
+
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
+      if (!file) return;
+      say('사진을 읽고 있습니다…');
+
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        showShot(img);
+        say('얼굴을 찾고 있습니다… 처음 한 번은 조금 걸립니다.');
+        loadFacePicker().then(function (picker) {
+          var res = picker.detect(img);
+          // 사진은 여기서 끝이다. 주소를 놓아주면 브라우저가 곧바로 버린다
+          URL.revokeObjectURL(url);
+          var marks = res && res.faceLandmarks && res.faceLandmarks[0];
+          if (!marks) throw new Error('사진에서 얼굴을 못 찾았습니다. 얼굴이 크게 나온 정면 사진으로 해 주세요.');
+          var m = MS.measureFace(marks);
+          faceState = Object.assign({}, faceState, m.features);
+          syncFaceForm();
+          render();
+          say(MS.MEASURE_NOTE);
+        }).catch(function (err) {
+          URL.revokeObjectURL(url);
+          var text = (err && err.message) || '';
+          // 도구를 못 받은 것은 손님 잘못이 아니다. 무엇을 하면 되는지만 말한다
+          if (!text || /import|fetch|network|Failed|module/i.test(text)) {
+            text = '사진 재기를 지금은 못 씁니다. 아래에서 직접 골라 주세요.';
+          }
+          say(text, true);
+        });
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(url);
+        say('사진을 열지 못했습니다. 다른 사진으로 해 주세요.', true);
+      };
+      img.src = url;
+    });
+  }
+
+  /**
+   * 가림막.
+   *
+   * 문에서 생년월일을 받았으니 사주는 이미 나와 있다. **앞은 보여 주고
+   * 뒤는 가린다.** 아무것도 안 보여 주면 손님은 뭘 사는지 모르고,
+   * 다 보여 주면 살 이유가 없다.
+   *
+   * 가리는 것은 **없는 것을 파는 것이 아니다.** 가려진 내용은 이미 계산되어
+   * 있고, 리포트를 사면 그 내용을 사람이 읽을 수 있게 풀어서 준다.
+   *
+   * 막고 서는 것은 신령이다. 「결제하세요」라고 하지 않고
+   * 신령이 「여기서부터는 더 봐야 보인다」고 말한다.
+   */
+  function veiled(inner, spiritId, productId) {
+    var sp = null;
+    for (var i = 0; i < MS.SPIRITS.length; i++) {
+      if (MS.SPIRITS[i].id === spiritId) sp = MS.SPIRITS[i];
+    }
+    var product = MS.CATALOG[productId];
+    if (!sp || !product) return inner;   // 짝이 안 맞으면 가리지 않는다
+
+    var won = product.priceKrw.toLocaleString('ko-KR') + '원';
+    return '<div class="veil">' +
+      '<div class="veil-peek">' + inner + '</div>' +
+      '<div class="veil-fog"></div>' +
+      '<div class="veil-ask">' +
+        '<img class="veil-face" src="/img/spirits/' + sp.id + '" alt="" ' +
+          'onerror="this.remove()" width="64" height="64" loading="lazy">' +
+        '<p class="veil-who">' + esc(sp.name) + '</p>' +
+        '<p class="veil-line">' + esc(MS.BLIND[productId] || MS.PITCH[productId] || sp.greet) + '</p>' +
+        '<p class="veil-what">여기서부터는 ' + esc(product.name) + '에서 마저 풀어 드립니다.</p>' +
+        '<a class="veil-go" href="/products/' + encodeURIComponent(productId) + '">' +
+          '이어서 보기 · ' + won + '</a>' +
+        '<p class="veil-note">여기까지는 결제 없이 언제든 보실 수 있습니다.</p>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function crossPanel(xv) {
+    var rows = xv.comparisons.map(function (c) {
+      var scores = c.readings.map(function (r) {
+        return '<span><b>' + r.source + '</b> ' + (r.score > 0 ? '+' : '') + r.score + '</span>';
+      }).join('');
+      var vcls = c.verdict === '해당 없음' ? '해당' : c.verdict;
+      return '<div class="xr v' + vcls + '">' +
+        '<span class="xa">' + esc(c.axis) + '</span>' +
+        '<span class="xs">' + scores + '</span>' +
+        '<span class="xv2">' + esc(c.verdict) + '</span>' +
+        (c.verdict === '일치' || c.verdict === '엇갈림' ? '<span class="xt">' + esc(c.text) + '</span>' : '') +
+        '</div>';
+    }).join('');
+
+    return '<p class="note" style="margin:0 0 1rem">' + esc(xv.summary) + '</p>' +
+      '<div class="xv">' + rows + '</div>' +
+      '<p class="note" style="margin-top:1rem">' + esc(xv.disclaimer) + '</p>';
+  }
+
+  function notesPanel(title, notes, key) {
+    var rows = notes.map(function (n) {
+      return '<div><dt>' + esc(n[key]) + '</dt><dd>' + esc(n.text) + '</dd></div>';
+    }).join('');
+    return panel(title + ' <span class="label" style="font-family:inherit">무료</span>',
+      '<dl class="meta">' + rows + '</dl>');
+  }
+
+  var CFG = (window.SAJU_CONFIG || {});
+  var checkout = null;
+  // previewTried: 실패해도 다시 요청하지 않기 위한 표시.
+  // 이게 없으면 실패 → render → 재요청 → 실패가 무한히 돈다.
+  /*
+   * pick  — 지금 사려는 것. null 이면 단품(교차검증 리포트)
+   * offer — 그것을 품은 묶음. 한 번 받아 두면 껐다 켰다 할 수 있다
+   */
+  var buyState = { previewed: null, previewTried: false, agreed: false, busy: false,
+                   result: null, error: null, pick: null, offer: null };
+
+  function money(n) { return n.toLocaleString('ko-KR') + '원'; }
+
+  /**
+   * 하나 더 얹는 칸.
+   *
+   * 손님이 보는 것은 묶음 값이 아니라 **「여기서 얼마 더」**다. 그래서 얹는
+   * 금액을 제일 크게 쓴다. 「따로 사면」은 구성 상품의 실제 판매가 합계다 —
+   * 판 적 없는 정가를 지어내 할인율을 부풀리지 않는다.
+   *
+   * 켜면 미리보기를 묶음 것으로 다시 받는다. 무엇이 담기는지 보지 않은 채
+   * 결제로 넘기지 않는다.
+   */
+  function upsellRow() {
+    var o = buyState.offer;
+    if (!o) return '';
+    var on = buyState.pick === o.id;
+    var names = o.members.map(function (m) { return esc(m.name); }).join(' + ');
+    return '<label class="up' + (on ? ' up-on' : '') + '">' +
+      '<input type="checkbox" id="packBox"' + (on ? ' checked' : '') + '>' +
+      '<span class="up-t">' +
+        '<b class="up-h">' + esc(o.name) + '으로 함께 받기</b>' +
+        '<span class="up-m">' + names + '</span>' +
+        '<span class="up-s">따로 사면 ' + money(o.apartKrw) + ' · ' +
+          money(o.saveKrw) + ' 아낍니다</span>' +
+        (o.needsPartner ? '<span class="up-s">상대의 생년월일이 필요합니다</span>' : '') +
+      '</span>' +
+      '<span class="up-p">' + (on ? '−' : '+') + money(Math.abs(o.addKrw)) + '</span>' +
+    '</label>';
+  }
+
+  function paywallPanel(xv) {
+    var p = buyState.previewed;
+
+    if (buyState.result) {
+      return '<div class="panel"><div class="panel-in">' +
+        '<h2>리포트</h2>' +
+        '<div class="bought">' + esc(buyState.result.text) + '</div>' +
+        '<p class="note" style="margin-top:1.2rem">주문번호 <span class="mono">' + esc(buyState.result.orderId) + '</span></p>' +
+        '</div></div>';
+    }
+
+    var body = '';
+    if (!p) {
+      body = buyState.error
+        ? '<div class="err">' + esc(buyState.error) + '</div>'
+        : '<p class="step">미리보기를 불러오는 중…</p>';
+    } else {
+      body =
+        '<div class="buy">' +
+          '<div class="row"><span class="price">' + money(p.product.priceKrw) + '</span>' +
+            '<span class="note" style="margin:0">' + esc(p.product.description) + '</span></div>' +
+
+          '<div><p class="label" style="margin:0 0 .5rem">이 리포트에 담기는 내용</p>' +
+            '<ul class="will">' + p.preview.contents.map(function (c) {
+              return '<li>' + esc(c) + '</li>'; }).join('') + '</ul></div>' +
+
+          '<div><p class="label" style="margin:0 0 .5rem">어떤 문장으로 나오는지 — 예시</p>' +
+            '<div class="samp">' + esc(p.preview.sample) +
+            '<span class="cut">' + esc(p.preview.sampleNotice) + '</span></div></div>' +
+
+          upsellRow() +
+
+          '<div class="legal">' + esc(p.notice) +
+            '<label class="agree"><input type="checkbox" id="agree"' + (buyState.agreed ? ' checked' : '') + '>' +
+            '<span>위 내용을 확인했습니다.</span></label></div>' +
+
+          '<button class="pay" id="payBtn"' + (buyState.agreed && !buyState.busy ? '' : ' disabled') + '>' +
+            (buyState.busy ? '진행 중…' : money(p.product.priceKrw) + ' 결제하기') + '</button>' +
+
+          (buyState.error ? '<div class="err">' + esc(buyState.error) + '</div>' : '') +
+          (buyState.busy ? '<p class="step" id="stepText">주문을 만드는 중…</p>' : '') +
+        '</div>';
+    }
+
+    return '<div class="panel pro"><div class="panel-in">' +
+      '<h2>사주 × 관상 × 손금 교차검증 리포트</h2>' +
+      '<p class="note" style="margin:-.4rem 0 1.2rem">세 갈래를 <strong>같은 여덟 개 축</strong>으로 대조합니다. ' +
+      '각각 따로 보면 알 수 없고 <strong>합쳐야만 나오는 정보</strong>입니다.</p>' +
+      body +
+      '</div></div>';
+  }
+
+  var STEP_TEXT = {
+    order: '주문을 만드는 중…', payment: '결제창을 여는 중…',
+    confirm: '결제를 확인하는 중…', report: '리포트를 만드는 중… (1분쯤 걸립니다)',
+    done: '완료',
+  };
+
+  function wirePaywall(reading) {
+    var box = $('packBox');
+    if (box) {
+      box.addEventListener('change', function () {
+        buyState.pick = box.checked ? buyState.offer.id : null;
+        // 사려는 것이 바뀌면 앞의 미리보기와 동의는 다른 물건 것이 된다
+        buyState.previewed = null; buyState.previewTried = false;
+        buyState.agreed = false; buyState.error = null;
+        render();
+      });
+    }
+    var agree = $('agree');
+    if (agree) {
+      agree.addEventListener('change', function () { buyState.agreed = agree.checked; render(); });
+    }
+    var btn = $('payBtn');
+    if (!btn) return;
+
+    btn.addEventListener('click', async function () {
+      buyState.busy = true; buyState.error = null; render();
+      try {
+        buyState.result = await checkout.purchase(reading, {
+          previewShown: true,
+          onStage: function (stage) {
+            var el = $('stepText');
+            if (el) el.textContent = STEP_TEXT[stage] || '';
+          },
+        });
+      } catch (e) {
+        buyState.error = e && e.cancelled
+          ? '결제를 취소하셨습니다. 언제든 다시 시도하실 수 있습니다.'
+          : (e && e.message) || '결제에 실패했습니다.';
+      } finally {
+        buyState.busy = false; render();
+      }
+    });
+  }
+
+  function readingPanels(face, palm, xv) {
+    return '<div class="two">' +
+        notesPanel('관상 풀이', face.notes, 'palace') +
+        notesPanel('손금 풀이', palm.notes, 'domain') +
+      '</div>' +
+
+      '<div style="height:1.6rem"></div>' +
+      // 결제가 켜져 있으면 결과 대신 미리보기와 결제 버튼을 보인다.
+      // 꺼져 있으면(아티팩트 데모) 지금처럼 전문을 그대로 보여준다.
+      (CFG.ready
+        ? paywallPanel(xv)
+        : '<div class="panel pro"><div class="panel-in">' +
+            '<h2>사주 × 관상 × 손금 교차검증</h2>' +
+            '<p class="note" style="margin:-.4rem 0 1rem">세 갈래를 <strong>같은 여덟 개 축</strong>으로 환산해 대조합니다. ' +
+            '각각 따로 보면 알 수 없고 <strong>합쳐야만 나오는 정보</strong>라, 이 구간을 유료로 둡니다.</p>' +
+            crossPanel(xv) +
+          '</div></div>');
+  }
+
+  function miniChart(ms) {
+    const c = (p, pos) => '<div class="c"><span class="p">' + pos + '</span><br>' +
+      (p ? '<span class="g e-' + p.element.stem + '">' + p.stemHanja + '</span><br>' +
+           '<span class="g e-' + p.element.branch + '">' + p.branchHanja + '</span>'
+         : '<span class="g" style="color:var(--ink-3)">—</span>') + '</div>';
+    return '<div class="mini">' + c(ms.hour, '시') + c(ms.day, '일') + c(ms.month, '월') + c(ms.year, '연') + '</div>';
+  }
+
+  /** 궁합 다섯 축을 쉬운 말로 */
+  var AXIS_PLAIN = {
+    '일간 상성': '두 사람의 바탕이 맞는가',
+    '일지 · 배우자 자리': '서로 바라는 것이 비슷한가',
+    '용신 보완': '서로 모자란 것을 채워 주는가',
+    '오행 보완': '빈 자리를 메워 주는가',
+    '전체 합·충': '부딪히는 곳이 있는가',
+  };
+
+  /** 점수를 사람 말로 */
+  function pairWord(n) {
+    if (n >= 80) return '아주 잘 맞습니다';
+    if (n >= 70) return '잘 맞는 편입니다';
+    if (n >= 55) return '무난합니다';
+    if (n >= 40) return '맞춰 갈 부분이 있습니다';
+    return '부딪히는 곳이 많습니다';
+  }
+
+  /**
+   * 궁합도 쉬운 말이 먼저다.
+   *
+   * 점수 하나만 크게 띄우면 「75점이 뭔데?」로 끝난다. 무엇이 좋고 무엇을
+   * 조심할지를 한 줄씩 적어 준다. 한자표는 아래로 내린다.
+   */
+  function pairPlain(cp) {
+    var good = cp.axes.filter(function (x) { return x.score >= 65; });
+    var bad = cp.axes.filter(function (x) { return x.score < 55; });
+    var row = function (x) {
+      return '<li>' + esc(x.verdict) +
+        ' <span class="gl-t">' + esc(AXIS_PLAIN[x.name] || x.name) + '</span></li>';
+    };
+    return '<p class="pl-lead">' + cp.score.toFixed(0) + '점 — ' + pairWord(cp.score) + '</p>' +
+      (good.length ? '<p class="pl-sub">좋은 점</p><ul class="pl-list">' + good.map(row).join('') + '</ul>' : '') +
+      (bad.length ? '<p class="pl-sub">조심할 점</p><ul class="pl-list warn">' + bad.map(row).join('') + '</ul>' : '') +
+      '<p class="note" style="margin-top:1.1rem">' + esc(cp.disclaimer) + '</p>';
+  }
+
+  function compatPanels(msA, msB, nameA, nameB, cp) {
+    const cls = (v) => v >= 70 ? 'hi' : v >= 55 ? 'mid' : 'lo';
+    const axes = cp.axes.map((x) =>
+      '<div class="ax ' + cls(x.score) + '">' +
+        '<span class="an">' + esc(AXIS_PLAIN[x.name] || x.name) +
+          ' <span class="gl-n">' + esc(x.name) + ' · ' + x.weight + '%</span></span>' +
+        '<span class="as">' + x.score.toFixed(0) + ' · ' + esc(x.verdict) + '</span>' +
+        '<span class="abar"><i style="width:' + x.score + '%"></i></span>' +
+        '<span class="ar">' + esc(x.reasoning) + '</span>' +
+      '</div>').join('');
+
+    const list = (items, cls2) => items.length
+      ? '<ul class="hl"' + (cls2 ? ' style="--seal-x:1"' : '') + '>' +
+        items.map((t) => '<li>' + esc(t) + '</li>').join('') + '</ul>'
+      : '<p class="note">해당 없음.</p>';
+
+    return panel('쉽게 말하면', pairPlain(cp)) +
+
+      '<div style="height:1.6rem"></div>' +
+      panel('다섯 갈래로 본 상성', '<div class="axes">' + axes + '</div>' +
+        '<p class="note" style="margin-top:.9rem">비중이 가장 큰 축은 <strong>용신 보완</strong>입니다. ' +
+        '띠만 보는 궁합과 결과가 자주 갈리는 지점이고, 실제로 가장 무겁게 보는 부분입니다.</p>') +
+
+      '<div style="height:1.6rem"></div>' +
+      '<div class="two">' +
+        panel('강점', list(cp.strengths)) +
+        panel('주의할 점', list(cp.cautions)) +
+      '</div>' +
+
+      '<div style="height:1.6rem"></div>' +
+      panel('어떻게 하면 좋은가', '<ul class="hl">' +
+        cp.advice.map((t) => '<li>' + esc(t) + '</li>').join('') + '</ul>') +
+
+      '<div style="height:1.6rem"></div>' +
+      panel('두 사람의 사주 여덟 글자 <span class="label" style="font-family:inherit">명식</span>',
+        '<div class="verd" style="margin-bottom:1.1rem"><span class="num">' + cp.score.toFixed(0) + '</span>' +
+          '<span class="gr">' + esc(cp.grade) + '</span>' +
+          '<span class="note" style="margin:0">' + esc(nameA) + ' · ' + esc(nameB) + '</span></div>' +
+        '<div class="two" style="gap:1.1rem">' +
+          '<div><p class="label" style="margin:0 0 .4rem">' + esc(nameA) + '</p>' + miniChart(msA) + '</div>' +
+          '<div><p class="label" style="margin:0 0 .4rem">' + esc(nameB) + '</p>' + miniChart(msB) + '</div>' +
+        '</div>');
+  }
+
+  function metaList(m) {
+    const rows = [];
+    const push = (k, v) => rows.push('<div><dt>' + k + '</dt><dd>' + v + '</dd></div>');
+    push('적용 절기', esc(m.monthTermName) + ' <span class="sub">' + esc(m.monthTermHanja) + '</span>');
+    const h = Math.floor(Math.abs(m.minutesFromMonthTerm) / 60);
+    const days = Math.floor(h / 24);
+    const elapsed = days > 0 ? days + '일 ' + (h % 24) + '시간' : h + '시간 ' + (Math.abs(m.minutesFromMonthTerm) % 60) + '분';
+    push('절입 시각', esc(m.monthTermEnteredAt) +
+      ' <span class="sub">— 출생은 그로부터 ' + elapsed + ' ' + (m.minutesFromMonthTerm >= 0 ? '뒤' : '앞') + '</span>');
+    push('입춘 기준 연도', m.solarYear + '년 <span class="sub">(' + esc(m.ipchunAt) + ' 입춘)</span>');
+    if (m.inputTime) {
+      push('시각 보정', '<span class="mono">' + esc(m.inputTime) + '</span> → <span class="mono">' + esc(m.correctedTime) + '</span>' +
+        ' <span class="sub">(' + (m.solarTimeOffsetMin >= 0 ? '+' : '') + m.solarTimeOffsetMin.toFixed(1) + '분)</span>' +
+        (m.correctedTime !== m.inputTime ? ' <span class="sub">· 기준일 ' + esc(m.correctedDate) + '</span>' : ''));
+    }
+    push('표준자오선', '동경 ' + m.standardMeridian + '°' +
+      (m.standardMeridian === 127.5 ? '<span class="flag">당시 UTC+8:30</span>' : ''));
+    if (m.dstApplied) push('서머타임', '시행 기간에 해당 <span class="flag">−60분 보정</span>');
+    if (m.isYajaHour) push('야자시 구간', '23시대 출생 <span class="flag">' +
+      (m.yajaMode === 'yaja' ? '익일 일주 적용' : '당일 일주 유지') + '</span>');
+    push('태양 황경', '<span class="mono">' + m.solarLongitude.toFixed(4) + '°</span>');
+    return '<dl class="meta">' + rows.join('') + '</dl>';
+  }
+
+  let mode = 'solo';
+
+  function readPerson(prefix) {
+    const g = (id) => $(prefix ? prefix + '-' + id : id);
+    const noTime = g('notime').checked;
+    g('time').disabled = noTime;
+    return {
+      date: g('date').value,
+      time: noTime ? null : g('time').value,
+      longitude: parseFloat(g('place').value),
+      yajaMode: $('yaja').value,
+      applyTrueSolarTime: $('tst').checked,
+      applyEquationOfTime: $('eot').checked,
+    };
+  }
+
+  function renderPair() {
+    let msA, msB, cp;
+    const nameA = ($('name').value || 'A').trim();
+    const nameB = ($('b-name').value || 'B').trim();
+    try {
+      msA = MS.calculate(readPerson(''));
+      msB = MS.calculate(readPerson('b'));
+      cp = MS.compatibility(msA, msB, nameA, nameB);
+    } catch (e) {
+      out.innerHTML = '<div class="err">' + esc(e.message) + '</div>';
+      return;
+    }
+    out.innerHTML = compatPanels(msA, msB, nameA, nameB, cp);
+  }
+
+  function renderFace() {
+    buildFaceForm();
+    buildPalmForm();
+    var ms, an, face, palm, xv;
+    try {
+      ms = MS.calculate(readPerson(''));
+      an = MS.analyze(ms);
+      face = MS.readFace(faceState);
+      palm = MS.readPalm(palmState);
+      xv = MS.crossValidate(MS.sajuToTraits(an), face.profile, palm.profile);
+    } catch (e) {
+      out.innerHTML = '<div class="err">' + esc(e.message) + '</div>';
+      return;
+    }
+    out.innerHTML = readingPanels(face, palm, xv);
+
+    if (!CFG.ready) return;
+
+    var reading = {
+      productId: buyState.pick || 'cross-report',
+      birth: {
+        date: $('date').value, time: $('notime').checked ? null : $('time').value,
+        longitude: parseFloat($('place').value), gender: $('gender').value,
+        name: ($('name').value || '').trim() || undefined,
+      },
+      face: faceState, palm: palmState,
+    };
+    wirePaywall(reading);
+
+    if (!buyState.previewed && !buyState.previewTried && !buyState.busy) {
+      buyState.previewTried = true;
+      checkout.preview(reading).then(function (p) {
+        buyState.previewed = p;
+        // 묶음을 고르면 서버가 더 내밀지 않는다. 되돌아갈 수 있게 들고 있는다
+        if (p.upsell) buyState.offer = p.upsell;
+        render();
+      }).catch(function (e) {
+        buyState.error = '미리보기를 불러오지 못했습니다. ' + e.message; render();
+      });
+    }
+  }
+
+  function render() {
+    if (mode === 'pair') { renderPair(); return; }
+    if (mode === 'face') { renderFace(); return; }
+
+    const noTime = $('notime').checked;
+    $('time').disabled = noTime;
+    $('yaja').disabled = noTime;
+
+    let ms, an, daeun, cur, years, today, age, todayLabel;
+    try {
+      ms = MS.calculate({
+        date: $('date').value,
+        time: noTime ? null : $('time').value,
+        longitude: parseFloat($('place').value),
+        yajaMode: $('yaja').value,
+        applyTrueSolarTime: $('tst').checked,
+        applyEquationOfTime: $('eot').checked,
+      });
+      an = MS.analyze(ms);
+
+      const todayISO = new Date().toISOString().slice(0, 10);
+      const nowChart = MS.calculate({ date: todayISO, time: '12:00' });
+      age = nowChart.meta.solarYear - ms.meta.solarYear;
+      daeun = MS.calculateDaeun(ms, $('gender').value, an.yongsin, 10);
+      cur = MS.currentDaeun(daeun, age);
+      years = MS.annualLuck(ms, an.yongsin, nowChart.meta.solarYear, 10);
+      today = MS.dailyLuck(ms, an.yongsin, todayISO);
+      todayLabel = todayISO;
+    } catch (e) {
+      out.innerHTML = '<div class="err">' + esc(e.message) + '</div>';
+      return;
+    }
+
+    const byPos = {};
+    for (const p of an.pillars) byPos[p.position] = p;
+
+    out.innerHTML =
+      panel('쉽게 말하면', plainPanel(an)) +
+
+      '<div style="height:1.6rem"></div>' +
+      panel('사주 여덟 글자 <span class="label" style="font-family:inherit">명식</span>',
+        '<div class="chart">' +
+          pillarColumn(ms.hour, byPos['시주'], '시주', false) +
+          pillarColumn(ms.day, byPos['일주'], '일주 · 나', true) +
+          pillarColumn(ms.month, byPos['월주'], '월주', false) +
+          pillarColumn(ms.year, byPos['연주'], '연주', false) +
+        '</div>' +
+        '<p class="note" style="margin-top:.9rem">일간 <strong class="e-' + ms.day.element.stem + '">' +
+        ms.day.stemHanja + ' ' + ms.day.stem + '</strong>이 이 명식의 주체입니다. 나머지 글자에 붙은 이름(십신)은 전부 이 글자와의 관계입니다. ' +
+        '대괄호 없는 아래 표기는 일간이 그 지지에서 갖는 기세(십이운성)입니다.</p>') +
+
+      '<div style="height:1.6rem"></div>' +
+      panel('두드러진 특징',
+        '<ul class="hl">' + an.highlights.map((h) => '<li>' + esc(h) + '</li>').join('') + '</ul>' +
+        '<p class="note" style="margin-top:1rem">좋은 말만 고르지 않습니다. 과잉·결핍·충돌을 함께 짚습니다.</p>') +
+
+      '<div style="height:1.6rem"></div>' +
+      '<div class="two">' +
+        panel('기운의 세기 <span class="label" style="font-family:inherit">일간의 강약</span>', strengthPanel(an)) +
+        panel('지금 필요한 기운 <span class="label" style="font-family:inherit">용신</span>', yongsinPanel(an)) +
+      '</div>' +
+
+      '<div style="height:1.6rem"></div>' +
+      '<div class="two">' +
+        panel('오행 분포 <span class="label" style="font-family:inherit">지장간 반영</span>', '<div class="bars">' + elementBars(an) + '</div>') +
+        panel('다섯 가지 힘 <span class="label" style="font-family:inherit">십신</span>', '<div class="bars">' + godBars(an) + '</div>') +
+      '</div>' +
+
+      '<div style="height:1.6rem"></div>' +
+      panel('오늘의 일진', todayPanel(today, todayLabel)) +
+
+      '<div style="height:1.6rem"></div>' +
+      // 여기서부터가 손님이 제일 궁금해하는 것이다 — 언제 좋아지는가.
+      // 그래서 여기에 가림막을 세운다
+      veiled(
+        panel('앞으로의 흐름 <span class="label" style="font-family:inherit">대운 · 세운</span>',
+          daeunPanel(an, daeun, cur, age) +
+          '<div style="height:1.6rem"></div>' +
+          yearsPanel(years) +
+          '<div style="height:1.6rem"></div>' +
+          relationsPanel(an)),
+        'mirror', 'saju-report') +
+
+      '<div style="height:1.6rem"></div>' +
+      panel('지장간', hiddenPanel(an)) +
+
+      '<div style="height:1.6rem"></div>' +
+      panel('계산 근거', metaList(ms.meta));
+  }
+
+  if (CFG.ready) {
+    checkout = new MS.Checkout({
+      apiBase: CFG.apiBase || '',
+      config: CFG.checkout,
+      pay: MS.portOnePay(),
+    });
+  }
+
+  const IDS = ['name', 'date', 'time', 'place', 'gender', 'yaja', 'notime', 'tst', 'eot',
+               'b-name', 'b-date', 'b-time', 'b-place', 'b-gender', 'b-notime'];
+  for (const id of IDS) {
+    const el = $(id);
+    if (!el) continue;
+    el.addEventListener('input', invalidateAndRender);
+    el.addEventListener('change', invalidateAndRender);
+  }
+
+  /** 입력이 바뀌면 이전 미리보기는 다른 사람 것이 된다. 구매 결과도 마찬가지다 */
+  function invalidateAndRender() {
+    if (!buyState.busy) {
+      buyState.previewed = null; buyState.previewTried = false;
+      buyState.result = null; buyState.error = null;
+    }
+    render();
+  }
+
+  function setMode(next) {
+    mode = next;
+    document.body.classList.toggle('pair', next === 'pair');
+    document.body.classList.toggle('face', next === 'face');
+    var tabs = { solo: 'tabSolo', pair: 'tabPair', face: 'tabFace' };
+    for (var k in tabs) {
+      $(tabs[k]).classList.toggle('on', next === k);
+      $(tabs[k]).setAttribute('aria-selected', String(next === k));
+    }
+    render();
+  }
+  $('tabSolo').addEventListener('click', () => setMode('solo'));
+  $('tabPair').addEventListener('click', () => setMode('pair'));
+  $('tabFace').addEventListener('click', () => setMode('face'));
+
+  render();
+})();
+</script>
+
+<style>
+/* 한 화면에 한 질문.
+   생년월일·시각·지역·성별을 한꺼번에 들이밀면 폰에서 부담스럽다.
+   경쟁사가 전부 한 질문씩 넘기게 만들어 둔 데는 이유가 있다. */
+.wiz .f{display:none}
+.wiz .f.step-on{display:block}
+.wiz .opts,.wiz #out,.wiz .panel:not(#panelA){display:none}
+.wiz #panelA h2{font-size:1.25rem;margin-bottom:1.2rem}
+.wiz-bar{display:flex;gap:10px;align-items:center;margin-top:1.4rem}
+.wiz-next{flex:1;background:#5b3fa8;color:#fff;border:0;border-radius:999px;
+  padding:14px 20px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit}
+.wiz-back{background:none;border:0;color:var(--ink-3);font-size:14px;cursor:pointer;
+  padding:14px 6px;font-family:inherit}
+.wiz-dots{display:flex;gap:6px;margin-bottom:1.1rem}
+.wiz-dot{width:22px;height:3px;border-radius:2px;background:var(--rule)}
+.wiz-dot.on{background:#5b3fa8}
+.wiz-skip{display:block;margin-top:.9rem;font-size:13px;color:var(--ink-3);
+  background:none;border:0;cursor:pointer;font-family:inherit;text-decoration:underline}
+</style>
+<script>
+/*
+ * 입력 마법사.
+ *
+ * 계산 코드는 건드리지 않는다. 이 스크립트가 하는 일은 **보이는 것을 고르는 것**
+ * 뿐이다 — 기존 입력칸을 그대로 쓰고, 이벤트도 원래 붙은 것이 그대로 돈다.
+ * 그래서 마법사를 끄면 예전 화면이 그대로 돌아온다.
+ *
+ * 마지막 단계를 넘기면 마법사는 스스로 사라지고, 그 뒤로는 예전처럼
+ * 값이 바뀔 때마다 결과가 바로 갱신된다.
+ */
+(function () {
+  var panel = document.getElementById('panelA');
+  if (!panel) return;
+  var grid = panel.querySelector('.grid');
+  var by = function (id) { return panel.querySelector('.f:has(#' + id + ')'); };
+
+  // 질문 순서. 「이름」과 세부 설정(자시·보정)은 마법사에서 빼둔다 —
+  // 처음 온 사람에게 물을 것이 아니다.
+  var steps = [
+    { id: 'date', title: '태어난 날이 언제신가요?', note: '양력으로 넣어 주세요.' },
+    { id: 'time', title: '몇 시에 태어나셨나요?', note: '모르셔도 볼 수 있습니다.', skip: '시각을 모르겠어요' },
+    { id: 'place', title: '어디에서 태어나셨나요?', note: '지역에 따라 진태양시가 달라집니다.' },
+    { id: 'gender', title: '성별이 어떻게 되시나요?', note: '대운이 흐르는 방향을 정하는 데 씁니다.' },
+  ].filter(function (s) { return by(s.id); });
+  if (!steps.length) return;
+
+  var at = 0;
+  var heading = panel.querySelector('h2');
+  var originalHeading = heading ? heading.textContent : '';
+  var note = document.createElement('p');
+  note.className = 'note';
+  note.style.margin = '-.6rem 0 1.1rem';
+
+  var dots = document.createElement('div');
+  dots.className = 'wiz-dots';
+  steps.forEach(function () { dots.appendChild(document.createElement('span')).className = 'wiz-dot'; });
+
+  var bar = document.createElement('div');
+  bar.className = 'wiz-bar';
+  var back = document.createElement('button');
+  back.type = 'button'; back.className = 'wiz-back'; back.textContent = '이전';
+  var next = document.createElement('button');
+  next.type = 'button'; next.className = 'wiz-next';
+  bar.appendChild(back); bar.appendChild(next);
+
+  var skip = document.createElement('button');
+  skip.type = 'button'; skip.className = 'wiz-skip';
+
+  if (heading) heading.insertAdjacentElement('afterend', note);
+  if (grid) { grid.insertAdjacentElement('beforebegin', dots); grid.insertAdjacentElement('afterend', bar); }
+  bar.insertAdjacentElement('afterend', skip);
+
+  function show() {
+    var step = steps[at];
+    steps.forEach(function (s, i) {
+      var el = by(s.id);
+      if (el) el.classList.toggle('step-on', i === at);
+      dots.children[i].classList.toggle('on', i <= at);
+    });
+    if (heading) heading.textContent = step.title;
+    note.textContent = step.note;
+    next.textContent = at === steps.length - 1 ? '내 사주 보기' : '다음';
+    back.style.visibility = at === 0 ? 'hidden' : 'visible';
+    skip.style.display = step.skip ? 'block' : 'none';
+    skip.textContent = step.skip || '';
+    var input = document.getElementById(step.id);
+    if (input && input.focus) { try { input.focus({ preventScroll: true }); } catch (e) {} }
+  }
+
+  /** 마법사를 끝낸다. 여기부터는 원래 화면이다 */
+  function finish() {
+    document.body.classList.remove('wiz');
+    [dots, bar, skip, note].forEach(function (el) { el.remove(); });
+    if (heading) heading.textContent = originalHeading;
+    steps.forEach(function (s) { var el = by(s.id); if (el) el.classList.remove('step-on'); });
+    var out = document.getElementById('out');
+    if (out && out.scrollIntoView) out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  next.addEventListener('click', function () {
+    if (at < steps.length - 1) { at++; show(); } else { finish(); }
+  });
+  back.addEventListener('click', function () { if (at > 0) { at--; show(); } });
+  skip.addEventListener('click', function () {
+    var notime = document.getElementById('notime');
+    // 「모르겠어요」는 기존 체크박스를 대신 눌러 준다. 계산 규칙은 그대로다
+    if (notime && !notime.checked) { notime.checked = true; notime.dispatchEvent(new Event('change')); }
+    if (at < steps.length - 1) { at++; show(); } else { finish(); }
+  });
+
+  // 탭을 옮기면 마법사는 물러난다. 궁합·관상은 원래 화면이 맞다
+  ['tabPair', 'tabFace'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('click', function () {
+      if (document.body.classList.contains('wiz')) finish();
+    }, { capture: true });
+  });
+
+  // 문(첫 화면)에서 생년월일을 받고 들어오면 마법사는 물러난다.
+  // 이미 밝힌 것을 또 물으면 손님은 두 번 일하게 된다
+  window.NB_SKIP_WIZARD = function () {
+    if (document.body.classList.contains('wiz')) finish();
+  };
+
+  document.body.classList.add('wiz');
+  show();
+})();
+</script>
+
+<style>
+/* 생년월일은 연·월·일을 따로 고른다.
+   폰의 기본 달력은 1990년을 찾으려면 화살표를 수백 번 눌러야 한다.
+   사주는 태어난 해가 수십 년 전이라 그 방식이 특히 나쁘다. */
+.ymd{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:.5rem}
+.ymd select{min-width:0}
+</style>
+<script>
+/*
+ * 생년월일 입력을 연·월·일 세 칸으로 바꾼다.
+ *
+ * 기존 <input type="date"> 는 **그대로 두고 숨긴다.** 계산 코드는 그 값을
+ * 읽으므로, 세 칸이 값을 써 넣고 change 를 흘려보내면 나머지는 원래대로 돈다.
+ * 엔진을 건드리지 않는 이유이자, 이 화면이 깨져도 계산은 멀쩡한 이유다.
+ */
+(function () {
+  var THIS_YEAR = new Date().getFullYear();
+
+  function opt(v, label) { var o = document.createElement('option'); o.value = v; o.textContent = label; return o; }
+  function daysIn(y, m) { return new Date(y, m, 0).getDate(); }
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function attach(inputId) {
+    var input = document.getElementById(inputId);
+    if (!input || input.dataset.ymd) return;
+    input.dataset.ymd = '1';
+
+    var box = document.createElement('div');
+    box.className = 'ymd';
+    var ys = document.createElement('select'), ms = document.createElement('select'), ds = document.createElement('select');
+    [ys, ms, ds].forEach(function (s) { box.appendChild(s); });
+    ys.setAttribute('aria-label', '태어난 해');
+    ms.setAttribute('aria-label', '태어난 달');
+    ds.setAttribute('aria-label', '태어난 날');
+
+    for (var y = THIS_YEAR; y >= 1920; y--) ys.appendChild(opt(String(y), y + '년'));
+    for (var m = 1; m <= 12; m++) ms.appendChild(opt(pad(m), m + '월'));
+
+    function fillDays() {
+      var keep = ds.value;
+      var n = daysIn(Number(ys.value), Number(ms.value));
+      ds.textContent = '';
+      for (var d = 1; d <= n; d++) ds.appendChild(opt(pad(d), d + '일'));
+      // 31일에서 2월로 옮기면 없는 날이 된다. 그럴 땐 그 달의 마지막 날로 맞춘다
+      ds.value = (keep && Number(keep) <= n) ? keep : pad(n);
+    }
+
+    function pull() {
+      var parts = (input.value || '1990-01-01').split('-');
+      ys.value = parts[0]; ms.value = parts[1];
+      fillDays();
+      ds.value = parts[2];
+    }
+
+    function push() {
+      input.value = ys.value + '-' + ms.value + '-' + ds.value;
+      // 원래 붙어 있던 처리기가 그대로 돈다. 계산 규칙은 바뀌지 않는다
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    ys.addEventListener('change', function () { fillDays(); push(); });
+    ms.addEventListener('change', function () { fillDays(); push(); });
+    ds.addEventListener('change', push);
+
+    pull();
+    input.style.display = 'none';
+    input.insertAdjacentElement('afterend', box);
+  }
+
+  ['date', 'b-date'].forEach(attach);
+})();
+</script>
