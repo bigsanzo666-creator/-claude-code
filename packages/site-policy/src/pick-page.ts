@@ -137,6 +137,25 @@ ${says}
   </article>`;
 }
 
+/**
+ * 날을 고르고 나면 반드시 다음 질문이 온다 — 「그래서 이 아이는 어떤 아이가 되는가」.
+ * 점수는 언제인지만 말해 주고 거기서 끝난다. 그 다음을 여기서 잇는다.
+ *
+ * 고른 날을 그대로 적어 넣어 손님이 다시 옮겨 적지 않게 한다.
+ */
+function nextSection(best: PickGroup): string {
+  return `<section class="pk-next">
+  <p class="pk-nl">고르고 나면</p>
+  <h3>이 아이는 어떤 아이가 될까요</h3>
+  <p class="pk-nd"><strong>${esc(best.date)} (${weekday(best.date)}) ${esc(span(best))}</strong>에 태어나면
+  여덟 글자는 <b>${esc(best.eight)}</b>입니다.
+  이 여덟 글자가 무엇을 말하는지 — 타고난 기질, 무엇을 채워 줘야 하는지,
+  언제 크게 바뀌는지 — 를 읽기 쉬운 글로 풀어 드립니다.</p>
+  <a class="pk-buy" href="/products/child-report">우리 아이 사주 보기 · 19,900원</a>
+  <p class="pk-nh">날 고르는 것은 계속 공짜입니다. 몇 번이든 다시 돌려 보세요.</p>
+</section>`;
+}
+
 function resultSection(result: PickResult): string {
   if (!result.ranked.length) return '';
   const top = result.ranked.slice(0, 6).map((s, i) => card(s, i + 1)).join('\n');
@@ -164,6 +183,8 @@ ${top}
 ${rows}
     </tbody>
   </table>
+
+${nextSection(result.ranked[0]!)}
 
   <p class="pk-warn">이 값은 <strong>의사가 이미 된다고 한 날들 중에서 고른 것</strong>입니다.
   여기서 좋게 나온 날이 의학적으로 괜찮은 날이라는 뜻이 아닙니다.
@@ -260,6 +281,16 @@ export const PICK_CSS = `
   color:var(--nb-ink-3);border-bottom:1px solid var(--nb-line)}
 .pk-tb td{padding:10px 6px;border-bottom:1px solid var(--nb-line-soft)}
 .pk-tb .pk-n{font-family:var(--nb-serif);font-size:16px;color:var(--nb-gold)}
+.pk-next{margin:30px 0 0;padding:22px;border:1px solid var(--nb-gold);background:var(--nb-paper-2)}
+.pk-nl{margin:0 0 6px;font-size:11px;letter-spacing:.16em;color:var(--nb-gold)}
+.pk-next h3{margin:0 0 10px;font-family:var(--nb-serif);font-size:20px;font-weight:400}
+.pk-nd{margin:0 0 16px;font-size:14px;line-height:1.9;color:var(--nb-ink-2);word-break:keep-all}
+.pk-nd b{font-family:var(--nb-serif);font-weight:400;letter-spacing:.06em;color:var(--nb-ink)}
+.pk-buy{display:block;padding:15px;text-align:center;text-decoration:none;
+  border:1px solid var(--nb-ink);background:var(--nb-ink);color:var(--nb-paper-2);
+  font:500 15.5px var(--nb-sans)}
+.pk-buy:hover{background:transparent;color:var(--nb-ink)}
+.pk-nh{margin:12px 0 0;font-size:12.5px;line-height:1.7;color:var(--nb-ink-3)}
 .pk-warn{margin:22px 0 0;padding:16px;border:1px solid var(--nb-line);background:var(--nb-paper-2);
   font-size:13.5px;line-height:1.85;color:var(--nb-ink-2);word-break:keep-all}
 
