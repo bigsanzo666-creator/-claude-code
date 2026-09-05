@@ -16,7 +16,7 @@ import {
   renderGate, GATE_CSS, GATE_SCRIPT, sceneUrl,
   renderStage, STAGE_CSS, STAGE_SCRIPT,
   renderWhy, WHY_CSS, LAYERS, CLAIMS,
-  renderPickPage, PICK_CSS, PLACES, TIMES, DATE_SLOTS,
+  renderPickPage, PICK_CSS, PLACES, TIMES, DATE_SLOTS, slotLabel, slotSpan,
   renderRobots, renderSitemap,
 } from './src/index.ts';
 import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
@@ -596,9 +596,9 @@ section('11. 문 — 신령계 들어가는 곳');
 {
   section('택일 화면');
 
-  const { pickDays, bestPerDay } = await import('../saju-rules/src/index.ts');
+  const { pickDays, bestPerDay, mergeHours } = await import('../saju-rules/src/index.ts');
   const empty = renderPickPage(full, '<footer>ft</footer>',
-    { dates: [], times: ['09:00'], place: '서울' }, { ranked: [], perDay: [] });
+    { dates: [], times: [TIMES[2]], place: '서울' }, { ranked: [], perDay: [] });
 
   // 자바스크립트가 꺼져 있어도 돌아야 한다. 폼을 그대로 보낸다
   check('폼이 서버로 그냥 간다',
@@ -609,11 +609,12 @@ section('11. 문 — 신령계 들어가는 곳');
   check('태어날 곳을 고른다', PLACES.every((x) => empty.includes(`>${x.name}</option>`)));
   check('아직 잰 것이 없으면 결과 칸이 없다', !empty.includes('골라 본 결과'));
 
-  const ranked = pickDays({
-    dates: ['2027-04-27', '2027-04-30'], times: ['09:00', '16:00'], longitude: 126.705,
-  });
+  // 서버가 넘기는 것과 같은 모양으로 — 같은 시주는 묶여서 온다
+  const ranked = mergeHours(pickDays({
+    dates: ['2027-04-27', '2027-04-30'], times: ['09:30', '15:30'], longitude: 126.705,
+  }));
   const out = renderPickPage(full, '<footer>ft</footer>',
-    { dates: ['2027-04-27', '2027-04-30'], times: ['09:00', '16:00'], place: '인천' },
+    { dates: ['2027-04-27', '2027-04-30'], times: ['09:30', '15:30'], place: '인천' },
     { ranked, perDay: bestPerDay(ranked) });
 
   check('결과가 나온다', out.includes('골라 본 결과'));
@@ -631,6 +632,25 @@ section('11. 문 — 신령계 들어가는 곳');
   check('값을 받지 않는다고 적는다', empty.includes('값은 받지 않습니다'));
 
   check('화면 CSS가 함께 실린다', empty.includes('.pk-form') && PICK_CSS.includes('.pk-card'));
+
+  // 아기는 정각에 맞춰 나오지 않는다. 손님은 폭으로 고른다
+  check('시각을 폭으로 보여 준다', TIMES.every((t) => empty.includes(`>${slotLabel(t)}</span>`)));
+  check('정각만 덩그러니 두지 않는다', !/>\d\d:\d\d<\/span>/.test(empty));
+  check('폭은 한 시간씩 이어 붙는다', slotLabel('07:30') === '07~08시' && slotLabel('16:30') === '16~17시');
+  check('묶인 칸은 열린 때부터 닫힌 때까지', slotSpan('10:30', '11:30') === '10~12시');
+  check('한 칸이면 그 한 시간만', slotSpan('09:30', '09:30') === '09~10시');
+  check('결과도 폭으로 적는다', /\d\d~\d\d시/.test(out));
+
+  // 어려운 말 옆에 뜻과 예가 붙어 있어야 한다
+  check('어려운 말을 풀어 준다',
+    out.includes('내 편이 얼마나 되는가') && out.includes('서로 미는 글자가 있는가'));
+  check('다섯 가지 모두 예를 든다', (out.match(/class="pk-re"/g) ?? []).length === 5);
+  check('충을 한자말로만 두지 않는다', out.includes('충(沖)') && out.includes('서로 밀어내는 짝'));
+
+  // 날짜 칸이 서로 붙어 보이면 안 된다
+  check('칸이 옆 칸을 밀고 들어가지 않는다', PICK_CSS.includes('box-sizing:border-box'));
+  check('날짜 칸마다 번호가 붙는다',
+    Array.from({ length: DATE_SLOTS }, (_, i) => `후보 ${i + 1}`).every((x) => empty.includes(x)));
 }
 
 
