@@ -26,6 +26,7 @@ import {
   renderHero, renderTryHeading, LANDING_CSS, FONT_LINK, renderProductPage,
   renderSpiritRow, renderSocialHead, HOME_TITLE, HOME_DESCRIPTION,
   renderStage, STAGE_CSS, STAGE_SCRIPT,
+  renderPickPage, PLACES, TIMES, DATE_SLOTS, type PickForm,
   type BusinessInfo,
 } from '../../../packages/site-policy/src/index.ts';
 import {
@@ -38,6 +39,7 @@ import {
   type TalkTurn,
 } from '../../../packages/talk/src/index.ts';
 import { buildPayload, buildPayloads, KIND_OF, type ReadingRequest } from './payload.ts';
+import { pickDays, bestPerDay, mergeHours } from '../../../packages/saju-rules/src/index.ts';
 import { buildPreview } from './preview.ts';
 
 /** 주문 저장소. 배포 전에 Postgres 구현체로 갈아끼운다. */
@@ -256,6 +258,35 @@ async function readJson(req: IncomingMessage): Promise<any> {
   if (!chunks.length) return {};
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); }
   catch { throw new HttpError(400, '본문이 올바른 JSON이 아닙니다.'); }
+}
+
+/**
+ * 폼으로 보낸 값을 읽는다.
+ *
+ * 택일은 자바스크립트 없이도 돌아야 한다. 폼을 그대로 보내면 서버가 재서 결과가
+ * 그려진 페이지를 돌려준다 — 이 화면에는 손님의 생년월일이 오지 않으므로
+ * 서버에서 계산해도 된다.
+ */
+async function readForm(req: IncomingMessage): Promise<URLSearchParams> {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > 32 * 1024) throw new HttpError(413, '요청이 너무 큽니다.');
+    chunks.push(chunk as Buffer);
+  }
+  return new URLSearchParams(Buffer.concat(chunks).toString('utf8'));
+}
+
+/** 보내온 값을 그대로 믿지 않는다. 아는 것만 남긴다 */
+function cleanPickForm(body: URLSearchParams): PickForm {
+  const dates = [...new Set(body.getAll('date'))]
+    .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(`${d}T00:00:00Z`)))
+    .sort()
+    .slice(0, DATE_SLOTS);
+  const times = body.getAll('time').filter((t) => TIMES.includes(t)).sort();
+  const place = PLACES.some((x) => x.name === body.get('place')) ? body.get('place')! : '서울';
+  return { dates, times, place };
 }
 
 function send(res: ServerResponse, status: number, body: unknown): void {
@@ -567,6 +598,33 @@ export function createApi(deps: ApiDeps) {
       sendHtml(res, renderProductsPage(
         business, checkout !== null, renderFooter(business), haveImage, haveFace, haveScene,
       )),
+
+    /*
+     * 택일 — 수술로 낳는 날 고르기.
+     *
+     * 값을 받지 않는다. 아무도 자동으로 안 해 주는 일이라 이것만 보고 들어오는
+     * 손님이 있고, 그 손님이 아기 이름과 사주까지 보게 된다.
+     */
+    'GET /pick': async (_req, res) => sendHtml(res, renderPickPage(
+      business, renderFooter(business),
+      { dates: [], times: ['09:00', '10:00', '11:00'], place: '서울' },
+      { ranked: [], perDay: [] },
+    )),
+
+    'POST /pick': async (req, res) => {
+      const form = cleanPickForm(await readForm(req));
+      const times = form.times.length ? form.times : ['09:00', '10:00', '11:00'];
+      const longitude = PLACES.find((x) => x.name === form.place)!.longitude;
+      // 같은 시주끼리는 묶어서 낸다. 10시와 11시가 같은 사시면 한 칸이면 된다
+      const ranked = form.dates.length
+        ? mergeHours(pickDays({ dates: form.dates, times, longitude }))
+        : [];
+      sendHtml(res, renderPickPage(
+        business, renderFooter(business),
+        { ...form, times },
+        { ranked, perDay: ranked.length ? bestPerDay(ranked) : [] },
+      ));
+    },
 
     'GET /terms': async (_req, res) => sendHtml(res, renderTerms(business)),
     'GET /privacy': async (_req, res) => sendHtml(res, renderPrivacy(business)),

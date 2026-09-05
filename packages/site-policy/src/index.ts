@@ -7,3 +7,4 @@ export * from './social.ts';
 export * from './gate.ts';
 export * from './stage.ts';
 export * from './why.ts';
+export * from './pick-page.ts';

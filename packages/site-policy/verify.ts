@@ -16,6 +16,7 @@ import {
   renderGate, GATE_CSS, GATE_SCRIPT, sceneUrl,
   renderStage, STAGE_CSS, STAGE_SCRIPT,
   renderWhy, WHY_CSS, LAYERS, CLAIMS,
+  renderPickPage, PICK_CSS, PLACES, TIMES, DATE_SLOTS,
 } from './src/index.ts';
 import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
@@ -587,6 +588,48 @@ section('11. 문 — 신령계 들어가는 곳');
   check('판의 CSS가 상품 묶음에 실린다', PRODUCTS_CSS.includes('.why-stack'));
   check('넓은 화면에서 두 칸으로 눕는다',
     /min-width:760px[\s\S]{0,400}\.why-grid\{grid-template-columns:1fr 1fr/.test(WHY_CSS));
+}
+
+
+// ─── 택일 화면 ────────────────────────────────────────────────
+{
+  section('택일 화면');
+
+  const { pickDays, bestPerDay } = await import('../saju-rules/src/index.ts');
+  const empty = renderPickPage(full, '<footer>ft</footer>',
+    { dates: [], times: ['09:00'], place: '서울' }, { ranked: [], perDay: [] });
+
+  // 자바스크립트가 꺼져 있어도 돌아야 한다. 폼을 그대로 보낸다
+  check('폼이 서버로 그냥 간다',
+    empty.includes('method="post"') && empty.includes('action="/pick"'));
+  check('스크립트 없이 돈다', !empty.includes('<script'));
+  check('날짜 칸이 넉넉하다', (empty.match(/name="date"/g) ?? []).length === DATE_SLOTS);
+  check('시각을 다 고를 수 있다', (empty.match(/name="time"/g) ?? []).length === TIMES.length);
+  check('태어날 곳을 고른다', PLACES.every((x) => empty.includes(`>${x.name}</option>`)));
+  check('아직 잰 것이 없으면 결과 칸이 없다', !empty.includes('골라 본 결과'));
+
+  const ranked = pickDays({
+    dates: ['2027-04-27', '2027-04-30'], times: ['09:00', '16:00'], longitude: 126.705,
+  });
+  const out = renderPickPage(full, '<footer>ft</footer>',
+    { dates: ['2027-04-27', '2027-04-30'], times: ['09:00', '16:00'], place: '인천' },
+    { ranked, perDay: bestPerDay(ranked) });
+
+  check('결과가 나온다', out.includes('골라 본 결과'));
+  check('1순위가 맨 앞', out.indexOf('1순위') < out.indexOf('2순위'));
+  check('여덟 글자를 함께 보여 준다', out.includes(ranked[0].eight));
+  check('요일을 붙여 준다', /\(월|\(화|\(수|\(목|\(금|\(토|\(일/.test(out));
+  check('날마다 최고를 따로 낸다', out.includes('날마다 제일 좋은 시각'));
+
+  // 이 화면이 지켜야 할 말 셋
+  check('의사가 된 날만 넣으라고 한다', out.includes('의사가 된다고 한 날'));
+  check('몸이 먼저라고 적는다', out.includes('산모와 아기의 몸이 먼저입니다'));
+  check('100점이 없는 이유를 밝힌다', out.includes('100점은 나오지 않습니다'));
+  check('무엇으로 매긴 점수인지 밝힌다',
+    out.includes('길신') && out.includes('부딪힘') && out.includes('빈 기운'));
+  check('값을 받지 않는다고 적는다', empty.includes('값은 받지 않습니다'));
+
+  check('화면 CSS가 함께 실린다', empty.includes('.pk-form') && PICK_CSS.includes('.pk-card'));
 }
 
 console.log(`\n${'═'.repeat(60)}`);

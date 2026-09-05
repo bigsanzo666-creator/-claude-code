@@ -173,3 +173,35 @@ export function bestPerDay(scores: PickScore[]): PickScore[] {
   }
   return [...best.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
+
+/**
+ * 같은 시주끼리 묶는다.
+ *
+ * 시주는 두 시간마다 바뀐다. 10시와 11시는 둘 다 사시(巳時)라 여덟 글자가 같고
+ * 점수도 같다. 그것을 두 칸으로 늘어놓으면 손님은 같은 것을 두 번 읽는다.
+ * 한 칸으로 묶고 「10:00~11:00」이라고 적어 준다 — **고를 수 있는 폭**이 그대로
+ * 보이는 편이 낫다.
+ */
+export interface PickGroup extends PickScore {
+  /** 이 여덟 글자가 유지되는 마지막 시각. 한 시각뿐이면 time 과 같다 */
+  untilTime: string;
+  /** 묶인 시각 전부 */
+  times: string[];
+}
+
+export function mergeHours(scores: PickScore[]): PickGroup[] {
+  const groups = new Map<string, PickGroup>();
+  for (const s of scores) {
+    const key = `${s.date} ${s.eight}`;
+    const had = groups.get(key);
+    if (!had) {
+      groups.set(key, { ...s, untilTime: s.time, times: [s.time] });
+      continue;
+    }
+    had.times.push(s.time);
+    had.times.sort();
+    had.time = had.times[0];
+    had.untilTime = had.times[had.times.length - 1];
+  }
+  return [...groups.values()].sort((a, b) => b.total - a.total);
+}

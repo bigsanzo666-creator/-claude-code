@@ -15,7 +15,7 @@ import {
   compatibility, sajuToTraits, crossValidate,
   allTopics, extractTopic, ALL_TOPICS, TOPIC_LABELS,
   freeReading, GOD_PLAIN, ELEMENT_PLAIN,
-  pickScore, pickDays, bestPerDay, bandOf, BANDS,
+  pickScore, pickDays, bestPerDay, bandOf, BANDS, mergeHours,
 } from './src/index.ts';
 import { readFace, NEUTRAL_FEATURES } from '../physiognomy/src/index.ts';
 import { readPalm, NEUTRAL_PALM_FEATURES } from '../palmistry/src/index.ts';
@@ -714,6 +714,21 @@ section('주제별 분리 (상품을 열 개로 나누기 위한 것)');
     `${(sample.filter((x) => x >= 70).length / sample.length * 100).toFixed(1)}%`);
   check('한가운데는 무난함 언저리',
     bandOf(sample[Math.floor(sample.length / 2)]) !== '아주 좋음');
+
+  // 시주는 두 시간마다 바뀐다. 같은 것을 두 번 읽히지 않는다
+  const wide = pickDays({
+    dates: ['2027-04-27'], times: ['09:00', '10:00', '11:00', '16:00'], longitude: 126.72,
+  });
+  const merged = mergeHours(wide);
+  check('같은 시주는 한 칸으로 묶는다', merged.length < wide.length,
+    `${wide.length}칸 → ${merged.length}칸`);
+  check('묶인 칸은 시각 폭을 보여 준다',
+    merged.some((g) => g.times.length > 1 && g.time < g.untilTime));
+  check('묶어도 점수는 그대로', merged.every((g) =>
+    wide.filter((s) => s.date === g.date && s.eight === g.eight).every((s) => s.total === g.total)));
+  check('묶은 뒤에도 좋은 순', merged.every((g, i) => i === 0 || merged[i - 1].total >= g.total));
+  check('빠뜨린 시각이 없다',
+    merged.reduce((n, g) => n + g.times.length, 0) === wide.length);
 
   check('눈금이 내림차순이라 첫 칸부터 걸린다',
     BANDS.every((b, i) => i === 0 || BANDS[i - 1].at > b.at));
