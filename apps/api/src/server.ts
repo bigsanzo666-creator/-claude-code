@@ -27,6 +27,7 @@ import {
   renderSpiritRow, renderSocialHead, HOME_TITLE, HOME_DESCRIPTION,
   renderStage, STAGE_CSS, STAGE_SCRIPT,
   renderPickPage, PLACES, TIMES, DATE_SLOTS, type PickForm,
+  renderRobots, renderSitemap,
   type BusinessInfo,
 } from '../../../packages/site-policy/src/index.ts';
 import {
@@ -624,6 +625,30 @@ export function createApi(deps: ApiDeps) {
         { ...form, times },
         { ranked, perDay: ranked.length ? bestPerDay(ranked) : [] },
       ));
+    },
+
+    /*
+     * 검색엔진에 길을 알려 준다.
+     *
+     * 주소만 등록해 두면 무엇을 긁어야 하는지 몰라 수집이 한참 걸린다.
+     * 값을 받지 않는 판으로 손님을 데려오는 장사라 이 두 파일이 곧 매출이다.
+     */
+    'GET /robots.txt': async (_req, res) => {
+      const body = renderRobots(business);
+      res.writeHead(200, {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Length': Buffer.byteLength(body),
+      });
+      res.end(body);
+    },
+
+    'GET /sitemap.xml': async (_req, res) => {
+      const body = renderSitemap(business);
+      res.writeHead(200, {
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Content-Length': Buffer.byteLength(body),
+      });
+      res.end(body);
     },
 
     'GET /terms': async (_req, res) => sendHtml(res, renderTerms(business)),

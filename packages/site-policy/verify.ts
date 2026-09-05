@@ -17,6 +17,7 @@ import {
   renderStage, STAGE_CSS, STAGE_SCRIPT,
   renderWhy, WHY_CSS, LAYERS, CLAIMS,
   renderPickPage, PICK_CSS, PLACES, TIMES, DATE_SLOTS,
+  renderRobots, renderSitemap,
 } from './src/index.ts';
 import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
@@ -630,6 +631,39 @@ section('11. 문 — 신령계 들어가는 곳');
   check('값을 받지 않는다고 적는다', empty.includes('값은 받지 않습니다'));
 
   check('화면 CSS가 함께 실린다', empty.includes('.pk-form') && PICK_CSS.includes('.pk-card'));
+}
+
+
+// ─── 검색엔진에 길 알려 주기 ──────────────────────────────────
+{
+  section('robots.txt · sitemap.xml');
+
+  const info = { ...full, serviceUrl: 'https://neulbomsaju.co.kr' };
+  const robots = renderRobots(info);
+  const map = renderSitemap(info);
+
+  check('다 긁어 가도 된다고 한다', robots.includes('Allow: /'));
+  // 주문과 리포트는 사람마다 다르다. 남의 주문서가 검색에 걸리면 안 된다
+  check('주문 길은 막는다', robots.includes('Disallow: /api/'));
+  check('지도가 어디 있는지 알려 준다',
+    robots.includes('Sitemap: https://neulbomsaju.co.kr/sitemap.xml'));
+  check('주소를 모르면 지도를 가리키지 않는다',
+    !renderRobots({ ...full, serviceUrl: '' }).includes('Sitemap:'));
+
+  check('지도가 XML이다', map.startsWith('<?xml') && map.includes('<urlset'));
+  check('택일이 지도에 있다', map.includes('<loc>https://neulbomsaju.co.kr/pick</loc>'));
+  check('첫 화면이 지도에 있다', map.includes('<loc>https://neulbomsaju.co.kr/</loc>'));
+  check('정책 화면도 있다',
+    ['/terms', '/privacy', '/refund'].every((p) => map.includes(`<loc>https://neulbomsaju.co.kr${p}</loc>`)));
+  // 사람들은 「사주」가 아니라 「재물운 사주」로 찾는다. 낱개 페이지가 걸려야 한다
+  check('상품 낱개 페이지가 전부 있다',
+    Object.values(CATALOG).every((p) => map.includes(`/products/${encodeURIComponent(p.id)}</loc>`)),
+    `${Object.keys(CATALOG).length}개`);
+  check('주문 길은 지도에 없다', !map.includes('/api/'));
+  check('택일을 상품보다 앞세운다',
+    map.indexOf('/pick</loc>') < map.indexOf('/products/'));
+  check('주소 끝의 빗금을 두 번 넣지 않는다',
+    !renderSitemap({ ...full, serviceUrl: 'https://neulbomsaju.co.kr/' }).includes('.kr//'));
 }
 
 console.log(`\n${'═'.repeat(60)}`);
