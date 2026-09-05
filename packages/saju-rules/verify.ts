@@ -15,6 +15,7 @@ import {
   compatibility, sajuToTraits, crossValidate,
   allTopics, extractTopic, ALL_TOPICS, TOPIC_LABELS,
   freeReading, GOD_PLAIN, ELEMENT_PLAIN,
+  pickScore, pickDays, bestPerDay, bandOf, BANDS,
 } from './src/index.ts';
 import { readFace, NEUTRAL_FEATURES } from '../physiognomy/src/index.ts';
 import { readPalm, NEUTRAL_PALM_FEATURES } from '../palmistry/src/index.ts';
@@ -659,6 +660,64 @@ section('주제별 분리 (상품을 열 개로 나누기 위한 것)');
 
   check('쉬운 말 표가 다섯씩',
     Object.keys(GOD_PLAIN).length === 5 && Object.keys(ELEMENT_PLAIN).length === 5);
+}
+
+
+// ─── 택일 ─────────────────────────────────────────────────────
+{
+  section('택일');
+
+  const one = pickScore('2027-05-05', '16:00', 126.72);
+  check('여덟 글자를 함께 준다', one.eight.split(' ').length === 4, one.eight);
+  check('점수와 눈금말이 같이 온다', one.total > 0 && one.band.length > 0,
+    `${one.total}점 ${one.band}`);
+  check('왜 그 점수인지 말해 준다', one.says.length >= 3);
+  // 같은 날이면 언제 재도 같은 점수여야 한다
+  check('같은 날 같은 시각이면 같은 점수',
+    JSON.stringify(pickScore('2027-05-05', '16:00', 126.72)) === JSON.stringify(one));
+
+  // 날만 고르면 반쪽이다. 시주가 바뀌면 점수가 크게 갈린다
+  const morning = pickScore('2027-04-30', '10:00', 126.72);
+  const evening = pickScore('2027-04-30', '16:00', 126.72);
+  check('같은 날이라도 시각이 다르면 점수가 다르다',
+    morning.total !== evening.total, `${morning.total} vs ${evening.total}`);
+
+  // 손님이 의사한테 받은 날 말고는 보지 않는다
+  const dates = ['2027-04-27', '2027-04-30', '2027-05-03'];
+  const times = ['09:00', '16:00'];
+  const list = pickDays({ dates, times, longitude: 126.72 });
+  check('받은 날과 시각만 잰다', list.length === dates.length * times.length);
+  check('그 밖의 날은 넣지 않는다', list.every((s) => dates.includes(s.date)));
+  check('좋은 순으로 온다', list.every((s, i) => i === 0 || list[i - 1].total >= s.total));
+
+  const perDay = bestPerDay(list);
+  check('날마다 제일 좋은 시각 하나씩', perDay.length === dates.length);
+  check('날짜 순으로 온다', perDay.every((s, i) => i === 0 || perDay[i - 1].date < s.date));
+  check('그날 최고점이 맞다', perDay.every((b) =>
+    list.filter((s) => s.date === b.date).every((s) => s.total <= b.total)));
+
+  let threw = 0;
+  try { pickDays({ dates: [], times }); } catch { threw++; }
+  try { pickDays({ dates, times: [] }); } catch { threw++; }
+  check('날이나 시각이 비면 던진다', threw === 2);
+
+  // 눈금 — 100점은 구조적으로 안 나온다. 여덟 글자 중 넷이 이미 정해져 있다
+  const sample: number[] = [];
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(Date.UTC(2028, 0, 1) + i * 86400000).toISOString().slice(0, 10);
+    sample.push(pickScore(d, '12:00').total);
+  }
+  sample.sort((a, b) => b - a);
+  check('100점짜리 날은 없다', sample[0] < 90, `한 해 최고 ${sample[0]}점`);
+  check('아주 좋음은 드물다',
+    sample.filter((x) => x >= 70).length / sample.length < 0.15,
+    `${(sample.filter((x) => x >= 70).length / sample.length * 100).toFixed(1)}%`);
+  check('한가운데는 무난함 언저리',
+    bandOf(sample[Math.floor(sample.length / 2)]) !== '아주 좋음');
+
+  check('눈금이 내림차순이라 첫 칸부터 걸린다',
+    BANDS.every((b, i) => i === 0 || BANDS[i - 1].at > b.at));
+  check('아무리 낮아도 말이 붙는다', bandOf(-999).length > 0);
 }
 
 console.log(`\n${'═'.repeat(60)}`);

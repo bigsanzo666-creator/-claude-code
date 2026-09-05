@@ -238,3 +238,4 @@ export function formatAnalysis(a: Analysis): string {
 }
 
 export { GOD_MEANING };
+export * from './pick.ts';
