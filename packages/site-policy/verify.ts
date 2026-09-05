@@ -666,6 +666,23 @@ section('11. 문 — 신령계 들어가는 곳');
     !renderSitemap({ ...full, serviceUrl: 'https://neulbomsaju.co.kr/' }).includes('.kr//'));
 }
 
+
+// ─── 네이버 소유확인 ──────────────────────────────────────────
+{
+  section('네이버 소유확인');
+
+  const { renderSocialHead } = await import('./src/social.ts');
+  const head = renderSocialHead(
+    { ...full, serviceUrl: 'https://neulbomsaju.co.kr' },
+    { title: '택일', description: '설명', path: '/pick' },
+  );
+  const on = Boolean((process.env.NAVER_SITE_VERIFICATION ?? '').trim());
+  // 값이 있으면 넣고 없으면 안 넣는다. 빈 태그를 남기지 않는다
+  check('값이 있을 때만 태그를 넣는다',
+    head.includes('naver-site-verification') === on,
+    on ? '값 있음' : '값 없음 — 태그도 없음');
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }

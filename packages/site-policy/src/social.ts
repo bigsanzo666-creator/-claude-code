@@ -53,6 +53,9 @@ export interface SocialOptions {
  * `<title>` 까지 여기서 만든다. 화면마다 따로 적으면 언젠가 한 곳이 빠지고,
  * 빠진 그 화면이 하필 손님이 링크로 받는 화면이다.
  */
+/** 네이버가 내주는 소유확인 값. 없으면 태그를 넣지 않는다 */
+const NAVER_VERIFY = (process.env.NAVER_SITE_VERIFICATION ?? '').trim();
+
 export function renderSocialHead(info: BusinessInfo, o: SocialOptions): string {
   const name = siteName(info);
   // 가운뎃점은 제목 안에서 이미 쓰고 있다. 이름과 한 줄은 줄표로 가른다
@@ -80,5 +83,13 @@ export function renderSocialHead(info: BusinessInfo, o: SocialOptions): string {
     `<meta name="twitter:description" content="${esc(o.description)}">`,
     image ? `<meta name="twitter:image" content="${esc(image)}">` : '',
     url ? `<link rel="canonical" href="${esc(url)}">` : '',
+    /*
+     * 네이버 웹마스터도구 소유확인.
+     *
+     * 이 한 줄이 없으면 사이트를 등록할 수 없고, 등록이 안 되면 수집 요청도
+     * 검색 노출 확인도 못 한다. 값은 네이버가 내주는 것이라 환경변수로 받는다 —
+     * 확인이 끝난 뒤에도 지우면 안 된다. 지우면 소유가 풀린다.
+     */
+    NAVER_VERIFY ? `<meta name="naver-site-verification" content="${esc(NAVER_VERIFY)}">` : '',
   ].filter(Boolean).join('\n');
 }
