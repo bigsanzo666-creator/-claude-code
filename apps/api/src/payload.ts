@@ -10,11 +10,12 @@ import { orderable } from '../../../packages/commerce/src/orderable.ts';
 import { calculate } from '../../../packages/manseryeok/src/index.ts';
 import {
   analyze, calculateDaeun, currentDaeun, annualLuck,
-  compatibility, sajuToTraits, crossValidate,
+  compatibility, sajuToTraits, crossValidate, groupElement,
 } from '../../../packages/saju-rules/src/index.ts';
 import { pickDays, mergeHours, bestPerDay, slotSpan, slotLabel } from '../../../packages/saju-rules/src/index.ts';
 import { readFace, NEUTRAL_FEATURES } from '../../../packages/physiognomy/src/index.ts';
 import { readPalm, NEUTRAL_PALM_FEATURES } from '../../../packages/palmistry/src/index.ts';
+import { nameField, type NameWish } from '../../../packages/naming/src/index.ts';
 import { CATALOG, type ProductId } from '../../../packages/commerce/src/index.ts';
 import type { ReportKind } from '../../../packages/report/src/prompt.ts';
 
@@ -38,11 +39,23 @@ export interface PickInput {
   place?: string;
 }
 
+/** 작명에 넣는 것. 아이의 사주는 birth 로 받고, 여기에는 집안 사정을 받는다 */
+export interface NameInput {
+  /** 성. 「김」처럼 한글로 받거나 「金」처럼 한자로 받는다 */
+  surname: string;
+  /** 돌림자. 형제가 쓰는 글자를 그대로 이어 갈 때만 */
+  fixed?: { char: string; at: '앞' | '뒤' };
+  /** 쓰고 싶지 않은 글자 */
+  avoid?: string[];
+}
+
 export interface ReadingRequest {
   productId: ProductId;
   birth: BirthInput;
   /** 택일 상품에서만 쓴다 */
   pick?: PickInput;
+  /** 작명 상품에서만 쓴다 */
+  name?: NameInput;
   /** 궁합용 상대 */
   partner?: BirthInput;
   /** 교차검증용 관상·손금 특징 */
@@ -78,6 +91,8 @@ export function kindOf(productId: ProductId): ReportKind {
   if (listed) return listed;
   // 얼굴과 손을 받는 상품은 전부 교차검증이다. 표에 적는 것을 잊어도 여기서 걸린다
   if (CATALOG[productId]?.needsFace) return '교차검증';
+  // 성을 받는 상품은 전부 작명이다
+  if (CATALOG[productId]?.needsName) return '작명';
   return '사주';
 }
 
@@ -145,6 +160,74 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
         순위: ranked.map(say),
         날마다최고: bestPerDay(ranked).map(say),
         눈금: '연주와 월주는 이미 정해져 있어 고를 수 있는 것은 절반뿐이다. 100점은 나오지 않는다.',
+      },
+    };
+  }
+
+  /*
+   * 작명.
+   *
+   * 아이의 사주를 먼저 세우고, 거기서 **채워야 할 기운(용신)** 을 꺼낸다.
+   * 그 기운과 성의 획수로 쓸 수 있는 글자를 좁혀 밭을 만든다.
+   *
+   * 여기서 이름을 정하지 않는다. 밭만 만들어 넘긴다 — 어느 것이 이름다운지는
+   * 획수로 정해지지 않기 때문이다. 그건 글을 쓰는 쪽이 고른다.
+   */
+  if (kindOf(req.productId) === '작명') {
+    const wish = req.name;
+    if (!wish?.surname?.trim()) throw new Error('작명에는 아이의 성이 필요합니다.');
+    const { ms, an } = sajuBundle(req.birth);
+    /*
+     * 용신은 「식상이 필요하다」처럼 **십신**으로 나온다. 글자를 고르려면
+     * 「그래서 무슨 기운의 글자냐」로 바꿔야 한다. 십신이 가리키는 오행은
+     * 일간이 무엇이냐에 따라 달라진다 — 일간이 목이면 재성은 토고, 화면 금이다.
+     */
+    const me = an.dayMaster.element;
+    const want = an.yongsin.primary.map((g) => groupElement(me, g)) as NameWish['elements'];
+    const avoidEl = an.yongsin.avoid.map((g) => groupElement(me, g));
+    /*
+     * 밭을 얼마나 크게 펼칠 것인가.
+     *
+     * 엔진은 길한 획수 짝을 마흔 가지쯤 찾아내고 자리마다 스무 자를 낸다.
+     * 그것을 다 실으면 리포트 한 편에 십구만 토큰이 들어간다 — 이름 다섯 개를
+     * 짓는 데 그만한 돈을 쓸 수 없다.
+     *
+     * 열두 짝에 자리마다 열두 자면 조합이 천칠백 가지가 넘는다. 다섯을 고르는
+     * 데 모자라지 않는다.
+     */
+    const field = nameField({
+      surname: wish.surname,
+      elements: want,
+      fixed: wish.fixed,
+      avoid: wish.avoid,
+      pairLimit: 12,
+      charLimit: 12,
+    });
+    return {
+      kind: '작명',
+      subject: `${field.성.한글} 씨 아이`,
+      data: {
+        채워야할기운: {
+          오행: want,
+          십신: an.yongsin.primary,
+          덜어낼기운: { 오행: avoidEl, 십신: an.yongsin.avoid },
+          까닭: an.yongsin.reasoning,
+          유파: an.yongsin.school,
+        },
+        아이사주: {
+          명식: {
+            연주: `${ms.year.stem}${ms.year.branch}`,
+            월주: `${ms.month.stem}${ms.month.branch}`,
+            일주: `${ms.day.stem}${ms.day.branch}`,
+            시주: ms.hour ? `${ms.hour.stem}${ms.hour.branch}` : null,
+          },
+          일간: an.dayMaster,
+          오행: an.elements,
+          강약: an.strength,
+          용신: an.yongsin,
+          없는_십신: an.missingGroups,
+        },
+        이름밭: slimField(field),
       },
     };
   }
@@ -217,5 +300,39 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
       손금: { 항목별: palm.notes, 신호: palm.profile.signals },
       교차검증: crossValidate(sajuToTraits(an), face.profile, palm.profile),
     },
+  };
+}
+
+/**
+ * 이름밭을 글 쓰는 쪽이 읽기 좋게 줄인다.
+ *
+ * 엔진이 내는 값은 부수 번호까지 들고 있는데, 글에는 쓰이지 않으면서 자리는
+ * 그대로 차지한다. 이름 하나에 백 자가 넘는 JSON 이 붙으면 정작 읽어야 할
+ * 글자가 묻힌다.
+ *
+ * 열쇠말을 한글로 두는 것도 같은 까닭이다. 모델이 「strokes」보다 「획」을
+ * 덜 헷갈린다.
+ */
+function slimField(field: ReturnType<typeof nameField>) {
+  const say = (h: { char: string; readings: string[]; strokes: number; element: string | null; meaning: string }) => ({
+    자: h.char, 소리: h.readings.join('·'), 획: h.strokes,
+    기운: h.element ?? '갈림', 뜻: h.meaning || null,
+  });
+  return {
+    성: field.성,
+    돌림자: field.돌림자,
+    후보: field.후보.map((p) => ({
+      앞획: p.first,
+      끝획: p.last,
+      네격: {
+        초년운: { 획: p.frames.won, 수: p.frames.wonN.name, 뜻: p.frames.wonN.say },
+        청년운: { 획: p.frames.hyeong, 수: p.frames.hyeongN.name, 뜻: p.frames.hyeongN.say },
+        장년운: { 획: p.frames.i, 수: p.frames.iN.name, 뜻: p.frames.iN.say },
+        전체운: { 획: p.frames.jeong, 수: p.frames.jeongN.name, 뜻: p.frames.jeongN.say },
+      },
+      앞자리: p.firstChars.map(say),
+      끝자리: p.lastChars.map(say),
+    })),
+    눈금: field.눈금,
   };
 }

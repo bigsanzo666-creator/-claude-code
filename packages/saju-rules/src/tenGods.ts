@@ -78,3 +78,37 @@ const STRONG_STAGES: TwelveStage[] = ['장생', '관대', '건록', '제왕'];
 export function isStrongStage(stage: TwelveStage): boolean {
   return STRONG_STAGES.includes(stage);
 }
+
+/**
+ * 십신 갈래가 **어느 오행인가**.
+ *
+ * 십신은 일간을 기준으로 한 관계 이름이라, 같은 「재성」이라도 일간이 무엇이냐에
+ * 따라 가리키는 오행이 다르다. 일간이 목이면 재성은 토고, 일간이 화면 재성은
+ * 금이다.
+ *
+ * 작명이 이것을 쓴다. 용신은 「식상이 필요하다」로 나오는데, 글자를 고르려면
+ * 「그래서 무슨 기운의 글자냐」로 바꿔야 한다.
+ *
+ *   비겁 = 나와 같은 것
+ *   식상 = 내가 낳는 것
+ *   재성 = 내가 이기는 것
+ *   관성 = 나를 이기는 것
+ *   인성 = 나를 낳는 것
+ */
+export function groupElement(dayElement: Element, group: GodGroup): Element {
+  switch (group) {
+    case '비겁': return dayElement;
+    case '식상': return GENERATES[dayElement];
+    case '재성': return CONTROLS[dayElement];
+    case '관성': return reverse(CONTROLS, dayElement);
+    case '인성': return reverse(GENERATES, dayElement);
+  }
+}
+
+/** 표를 거꾸로 본다. 「나를 이기는 것」은 「내가 이기는 것」의 반대다 */
+function reverse(table: Record<Element, Element>, to: Element): Element {
+  for (const [from, target] of Object.entries(table) as [Element, Element][]) {
+    if (target === to) return from;
+  }
+  throw new Error(`오행 표가 어긋났습니다: ${to}`);
+}

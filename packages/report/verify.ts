@@ -165,9 +165,22 @@ if (failed) { console.log('\n실패 항목:'); for (const f of failures) console
   check('초등학생이 읽을 수 있어야 한다고 적는다', sys.includes('초등학생이 읽어도'));
   check('문장을 짧게 자르라고 시킨다', sys.includes('40자 안쪽'));
   check('한자를 그대로 내보내지 않는다', sys.includes('한자를 그대로 노출하지 않습니다'));
-  check('네 갈래 모두 같은 문체를 받는다',
-    (['사주', '궁합', '교차검증', '택일'] as const)
+  check('다섯 갈래 모두 같은 문체를 받는다',
+    (['사주', '궁합', '교차검증', '택일', '작명'] as const)
       .every((k) => buildSystemPrompt(k).includes('초등학생이 읽어도')));
+
+  /*
+   * 작명은 틀리면 출생신고가 반려된다. 다른 갈래보다 무거운 실수라 프롬프트에
+   * 못을 박아 두고, 그 못이 빠지지 않았는지 여기서 본다.
+   */
+  const naming = buildSystemPrompt('작명');
+  check('주어진 글자 밖에서 고르지 말라고 못박는다',
+    naming.includes('주어진 글자 밖에서 고르지 않습니다'));
+  check('신고가 반려된다는 것을 적는다', naming.includes('신고가 반려'));
+  check('획수를 스스로 세지 말라고 적는다', naming.includes('스스로 세지 마십시오'));
+  check('같은 글자를 두 번 쓰지 말라고 적는다', naming.includes('같은 글자를 쓰지 않습니다'));
+  check('이름이 앞날을 정한다고 말하지 않게 한다',
+    naming.includes('앞날을 정한다고 말하지 않습니다'));
 }
 
 console.log('전부 통과. (모델 호출 없음 — 이 검증은 비용이 들지 않는다)');

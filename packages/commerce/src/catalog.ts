@@ -77,6 +77,21 @@ export interface Product {
    * 이 표가 서 있으면 서버는 생년월일 대신 후보 날짜를 받는다.
    */
   needsPick?: boolean;
+  /**
+   * 얼굴과 손 사진이 필요한가.
+   *
+   * 이것이 서 있는 상품만 교차검증으로 나간다. 서 있지 않은데 교차검증으로
+   * 내보내면 대조한 적 없는 것을 대조했다고 쓰는 글이 된다.
+   */
+  needsFace?: boolean;
+  /**
+   * 아이의 **성(姓)** 이 필요한가.
+   *
+   * 작명은 아이의 사주만으로는 못 짓는다. 성의 획수가 있어야 네 격이 서고,
+   * 성이 다르면 같은 사주라도 쓸 수 있는 획수가 통째로 달라진다.
+   * 이 표가 서 있으면 화면이 성과 돌림자를 더 받는다.
+   */
+  needsName?: boolean;
   /** 짝이 되는 주제 (`packages/saju-rules` 의 TopicId) */
   topic?: string;
 }
@@ -245,6 +260,7 @@ export const CATALOG: Record<ProductId, Product> = {
     previewRatio: 0.2,
     category: '가족',
     hook: '우리 아이 이름, 뭐로 지을까?',
+    needsName: true,
   },
   'naming-plus-report': {
     id: 'naming-plus-report',
@@ -254,6 +270,7 @@ export const CATALOG: Record<ProductId, Product> = {
     previewRatio: 0.2,
     category: '가족',
     hook: '반에 같은 이름 없게 지을 수 없을까?',
+    needsName: true,
   },
   'latelife-report': {
     id: 'latelife-report',

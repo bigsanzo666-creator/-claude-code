@@ -155,10 +155,16 @@ function renderPage(
    *
    * 생년월일만으로 만들 수 있는 상품을 같이 실어 보낸다 — 상대가 필요한 것,
    * 얼굴·손이 필요한 것, 고를 날이 필요한 것은 뺀다.
+   *
+   * 작명은 낀다. 생년월일 말고 **성** 하나만 더 받으면 되고, 그 칸은 결제
+   * 화면에서 바로 받는다. 다른 화면으로 보내면 거기서 손님이 떨어진다.
    */
   const sellable = Object.values(CATALOG)
     .filter((p) => !p.needsPartner && !p.needsFace && !p.needsPick)
-    .map((p) => ({ id: p.id, name: p.name, priceKrw: p.priceKrw, hook: p.hook }))
+    .map((p) => ({
+      id: p.id, name: p.name, priceKrw: p.priceKrw, hook: p.hook,
+      needsName: p.needsName === true,
+    }))
     .sort((a, b) => a.priceKrw - b.priceKrw);
   const config = JSON.stringify({
     apiBase: '', checkout, ready: checkout !== null, sellable,
@@ -375,6 +381,19 @@ function validateReading(body: any): ReadingRequest {
   // 궁합이 든 묶음은 상대의 생년월일이 있어야 만들 수 있다. 결제 전에 말한다
   if (item.needsPartner && !body.partner?.date) {
     throw new HttpError(400, '이 상품에는 상대의 생년월일이 필요합니다.');
+  }
+  /*
+   * 작명은 성이 있어야 짓는다. 성의 획수로 네 격이 서기 때문에, 성이 없으면
+   * 고를 수 있는 획수 자체가 정해지지 않는다.
+   */
+  if (item.needsName) {
+    const surname = String(body.name?.surname ?? '').trim();
+    if (!surname) throw new HttpError(400, '아이의 성이 필요합니다.');
+    if (surname.length > 4) throw new HttpError(400, '성이 너무 깁니다.');
+    const fixed = body.name?.fixed;
+    if (fixed && !['앞', '뒤'].includes(String(fixed.at))) {
+      throw new HttpError(400, '돌림자 자리는 앞이나 뒤여야 합니다.');
+    }
   }
   return body as ReadingRequest;
 }

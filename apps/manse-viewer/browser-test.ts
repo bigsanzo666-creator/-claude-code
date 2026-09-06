@@ -201,6 +201,51 @@ section('A2. 사주 화면의 결제');
   check('바꾸면 동의가 풀린다', await page.locator('#payBtn').isDisabled());
 }
 
+// ── A3. 작명 — 성을 받아야 사는 상품 ─────────────────────────
+section('A3. 작명');
+{
+  await page.goto(`${base}?buy=naming-report`, { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => document.getElementById('stage')?.remove());
+  await passWizard();
+  await page.waitForSelector('#buyPanel', { timeout: 10000 });
+
+  /*
+   * 성 칸이 미리보기 안쪽에 있으면 아무것도 못 한다 — 성이 없어 미리보기가
+   * 안 나오고, 미리보기가 없어 성 칸이 안 뜬다. 미리보기 전에도 떠야 한다.
+   */
+  await page.waitForSelector('#buySur', { timeout: 10000 });
+  check('성 넣는 칸이 미리보기 전에도 뜬다', (await page.locator('#buySur').count()) === 1);
+  check('돌림자 칸도 함께 뜬다', (await page.locator('#buyDolim').count()) === 1);
+  check('성이 없으면 결제가 잠겨 있다', await page.locator('#payBtn').count() === 0);
+
+  for (const sel of ['#buySur', '#buyDolim']) {
+    const box = await page.locator(sel).boundingBox();
+    check(`${sel} 를 손가락으로 누를 수 있다`,
+      !!box && box.height >= 40 && box.width >= 44,
+      box ? `${Math.round(box.width)}x${Math.round(box.height)}` : '안 보임');
+  }
+
+  // 성을 넣으면 미리보기가 온다
+  await page.fill('#buySur', '김');
+  await page.dispatchEvent('#buySur', 'change');
+  await page.waitForSelector('#payBtn', { timeout: 15000 });
+  const will = (await page.locator('#buyPanel .will').textContent()) ?? '';
+  check('성을 넣으면 무엇이 담기는지 보여 준다', will.includes('획수 짝'), will.slice(0, 80));
+  check('출생신고가 된다는 것을 말한다', will.includes('출생신고'));
+
+  await page.check('#agree');
+  await fillMail();
+  check('성까지 넣으면 결제가 열린다', !(await page.locator('#payBtn').isDisabled()));
+
+  // 성을 지우면 다시 잠긴다 — 성 없이 팔면 지을 수 없는 이름을 판 것이 된다
+  await page.fill('#buySur', '');
+  await page.dispatchEvent('#buySur', 'input');
+  check('성을 지우면 다시 잠긴다', await page.locator('#payBtn').isDisabled());
+
+  check('화면이 옆으로 구르지 않는다',
+    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+}
+
 // 주소로 바로 열기 — 밖에서 링크를 걸고 들어온 손님
 {
   await page.goto(`${base}?buy=wealth-report`, { waitUntil: 'domcontentloaded' });

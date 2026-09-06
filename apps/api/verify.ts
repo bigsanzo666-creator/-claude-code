@@ -818,6 +818,80 @@ check('없는 묶음은 거부', badPack.status === 400);
 
 server.close();
 console.log(`\n${'═'.repeat(60)}`);
+// ─── 작명 ─────────────────────────────────────────────────────
+{
+  const { buildPayload, kindOf } = await import('./src/payload.ts');
+  const { buildPreview } = await import('./src/preview.ts');
+
+  check('작명 상품은 작명 갈래로 나간다',
+    kindOf('naming-report') === '작명' && kindOf('naming-plus-report') === '작명');
+  check('다른 상품까지 작명으로 새지 않는다',
+    kindOf('saju-report') === '사주' && kindOf('pick-report') === '택일');
+
+  const birth = { date: '2026-03-14', time: '09:30', gender: '남' as const };
+  const built = buildPayload({ productId: 'naming-report', birth, name: { surname: '김' } });
+  const d = built.data as any;
+
+  check('아이의 사주를 함께 싣는다', !!d.아이사주?.명식?.연주);
+  /*
+   * 용신은 「식상이 필요하다」처럼 십신으로 나온다. 글자를 고르려면 오행이어야
+   * 하고, 그 변환이 빠지면 기운을 안 보고 이름을 짓게 된다.
+   */
+  check('채워야 할 기운이 오행으로 나온다',
+    Array.isArray(d.채워야할기운?.오행) && d.채워야할기운.오행.length > 0
+    && d.채워야할기운.오행.every((e: string) => ['목', '화', '토', '금', '수'].includes(e)),
+    JSON.stringify(d.채워야할기운?.오행));
+
+  const field = d.이름밭;
+  check('성을 읽어 획수를 잡는다', field?.성?.한자 === '金' && field.성.획수[0] === 8);
+  check('획수 짝을 낸다', field?.후보?.length > 3, `${field?.후보?.length}짝`);
+  check('짝마다 네 격이 붙는다',
+    field.후보.every((p: any) => p.네격?.초년운?.수 && p.네격?.전체운?.수));
+  check('자리마다 글자가 있다',
+    field.후보.every((p: any) => p.앞자리?.length && p.끝자리?.length));
+  check('글자에 소리와 뜻이 붙는다',
+    field.후보[0].앞자리.every((h: any) => h.자 && h.소리 && typeof h.획 === 'number'));
+
+  /*
+   * 리포트 한 편에 실어 보낼 수 있는 크기여야 한다. 엔진이 내는 대로 다 실으면
+   * 십구만 토큰이 되어 이름 다섯 짓는 값이 리포트 값을 넘어선다.
+   */
+  const size = JSON.stringify(built.data).length;
+  check('한 편에 실을 만한 크기다', size < 60000, `${size}자`);
+
+  // 성이 없으면 지을 수 없다
+  let noSur = false;
+  try { buildPayload({ productId: 'naming-report', birth }); } catch { noSur = true; }
+  check('성이 없으면 짓지 않는다', noSur);
+
+  // 미리보기
+  const pv = buildPreview('naming-report', built.data, 0.2);
+  check('미리보기가 고를 수 있는 크기를 보여 준다',
+    pv.contents.some((c) => c.includes('획수 짝'))
+    && pv.contents.some((c) => /인명용 한자 \d+자/.test(c) && !c.includes(' 0자')),
+    pv.contents.join(' / '));
+  check('미리보기가 신고된다는 것을 말한다',
+    pv.contents.some((c) => c.includes('출생신고')));
+  check('예시가 누구 것인지 밝힌다', pv.sampleNotice.includes('다른 아이'));
+
+  // 돌림자
+  const dol = buildPayload({
+    productId: 'naming-report', birth,
+    name: { surname: '김', fixed: { char: '珉', at: '뒤' } },
+  });
+  const df = (dol.data as any).이름밭;
+  check('돌림자를 넣으면 그 자리가 고정된다',
+    df.후보.length > 0 && df.후보.every((p: any) => p.끝자리.length === 1 && p.끝자리[0].자 === '珉'),
+    `${df.후보.length}짝`);
+
+  // 신고 안 되는 글자는 막는다
+  let bad = false;
+  try {
+    buildPayload({ productId: 'naming-report', birth, name: { surname: '김', fixed: { char: '龘', at: '뒤' } } });
+  } catch { bad = true; }
+  check('신고 안 되는 돌림자는 막는다', bad);
+}
+
 console.log(`통과 ${passed} / 실패 ${failed}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
 console.log('전부 통과.');

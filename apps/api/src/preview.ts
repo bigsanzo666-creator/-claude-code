@@ -44,6 +44,35 @@ const SAMPLES: Partial<Record<ProductId, string>> = {
 
 …`,
 
+  'naming-report': `도윤이 아버님, 아이의 사주부터 말씀드립니다.
+
+아이는 제 힘이 센 편입니다. 자기를 돕는 기운이 열 중 일곱쯤 되니, 더 보태는 것보다 **덜어내 주는 쪽**이 이롭습니다. 그래서 채워야 할 기운은 품고 버티는 기운(토), 자르고 맺는 기운(금), 흐르고 스며드는 기운(수) 셋입니다.
+
+성이 김(金) 여덟 획이니, 여기에 붙일 수 있는 획수는 정해집니다. 네 자리 획수가 모두 길하게 서는 짝만 골라 그중에서 지었습니다.
+
+**하나. 김도윤 金度玧**
+
+도(度)는 「법도·헤아리다」입니다. 자를 대고 재는 글자라 자르고 맺는 기운을 지녔습니다. 윤(玧)은 「붉은 구슬」입니다. 옥 변이 붙어 흐르는 기운을 함께 봅니다.
+
+아이에게 필요한 두 기운이 한 이름에 다 들었습니다. 힘이 센 아이는 스스로 멈출 자리를 알아야 하는데, 도(度) 자가 그 자리를 짚어 줍니다.
+
+소리는 「김도윤」. 세 글자가 다 열려 있어 부르기 편하고, 받침이 마지막에만 있어 끝이 단정합니다.
+
+**둘. 김서진 金瑞珍**
+
+…
+
+**획수는 이렇게 봤습니다**
+
+| 때 | 무엇을 더한 것 | 획수 | 뜻 |
+|---|---|---|---|
+| 초년운 | 이름 두 글자 | 18획 | 발전격 — 뻗어 나가는 수 |
+| 청년운 | 성 + 앞 글자 | 17획 | 건창격 — 굳세게 이루는 수 |
+| 장년운 | 성 + 끝 글자 | 16획 | 덕망격 — 사람이 따르는 수 |
+| 전체운 | 전부 | 25획 | 안강격 — 편안히 이루는 수 |
+
+…`,
+
   'compat-report': `두 분은 서로를 밀어주는 쪽에 가깝습니다. 다만 그 방향이 한쪽으로 기울어 있어, 오래 두면 한 사람이 더 많이 쓰는 구조가 될 수 있는 조합입니다.
 
 일간을 보면 지영 님의 토(土)가 민수 님의 금(金)을 생합니다. 지영 님이 민수 님을 북돋우는 흐름이고, 관계 초반에는 이 방향이 편안하게 작동합니다. 일지끼리는 신자진 수국의 일부를 이뤄, 두 분이 바라보는 방향 자체는 비슷합니다.
@@ -96,6 +125,17 @@ export const SAMPLE_REPORTS = new Proxy({} as Record<ProductId, string>, {
   get: (_t, key: string) => sampleFor(key as ProductId),
 });
 
+/** 예시가 누구 것인지 밝힌다. 갈래마다 「누구」가 다르다 */
+function sampleNoticeFor(productId: ProductId): string {
+  if (productId === 'pick-report') {
+    return '위 예시는 다른 분이 받은 후보 날짜로 만든 것입니다. 실제 리포트는 위에 나열된 내용으로 작성됩니다.';
+  }
+  if (productId === 'naming-report' || productId === 'naming-plus-report') {
+    return '위 예시는 다른 아이의 사주와 성으로 지은 것입니다. 실제로는 위에 적힌 글자들 안에서 지어 드립니다.';
+  }
+  return '위 예시는 다른 분의 명식으로 만든 것입니다. 실제 리포트는 위에 나열된 내용으로 작성됩니다.';
+}
+
 export function buildPreview(productId: ProductId, data: unknown, ratio: number): PreviewResult {
   const d = data as Record<string, any>;
   const contents: string[] = [];
@@ -121,6 +161,33 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
       const last = ranked[ranked.length - 1];
       if (ranked.length > 1) contents.push(`피하는 게 나은 때: ${last.날} ${last.때} (${last.점수}점)`);
     }
+  } else if (productId === 'naming-report' || productId === 'naming-plus-report') {
+    /*
+     * 작명은 사주를 푸는 것이 아니라 **고를 수 있는 것이 얼마나 되는지**를
+     * 보여야 산다. 「글자 몇 자 중에서 고른다」가 이 상품의 값이다.
+     */
+    const need = d?.채워야할기운;
+    const field = d?.이름밭;
+    const saju = d?.아이사주;
+    if (saju?.명식) {
+      contents.push(`아이 명식 ${saju.명식.연주} ${saju.명식.월주} ${saju.명식.일주} ${saju.명식.시주 ?? '—'}`);
+    }
+    if (need) {
+      contents.push(`채워야 할 기운: ${(need.오행 ?? []).join('·')} (${(need.십신 ?? []).join('·')})`);
+    }
+    if (field) {
+      const pairs = (field.후보 ?? []) as any[];
+      const chars = new Set<string>();
+      for (const p of pairs) {
+        for (const h of [...(p.앞자리 ?? []), ...(p.끝자리 ?? [])]) chars.add(h.자);
+      }
+      contents.push(`성 ${field.성?.한글}(${field.성?.한자}) ${(field.성?.획수 ?? []).join('+')}획에서 시작`);
+      contents.push(`네 격이 다 길한 획수 짝 ${pairs.length}가지`);
+      contents.push(`그 자리에 넣을 수 있는 인명용 한자 ${chars.size}자`);
+      if (field.돌림자) contents.push(`돌림자 ${field.돌림자} 를 넣어 지음`);
+      contents.push('지어 드린 이름마다 한자 뜻·소리·네 격 획수를 함께 적음');
+      contents.push('고른 글자는 모두 대법원 인명용 한자 — 출생신고가 됩니다');
+    }
   } else if (productId === 'cross-report') {
     const xv = d?.교차검증;
     if (xv) {
@@ -145,8 +212,6 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
   return {
     contents,
     sample: makePreview(SAMPLE_REPORTS[productId], Math.max(ratio, 0.4)),
-    sampleNotice: productId === 'pick-report'
-      ? '위 예시는 다른 분이 받은 후보 날짜로 만든 것입니다. 실제 리포트는 위에 나열된 내용으로 작성됩니다.'
-      : '위 예시는 다른 분의 명식으로 만든 것입니다. 실제 리포트는 위에 나열된 내용으로 작성됩니다.',
+    sampleNotice: sampleNoticeFor(productId),
   };
 }

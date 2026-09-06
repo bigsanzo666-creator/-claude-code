@@ -736,6 +736,27 @@ section('주제별 분리 (상품을 열 개로 나누기 위한 것)');
 }
 
 console.log(`\n${'═'.repeat(60)}`);
+// ─── 십신이 가리키는 오행 ─────────────────────────────────────
+{
+  const { groupElement } = await import('./src/tenGods.ts');
+  /*
+   * 같은 「재성」이라도 일간이 무엇이냐에 따라 오행이 다르다.
+   * 작명이 이것으로 글자를 좁히므로 틀리면 엉뚱한 기운의 이름이 나간다.
+   */
+  check('비겁은 나와 같다', groupElement('목', '비겁') === '목');
+  check('식상은 내가 낳는 것', groupElement('목', '식상') === '화');
+  check('재성은 내가 이기는 것', groupElement('목', '재성') === '토');
+  check('관성은 나를 이기는 것', groupElement('목', '관성') === '금');
+  check('인성은 나를 낳는 것', groupElement('목', '인성') === '수');
+  check('일간이 바뀌면 가리키는 오행도 바뀐다',
+    groupElement('화', '재성') === '금' && groupElement('수', '재성') === '화');
+  // 다섯 일간 × 다섯 갈래가 모두 다른 오행을 하나씩 가리켜야 한다
+  for (const me of ['목', '화', '토', '금', '수'] as const) {
+    const got = (['비겁', '식상', '재성', '관성', '인성'] as const).map((g) => groupElement(me, g));
+    check(`일간 ${me} 는 다섯 오행을 하나씩 가리킨다`, new Set(got).size === 5, got.join(' '));
+  }
+}
+
 console.log(`통과 ${passed} / 실패 ${failed}`);
 if (failed) {
   console.log('\n실패 항목:');

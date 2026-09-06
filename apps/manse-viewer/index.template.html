@@ -1039,7 +1039,8 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
    * offer — 그것을 품은 묶음. 한 번 받아 두면 껐다 켰다 할 수 있다
    */
   // buying — 사주 화면에서 손님이 열어 둔 상품. null 이면 아직 아무것도 안 열었다
-  var buyState = { buying: null, who: '', email: '', tel: '', previewed: null, previewTried: false, agreed: false, busy: false,
+  var buyState = { buying: null, who: '', email: '', tel: '', surname: '', dolim: '', dolimAt: '뒤',
+    previewed: null, previewTried: false, agreed: false, busy: false,
                    result: null, error: null, pick: null, offer: null };
 
   function money(n) { return n.toLocaleString('ko-KR') + '원'; }
@@ -1092,9 +1093,18 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 
     var body = '';
     if (!p) {
-      body = buyState.error
-        ? '<div class="err">' + esc(buyState.error) + '</div>'
-        : '<p class="step">미리보기를 불러오는 중…</p>';
+      /*
+       * 미리보기가 아직 없을 때.
+       *
+       * 작명은 성을 받아야 미리보기를 부를 수 있는데, 성 칸이 미리보기 안쪽에
+       * 있으면 성을 넣을 자리가 없어 아무것도 못 한다. 그래서 성 칸은 여기에도
+       * 낸다.
+       */
+      body = namingFields() +
+        (buyState.error ? '<div class="err">' + esc(buyState.error) + '</div>' : '') +
+        (needsName() && !okSurname(buyState.surname)
+          ? '<p class="note">아이의 성을 적으시면 무엇이 담기는지 보여 드립니다.</p>'
+          : (buyState.error ? '' : '<p class="step">미리보기를 불러오는 중…</p>'));
     } else {
       body =
         '<div class="buy">' +
@@ -1110,6 +1120,8 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
             '<span class="cut">' + esc(p.preview.sampleNotice) + '</span></div></div>' +
 
           upsellRow() +
+
+          namingFields() +
 
           /*
            * 이메일.
@@ -1138,7 +1150,8 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 
           '<button class="pay" id="payBtn"' +
             (buyState.agreed && okWho(buyState.who) && okMail(buyState.email)
-              && okTel(buyState.tel) && !buyState.busy ? '' : ' disabled') + '>' +
+              && okTel(buyState.tel) && (!needsName() || okSurname(buyState.surname))
+              && !buyState.busy ? '' : ' disabled') + '>' +
             (buyState.busy ? '진행 중…' : money(p.product.priceKrw) + ' 결제하기') + '</button>' +
 
           (buyState.error ? '<div class="err">' + esc(buyState.error) + '</div>' : '') +
@@ -1213,10 +1226,69 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   /** 카드사에 넘길 이름. 비어 있지만 않으면 된다 */
   function okWho(v) { return (v || '').trim().length >= 2; }
 
+  /**
+   * 작명은 성이 있어야 짓는다.
+   *
+   * 성의 획수로 네 격이 서기 때문에, 성이 없으면 고를 수 있는 획수 자체가
+   * 정해지지 않는다. 한 자든 두 자든(남궁·선우) 받는다.
+   */
+  function okSurname(v) {
+    var t = (v || '').trim();
+    return t.length >= 1 && t.length <= 4;
+  }
+
+  /** 지금 사려는 것이 성을 받아야 하는 상품인가 */
+  function needsName() {
+    var list = CFG.sellable || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === buyState.buying) return list[i].needsName === true;
+    }
+    return false;
+  }
+
+  /** 성과 돌림자 받는 칸. 작명 상품에서만 뜬다 */
+  function namingFields() {
+    if (!needsName()) return '';
+    return '<div class="mail">' +
+      '<label class="label" for="buySur">아이의 성</label>' +
+      '<input type="text" id="buySur" maxlength="4" placeholder="김" ' +
+        'value="' + esc(buyState.surname || '') + '">' +
+      '<p class="note">한 글자로 적으시면 됩니다. 남궁·선우처럼 두 자인 성도 그대로 적으세요. ' +
+        '유(柳·劉·兪)처럼 한 소리에 집안이 여럿인 성은 한자로 적어 주세요.</p>' +
+      '<label class="label" for="buyDolim" style="margin-top:.9rem">돌림자 (없으면 비워 두세요)</label>' +
+      '<div class="st-two" style="grid-template-columns:1fr auto;gap:8px;align-items:center">' +
+        '<input type="text" id="buyDolim" maxlength="1" placeholder="珉" ' +
+          'value="' + esc(buyState.dolim || '') + '">' +
+        '<select id="buyDolimAt" style="padding:.8rem;font-size:1rem">' +
+          '<option value="앞"' + (buyState.dolimAt === '앞' ? ' selected' : '') + '>앞자리</option>' +
+          '<option value="뒤"' + (buyState.dolimAt === '뒤' ? ' selected' : '') + '>뒷자리</option>' +
+        '</select>' +
+      '</div>' +
+      '<p class="note">형이나 언니가 쓰는 글자를 그대로 이어 가실 때만 적으세요. ' +
+        '한자 한 글자로 적습니다.</p>' +
+    '</div>';
+  }
+
   /** 숫자만 남겨 열~열한 자리인지 본다. 진짜 쓰는 번호인지는 알 수 없다 */
   function okTel(v) {
     var d = (v || '').replace(/[^0-9]/g, '');
     return d.length >= 10 && d.length <= 11 && d.charAt(0) === '0';
+  }
+
+  /** 앞서 받아 둔 미리보기를 버리고 다시 받게 한다 */
+  function refreshPreview() {
+    buyState.previewed = null; buyState.previewTried = false;
+    buyState.agreed = false; buyState.error = null;
+    render();
+  }
+
+  /** 작명에 넣어 보낼 것. 성이 없으면 아무것도 보내지 않는다 */
+  function nameInput() {
+    if (!needsName() || !okSurname(buyState.surname)) return undefined;
+    var out = { surname: (buyState.surname || '').trim() };
+    var d = (buyState.dolim || '').trim();
+    if (d) out.fixed = { char: d, at: buyState.dolimAt === '앞' ? '앞' : '뒤' };
+    return out;
   }
 
   function wirePaywall(reading) {
@@ -1225,7 +1297,8 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
       var btn = $('payBtn');
       if (btn) {
         btn.disabled = !(buyState.agreed && okWho(buyState.who) && okMail(buyState.email)
-          && okTel(buyState.tel) && !buyState.busy);
+          && okTel(buyState.tel) && (!needsName() || okSurname(buyState.surname))
+          && !buyState.busy);
       }
     };
     // 문 앞에서 이미 이름을 밝혔으면 두 번 치게 하지 않는다
@@ -1241,6 +1314,29 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     if (mail) mail.addEventListener('input', function () { buyState.email = mail.value; lock(); });
     var tel = $('buyTel');
     if (tel) tel.addEventListener('input', function () { buyState.tel = tel.value; lock(); });
+    /*
+     * 성이 바뀌면 미리보기를 다시 받아야 한다. 성이 달라지면 쓸 수 있는 획수가
+     * 통째로 달라지기 때문이다.
+     *
+     * 다만 한 글자 칠 때마다 다시 받지는 않는다. 칸에서 손을 뗄 때만 받는다 —
+     * 「김」을 치는 동안 「ㄱ」으로 세 번 물어보면 서버만 고생한다.
+     */
+    var sur = $('buySur');
+    if (sur) {
+      sur.addEventListener('input', function () { buyState.surname = sur.value; lock(); });
+      sur.addEventListener('change', function () { refreshPreview(); });
+    }
+    var dol = $('buyDolim');
+    if (dol) {
+      dol.addEventListener('input', function () { buyState.dolim = dol.value; });
+      dol.addEventListener('change', function () { refreshPreview(); });
+    }
+    var dolAt = $('buyDolimAt');
+    if (dolAt) {
+      dolAt.addEventListener('change', function () {
+        buyState.dolimAt = dolAt.value; refreshPreview();
+      });
+    }
     var box = $('packBox');
     if (box) {
       box.addEventListener('change', function () {
@@ -1599,6 +1695,7 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
           longitude: parseFloat($('place').value), gender: $('gender').value,
           name: ($('name').value || '').trim() || undefined,
         },
+        name: nameInput(),
       };
       wirePaywall(reading);
       var pick = $('buyPick');
@@ -1606,6 +1703,14 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
         pick.addEventListener('change', function () {
           openBuy(pick.value, false);
         });
+      }
+      /*
+       * 성을 받아야 하는 상품인데 아직 안 적었으면 미리보기를 부르지 않는다.
+       * 불러 봐야 서버가 「성이 필요합니다」로 돌려보내고, 손님은 아직 아무것도
+       * 잘못하지 않았는데 빨간 글씨를 본다.
+       */
+      if (needsName() && !okSurname(buyState.surname)) {
+        buyState.previewTried = true;
       }
       if (!buyState.previewed && !buyState.previewTried && !buyState.busy) {
         buyState.previewTried = true;
