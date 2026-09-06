@@ -25,11 +25,15 @@
  * 부수에만** 붙였다. 나머지는 빈 값으로 두고 화면에서도 「갈린다」고 적는다.
  * 없는 것을 있는 척하지 않는다.
  *
- * ## 아직 없는 것
+ * ## 인명용 한자
  *
- * **인명용 한자인지 여부.** 대법원이 정한 목록이 따로 있고, 그 안에 없는
- * 글자는 출생신고가 되지 않는다. 그 목록을 아직 넣지 못했으므로 이 표만으로
- * 이름을 지어 내보내면 안 된다. `hanjaLegal()` 이 참을 돌려줄 때에만 판다.
+ * 대법원이 정한 목록 안에 없는 글자는 출생신고가 되지 않는다. 그 목록을
+ * 54쪽짜리 관보에서 한 쪽씩 눈으로 읽어 옮겨 적었고(`data/ilmyeong.json`),
+ * 옮긴 글자는 모두 유니코드 한국 독음과 맞대어 보아 어긋나면 버렸다.
+ * 빠뜨린 글자는 이름 후보가 몇 개 줄 뿐이지만, 없는 글자를 넣으면 신고가
+ * 반려된다. 그래서 의심스러운 것은 늘 버리는 쪽으로 했다.
+ *
+ * `hanjaLegal()` 이 참인 글자만 이름으로 판다.
  */
 
 import { readFileSync } from 'node:fs';
@@ -89,6 +93,8 @@ export interface HanjaFilter {
   strokes?: number;
   /** 자원오행이 이 중 하나인 것만 */
   elements?: Element[];
+  /** 참이면 그 독음으로 출생신고가 되는 글자만 (이름을 지을 때는 늘 참) */
+  legal?: boolean;
 }
 
 /**
@@ -100,10 +106,12 @@ export interface HanjaFilter {
 export function byReading(reading: string, filter: HanjaFilter = {}): Hanja[] {
   const chars = BY_READING.get(reading.trim()) ?? [];
   const out: Hanja[] = [];
+  const want = reading.trim();
   for (const c of chars) {
     const r = RAW[c]!;
     if (filter.strokes !== undefined && r.s !== filter.strokes) continue;
     if (filter.elements?.length && !filter.elements.includes(r.e as Element)) continue;
+    if (filter.legal && !hanjaLegalReading(c, want)) continue;
     out.push(toHanja(c, r));
   }
   // 획수 → 글자 순. 같은 값이면 늘 같은 차례로 나와야 한다
@@ -115,13 +123,61 @@ export function hasReading(reading: string): boolean {
   return BY_READING.has(reading.trim());
 }
 
+const ILMYEONG: Record<string, string> = JSON.parse(
+  readFileSync(new URL('../data/ilmyeong.json', import.meta.url), 'utf8'),
+);
+
+/** 인명용 글자 전부 */
+const LEGAL = new Set<string>();
+/** 그 글자를 그 독음으로 쓸 수 있는가 — 「독음+글자」로 담는다 */
+const LEGAL_READ = new Set<string>();
+for (const [reading, chars] of Object.entries(ILMYEONG)) {
+  for (const c of chars) {
+    LEGAL.add(c);
+    LEGAL_READ.add(reading + c);
+  }
+}
+
 /**
  * 출생신고가 되는 글자인가.
  *
- * 대법원 인명용 한자 목록을 아직 넣지 못했다. 목록 없이 참을 돌려주면
- * 신고가 안 되는 이름을 팔게 되므로, **넣기 전까지는 늘 거짓이다.**
- * 이 함수가 참이 되기 전에는 이름을 지어 팔지 않는다.
+ * 대법원 인명용 한자표에 든 글자만 참이다.
  */
-export function hanjaLegal(_char: string): boolean {
+export function hanjaLegal(char: string): boolean {
+  return LEGAL.has(char);
+}
+
+/**
+ * 그 글자를 그 독음으로 신고할 수 있는가.
+ *
+ * 표는 「이 표에 적힌 발음으로만 쓸 수 있다」고 못박는다. 金 은 금·김 둘 다
+ * 표에 있으니 둘 다 되지만, 표에 한쪽만 있는 글자는 다른 쪽으로 못 쓴다.
+ *
+ * 다만 첫소리가 ㄴ·ㄹ 인 글자는 소리 나는 대로 ㅇ·ㄴ 으로도 쓸 수 있다
+ * (표의 주 1). 李 를 「리」로도 「이」로도 쓰는 것이 그것이다.
+ */
+export function hanjaLegalReading(char: string, reading: string): boolean {
+  const r = reading.trim();
+  if (LEGAL_READ.has(r + char)) return true;
+  for (const alt of soundAlts(r)) if (LEGAL_READ.has(alt + char)) return true;
   return false;
+}
+
+/** 첫소리 ㄴ·ㄹ 을 되돌린 독음들. 「이」→「리·니」, 「나」→「라」 */
+function soundAlts(reading: string): string[] {
+  const code = reading.charCodeAt(0) - 0xac00;
+  if (code < 0 || code >= 11172) return [];
+  const lead = Math.floor(code / 588);
+  const rest = code % 588;
+  // 초성 차례: ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ
+  const N = 2, R = 5, O = 11;
+  const outs: number[] = [];
+  if (lead === O) outs.push(N, R); // ㅇ ← ㄴ 이나 ㄹ 이었을 수 있다
+  else if (lead === N) outs.push(R); // ㄴ ← ㄹ 이었을 수 있다
+  return outs.map((l) => String.fromCharCode(0xac00 + l * 588 + rest) + reading.slice(1));
+}
+
+/** 인명용 목록에 든 글자 수 */
+export function hanjaLegalCount(): number {
+  return LEGAL.size;
 }

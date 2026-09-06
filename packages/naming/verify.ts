@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 /**
  * 수리성명학 검증.
  *
@@ -119,7 +120,8 @@ check('줄 순서는 초년부터 전체까지',
 
 // ─── 한자 낱글자 표 ───────────────────────────────────────────
 {
-  const { hanja, hanjaCount, byReading, hasReading, hanjaLegal } =
+  const { hanja, hanjaCount, byReading, hasReading, hanjaLegal,
+          hanjaLegalReading, hanjaLegalCount } =
     await import('./src/hanja.ts');
 
   check('표에 글자가 들어 있다', hanjaCount() > 8000, `${hanjaCount()}자`);
@@ -160,10 +162,44 @@ check('줄 순서는 초년부터 전체까지',
     `도 ${byReading('도').length}자 중 ${withEl}자`);
 
   /*
-   * 인명용 목록이 없으면 이름을 팔지 않는다.
-   * 목록 밖 글자는 출생신고가 되지 않는다 — 못 쓰는 이름을 파는 것이다.
+   * 인명용 한자표. 목록 밖 글자로 지은 이름은 출생신고가 반려된다.
    */
-  check('인명용 목록을 넣기 전에는 팔지 않는다', hanjaLegal('金') === false);
+  check('인명용 목록이 들어 있다', hanjaLegalCount() > 7000, `${hanjaLegalCount()}자`);
+  for (const ch of '金李朴崔鄭姜尹張林韓吳申徐權黃安宋柳洪') {
+    check(`${ch} 는 쓸 수 있다`, hanjaLegal(ch));
+  }
+  // 목록 밖 글자는 거짓이어야 한다
+  check('목록 밖 글자는 못 쓴다', !hanjaLegal('龘') && !hanjaLegal('㙊'));
+  check('한자가 아닌 것도 못 쓴다', !hanjaLegal('가') && !hanjaLegal('A'));
+
+  /*
+   * 표는 「이 표에 적힌 발음으로만」 쓰라고 못박는다.
+   * 다만 첫소리 ㄴ·ㄹ 은 소리 나는 대로 ㅇ·ㄴ 으로도 쓸 수 있다 (주 1).
+   */
+  check('金 은 금으로도 김으로도 쓴다',
+    hanjaLegalReading('金', '금') && hanjaLegalReading('金', '김'));
+  check('李 는 리로도 이로도 쓴다',
+    hanjaLegalReading('李', '리') && hanjaLegalReading('李', '이'));
+  check('柳 는 류로도 유로도 쓴다',
+    hanjaLegalReading('柳', '류') && hanjaLegalReading('柳', '유'));
+  check('羅 는 라로도 나로도 쓴다',
+    hanjaLegalReading('羅', '라') && hanjaLegalReading('羅', '나'));
+  check('엉뚱한 독음은 안 된다', !hanjaLegalReading('金', '도'));
+
+  // 이름 후보를 고를 때는 신고되는 글자만 나와야 한다
+  const all도 = byReading('도').length;
+  const legal도 = byReading('도', { legal: true });
+  check('신고되는 글자만 골라 준다',
+    legal도.length > 0 && legal도.length <= all도 && legal도.every((h) => hanjaLegal(h.char)),
+    `도 ${all도}자 중 ${legal도.length}자`);
+  check('이로 찾아도 리 글자가 나온다',
+    byReading('이', { legal: true }).some((h) => h.char === '李'));
+
+  // 목록에 있는 글자는 모두 우리 낱글자 표에도 있어야 한다
+  const outside = Object.values(
+    JSON.parse(readFileSync(new URL('./data/ilmyeong.json', import.meta.url), 'utf8')) as Record<string, string>,
+  ).flatMap((v) => [...v]).filter((c) => hanja(c) === null);
+  check('목록 글자는 모두 획수를 안다', outside.length === 0, `모르는 글자 ${outside.length}자`);
 }
 
 console.log(`\n${'═'.repeat(60)}`);
