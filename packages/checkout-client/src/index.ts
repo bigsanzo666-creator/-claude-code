@@ -28,11 +28,11 @@ export interface PayRequest {
   /**
    * 구매자 정보.
    *
-   * 이니시스(KG이니시스) V2 일반결제는 **구매자 이메일이 필수**다. 없으면
-   * 결제창이 아예 뜨지 않고 「결제 창 호출에 실패하였습니다」로 끝난다.
-   * 우리가 담아 두는 값이 아니라 결제사로만 넘기는 값이다.
+   * 이니시스(KG이니시스) V2 일반결제는 **이메일과 휴대폰 번호가 둘 다 필수**다.
+   * 하나라도 없으면 결제창이 아예 뜨지 않고 「결제 창 호출에 실패하였습니다」로
+   * 끝난다. 우리가 담아 두는 값이 아니라 결제사로만 넘기는 값이다.
    */
-  customer?: { email: string; fullName?: string };
+  customer?: { email: string; phoneNumber: string; fullName?: string };
 }
 
 /** 포트원 SDK 응답. 실패하면 code가 채워진다 */
@@ -126,7 +126,7 @@ export class Checkout {
       previewShown: boolean;
       onStage?: (stage: CheckoutStage) => void;
       /** 결제사가 요구하는 구매자 정보. 이니시스는 이메일이 필수다 */
-      customer?: { email: string; fullName?: string };
+      customer?: { email: string; phoneNumber: string; fullName?: string };
     },
   ): Promise<PurchaseResult> {
     const notify = options.onStage ?? (() => {});
