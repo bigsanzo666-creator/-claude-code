@@ -116,6 +116,56 @@ check('격마다 쉬운 이름이 붙는다',
 check('줄 순서는 초년부터 전체까지',
   frameRows(readFrames([7], [9, 16])).map((r) => r.when).join() === '초년운,청년운,장년운,전체운');
 
+
+// ─── 한자 낱글자 표 ───────────────────────────────────────────
+{
+  const { hanja, hanjaCount, byReading, hasReading, hanjaLegal } =
+    await import('./src/hanja.ts');
+
+  check('표에 글자가 들어 있다', hanjaCount() > 8000, `${hanjaCount()}자`);
+
+  /*
+   * 원획이 맞는지는 **남이 낸 감명서**로 본다.
+   * 청월당이 공개한 「김리아 金漓妸」에서 네 격이 23·23·16·31 이었고,
+   * 거기서 역산하면 金 8, 漓 15, 妸 8 이다.
+   */
+  for (const [ch, rad, st] of [
+    ['金', 167, 8], ['漓', 85, 15], ['妸', 38, 8], ['渡', 85, 13],
+    ['李', 39, 7], ['朴', 25, 6], ['崔', 46, 11], ['鄭', 163, 19], ['姜', 38, 9],
+  ] as const) {
+    const h = hanja(ch);
+    check(`${ch} 부수 ${rad} · 원획 ${st}`, !!h && h.radical === rad && h.strokes === st,
+      h ? `부수 ${h.radical} 원획 ${h.strokes}` : '표에 없음');
+  }
+
+  // 氵는 눈에 세 획이지만 水 네 획으로 센다. 옥편 획수와 다른 것이 정상이다
+  check('물 부수는 네 획으로 센다', hanja('渡')!.strokes === 13);
+  check('두 가지로 읽는 글자를 다 담는다',
+    hanja('金')!.readings.includes('금') && hanja('金')!.readings.includes('김'));
+
+  check('독음으로 찾는다', byReading('도').length > 10, `${byReading('도').length}자`);
+  check('획수로 좁힌다', byReading('도', { strokes: 13 }).every((h) => h.strokes === 13));
+  check('자원오행으로 좁힌다',
+    byReading('도', { elements: ['수'] }).every((h) => h.element === '수'));
+  check('둘을 겹쳐 좁힌다',
+    byReading('도', { strokes: 13, elements: ['수'] }).some((h) => h.char === '渡'));
+  check('없는 독음은 빈 손', byReading('쀍').length === 0 && !hasReading('쀍'));
+  check('찾은 차례가 늘 같다',
+    JSON.stringify(byReading('은').map((h) => h.char))
+    === JSON.stringify(byReading('은').map((h) => h.char)));
+
+  // 갈리는 것을 갈리지 않는 척하지 않는다
+  const withEl = byReading('도').filter((h) => h.element !== null).length;
+  check('자원오행은 분명한 부수에만 붙는다', withEl > 0 && withEl < byReading('도').length,
+    `도 ${byReading('도').length}자 중 ${withEl}자`);
+
+  /*
+   * 인명용 목록이 없으면 이름을 팔지 않는다.
+   * 목록 밖 글자는 출생신고가 되지 않는다 — 못 쓰는 이름을 파는 것이다.
+   */
+  check('인명용 목록을 넣기 전에는 팔지 않는다', hanjaLegal('金') === false);
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} / 실패 ${failed}`);
 if (failed) { console.log('\n실패 항목:'); for (const x of failures) console.log(`  - ${x}`); process.exit(1); }
