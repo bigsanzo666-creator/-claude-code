@@ -86,6 +86,17 @@ export function renderStage(
   const path = scenes.has('path') ? ` style="--st-shot:url(${sceneUrl('path')})"` : '';
   const gate = scenes.has('gate') ? ` style="--st-shot:url(${sceneUrl('gate')})"` : '';
 
+  /*
+   * 문을 지키는 신령.
+   *
+   * 폼 넉 줄을 한 번에 들이밀면 손님은 「서류」를 본다. 신령이 화면을 채우고
+   * **한 번에 하나씩** 물으면 그때부터 상담이 된다. 그림이 아직 없으면
+   * 문 그림(`--st-shot`)이 그대로 배경으로 남는다 — 빈 검은 화면은 안 만든다.
+   */
+  const asker = faces.has('mirror')
+    ? `<img class="st-who" src="${spiritImageUrl('mirror')}" alt="" decoding="async">`
+    : '';
+
   // 첫 화면에서 바로 보이는 영상이다. 자바스크립트가 자리를 잡을 때까지
   // 기다리면 손님은 그림 한 장만 보고 넘어간다. 주소를 여기 박아 두어
   // 브라우저가 화면을 그리면서 같이 받고 같이 튼다
@@ -119,41 +130,40 @@ export function renderStage(
     </div>
   </section>
 
-  <section class="st" id="stGate"${gate}>
+  <section class="st${asker ? ' st-gate-who' : ''}" id="stGate"${gate}>
+    ${asker}
     <div class="st-veil st-veil-2"></div>
-    <div class="st-in">
-      <p class="st-kicker">신령계 들어가는 문</p>
-      <h2 class="st-h">문을 열려면<br><em>이름을 밝히셔야</em> 합니다</h2>
-      <p class="st-sub">밝히신 것은 이 자리에서만 씁니다.
-      어디로도 보내지 않고, 저장하지도 않습니다.</p>
+    <div class="st-in st-talk">
+      <p class="st-top">
+        <button type="button" class="st-back" id="stBack" aria-label="앞 물음으로">←</button>
+        <span class="st-dots" id="stDots" aria-hidden="true"></span>
+      </p>
+
+      <p class="st-kicker">문지기 명경신령</p>
+      <p class="st-say" id="stSay"></p>
+      <p class="st-hint" id="stHint"></p>
 
       <form class="st-form" id="stForm" novalidate>
-        <label class="st-f">
-          <span class="st-l">이름</span>
-          <input type="text" id="stName" maxlength="10" autocomplete="name" placeholder="홍길동">
-        </label>
-        <label class="st-f">
-          <span class="st-l">태어난 날</span>
+        <div class="st-q" data-q="name">
+          <input type="text" id="stName" maxlength="10" autocomplete="name" placeholder="이름">
+        </div>
+        <div class="st-q" data-q="date" hidden>
           <input type="date" id="stDate" min="1900-01-01" max="2100-12-31" required>
-        </label>
-        <label class="st-f">
-          <span class="st-l">성별 <em class="st-why">십 년 운에 씁니다</em></span>
+        </div>
+        <div class="st-q" data-q="hour" hidden>
+          <select id="stHour">
+        ${hours}
+          </select>
+        </div>
+        <div class="st-q" data-q="sex" hidden>
           <select id="stSex">
             <option value="">고르지 않음</option>
             <option value="남">남자</option>
             <option value="여">여자</option>
           </select>
-        </label>
-        <label class="st-f st-wide">
-          <span class="st-l">태어난 시</span>
-          <select id="stHour">
-        ${hours}
-          </select>
-        </label>
-        <div class="st-bar">
-          <button type="submit" class="st-go">문을 엽니다</button>
-          <span class="st-msg" id="stMsg" role="status"></span>
         </div>
+        <button type="submit" class="st-go" id="stStepGo">다음으로</button>
+        <span class="st-msg" id="stMsg" role="status"></span>
       </form>
 
       <button type="button" class="st-skip" id="stSkip">밝히지 않고 그냥 둘러보기</button>
@@ -483,11 +493,39 @@ body.st-locked{overflow:hidden}
 .st-f{display:block;min-width:0}
 .st-wide{grid-column:1/-1}
 .st-l{display:block;margin:0 0 6px;font-size:12px;letter-spacing:.16em;color:var(--nb-gold)}
-.st-f input,.st-f select{width:100%;box-sizing:border-box;padding:13px;
+.st-f input,.st-f select,.st-q input,.st-q select{width:100%;box-sizing:border-box;padding:13px;
   font:16px/1.4 var(--nb-sans);color:var(--nb-ink);background:var(--nb-paper-2);
   border:1px solid var(--nb-line);border-radius:0;appearance:none}
-.st-f input:focus,.st-f select:focus{outline:2px solid var(--nb-gold);outline-offset:-2px}
+.st-f input:focus,.st-f select:focus,.st-q input:focus,.st-q select:focus{
+  outline:2px solid var(--nb-gold);outline-offset:-2px}
 .st-bar{grid-column:1/-1;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+
+/* ── 문 앞에서 한 번에 하나씩 묻는 화면 ──────────────────────
+   신령이 화면을 채우고 아래쪽에서 말을 건다. 손님이 보는 것은
+   칸 하나와 단추 하나뿐이다. */
+/* 신령은 화면 위쪽 삼분의 이를 채운다. 얼굴이 잘리지 않게 위에서 조금 내려 잡는다 */
+.st-who{position:absolute;left:50%;top:0;width:100%;height:68%;
+  transform:translateX(-50%);object-fit:cover;object-position:center 14%}
+/* 신령이 있을 때는 얼굴 위에 안개를 씌우지 않는다. 발치에서만 종이색으로 잦아든다 */
+.st-gate-who .st-veil-2{background:
+  linear-gradient(to bottom,var(--nb-veil-0),var(--nb-veil-0) 42%,
+  var(--nb-veil-1) 56%,var(--nb-paper) 66%)}
+.st-talk{display:grid;gap:0;padding-bottom:30px}
+.st-talk .st-form{grid-template-columns:1fr;gap:14px}
+.st-top{display:flex;align-items:center;gap:12px;margin:0 0 14px;min-height:26px}
+.st-back{padding:2px 8px;margin-left:-8px;border:0;background:none;
+  font:20px/1 var(--nb-sans);color:var(--nb-ink-2);cursor:pointer}
+.st-back[hidden]{visibility:hidden}
+.st-dots{display:flex;gap:6px;padding:0}
+.st-dots i{width:20px;height:2px;background:var(--nb-line);display:block}
+.st-dots i.on{background:var(--nb-gold)}
+.st-say{margin:0 0 8px;font-family:var(--nb-serif);font-weight:500;font-size:25px;
+  line-height:1.55;letter-spacing:-.01em;word-break:keep-all;color:var(--nb-ink)}
+.st-hint{margin:0 0 20px;font-size:13.5px;line-height:1.75;color:var(--nb-ink-3);
+  word-break:keep-all}
+.st-q[hidden]{display:none}
+.st-talk .st-go{width:100%;padding:16px}
+.st-talk .st-msg{display:block;margin:10px 0 0;min-height:1em}
 .st-go,.st-next{padding:15px 32px;border:1px solid var(--nb-ink);background:var(--nb-ink);
   color:var(--nb-paper-2);font:500 15.5px var(--nb-sans);letter-spacing:.02em;cursor:pointer}
 .st-go:hover,.st-next:hover{background:transparent;color:var(--nb-ink)}
@@ -834,7 +872,7 @@ export const STAGE_SCRIPT = `<script>(function(){
     if(walk){try{walk.pause();}catch(e){}}
     mark('stGate');
     show('stGate');
-    var d=$('stDate'); if(d&&d.focus)setTimeout(function(){d.focus();},200);
+    if(typeof draw==='function')draw();
   };
   if(walk)walk.addEventListener('ended',toGate,{once:true});
   var go=$('stGo'); if(go)go.addEventListener('click',toGate);
@@ -933,6 +971,10 @@ export const STAGE_SCRIPT = `<script>(function(){
     if(asking){ ask(false); return; }
     // 신령이 앞에 나와 있으면, 뒤로가기는 그 판만 닫는다
     if(peeking){ closePeek(); return; }
+    // 문 앞에서는 앞 물음으로 되돌아간다. 물음 하나 잘못 눌렀다고 문 밖으로 내보내지 않는다
+    if(here==='stGate'&&typeof stepBack==='function'&&stepBack()){
+      history.pushState({nb:back.length},'',location.href); return;
+    }
     if(!here){ return; }          // 나가기로 한 손님은 그냥 보낸다
     if(back.length){
       var to=back.pop();
@@ -1240,13 +1282,79 @@ export const STAGE_SCRIPT = `<script>(function(){
     });
   });
 
+  /*
+   * 문 앞의 물음.
+   *
+   * 넉 줄짜리 폼은 손님에게 **서류**로 보인다. 서류는 채우기 싫다.
+   * 신령이 화면을 채우고 한 번에 하나씩 물으면 그때부터 상담이 된다 —
+   * 채우는 값은 똑같은데 손님이 느끼는 것이 다르다.
+   *
+   * 규칙 셋.
+   *   1. 한 화면에 **칸 하나**. 단추도 하나.
+   *   2. 태어난 날만 빼고 **전부 건너뛸 수 있다.** 그렇다고 화면에 적어 둔다.
+   *   3. 이름을 받으면 **그 다음부터 이름으로 부른다.** 남이 나에게 말하는 것처럼.
+   */
+  var STEPS=[
+    { q:'name', need:false, btn:'다음으로',
+      say:function(){ return '먼저, 네 이름이 무어냐.'; },
+      hint:'말하고 싶지 않으면 그냥 넘어가도 된다.' },
+    { q:'date', need:true, btn:'다음으로',
+      say:function(n){ return n ? call(n)+' 언제 태어났느냐.' : '언제 태어났느냐.'; },
+      hint:'여덟 글자가 여기서부터 선다. 이것만은 있어야 한다.' },
+    { q:'hour', need:false, btn:'다음으로',
+      say:function(){ return '몇 시쯤이었느냐.'; },
+      hint:'모르면 모르는 대로 둬도 된다. 여덟 중 두 글자만 비워 두고 본다.' },
+    { q:'sex', need:false, btn:'다 말했다',
+      say:function(){ return '남자냐, 여자냐.'; },
+      hint:'열 해씩 도는 운을 어느 쪽으로 돌릴지 정하는 데에만 쓴다.' }
+  ];
+
+  // 이름 뒤에 붙는 부름말. 받침이 있으면 「아」, 없으면 「야」
+  var call=function(n){
+    var c=n.charCodeAt(n.length-1)-44032;
+    var t=(c>=0&&c<11172&&c%28)?'아':'야';
+    return n+t+',';
+  };
+
+  var at=0;
+  var qEl=function(name){ return stage.querySelector('.st-q[data-q="'+name+'"]'); };
+  var draw=function(){
+    var st=STEPS[at], name=($('stName')&&$('stName').value.trim())||'';
+    for(var i=0;i<STEPS.length;i++){
+      var el=qEl(STEPS[i].q); if(el)el.hidden=(i!==at);
+    }
+    var say=$('stSay'); if(say)say.textContent='"'+st.say(name)+'"';
+    var hint=$('stHint'); if(hint)hint.textContent=st.hint;
+    var go=$('stStepGo'); if(go)go.textContent=st.btn;
+    var msg=$('stMsg'); if(msg)msg.textContent='';
+    var bkBtn=$('stBack'); if(bkBtn)bkBtn.hidden=(at===0);
+    var dots=$('stDots');
+    if(dots){
+      var h='';
+      for(var j=0;j<STEPS.length;j++)h+='<i'+(j<=at?' class="on"':'')+'></i>';
+      dots.innerHTML=h;
+    }
+    var cur=qEl(st.q), f=cur&&cur.querySelector('input,select');
+    // 날짜·고르기 칸은 폰에서 자판이 올라오며 화면이 튄다. 글자 칸만 손을 얹는다
+    if(f&&st.q==='name'&&f.focus)setTimeout(function(){f.focus();},250);
+  };
+  var stepBack=function(){ if(at>0){ at--; draw(); return true; } return false; };
+  var bk=$('stBack'); if(bk)bk.addEventListener('click',stepBack);
+  draw();
+
   var f=$('stForm');
   if(f)f.addEventListener('submit',function(e){
     e.preventDefault();
+    var st=STEPS[at];
+    if(st.need&&!$('stDate').value){
+      $('stMsg').textContent='태어난 날은 있어야 한다.'; return;
+    }
+    if(at<STEPS.length-1){ at++; draw(); return; }
+
     var name=$('stName').value.trim();
     var date=$('stDate').value;
     var hour=$('stHour').value;
-    if(!date){ $('stMsg').textContent='태어난 날을 알려 주세요.'; return; }
+    if(!date){ $('stMsg').textContent='태어난 날은 있어야 한다.'; at=1; draw(); return; }
     put('date',date);
     if(name)put('name',name);
     var noTime=document.getElementById('notime');

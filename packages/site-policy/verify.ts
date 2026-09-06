@@ -14,7 +14,7 @@ import {
   SPIRITS, PITCH, spiritOf, renderSpiritRow, renderSpiritHead, renderSpiritPitch, SPIRITS_CSS,
   renderSocialHead, HOME_TITLE, HOME_DESCRIPTION, FALLBACK_NAME,
   renderGate, GATE_CSS, GATE_SCRIPT, sceneUrl,
-  renderStage, STAGE_CSS, STAGE_SCRIPT,
+  renderStage, STAGE_CSS, STAGE_SCRIPT, NO_VIDEOS,
   renderWhy, WHY_CSS, LAYERS, CLAIMS,
   renderPickPage, PICK_CSS, PLACES, TIMES, DATE_SLOTS, slotLabel, slotSpan,
   renderRobots, renderSitemap,
@@ -446,6 +446,31 @@ section('10. 들어가는 길 — 전체 화면');
     !renderStage(full, new Set(['gate'])).includes('st-vid'));
   check('그림이 없으면 배경을 걸지 않는다',
     !renderStage(full).includes('--st-shot:url'));
+
+  // ── 문 앞에서는 한 번에 하나만 묻는다 ──────────────────────
+  // 넉 줄짜리 폼은 손님에게 서류로 보인다. 신령이 하나씩 물어야 상담이 된다
+  {
+    const withFace = renderStage(full, new Set(['gate']), NO_VIDEOS, new Set(['mirror']));
+    const qs = [...withFace.matchAll(/<div class="st-q" data-q="(\w+)"( hidden)?>/g)]
+      .map((m) => [m[1], !!m[2]] as const);
+    check('묻는 순서는 이름·날·시·성별',
+      qs.map((q) => q[0]).join() === 'name,date,hour,sex');
+    check('한 번에 한 칸만 열려 있다',
+      qs.filter((q) => !q[1]).length === 1 && qs[0][1] === false);
+    check('칸 이름은 그대로 남는다 — 아래 만세력이 이 이름으로 받는다',
+      ['stName', 'stDate', 'stHour', 'stSex'].every((id) => withFace.includes(`id="${id}"`)));
+    check('신령이 문 앞에 선다',
+      withFace.includes('class="st-who"') && withFace.includes('st-gate-who'));
+    check('신령 그림이 없으면 세우지 않는다',
+      !renderStage(full, new Set(['gate'])).includes('class="st-who"'));
+    check('건너뛰는 길은 그대로 둔다', withFace.includes('id="stSkip"'));
+    check('앞 물음으로 되돌아갈 수 있다',
+      withFace.includes('id="stBack"') && STAGE_SCRIPT.includes('stepBack'));
+    check('이름을 받으면 그 이름으로 부른다', STAGE_SCRIPT.includes("call(n)"));
+    check('태어난 날만 있어야 한다',
+      /\{ q:'date', need:true/.test(STAGE_SCRIPT)
+      && !/\{ q:'(name|hour|sex)', need:true/.test(STAGE_SCRIPT));
+  }
   // 계산은 만세력 조각이 한다. 두 곳에서 계산하면 언젠가 두 값이 달라진다.
   // 덮개는 **제 손으로 세지 않고** 그 조각을 불러 쓴다
   check('덮개는 밝힌 것을 아래 칸으로 옮겨 담는다', STAGE_SCRIPT.includes("put('date',date)"));
