@@ -20,7 +20,10 @@
 import { type BusinessInfo, show } from './business.ts';
 import { renderSocialHead } from './social.ts';
 import { FONT_LINK, PRODUCTS_CSS } from './products.ts';
-import type { PickGroup } from '../../saju-rules/src/pick.ts';
+import { type PickGroup, slotLabel, slotSpan } from '../../saju-rules/src/pick.ts';
+
+// 재는 규칙과 부르는 말은 한곳에 둔다. 여기서는 그것을 그대로 다시 내보낸다
+export { slotLabel, slotSpan };
 
 function esc(value: string): string {
   return value.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
@@ -56,18 +59,7 @@ export const TIMES = [
   '12:30', '13:30', '14:30', '15:30', '16:30',
 ];
 
-/** '07:30' → '07~08시'. 담긴 값이 아니라 손님이 고른 폭을 되돌려 준다 */
-export function slotLabel(value: string): string {
-  const h = Number(value.slice(0, 2));
-  return `${String(h).padStart(2, '0')}~${String(h + 1).padStart(2, '0')}시`;
-}
 
-/** 묶인 칸의 폭. '10:30'부터 '11:30'까지면 10시에 열려 12시에 닫힌다 */
-export function slotSpan(from: string, to: string): string {
-  const a = Number(from.slice(0, 2));
-  const b = Number(to.slice(0, 2)) + 1;
-  return `${String(a).padStart(2, '0')}~${String(b).padStart(2, '0')}시`;
-}
 
 /** 날짜 칸 개수. 의사가 주는 후보가 보통 두셋이라 넉넉히 다섯 */
 export const DATE_SLOTS = 5;
@@ -167,20 +159,27 @@ ${says}
  *
  * 고른 날을 그대로 적어 넣어 손님이 다시 옮겨 적지 않게 한다.
  */
-function nextSection(best: PickGroup): string {
+function nextSection(best: PickGroup, form: PickForm, count: number): string {
+  const q = new URLSearchParams();
+  for (const d of form.dates) if (d) q.append('date', d);
+  for (const t of form.times) q.append('time', t);
+  if (form.place) q.set('place', form.place);
   return `<section class="pk-next">
-  <p class="pk-nl">고르고 나면</p>
-  <h3>이 아이는 어떤 아이가 될까요</h3>
-  <p class="pk-nd"><strong>${esc(best.date)} (${weekday(best.date)}) ${esc(span(best))}</strong>에 태어나면
-  여덟 글자는 <b>${esc(best.eight)}</b>입니다.
-  이 여덟 글자가 무엇을 말하는지 — 타고난 기질, 무엇을 채워 줘야 하는지,
-  언제 크게 바뀌는지 — 를 읽기 쉬운 글로 풀어 드립니다.</p>
-  <a class="pk-buy" href="/products/child-report">우리 아이 사주 보기 · 19,900원</a>
-  <p class="pk-nh">날 고르는 것은 계속 공짜입니다. 몇 번이든 다시 돌려 보세요.</p>
+  <p class="pk-nl">여기까지가 공짜입니다</p>
+  <h3>왜 그 점수인지까지 적어 드립니다</h3>
+  <p class="pk-nd">위 점수는 <strong>어느 때가 앞서는지</strong>까지만 말합니다.
+  리포트에는 <strong>${count}개를 전부 견준 순위</strong>와, 1순위가 왜 앞섰는지,
+  2·3순위와 무엇을 주고받는지, 피하는 게 나은 때는 왜 그런지를
+  읽기 쉬운 글로 적어 드립니다. 병원과 이야기할 때 무엇을 물으면 되는지까지요.</p>
+  <p class="pk-nd">지금 넣으신 <b>${esc(best.date)} (${weekday(best.date)}) ${esc(span(best))}</b>
+  같은 후보들이 그대로 넘어갑니다. 다시 적지 않으셔도 됩니다.</p>
+  <a class="pk-buy" href="/products/pick-report?${esc(q.toString())}">제왕절개 택일 리포트 · 29,000원</a>
+  <p class="pk-nh">날 고르는 것은 계속 공짜입니다. 몇 번이든 다시 돌려 보세요.
+  아이가 태어난 뒤의 <a href="/products/child-report">우리 아이 사주</a>는 따로 있습니다.</p>
 </section>`;
 }
 
-function resultSection(result: PickResult): string {
+function resultSection(result: PickResult, form: PickForm): string {
   if (!result.ranked.length) return '';
   const top = result.ranked.slice(0, 6).map((s, i) => card(s, i + 1)).join('\n');
   const rows = result.perDay.map((s) => `    <tr>
@@ -208,7 +207,7 @@ ${rows}
     </tbody>
   </table>
 
-${nextSection(result.ranked[0]!)}
+${nextSection(result.ranked[0]!, form, result.ranked.length)}
 
   <p class="pk-warn">이 값은 <strong>의사가 이미 된다고 한 날들 중에서 고른 것</strong>입니다.
   여기서 좋게 나온 날이 의학적으로 괜찮은 날이라는 뜻이 아닙니다.
@@ -248,7 +247,7 @@ ${PICK_CSS}
   값은 받지 않습니다.</p>
 
 ${formSection(form)}
-${resultSection(result)}
+${resultSection(result, form)}
 
   <h3 class="pk-sub">어떻게 매기는 점수인가</h3>
   <p class="pk-why">다섯 가지를 봅니다. 어려운 말 옆에 뜻과 예를 같이 적었습니다.</p>

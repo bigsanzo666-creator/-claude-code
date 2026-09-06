@@ -37,6 +37,7 @@ export type ProductId =
   | 'compat-report' | 'crush-compat-report'
   // 가족 — 차별점
   | 'child-report' | 'child-aptitude-report' | 'parent-child-report' | 'latelife-report'
+  | 'pick-report'
   // 나
   | 'saju-report' | 'cross-report' | 'peers-report' | 'expression-report' | 'helper-report'
   // 나 — 골라 보기. 삼합이 부담스러운 손님이 한 갈래씩 고른다
@@ -69,6 +70,13 @@ export interface Product {
   hook: string;
   /** 두 사람의 생년월일이 필요한가. 화면이 입력칸을 하나 더 띄운다 */
   needsPartner?: boolean;
+  /**
+   * 태어난 날 대신 **고를 날 후보**가 필요한가.
+   *
+   * 택일은 아직 태어나지 않은 아이의 날을 고르는 것이라 생년월일이 없다.
+   * 이 표가 서 있으면 서버는 생년월일 대신 후보 날짜를 받는다.
+   */
+  needsPick?: boolean;
   /** 짝이 되는 주제 (`packages/saju-rules` 의 TopicId) */
   topic?: string;
 }
@@ -193,6 +201,26 @@ export const CATALOG: Record<ProductId, Product> = {
     category: '가족',
     hook: '왜 이 아이와는 늘 부딪힐까?',
     needsPartner: true,
+  },
+  /*
+   * 제왕절개 택일.
+   *
+   * 역술가는 날짜 셋을 적어 주고 끝낸다. 병원 일정과 안 맞으면 손님은 그냥 못 쓴다.
+   * 여기서는 **의사가 된다고 한 날 안에서만** 고르고, 날짜만이 아니라 **시각까지**
+   * 낸다 — 여덟 글자 중 두 글자가 태어난 시각으로 정해지고 그것이 두 시간마다 바뀐다.
+   * 전화 상담으로는 할 수 없는 일이고, 이것이 우리가 파는 자리다.
+   *
+   * 점수만 보는 것은 `/pick` 에서 계속 공짜다. 파는 것은 **왜 그 점수인지**의 글이다.
+   */
+  'pick-report': {
+    id: 'pick-report',
+    name: '제왕절개 택일 리포트',
+    priceKrw: 29000,
+    description: '의사에게 받은 후보 날짜와 수술이 가능한 시각을 넣으면, 그 안에서만 재서 순위와 까닭을 씁니다. 날마다 제일 좋은 시각까지 냅니다.',
+    previewRatio: 0.2,
+    category: '가족',
+    hook: '언제 낳는 게 이 아이에게 좋을까?',
+    needsPick: true,
   },
   'latelife-report': {
     id: 'latelife-report',

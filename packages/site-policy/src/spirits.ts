@@ -176,6 +176,7 @@ export const PITCH: Record<string, string> = {
   'crush-compat-report': '아직 실이 한 가닥이구나. 이어질 실인지 아닌지만 빨리 봐 줄게.',
 
   // 산신령 — 가족
+  'pick-report': '씨를 언제 묻느냐로 나무가 달라진단다. 의원이 된다고 한 날만 가져오렴. 그 안에서 골라 주마.',
   'child-report': '아이는 나무 같단다. 어떤 나무로 태어났는지 알아야 물을 얼마나 줄지 알지.',
   'child-aptitude-report': '밤나무한테 사과가 열리라고 하면 안 되지. 이 아이한테 뭐가 열리는지 봐 주마.',
   'parent-child-report': '부딪히는 건 누가 나빠서가 아니야. 두 사람 자리가 어긋난 거지. 어디가 어긋났는지 짚어 주마.',

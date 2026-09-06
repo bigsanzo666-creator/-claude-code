@@ -786,6 +786,34 @@ const badPack = await api('POST', '/api/orders',
   { productId: 'no-such-pack', birth: BIRTH, acknowledgedNotice: true });
 check('없는 묶음은 거부', badPack.status === 400);
 
+// ─── 택일 리포트 ──────────────────────────────────────────────
+// 아직 태어나지 않은 아이의 날을 고르는 상품이라, 생년월일 없이도 서야 한다
+{
+  const PICK = { dates: ['2027-04-27', '2027-04-30'], times: ['15:30', '16:30'],
+    longitude: 126.705, place: '인천' };
+
+  const noBirth = await api('POST', '/api/preview', { productId: 'pick-report', pick: PICK });
+  check('생년월일 없이도 미리보기가 선다', noBirth.status === 200);
+  const c = noBirth.body?.preview?.contents ?? [];
+  check('무엇이 담기는지 미리 보여 준다', c.length >= 4, `${c.length}줄`);
+  check('1순위와 까닭을 미리 보여 준다',
+    c.some((x: string) => x.startsWith('1순위 2027-04-30'))
+    && c.some((x: string) => x.startsWith('1순위 근거:')));
+  // 손님이 고른 것은 「16~17시」다. 우리가 재려고 잡은 16:30 이 나가면 안 된다
+  check('고른 말 그대로 되돌려 준다',
+    c.some((x: string) => x.includes('16~17시')) && !c.join(' ').includes('16:30'));
+  check('값은 서버가 가진 것으로', noBirth.body?.product?.priceKrw === 29000);
+
+  const noDates = await api('POST', '/api/preview', { productId: 'pick-report' });
+  check('후보 날짜가 없으면 거부', noDates.status === 400);
+  const noTimes = await api('POST', '/api/preview',
+    { productId: 'pick-report', pick: { dates: ['2027-04-27'], times: [] } });
+  check('가능한 시각이 없으면 거부', noTimes.status === 400);
+  // 다른 상품은 그대로 생년월일을 받는다 — 택일 때문에 문이 열리면 안 된다
+  const stillNeeds = await api('POST', '/api/preview', { productId: 'saju-report' });
+  check('다른 상품은 여전히 생년월일이 있어야 한다', stillNeeds.status === 400);
+}
+
 server.close();
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} / 실패 ${failed}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);

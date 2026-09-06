@@ -670,6 +670,15 @@ section('11. 문 — 신령계 들어가는 곳');
 
   check('화면 CSS가 함께 실린다', empty.includes('.pk-form') && PICK_CSS.includes('.pk-card'));
 
+  // ── 공짜로 본 뒤에 무엇을 파는지 ────────────────────────────
+  // 점수는 「언제」까지만 말한다. 파는 것은 「왜 그 점수인지」의 글이다
+  check('택일 리포트로 이어 준다', out.includes('/products/pick-report'));
+  check('넣은 후보를 그대로 넘긴다',
+    out.includes('date=2027-04-27') && out.includes('date=2027-04-30')
+    && out.includes('place=%EC%9D%B8%EC%B2%9C'));
+  check('값을 숨기지 않는다', out.includes('29,000원'));
+  check('날 고르는 것은 계속 공짜라고 적는다', out.includes('날 고르는 것은 계속 공짜입니다'));
+
   // 아기는 정각에 맞춰 나오지 않는다. 손님은 폭으로 고른다
   check('시각을 폭으로 보여 준다', TIMES.every((t) => empty.includes(`>${slotLabel(t)}</span>`)));
   check('정각만 덩그러니 두지 않는다', !/>\d\d:\d\d<\/span>/.test(empty));

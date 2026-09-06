@@ -340,9 +340,24 @@ function validateReading(body: any): ReadingRequest {
   if (!body || typeof body !== 'object') throw new HttpError(400, '요청 본문이 필요합니다.');
   const productId = String(body.productId ?? '');
   if (!isOrderable(productId)) throw new HttpError(400, `알 수 없는 상품입니다: ${body.productId}`);
-  if (!body.birth?.date) throw new HttpError(400, '생년월일이 필요합니다.');
+  const item = orderable(productId);
+  /*
+   * 택일은 **아직 태어나지 않은 아이**의 날을 고르는 것이라 생년월일이 없다.
+   * 없는 것을 내라고 하면 손님은 아무 날이나 찍어 넣는다 — 그러면 우리가 잰 것은
+   * 아무 뜻도 없어진다. 그래서 이 상품만은 후보 날짜와 시각을 받는다.
+   */
+  if (item.needsPick) {
+    if (!Array.isArray(body.pick?.dates) || !body.pick.dates.length) {
+      throw new HttpError(400, '의사에게 받은 후보 날짜가 필요합니다.');
+    }
+    if (!Array.isArray(body.pick?.times) || !body.pick.times.length) {
+      throw new HttpError(400, '수술이 가능한 시각이 필요합니다.');
+    }
+  } else if (!body.birth?.date) {
+    throw new HttpError(400, '생년월일이 필요합니다.');
+  }
   // 궁합이 든 묶음은 상대의 생년월일이 있어야 만들 수 있다. 결제 전에 말한다
-  if (orderable(productId).needsPartner && !body.partner?.date) {
+  if (item.needsPartner && !body.partner?.date) {
     throw new HttpError(400, '이 상품에는 상대의 생년월일이 필요합니다.');
   }
   return body as ReadingRequest;

@@ -30,6 +30,20 @@ const SAMPLES: Partial<Record<ProductId, string>> = {
 
 …`,
 
+  'pick-report': `후보로 주신 세 날, 다섯 시간대를 모두 재어 보았습니다. 앞선 것은 4월 30일 오후 4시에서 5시 사이입니다. 70.4점으로 「아주 좋음」에 들어갑니다. 바로 뒤가 4월 27일 같은 시간대로 69.9점이니, 이 둘은 사실상 붙어 있습니다. 병원 사정이 편한 쪽으로 고르셔도 됩니다.
+
+먼저 점수를 어떻게 읽어야 하는지부터 말씀드립니다. 이 숫자는 절대 점수가 아니라 **후보들 사이에서 견주는 눈금**입니다. 여덟 글자 중 연주와 월주는 그 기간에 이미 정해져 있어, 우리가 고를 수 있는 것은 일주와 시주 절반뿐입니다. 그래서 100점은 구조적으로 나오지 않고, 70점이면 아주 좋은 편에 듭니다.
+
+1순위인 4월 30일 오후 4시대에 태어나면 여덟 글자는 정미 갑진 기묘 임신으로 섭니다. 일간을 돕는 힘이 48%로 한가운데에 있어 세지도 약하지도 않습니다. 부딪히는 자리(충)가 한 군데도 없고, 천을귀인이 붙습니다. 뻗어 나가는 기운 쪽으로 조금 치우쳐 있는데, 이것은 깎는 요소로 넣어 계산한 뒤에도 남은 점수입니다.
+
+2순위인 4월 27일 오후 4시대는 정미 갑진 병자 병신입니다. 힘이 50%로 더 정확히 가운데이고 충도 없습니다. 1순위와 갈린 것은 귀인 하나 차이입니다…
+
+한편 5월 3일 오후 1시대는 8.3점으로 「피하는 게 낫다」에 들어갑니다. 이유를 감추지 않고 적습니다. 신약으로, 일간을 돕는 힘이 15%밖에 되지 않습니다. 타오르는 기운으로 크게 치우쳐 있고, 자르고 맺는 기운이 아예 없으며, 부딪히는 자리도 한 군데 있습니다.
+
+다만 이 값은 **의사 선생님이 이미 된다고 하신 날들 중에서 고른 것**입니다. 여기서 좋게 나온 날이 의학적으로 괜찮은 날이라는 뜻이 아닙니다. 산모와 아기의 몸이 먼저입니다…
+
+…`,
+
   'compat-report': `두 분은 서로를 밀어주는 쪽에 가깝습니다. 다만 그 방향이 한쪽으로 기울어 있어, 오래 두면 한 사람이 더 많이 쓰는 구조가 될 수 있는 조합입니다.
 
 일간을 보면 지영 님의 토(土)가 민수 님의 금(金)을 생합니다. 지영 님이 민수 님을 북돋우는 흐름이고, 관계 초반에는 이 방향이 편안하게 작동합니다. 일지끼리는 신자진 수국의 일부를 이뤄, 두 분이 바라보는 방향 자체는 비슷합니다.
@@ -93,6 +107,20 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
       for (const axis of cp.axes ?? []) contents.push(`${axis.name}: ${axis.verdict} (${axis.score}점)`);
       if (cp.cautions?.length) contents.push(`주의할 점 ${cp.cautions.length}가지`);
     }
+  } else if (productId === 'pick-report') {
+    // 택일은 사람이 아니라 날을 본다. 뽑아 보일 것도 명식이 아니라 순위다
+    const ranked = (d?.순위 ?? []) as any[];
+    const perDay = (d?.날마다최고 ?? []) as any[];
+    if (ranked.length) {
+      const top = ranked[0];
+      contents.push(`후보 ${(d?.후보날 ?? []).length}날 × 시간대 ${(d?.가능시각 ?? []).length}개를 전부 견줌`);
+      contents.push(`1순위 ${top.날} ${top.때} — ${top.점수}점 · ${top.등급}`);
+      contents.push(`그때 서는 여덟 글자: ${top.여덟글자}`);
+      for (const why of (top.까닭 ?? []).slice(0, 3)) contents.push(`1순위 근거: ${why}`);
+      if (perDay.length) contents.push(`날마다 제일 좋은 시각 ${perDay.length}줄`);
+      const last = ranked[ranked.length - 1];
+      if (ranked.length > 1) contents.push(`피하는 게 나은 때: ${last.날} ${last.때} (${last.점수}점)`);
+    }
   } else if (productId === 'cross-report') {
     const xv = d?.교차검증;
     if (xv) {
@@ -117,6 +145,8 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
   return {
     contents,
     sample: makePreview(SAMPLE_REPORTS[productId], Math.max(ratio, 0.4)),
-    sampleNotice: '위 예시는 다른 분의 명식으로 만든 것입니다. 실제 리포트는 위에 나열된 내용으로 작성됩니다.',
+    sampleNotice: productId === 'pick-report'
+      ? '위 예시는 다른 분이 받은 후보 날짜로 만든 것입니다. 실제 리포트는 위에 나열된 내용으로 작성됩니다.'
+      : '위 예시는 다른 분의 명식으로 만든 것입니다. 실제 리포트는 위에 나열된 내용으로 작성됩니다.',
   };
 }

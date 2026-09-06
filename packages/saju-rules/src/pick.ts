@@ -205,3 +205,26 @@ export function mergeHours(scores: PickScore[]): PickGroup[] {
   }
   return [...groups.values()].sort((a, b) => b.total - a.total);
 }
+
+/**
+ * 손님이 고른 것은 정각이 아니라 **한 시간 폭**이다.
+ *
+ * 아기가 07:00 정각에 나오는 일은 없으므로 화면은 「07~08시」로 고르게 하고,
+ * 잴 때는 그 폭의 한가운데(07:30)로 잰다. 정각은 시주의 경계와 겹칠 때가 있어
+ * (07:00 은 묘시와 진시의 금) 한가운데가 안전하다.
+ *
+ * 되돌려 줄 때는 **손님이 고른 말 그대로** 돌려준다. 화면에도 리포트에도
+ * 07:30 이 아니라 「07~08시」가 나가야 한다. 그래서 이 두 함수가 점수와 같은
+ * 파일에 있다 — 재는 규칙과 부르는 말이 갈라지면 언젠가 둘이 어긋난다.
+ */
+export function slotLabel(value: string): string {
+  const h = Number(value.slice(0, 2));
+  return `${String(h).padStart(2, '0')}~${String(h + 1).padStart(2, '0')}시`;
+}
+
+/** 묶인 칸의 폭. '10:30'부터 '11:30'까지면 10시에 열려 12시에 닫힌다 */
+export function slotSpan(from: string, to: string): string {
+  const a = Number(from.slice(0, 2));
+  const b = Number(to.slice(0, 2)) + 1;
+  return `${String(a).padStart(2, '0')}~${String(b).padStart(2, '0')}시`;
+}

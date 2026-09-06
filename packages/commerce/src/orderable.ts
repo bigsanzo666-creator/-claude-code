@@ -32,6 +32,8 @@ export interface Orderable {
   isPackage: boolean;
   /** 두 사람의 생년월일이 필요한 구성이 하나라도 있는가 */
   needsPartner: boolean;
+  /** 생년월일 대신 고를 날 후보가 필요한가 */
+  needsPick: boolean;
 }
 
 function fromPackage(id: PackageId): Orderable {
@@ -48,6 +50,7 @@ function fromPackage(id: PackageId): Orderable {
     members: [...pack.members],
     isPackage: true,
     needsPartner: pack.members.some((m) => CATALOG[m].needsPartner === true),
+    needsPick: pack.members.some((m) => CATALOG[m].needsPick === true),
   };
 }
 
@@ -64,6 +67,7 @@ export function orderable(id: string): Orderable {
       members: [single.id],
       isPackage: false,
       needsPartner: single.needsPartner === true,
+      needsPick: single.needsPick === true,
     };
   }
   if (PACKAGES[id as PackageId]) return fromPackage(id as PackageId);

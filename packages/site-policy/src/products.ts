@@ -62,6 +62,14 @@ export const imageUrl = (id: string) => `/img/products/${encodeURIComponent(id)}
  * 이미 그 일을 한다. 없는 상품은 목록 없이 설명만 나간다.
  */
 const CONTENTS: Record<string, string[]> = {
+  'pick-report': [
+    '의사에게 받은 후보 날짜와 가능한 시각을 전부 견준 순위',
+    '1순위가 왜 앞섰는지 — 힘의 치우침·오행·충·귀인을 하나씩',
+    '그날 그때 세워지는 여덟 글자',
+    '2·3순위와 무엇을 주고받는지',
+    '피하는 게 나은 때와 그 까닭',
+    '날마다 제일 좋은 시각 — 같은 날도 두 시간마다 갈립니다',
+  ],
   'saju-report': [
     '사주 여덟 글자와 지장간까지 펼친 명식',
     '일간의 강약과 용신 — 어느 기운을 써야 하는지',
@@ -479,8 +487,15 @@ ${PRODUCTS_CSS}
   <div class="pd-buy">
     <span class="pd-price">${won(product.priceKrw)}</span><span class="pr-vat"> (부가세 포함)</span>
     ${product.needsPartner ? '<p class="pd-also">두 사람의 생년월일이 필요합니다.</p>' : ''}
+    ${product.needsPick
+      // 택일은 태어난 날이 아직 없다. 첫 화면이 아니라 택일 화면으로 보낸다
+      ? `<p class="pd-also">아직 태어나지 않았으므로 생년월일은 필요 없습니다.
+        <a href="/pick">택일 화면</a>에서 <b>의사에게 받은 후보 날짜</b>를 넣으시면
+        점수를 <b>공짜로</b> 먼저 보실 수 있고, 그 뒤에 이 리포트를 고르시면 됩니다.</p>`
+      : ''}
     ${ready
-      ? '<p class="pd-also">첫 화면에서 생년월일을 넣으시면 미리보기를 보신 뒤 구매하실 수 있습니다.</p>'
+      ? (product.needsPick ? ''
+        : '<p class="pd-also">첫 화면에서 생년월일을 넣으시면 미리보기를 보신 뒤 구매하실 수 있습니다.</p>')
       : '<p class="pd-also"><b>결제 준비 중입니다.</b> 사주 명식·궁합·관상·손금 풀이는 지금도 결제 없이 이용하실 수 있습니다.</p>'}
     ${alsoIn}
   </div>

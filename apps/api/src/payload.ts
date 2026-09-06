@@ -12,6 +12,7 @@ import {
   analyze, calculateDaeun, currentDaeun, annualLuck,
   compatibility, sajuToTraits, crossValidate,
 } from '../../../packages/saju-rules/src/index.ts';
+import { pickDays, mergeHours, bestPerDay, slotSpan, slotLabel } from '../../../packages/saju-rules/src/index.ts';
 import { readFace, NEUTRAL_FEATURES } from '../../../packages/physiognomy/src/index.ts';
 import { readPalm, NEUTRAL_PALM_FEATURES } from '../../../packages/palmistry/src/index.ts';
 import type { ProductId } from '../../../packages/commerce/src/index.ts';
@@ -25,9 +26,23 @@ export interface BirthInput {
   name?: string;
 }
 
+/** 택일에 넣는 것. 아직 태어나지 않았으므로 생년월일이 없다 */
+export interface PickInput {
+  /** 의사가 된다고 한 날들 */
+  dates: string[];
+  /** 수술이 가능한 시각들. 화면에서는 「07~08시」처럼 폭으로 고르고 값은 그 한가운데다 */
+  times: string[];
+  /** 태어날 곳의 경도. 시주는 그곳의 해 위치로 선다 */
+  longitude?: number;
+  /** 태어날 곳 이름. 글에 그대로 쓴다 */
+  place?: string;
+}
+
 export interface ReadingRequest {
   productId: ProductId;
   birth: BirthInput;
+  /** 택일 상품에서만 쓴다 */
+  pick?: PickInput;
   /** 궁합용 상대 */
   partner?: BirthInput;
   /** 교차검증용 관상·손금 특징 */
@@ -54,6 +69,8 @@ const KIND_EXCEPTIONS: Partial<Record<ProductId, ReportKind>> = {
   // 세 갈래를 대조하는 것
   'cross-report': '교차검증',
   'charm-report': '교차검증',
+  // 사람이 아니라 **날**을 보는 것
+  'pick-report': '택일',
 };
 
 export function kindOf(productId: ProductId): ReportKind {
@@ -90,7 +107,43 @@ export function buildPayloads(
 
 /** 상품별로 리포트에 실을 데이터를 조립한다. */
 export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unknown; subject: string } {
-  const subject = req.birth.name?.trim() || '이 분';
+  const subject = req.birth?.name?.trim() || '이 분';
+
+  /*
+   * 택일.
+   *
+   * 여기서는 손님의 명식을 세지 않는다. **아직 태어나지 않은 아이**의 날을 고르는 것이라
+   * 셀 명식 자체가 없다. 계산은 `/pick` 화면이 쓰는 것과 **같은 함수**를 쓴다 —
+   * 공짜로 본 점수와 돈 내고 받은 글의 점수가 다르면 그 순간 신뢰가 끝난다.
+   */
+  if (req.productId === 'pick-report') {
+    const pick = req.pick;
+    if (!pick?.dates?.length) throw new Error('택일에는 의사에게 받은 후보 날짜가 필요합니다.');
+    if (!pick.times?.length) throw new Error('택일에는 수술이 가능한 시각이 필요합니다.');
+    const scores = pickDays({ dates: pick.dates, times: pick.times, longitude: pick.longitude });
+    const ranked = mergeHours(scores);
+    /*
+     * 손님이 고른 것은 「16~17시」이지 16:30 이 아니다. 16:30 은 우리가 재려고
+     * 잡은 한가운데일 뿐이라, 그대로 넘기면 리포트가 손님이 고른 적 없는 시각을
+     * 말하게 된다. 넘길 때 부르는 말로 바꿔 둔다.
+     */
+    const say = (g: (typeof ranked)[number]) => ({
+      날: g.date, 때: slotSpan(g.time, g.untilTime),
+      점수: g.total, 등급: g.band, 여덟글자: g.eight, 까닭: g.says,
+    });
+    return {
+      kind: '택일',
+      subject: pick.place ? `${pick.place}에서 태어날 아이` : '태어날 아이',
+      data: {
+        고른곳: pick.place ?? null,
+        후보날: pick.dates,
+        가능시각: pick.times.map(slotLabel),
+        순위: ranked.map(say),
+        날마다최고: bestPerDay(ranked).map(say),
+        눈금: '연주와 월주는 이미 정해져 있어 고를 수 있는 것은 절반뿐이다. 100점은 나오지 않는다.',
+      },
+    };
+  }
 
   if (req.productId === 'compat-report') {
     if (!req.partner) throw new Error('궁합 리포트에는 상대의 생년월일이 필요합니다.');
