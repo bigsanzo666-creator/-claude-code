@@ -283,6 +283,11 @@ body.pair #panelF,body.pair #panelP{display:none}
 .up-m{font-size:.83rem;color:var(--ink-2);line-height:1.6}
 .up-s{font-size:.8rem;color:var(--ink-2)}
 .up-p{font-family:"Nanum Myeongjo",serif;font-size:1.05rem;font-weight:700;color:var(--seal);font-variant-numeric:tabular-nums;white-space:nowrap}
+.wait{margin:1rem 0 0;padding:1rem 1.1rem;border:1px solid var(--accent,#96742F);
+  background:var(--surface-2);border-radius:10px}
+.wait .step{margin:0;font-size:1rem;font-weight:500;color:var(--ink)}
+.step-sec{margin:.35rem 0 0;font-size:.85rem;color:var(--ink-3)}
+.step-warn{margin:.6rem 0 0;font-size:.85rem;line-height:1.7;color:var(--ink-2)}
 .mail{display:grid;gap:.4rem}
 .mail input{width:100%;box-sizing:border-box;padding:.85rem .9rem;border-radius:10px;
   border:1px solid var(--rule);background:var(--surface-2);font:1rem inherit;color:var(--ink)}
@@ -1134,7 +1139,14 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
             (buyState.busy ? '진행 중…' : money(p.product.priceKrw) + ' 결제하기') + '</button>' +
 
           (buyState.error ? '<div class="err">' + esc(buyState.error) + '</div>' : '') +
-          (buyState.busy ? '<p class="step" id="stepText">주문을 만드는 중…</p>' : '') +
+          (buyState.busy
+            ? '<div class="wait">' +
+                '<p class="step" id="stepText">주문을 만드는 중…</p>' +
+                '<p class="step-sec" id="stepSec">0초 지났습니다</p>' +
+                '<p class="step-warn">결제가 끝난 뒤에도 리포트를 쓰는 데 1~3분 걸립니다. ' +
+                  '이 창을 닫거나 새로고침하지 마세요.</p>' +
+              '</div>'
+            : '') +
         '</div>';
     }
 
@@ -1160,11 +1172,33 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
       '</div>';
   }
 
+  /*
+   * 결제가 끝난 뒤가 제일 긴 구간이다.
+   *
+   * 카드사에서 돌아오면 확정과 리포트 쓰기가 남는데 여기서 1~3분이 걸린다.
+   * 그동안 화면이 「결제를 확인하는 중…」 한 줄로 멈춰 있으면 손님은 실패한
+   * 줄 알고 새로고침하거나 창을 닫는다. **결제는 이미 끝난 뒤라 그게 제일
+   * 위험하다.** 얼마나 걸리는지와 닫지 말라는 말을 크게 적고, 초를 센다.
+   */
   var STEP_TEXT = {
-    order: '주문을 만드는 중…', payment: '결제창을 여는 중…',
-    confirm: '결제를 확인하는 중…', report: '리포트를 만드는 중… (1분쯤 걸립니다)',
-    done: '완료',
+    order: '주문을 만드는 중…',
+    payment: '결제창을 여는 중…',
+    confirm: '결제를 확인하고 있습니다. 창을 닫지 마세요.',
+    report: '리포트를 쓰고 있습니다. 1~3분 걸립니다. 창을 닫지 마세요.',
+    done: '다 됐습니다.',
   };
+
+  // 멈춘 것처럼 보이지 않게 초를 센다
+  var tick = null;
+  function startTick() {
+    var t0 = Date.now();
+    stopTick();
+    tick = setInterval(function () {
+      var el = $('stepSec');
+      if (el) el.textContent = Math.floor((Date.now() - t0) / 1000) + '초 지났습니다';
+    }, 1000);
+  }
+  function stopTick() { if (tick) { clearInterval(tick); tick = null; } }
 
   /** 결제사에 넘길 수 있는 모양인지만 본다. 참인지 아닌지는 우리가 알 수 없다 */
   function okMail(v) {
@@ -1222,7 +1256,7 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     if (!btn) return;
 
     btn.addEventListener('click', async function () {
-      buyState.busy = true; buyState.error = null; render();
+      buyState.busy = true; buyState.error = null; render(); startTick();
       try {
         buyState.result = await checkout.purchase(reading, {
           previewShown: true,
@@ -1241,7 +1275,7 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
           ? '결제를 취소하셨습니다. 언제든 다시 시도하실 수 있습니다.'
           : (e && e.message) || '결제에 실패했습니다.';
       } finally {
-        buyState.busy = false; render();
+        buyState.busy = false; stopTick(); render();
       }
     });
   }
@@ -1710,6 +1744,7 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     }
 
     buyState.busy = true;
+    startTick();
     checkout.resume(orderId, {
       paymentId: q.get('paymentId') || orderId,
       onStage: function (stage) {
@@ -1722,6 +1757,7 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
       buyState.error = (e && e.message) || '결제를 확인하지 못했습니다.';
     }).finally(function () {
       buyState.busy = false;
+      stopTick();
       render();
       var el = $('buyPanel');
       if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });

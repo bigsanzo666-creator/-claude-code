@@ -151,4 +151,23 @@ check('시스템 프롬프트가 캐시되면 원가가 더 낮아짐', cachedCo
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} / 실패 ${failed}`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
+
+// ─── 쉬운 말이 먼저 나와야 한다 ────────────────────────────────
+// 돈을 낸 사람이 첫 줄에서 막히면 그 글은 실패한 글이다
+{
+  const sys = buildSystemPrompt('사주');
+  check('한자말 대신 쉬운 말을 앞에 세우라고 시킨다',
+    sys.includes('쉬운 말을 앞에, 한자말은 괄호에'));
+  for (const [hard, easy] of [['식상', '밖으로 내보이는 힘'], ['인성', '받아들이고 배우는 힘'],
+    ['신약', '제 힘이 약한 편'], ['용신', '채워야 할 기운'], ['충', '서로 밀어내는 짝']]) {
+    check(`「${hard}」를 풀어 쓰라고 적혀 있다`, sys.includes(`${hard} → ${easy}`));
+  }
+  check('초등학생이 읽을 수 있어야 한다고 적는다', sys.includes('초등학생이 읽어도'));
+  check('문장을 짧게 자르라고 시킨다', sys.includes('40자 안쪽'));
+  check('한자를 그대로 내보내지 않는다', sys.includes('한자를 그대로 노출하지 않습니다'));
+  check('네 갈래 모두 같은 문체를 받는다',
+    (['사주', '궁합', '교차검증', '택일'] as const)
+      .every((k) => buildSystemPrompt(k).includes('초등학생이 읽어도')));
+}
+
 console.log('전부 통과. (모델 호출 없음 — 이 검증은 비용이 들지 않는다)');
