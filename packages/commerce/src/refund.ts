@@ -22,6 +22,14 @@ import type { Order } from './orders.ts';
 
 /** 청약철회 기간 (일). 법 제17조 제1항 */
 export const WITHDRAWAL_WINDOW_DAYS = 7;
+/**
+ * 늦어도 이 안에는 드린다 (일).
+ *
+ * 화면에서 보여 주는 것은 결제 즉시다. 이 값은 그것이 어긋났을 때의 **약속**이라
+ * 청약철회 기간과는 다른 것이다. 둘을 같은 상수로 쓰면 「7일 안에 드립니다」처럼
+ * 실제보다 한참 느슨한 약속이 화면에 나간다.
+ */
+export const DELIVERY_DUE_DAYS = 1;
 /** 환급 기한 (영업일). 용역·디지털콘텐츠는 반환할 물건이 없으므로 철회일 기준 */
 export const REFUND_DUE_BUSINESS_DAYS = 3;
 

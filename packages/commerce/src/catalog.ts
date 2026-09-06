@@ -37,7 +37,7 @@ export type ProductId =
   | 'compat-report' | 'crush-compat-report'
   // 가족 — 차별점
   | 'child-report' | 'child-aptitude-report' | 'parent-child-report' | 'latelife-report'
-  | 'pick-report'
+  | 'pick-report' | 'naming-report' | 'naming-plus-report'
   // 나
   | 'saju-report' | 'cross-report' | 'peers-report' | 'expression-report' | 'helper-report'
   // 나 — 골라 보기. 삼합이 부담스러운 손님이 한 갈래씩 고른다
@@ -221,6 +221,38 @@ export const CATALOG: Record<ProductId, Product> = {
     category: '가족',
     hook: '언제 낳는 게 이 아이에게 좋을까?',
     needsPick: true,
+  },
+  /*
+   * 작명 — 두 벌로 나눈 이유.
+   *
+   * 이름은 한 번 지으면 평생 쓴다. 그래서 「몇 개 줄게」로 파는 물건이 아니다.
+   * 마음에 드는 것이 나올 때까지 짓는 것이 물건이고, 개수는 그 결과일 뿐이다.
+   *
+   *   기본  — 다섯을 먼저 드리고, 없으면 둘을 더 짓는다.
+   *   더함  — 마음에 드실 때까지 짓고, 거기에 **요즘 많이 쓰는 이름과 겹치지
+   *           않는 것**까지 골라 드린다.
+   *
+   * 겹침을 보는 것이 값의 차이다. 사주에 맞는 이름을 짓는 것은 어느 작명소나
+   * 한다. 지어 놓고 「그런데 이 이름은 요즘 한 반에 둘씩 있습니다」를 말해 주는
+   * 곳이 없다. 부모가 실제로 겪는 일은 그쪽이다.
+   */
+  'naming-report': {
+    id: 'naming-report',
+    name: '아이 이름 짓기',
+    priceKrw: 49000,
+    description: '아이의 사주를 보고 그 흐름에 맞는 이름을 지어 드립니다. 먼저 다섯을 드리고, 마음에 드는 것이 없으면 둘을 더 지어 드립니다. 넣고 싶은 글자가 있으면 그 글자로 짓습니다.',
+    previewRatio: 0.2,
+    category: '가족',
+    hook: '우리 아이 이름, 뭐로 지을까?',
+  },
+  'naming-plus-report': {
+    id: 'naming-plus-report',
+    name: '아이 이름 짓기 — 안 겹치게',
+    priceKrw: 89000,
+    description: '마음에 드는 이름이 나올 때까지 지어 드립니다. 개수를 정해 두지 않습니다. 거기에 요즘 많이 쓰는 이름과 겹치지 않는 것까지 따로 골라 드립니다.',
+    previewRatio: 0.2,
+    category: '가족',
+    hook: '반에 같은 이름 없게 지을 수 없을까?',
   },
   'latelife-report': {
     id: 'latelife-report',

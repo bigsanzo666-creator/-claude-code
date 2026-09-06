@@ -45,21 +45,64 @@ export function renderFooter(info: BusinessInfo): string {
     ['개인정보 보호책임자', show(info, 'privacyOfficer', '개인정보 보호책임자')],
     ['호스팅 제공', info.hostingProvider],
   ];
-  const items = rows.map(([k, v]) => `<span><b>${esc(k)}</b> ${esc(v)}</span>`).join('\n      ');
+  /*
+   * 이름과 값을 **줄로 나눠** 적는다.
+   *
+   * 전에는 아홉 가지를 한 문단에 이어 붙였다. 넓은 화면에서는 읽혔지만 폰에서는
+   * 「상호 늘봄라이프 대표 이민연 사업자등록번호 756-…」처럼 글이 통째로 이어져
+   * 어디가 이름이고 어디가 값인지 알 수 없었다. 표시해야 할 것을 표시하지 않은
+   * 것은 아니지만, 읽을 수 없으면 표시한 것이 아니다.
+   */
+  const items = rows
+    .map(([k, v]) => `<div class="biz-row"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`)
+    .join('\n      ');
   return `<footer class="biz">
   <nav class="biz-links">
     <a href="/products">판매 상품</a>
+    <a href="/pick">제왕절개 택일</a>
     <a href="/terms">이용약관</a>
-    <a href="/privacy"><b>개인정보처리방침</b></a>
-    <a href="/refund">취소·환불 정책</a>
+    <a href="/privacy">개인정보처리방침</a>
+    <a href="/refund">취소·환불</a>
   </nav>
-  <div class="biz-rows">
+  <dl class="biz-rows">
       ${items}
-  </div>
+  </dl>
   <p class="biz-note">${esc(show(info, 'serviceName', '서비스 이름'))}에서 제공하는 사주·관상·손금 해석은
   전통 명리 이론에 근거한 참고 자료이며, 의료·법률·투자 판단의 근거가 아닙니다.</p>
 </footer>`;
 }
+
+/**
+ * 하단 사업자 정보 스타일.
+ *
+ * 따로 빼 두는 이유는 하나다 — **이 글은 모든 화면에 나간다.** 정책 문서에만
+ * 스타일이 붙어 있으면 상품 화면과 택일 화면에서는 파란 밑줄 링크와 이어 붙은
+ * 글자 덩어리가 된다. 법이 요구하는 것은 「알아보기 쉬운 곳에 표시」이고,
+ * 읽을 수 없게 나오면 표시한 것이 아니다.
+ *
+ * 색은 새로 만들지 않는다. 정책 문서의 `--fg/--muted/--line` 이 없는 화면에서는
+ * 상품 화면의 `--nb-*` 로 내려간다.
+ */
+export const FOOTER_CSS = `
+.biz{max-width:720px;margin:0 auto;padding:26px 22px 34px;
+  border-top:1px solid var(--line,var(--nb-line));
+  color:var(--muted,var(--nb-ink-3));
+  font:12.5px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
+.biz-links{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 18px;
+  padding:0 0 16px;border-bottom:1px solid var(--line,var(--nb-line))}
+.biz-links a{color:var(--muted,var(--nb-ink-2));text-decoration:none;font-size:13px}
+.biz-links a:hover{color:var(--accent,var(--nb-gold));text-decoration:underline;text-underline-offset:3px}
+/* 이름과 값을 줄로 나눈다. 폰에서 글이 통째로 이어지지 않게 */
+.biz-rows{margin:0;display:grid;gap:5px}
+.biz-row{display:grid;grid-template-columns:88px 1fr;gap:10px;align-items:baseline}
+.biz-row dt{margin:0;font-size:11.5px;letter-spacing:.02em;color:var(--muted,var(--nb-ink-3));opacity:.85}
+.biz-row dd{margin:0;color:var(--fg,var(--nb-ink-2));word-break:keep-all;overflow-wrap:anywhere}
+.biz-note{margin:18px 0 0;padding-top:14px;border-top:1px solid var(--line,var(--nb-line));
+  word-break:keep-all;line-height:1.75}
+@media (min-width:640px){
+  .biz-rows{grid-template-columns:1fr 1fr;gap:5px 28px}
+}
+`;
 
 const CSS = `
 /* 정책 페이지도 본 화면과 같은 한지 한 벌이다. 여기만 검게 뒤집히면 딴 집 같다 */
@@ -78,11 +121,7 @@ table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
 th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
 th{background:color-mix(in srgb,var(--line) 40%,transparent);white-space:nowrap}
 .wrap{overflow-x:auto}
-.biz{max-width:720px;margin:0 auto;padding:20px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
-.biz-links{display:flex;gap:14px;margin-bottom:10px}
-.biz-rows{display:flex;flex-wrap:wrap;gap:4px 14px}
-.biz-rows b{font-weight:600;color:var(--fg)}
-.biz-note{margin-top:10px}
+${FOOTER_CSS}
 `;
 
 /** 한 장짜리 정책 문서를 완성된 HTML 문서로 만든다 */

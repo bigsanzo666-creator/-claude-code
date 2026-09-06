@@ -98,12 +98,27 @@ check('싼 것부터 권한다', (() => {
   return ps.every((p, i) => i === 0 || ps[i - 1].priceKrw <= p.priceKrw);
 })());
 check('가격이 정수 원 단위', Object.values(CATALOG).every((p) => Number.isInteger(p.priceKrw)));
-check('삼합(교차검증)이 단품 중 가장 비쌈',
-  Object.values(CATALOG).every((p) => p.priceKrw <= CATALOG['cross-report'].priceKrw),
+/*
+ * 작명은 리포트가 아니다.
+ *
+ * 리포트는 한 번 써서 한 번 드리는 것이라 값이 분량으로 정해진다. 작명은
+ * **마음에 드는 것이 나올 때까지 다시 짓는 일**이라 값이 분량으로 정해지지
+ * 않는다. 그래서 「삼합이 제일 비싸다」는 리포트들 사이에서만 성립한다.
+ */
+const MADE_TO_ORDER = new Set(['naming-report', 'naming-plus-report']);
+const reports = Object.values(CATALOG).filter((p) => !MADE_TO_ORDER.has(p.id));
+
+check('삼합(교차검증)이 리포트 중 가장 비쌈',
+  reports.every((p) => p.priceKrw <= CATALOG['cross-report'].priceKrw),
   `${CATALOG['cross-report'].priceKrw}원`);
 check('맛보기 상품이 가장 쌈 — 첫 결제 장벽을 낮춘다',
   Object.values(CATALOG).every((p) => p.priceKrw >= CATALOG['daily-report'].priceKrw),
   `${CATALOG['daily-report'].priceKrw}원`);
+check('다시 짓는 일은 제일 비싼 리포트만큼은 받는다 — 값이 분량이 아니라 손이 든 만큼이다',
+  [...MADE_TO_ORDER].every((id) => CATALOG[id].priceKrw >= CATALOG['cross-report'].priceKrw),
+  [...MADE_TO_ORDER].map((id) => `${CATALOG[id].priceKrw}원`).join(' · '));
+check('겹침까지 보는 쪽이 더 비싸다',
+  CATALOG['naming-plus-report'].priceKrw > CATALOG['naming-report'].priceKrw);
 check('없는 상품은 거부', throwsSync(() => getProduct('nope')) !== null);
 
 const long = ['첫 문단입니다. 두 문장째입니다.', '둘째 문단입니다.', '셋째 문단입니다.', '넷째 문단입니다.'].join('\n\n');

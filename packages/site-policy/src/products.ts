@@ -15,7 +15,7 @@
 
 import { CATALOG, CATEGORIES, productsIn, type Product } from '../../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath, type BundlePackage } from '../../commerce/src/packages.ts';
-import { WITHDRAWAL_WINDOW_DAYS } from '../../commerce/src/refund.ts';
+import { WITHDRAWAL_WINDOW_DAYS, DELIVERY_DUE_DAYS } from '../../commerce/src/refund.ts';
 import { type BusinessInfo, show } from './business.ts';
 import {
   spiritOf, renderSpiritHead, renderSpiritPitch, SPIRITS_CSS,
@@ -23,6 +23,8 @@ import {
 } from './spirits.ts';
 import { renderWhy, WHY_CSS } from './why.ts';
 import { renderSocialHead } from './social.ts';
+// 하단 사업자 정보는 모든 화면에 나간다. 스타일도 같이 따라가야 읽힌다
+import { FOOTER_CSS } from './pages.ts';
 
 /** 얼굴 그림이 아직 하나도 없을 때. 도장 한 글자로 자리를 지킨다 */
 const NO_FACES: SpiritImages = new Set();
@@ -62,6 +64,22 @@ export const imageUrl = (id: string) => `/img/products/${encodeURIComponent(id)}
  * 이미 그 일을 한다. 없는 상품은 목록 없이 설명만 나간다.
  */
 const CONTENTS: Record<string, string[]> = {
+  'naming-report': [
+    '아이 사주에서 비어 있는 기운과 채워야 할 기운',
+    '그 기운에 맞는 이름 <b>다섯</b>',
+    '이름마다 한자와 뜻, 왜 이 아이에게 맞는지',
+    '초년운·청년운·장년운·전체운 네 격의 수와 길흉',
+    '발음 오행과 음양이 고른지',
+    '마음에 드는 것이 없으면 <b>둘을 더</b> 지어 드립니다',
+    '넣고 싶은 글자가 있으면 그 글자로 짓습니다',
+  ],
+  'naming-plus-report': [
+    '위의 것 전부',
+    '<b>마음에 드실 때까지</b> 지어 드립니다 — 개수를 정해 두지 않습니다',
+    '요즘 많이 쓰는 이름과 <b>겹치는지</b> 따로 알려 드립니다',
+    '겹치지 않으면서 사주에도 맞는 이름을 골라 드립니다',
+    '한자까지 같은 이름인지, 소리만 같은 이름인지 나눠서',
+  ],
   'pick-report': [
     '의사에게 받은 후보 날짜와 가능한 시각을 전부 견준 순위',
     '1순위가 왜 앞섰는지 — 힘의 치우침·오행·충·귀인을 하나씩',
@@ -316,7 +334,8 @@ body{background:var(--nb-paper)}
   .pr-body{align-self:center;padding:40px 38px}
 }
 ${SPIRITS_CSS}
-${WHY_CSS}`;
+${WHY_CSS}
+${FOOTER_CSS}`;
 
 /**
  * 상품 목록 한 덩어리. 화면에도 붙이고 전용 페이지에도 쓴다.
@@ -502,7 +521,7 @@ ${PRODUCTS_CSS}
 
   <dl class="pd-terms">
     <dt>언제 받나요</dt>
-    <dd>결제하시면 <b>바로</b> 보실 수 있습니다. 늦어도 ${WITHDRAWAL_WINDOW_DAYS}일 이내에 드립니다.</dd>
+    <dd>결제하시면 <b>바로</b> 보실 수 있습니다. 늦어도 ${DELIVERY_DUE_DAYS}일 이내에 드립니다.</dd>
     <dt>어떻게 받나요</dt>
     <dd>화면으로 보여 드립니다. 택배로 보내는 물건이 아닙니다.</dd>
     <dt>무르고 싶으면</dt>
