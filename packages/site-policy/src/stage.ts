@@ -33,6 +33,7 @@ import { CATEGORIES, productsIn } from '../../commerce/src/catalog.ts';
 import { renderWhy } from './why.ts';
 import { type BusinessInfo } from './business.ts';
 import { type SceneImages, NO_SCENES, sceneUrl } from './gate.ts';
+import { PLACES } from './pick-page.ts';
 import { SPIRITS, spiritOf, PITCH, type SpiritImages, NO_FACES_SET, spiritImageUrl } from './spirits.ts';
 
 function esc(value: string): string {
@@ -81,6 +82,16 @@ export function renderStage(
 ): string {
   const hours = HOURS.map((h) =>
     `<option value="${esc(h.value)}">${esc(h.label)}</option>`).join('\n        ');
+
+  /*
+   * 태어난 곳.
+   *
+   * 시주는 시계가 아니라 **그곳의 해 위치**로 선다. 서울과 부산은 해가 뜨는
+   * 때가 팔 분 넘게 다르고, 그 팔 분이 시주를 한 칸 옮길 때가 있다.
+   * 값은 경도다 — 아래 만세력이 그대로 받아 쓰는 것과 같은 칸이다.
+   */
+  const places = PLACES.map((x) =>
+    `<option value="${x.longitude}">${esc(x.name)}</option>`).join('\n        ');
 
   // 영상을 받기 전에는 그림이 깔려 있다. 검은 네모를 남기지 않는다
   const path = scenes.has('path') ? ` style="--st-shot:url(${sceneUrl('path')})"` : '';
@@ -147,12 +158,15 @@ export function renderStage(
         <div class="st-q" data-q="name">
           <input type="text" id="stName" maxlength="10" autocomplete="name" placeholder="이름">
         </div>
-        <div class="st-q" data-q="date" hidden>
+        <div class="st-q st-two" data-q="when" hidden>
           <input type="date" id="stDate" min="1900-01-01" max="2100-12-31" required>
-        </div>
-        <div class="st-q" data-q="hour" hidden>
           <select id="stHour">
         ${hours}
+          </select>
+        </div>
+        <div class="st-q" data-q="place" hidden>
+          <select id="stPlace">
+        ${places}
           </select>
         </div>
         <div class="st-q" data-q="sex" hidden>
@@ -496,8 +510,7 @@ body.st-locked{overflow:hidden}
 .st-f input,.st-f select,.st-q input,.st-q select{width:100%;box-sizing:border-box;padding:13px;
   font:16px/1.4 var(--nb-sans);color:var(--nb-ink);background:var(--nb-paper-2);
   border:1px solid var(--nb-line);border-radius:0;appearance:none}
-.st-f input:focus,.st-f select:focus,.st-q input:focus,.st-q select:focus{
-  outline:2px solid var(--nb-gold);outline-offset:-2px}
+.st-f input:focus,.st-f select:focus{outline:2px solid var(--nb-gold);outline-offset:-2px}
 .st-bar{grid-column:1/-1;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 
 /* ── 문 앞에서 한 번에 하나씩 묻는 화면 ──────────────────────
@@ -512,6 +525,35 @@ body.st-locked{overflow:hidden}
   var(--nb-veil-1) 56%,var(--nb-paper) 66%)}
 .st-talk{display:grid;gap:0;padding-bottom:30px}
 .st-talk .st-form{grid-template-columns:1fr;gap:14px}
+
+/* ── 묻는 화면의 칸과 단추 ────────────────────────────────────
+   같은 종이 위에 놓인 물건처럼 보여야 한다. 네모난 흰 칸을 그대로 두면
+   종이에 붙인 종이로 보인다. 모서리를 둥글리고, 안쪽에 빛을 한 줄 넣고,
+   아래로 그림자를 살짝 깐다. */
+.st-q input,.st-q select{padding:15px 16px;border-radius:12px;
+  background:linear-gradient(to bottom,#fff,var(--nb-paper-2));
+  border:1px solid var(--nb-line);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 1px 2px rgba(60,45,20,.05);
+  transition:border-color .15s ease,box-shadow .15s ease}
+.st-q select{background-image:linear-gradient(to bottom,#fff,var(--nb-paper-2)),
+  linear-gradient(45deg,transparent 50%,var(--nb-ink-2) 50%),
+  linear-gradient(135deg,var(--nb-ink-2) 50%,transparent 50%);
+  background-position:0 0,calc(100% - 21px) calc(50% + 1px),calc(100% - 15px) calc(50% + 1px);
+  background-size:100% 100%,7px 7px,7px 7px;background-repeat:no-repeat;padding-right:44px}
+.st-q input:focus,.st-q select:focus{outline:0;border-color:var(--nb-gold);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 0 0 3px rgba(166,124,58,.16)}
+/* 날과 시는 한 물음이다. 옆으로 붙이면 「미시 (오후 1:30 ~ 3:30)」이 잘린다 */
+.st-two{display:grid;gap:10px}
+
+.st-talk .st-go{width:100%;padding:17px;border:0;border-radius:12px;
+  background:linear-gradient(to bottom,#2b3550,var(--nb-ink));
+  color:var(--nb-paper-2);font:600 16px var(--nb-sans);letter-spacing:.02em;
+  box-shadow:0 1px 2px rgba(20,26,40,.28),0 6px 16px -8px rgba(20,26,40,.5);
+  transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}
+.st-talk .st-go:hover{filter:brightness(1.12);
+  background:linear-gradient(to bottom,#2b3550,var(--nb-ink));color:var(--nb-paper-2)}
+.st-talk .st-go:active{transform:translateY(1px);
+  box-shadow:0 1px 2px rgba(20,26,40,.3)}
 .st-top{display:flex;align-items:center;gap:12px;margin:0 0 14px;min-height:26px}
 .st-back{padding:2px 8px;margin-left:-8px;border:0;background:none;
   font:20px/1 var(--nb-sans);color:var(--nb-ink-2);cursor:pointer}
@@ -1298,12 +1340,13 @@ export const STAGE_SCRIPT = `<script>(function(){
     { q:'name', need:false, btn:'다음으로',
       say:function(){ return '먼저, 네 이름이 무어냐.'; },
       hint:'말하고 싶지 않으면 그냥 넘어가도 된다.' },
-    { q:'date', need:true, btn:'다음으로',
+    // 날과 시는 **한 물음**이다. 「언제 태어났느냐」를 두 번 묻지 않는다
+    { q:'when', need:true, btn:'다음으로',
       say:function(n){ return n ? call(n)+' 언제 태어났느냐.' : '언제 태어났느냐.'; },
-      hint:'여덟 글자가 여기서부터 선다. 이것만은 있어야 한다.' },
-    { q:'hour', need:false, btn:'다음으로',
-      say:function(){ return '몇 시쯤이었느냐.'; },
-      hint:'모르면 모르는 대로 둬도 된다. 여덟 중 두 글자만 비워 두고 본다.' },
+      hint:'시각은 모르면 모르는 대로 둬도 된다. 여덟 중 두 글자만 비워 두고 본다.' },
+    { q:'place', need:false, btn:'다음으로',
+      say:function(){ return '어디서 태어났느냐.'; },
+      hint:'시주는 시계가 아니라 그곳의 해 위치로 선다. 서울과 부산이 팔 분 넘게 다르다.' },
     { q:'sex', need:false, btn:'다 말했다',
       say:function(){ return '남자냐, 여자냐.'; },
       hint:'열 해씩 도는 운을 어느 쪽으로 돌릴지 정하는 데에만 쓴다.' }
@@ -1362,6 +1405,9 @@ export const STAGE_SCRIPT = `<script>(function(){
       noTime.dispatchEvent(new Event('change',{bubbles:true}));} }
     else if(noTime&&!noTime.checked){ noTime.checked=true;
       noTime.dispatchEvent(new Event('change',{bubbles:true})); }
+    // 태어난 곳과 성별도 그대로 내려보낸다. 진태양시와 대운 방향이 여기서 갈린다
+    var place=$('stPlace'); if(place&&place.value)put('place',place.value);
+    var sexNow=$('stSex'); if(sexNow&&sexNow.value)put('gender',sexNow.value);
 
     told=true;
     // 문이 열리는 장면. 못 틀거나 오래 걸리면 기다리지 않고 그냥 들어간다

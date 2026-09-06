@@ -451,10 +451,22 @@ section('10. 들어가는 길 — 전체 화면');
   // 넉 줄짜리 폼은 손님에게 서류로 보인다. 신령이 하나씩 물어야 상담이 된다
   {
     const withFace = renderStage(full, new Set(['gate']), NO_VIDEOS, new Set(['mirror']));
-    const qs = [...withFace.matchAll(/<div class="st-q" data-q="(\w+)"( hidden)?>/g)]
+    const qs = [...withFace.matchAll(/<div class="st-q[^"]*" data-q="(\w+)"( hidden)?>/g)]
       .map((m) => [m[1], !!m[2]] as const);
-    check('묻는 순서는 이름·날·시·성별',
-      qs.map((q) => q[0]).join() === 'name,date,hour,sex');
+    // 「언제 태어났느냐」를 두 번 묻지 않는다 — 날과 시는 한 물음이다
+    check('묻는 순서는 이름·언제·어디서·성별',
+      qs.map((q) => q[0]).join() === 'name,when,place,sex');
+    check('날과 시를 한 물음에 담는다',
+      /data-q="when"[\s\S]{0,400}id="stDate"[\s\S]{0,400}id="stHour"/.test(withFace));
+    check('태어난 곳을 묻는다',
+      withFace.includes('id="stPlace"') && withFace.includes('>서울</option>'));
+    check('태어난 곳과 성별도 아래로 내려보낸다',
+      STAGE_SCRIPT.includes("put('place'") && STAGE_SCRIPT.includes("put('gender'"));
+    check('칸과 단추가 종이 위에 앉는다',
+      STAGE_CSS.includes('.st-q input,.st-q select{padding:15px 16px;border-radius:12px')
+      && STAGE_CSS.includes('.st-talk .st-go{'));
+    // 시 이름이 잘리면 손님은 무엇을 고르는지 모른다
+    check('날과 시를 위아래로 놓는다', STAGE_CSS.includes('.st-two{display:grid;gap:10px}'));
     check('한 번에 한 칸만 열려 있다',
       qs.filter((q) => !q[1]).length === 1 && qs[0][1] === false);
     check('칸 이름은 그대로 남는다 — 아래 만세력이 이 이름으로 받는다',
@@ -468,8 +480,8 @@ section('10. 들어가는 길 — 전체 화면');
       withFace.includes('id="stBack"') && STAGE_SCRIPT.includes('stepBack'));
     check('이름을 받으면 그 이름으로 부른다', STAGE_SCRIPT.includes("call(n)"));
     check('태어난 날만 있어야 한다',
-      /\{ q:'date', need:true/.test(STAGE_SCRIPT)
-      && !/\{ q:'(name|hour|sex)', need:true/.test(STAGE_SCRIPT));
+      /\{ q:'when', need:true/.test(STAGE_SCRIPT)
+      && !/\{ q:'(name|place|sex)', need:true/.test(STAGE_SCRIPT));
   }
   // 계산은 만세력 조각이 한다. 두 곳에서 계산하면 언젠가 두 값이 달라진다.
   // 덮개는 **제 손으로 세지 않고** 그 조각을 불러 쓴다
