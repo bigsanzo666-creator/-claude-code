@@ -16,6 +16,15 @@ export interface PayRequest {
   totalAmount: number;
   currency: 'CURRENCY_KRW';
   payMethod: 'CARD';
+  /**
+   * 결제를 마치고 돌아올 주소.
+   *
+   * 폰에서 카드 결제는 **화면을 떠나 카드사로 갔다가 돌아오는** 방식이다.
+   * 돌아올 주소를 주지 않으면 브라우저는 첫 화면으로 되돌아오고, 손님이 보는
+   * 것은 처음 보던 안내 화면이다 — 결제를 했는지 안 했는지도 알 수 없다.
+   * PC 는 창을 띄우고 약속(Promise)으로 돌려주므로 이 값을 쓰지 않는다.
+   */
+  redirectUrl?: string;
 }
 
 /** 포트원 SDK 응답. 실패하면 code가 채워진다 */
@@ -35,6 +44,8 @@ export interface CheckoutDeps {
   config: CheckoutConfig;
   fetchImpl?: typeof fetch;
   pay: (req: PayRequest) => Promise<PayResponse>;
+  /** 폰에서 카드사에 갔다가 돌아올 주소를 만든다. 없으면 돌아올 자리를 안 준다 */
+  redirectUrl?: (orderId: string) => string;
 }
 
 export interface PreviewResult {
@@ -136,6 +147,7 @@ export class Checkout {
         totalAmount: amountKrw,
         currency: 'CURRENCY_KRW',
         payMethod: 'CARD',
+        redirectUrl: this.deps.redirectUrl ? this.deps.redirectUrl(orderId) : undefined,
       });
     } catch (error) {
       throw new CheckoutError('payment', (error as Error).message);
@@ -170,6 +182,41 @@ export class Checkout {
 
     notify('done');
     return { orderId, text: report.text, amountKrw };
+  }
+
+  /**
+   * 카드사에서 돌아온 뒤를 잇는다.
+   *
+   * 폰에서는 결제창이 뜬 뒤 화면이 통째로 카드사로 넘어가므로, `purchase()` 가
+   * 돌려주기를 기다리던 약속은 그 자리에서 끊긴다. 돌아온 화면은 주문번호만
+   * 들고 있다. 주문 만들기와 결제창은 이미 지났으니 **확정부터** 잇는다.
+   */
+  async resume(
+    orderId: string,
+    options: { paymentId?: string; onStage?: (stage: CheckoutStage) => void } = {},
+  ): Promise<PurchaseResult> {
+    const notify = options.onStage ?? (() => {});
+    notify('confirm');
+    try {
+      await this.call(`/api/orders/${orderId}/confirm`, {
+        method: 'POST',
+        body: JSON.stringify({ paymentId: options.paymentId ?? orderId }),
+      });
+    } catch (error) {
+      throw new CheckoutError(
+        'confirm',
+        `${(error as Error).message}\n결제는 완료되었을 수 있습니다. 주문번호 ${orderId}로 문의해 주십시오.`,
+      );
+    }
+    notify('report');
+    let report: any;
+    try {
+      report = await this.call(`/api/orders/${orderId}/report`);
+    } catch (error) {
+      throw new CheckoutError('report', (error as Error).message);
+    }
+    notify('done');
+    return { orderId, text: report.text, amountKrw: 0 };
   }
 
   /** 환불 가능 여부 조회. 실제로 취소하지 않는다 */

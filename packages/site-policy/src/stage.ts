@@ -845,6 +845,31 @@ export const STAGE_SCRIPT = `<script>(function(){
    */
   var thin=!!(c&&(c.saveData||/2g/.test(c.effectiveType||'')));
 
+  /*
+   * 무엇을 사러 왔는지 주소에 적혀 있으면 **구경시키지 않는다.**
+   *
+   * 「/?buy=daily-report」 로 들어온 손님은 이미 고르고 온 사람이다. 그런데
+   * 풍신령이 문까지 데려다주는 영상부터 틀고, 문을 지나면 신령계가 열리고,
+   * 거기서 스물몇 개 신령 중에 자기가 누르고 온 것을 다시 찾게 했다.
+   * 찾을 수 없다. 우리는 그 손님이 무엇을 사러 왔는지 알고 있었으면서
+   * 모르는 척한 것이다.
+   *
+   * 사러 온 손님에게는 길 영상을 건너뛰고 문부터 보인다. 문을 지나면
+   * 신령계가 아니라 **그 사람이 고른 것을 사는 자리**로 곧장 내려보낸다.
+   */
+  var q=new URLSearchParams(location.search);
+  var wantBuy=(q.get('buy')||'').trim();
+  // 카드사에서 돌아온 화면. 덮개를 아예 세우지 않는다 — 결제 결과를 바로 봐야 한다
+  // 만세력 쪽 글이 먼저 돌면서 주소를 지우고 표를 남겨 둔다. 둘 다 본다
+  var backFromCard=!!(q.get('resume')||'').trim()||window.NB_BACK_FROM_CARD===true;
+
+  // 카드사에서 돌아왔으면 덮개를 세우지 않는다. 손님이 볼 것은 결제 결과다
+  if(backFromCard){
+    stage.remove();
+    if(typeof window.NB_SKIP_WIZARD==='function')window.NB_SKIP_WIZARD();
+    return;
+  }
+
   // 자바스크립트가 살아 있을 때만 덮개를 세운다.
   // 꺼져 있으면 지금까지의 화면이 그대로 남는다 — 손님이 못 하게 되는 일은 없다
   stage.hidden=false;
@@ -1385,6 +1410,10 @@ export const STAGE_SCRIPT = `<script>(function(){
   var bk=$('stBack'); if(bk)bk.addEventListener('click',stepBack);
   draw();
 
+  // 사러 온 손님은 길을 걷지 않는다. 문 앞에서 시작한다.
+  // 되돌아갈 자리를 다 깔아 둔 뒤에 옮겨야 뒤로가기가 성립한다
+  if(wantBuy)toGate();
+
   var f=$('stForm');
   if(f)f.addEventListener('submit',function(e){
     e.preventDefault();
@@ -1410,6 +1439,8 @@ export const STAGE_SCRIPT = `<script>(function(){
     var sexNow=$('stSex'); if(sexNow&&sexNow.value)put('gender',sexNow.value);
 
     told=true;
+    // 고르고 온 손님은 신령계를 거치지 않는다. 사는 자리로 곧장 내려보낸다
+    if(wantBuy){ read('out'); return; }
     // 문이 열리는 장면. 못 틀거나 오래 걸리면 기다리지 않고 그냥 들어간다
     if(!open||!openReady){ toWorld(name); return; }
     show('stOpen');
