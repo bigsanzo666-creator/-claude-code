@@ -25,6 +25,14 @@ export interface PayRequest {
    * PC 는 창을 띄우고 약속(Promise)으로 돌려주므로 이 값을 쓰지 않는다.
    */
   redirectUrl?: string;
+  /**
+   * 구매자 정보.
+   *
+   * 이니시스(KG이니시스) V2 일반결제는 **구매자 이메일이 필수**다. 없으면
+   * 결제창이 아예 뜨지 않고 「결제 창 호출에 실패하였습니다」로 끝난다.
+   * 우리가 담아 두는 값이 아니라 결제사로만 넘기는 값이다.
+   */
+  customer?: { email: string; fullName?: string };
 }
 
 /** 포트원 SDK 응답. 실패하면 code가 채워진다 */
@@ -114,7 +122,12 @@ export class Checkout {
    */
   async purchase(
     reading: { productId: string; [k: string]: unknown },
-    options: { previewShown: boolean; onStage?: (stage: CheckoutStage) => void } ,
+    options: {
+      previewShown: boolean;
+      onStage?: (stage: CheckoutStage) => void;
+      /** 결제사가 요구하는 구매자 정보. 이니시스는 이메일이 필수다 */
+      customer?: { email: string; fullName?: string };
+    },
   ): Promise<PurchaseResult> {
     const notify = options.onStage ?? (() => {});
 
@@ -148,6 +161,7 @@ export class Checkout {
         currency: 'CURRENCY_KRW',
         payMethod: 'CARD',
         redirectUrl: this.deps.redirectUrl ? this.deps.redirectUrl(orderId) : undefined,
+        customer: options.customer,
       });
     } catch (error) {
       throw new CheckoutError('payment', (error as Error).message);

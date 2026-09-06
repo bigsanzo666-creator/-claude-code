@@ -115,6 +115,16 @@ await page.evaluate(() => document.getElementById('stage')?.remove());
  * 이 검증이 보려는 것은 그 뒤의 구매 흐름이므로 여기서 한 번에 통과시킨다.
  * 마법사 자체는 `wiz-test.ts` 가 따로 본다.
  */
+/*
+ * 이메일을 채운다.
+ *
+ * 이니시스는 구매자 이메일이 없으면 결제창을 아예 띄우지 않는다. 그래서
+ * 동의만으로는 결제 단추가 열리지 않는다 — 두 가지가 다 있어야 한다.
+ */
+async function fillMail(v = 'test@example.com') {
+  await page.fill('#buyMail', v);
+}
+
 async function passWizard() {
   for (let i = 0; i < 8; i++) {
     if (await page.locator('body.wiz').count() === 0) return;
@@ -149,7 +159,12 @@ section('A2. 사주 화면의 결제');
     ((await page.locator('#buyPanel .samp').textContent()) ?? '').length > 50);
   check('동의 전에는 결제가 잠겨 있다', await page.locator('#payBtn').isDisabled());
   await page.check('#agree');
-  check('동의하면 눌린다', !(await page.locator('#payBtn').isDisabled()));
+  // 이니시스는 이메일이 필수다. 동의만으로는 열리지 않아야 한다
+  check('동의만으로는 안 열린다', await page.locator('#payBtn').isDisabled());
+  await fillMail('없는메일');
+  check('모양이 아닌 값은 안 받는다', await page.locator('#payBtn').isDisabled());
+  await fillMail();
+  check('동의와 이메일이 다 있으면 눌린다', !(await page.locator('#payBtn').isDisabled()));
 
   // 사려는 것을 바꾸면 앞에서 본 미리보기와 동의는 다른 물건의 것이다
   const before = (await page.locator('#payBtn').textContent()) ?? '';
@@ -201,6 +216,7 @@ check('교차검증 전문은 아직 안 보임', (await page.locator('.xv').cou
 section('C. 결제');
 
 await page.locator('#agree').check();
+await fillMail();
 await page.waitForFunction(() => !(document.querySelector('#payBtn') as HTMLButtonElement)?.disabled);
 check('동의하면 결제 버튼 활성', !(await page.locator('#payBtn').isDisabled()));
 
@@ -234,6 +250,7 @@ await page.waitForSelector('#payBtn', { timeout: 10000 });
 check('입력이 바뀌면 이전 리포트가 사라짐', (await page.locator('.bought').count()) === 0);
 
 await page.locator('#agree').check();
+await fillMail();
 await page.waitForFunction(() => !(document.querySelector('#payBtn') as HTMLButtonElement)?.disabled);
 await page.locator('#payBtn').click();
 await page.waitForSelector('.err', { timeout: 15000 });
