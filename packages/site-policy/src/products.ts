@@ -333,6 +333,15 @@ body{background:var(--nb-paper)}
   .pr-wide .pr-shot{aspect-ratio:auto;height:100%;border-bottom:0;border-right:1px solid var(--nb-line)}
   .pr-body{align-self:center;padding:40px 38px}
 }
+/*
+ * 화면이 옆으로 구르지 않게 못 박는다.
+ *
+ * 안에 옆으로 미는 줄(신령 판)이 있어서, 어딘가에서 몇 px 이 새면 화면 전체가
+ * 옆으로 움직인다. 폰에서 그러면 손님은 결제 칸을 누르려다 화면을 밀어 버린다.
+ * clip 을 쓴다 — hidden 은 붙어 다니는 막대(sticky)를 망가뜨린다.
+ */
+html,body{overflow-x:clip;max-width:100%}
+
 /* 상품 화면에서 사러 가는 단추. 값 바로 아래에 놓아 눈이 멈춘 자리에서 눌리게 한다 */
 .pd-go{display:block;margin:14px 0 0;padding:16px;text-align:center;text-decoration:none;
   border:0;border-radius:12px;background:linear-gradient(to bottom,#2b3550,var(--nb-ink));

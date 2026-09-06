@@ -159,6 +159,23 @@ section('A2. 사주 화면의 결제');
   check('무엇이 담기는지 먼저 보여 준다', (await page.locator('#buyPanel .will li').count()) > 0);
   check('예시 문장을 먼저 보여 준다',
     ((await page.locator('#buyPanel .samp').textContent()) ?? '').length > 50);
+  /*
+   * 폰에서 손가락으로 누를 수 있어야 한다.
+   *
+   * 동의 네모가 13px 이던 때가 있었다. 마우스로는 눌리지만 손가락으로는
+   * 안 눌린다. 손님이 결제까지 와서 마지막 한 칸을 못 눌러 나간다.
+   */
+  for (const sel of ['label.agree', '#payBtn', '#buyWho', '#buyMail', '#buyTel']) {
+    const box = await page.locator(sel).boundingBox();
+    check(`${sel} 를 손가락으로 누를 수 있다`,
+      !!box && box.height >= 40 && box.width >= 44,
+      box ? `${Math.round(box.width)}x${Math.round(box.height)}` : '안 보임');
+  }
+  // 화면이 옆으로 구르면 손님은 칸을 누르려다 화면을 민다
+  check('화면이 옆으로 구르지 않는다',
+    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
+    await page.evaluate(() => `${document.documentElement.scrollWidth} / ${window.innerWidth}`));
+
   check('동의 전에는 결제가 잠겨 있다', await page.locator('#payBtn').isDisabled());
   await page.check('#agree');
   // 이니시스는 이메일이 필수다. 동의만으로는 열리지 않아야 한다

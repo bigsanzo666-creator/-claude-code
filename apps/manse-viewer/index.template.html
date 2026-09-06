@@ -294,8 +294,11 @@ body.pair #panelF,body.pair #panelP{display:none}
 .mail input:focus{outline:2px solid var(--accent,#96742F);outline-offset:-2px}
 .mail .note{margin:0;font-size:.78rem;line-height:1.6;color:var(--ink-3)}
 .legal{border:1px solid var(--rule);background:var(--surface-2);padding:.9rem 1.05rem;font-size:.85rem;line-height:1.7;color:var(--ink-2)}
-.agree{display:flex;gap:.55rem;align-items:flex-start;margin-top:.8rem;cursor:pointer;font-size:.87rem;color:var(--ink)}
-.agree input{margin-top:.3rem}
+/* 폰에서 손가락으로 눌러야 한다. 13px 네모는 못 누른다 */
+.agree{display:flex;gap:.6rem;align-items:center;margin-top:.6rem;padding:.55rem 0;
+  cursor:pointer;font-size:.9rem;color:var(--ink);min-height:44px}
+.agree input{flex:0 0 auto;width:24px;height:24px;margin:0;accent-color:var(--ink);cursor:pointer}
+.agree span{flex:1}
 button.pay{font:inherit;font-size:.95rem;font-weight:600;color:var(--paper);background:var(--seal);border:0;border-radius:2px;padding:.8rem 1.4rem;cursor:pointer;justify-self:start}
 button.pay:disabled{background:var(--rule);color:var(--ink-3);cursor:not-allowed}
 button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
