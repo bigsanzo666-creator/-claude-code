@@ -670,6 +670,27 @@ section('11. 문 — 신령계 들어가는 곳');
 
   check('화면 CSS가 함께 실린다', empty.includes('.pk-form') && PICK_CSS.includes('.pk-card'));
 
+  // ── 상품 화면에서 사러 가는 길이 실제로 있는가 ──────────────
+  // 「첫 화면에서 넣으시면 구매하실 수 있습니다」라고 적어 놓고 그 자리가 없으면
+  // 없는 길을 안내한 것이다. 주소에 상품을 실어 보내 곧바로 열리게 한다
+  {
+    const { renderProductPage } = await import('./src/products.ts');
+    const { CATALOG } = await import('../commerce/src/catalog.ts');
+    const buyPage = (id: string) =>
+      renderProductPage(CATALOG[id], full, true, '<footer>ft</footer>');
+    check('상품 화면에 사러 가는 단추가 있다',
+      buyPage('saju-report').includes('href="/?buy=saju-report"'));
+    check('상대가 필요하면 그렇게 적는다',
+      buyPage('compat-report').includes('두 사람 생년월일 넣고 받기'));
+    check('얼굴·손이 필요하면 그렇게 적는다',
+      buyPage('cross-report').includes('얼굴·손까지 넣고 받기'));
+    check('택일은 택일 화면으로 보낸다',
+      buyPage('pick-report').includes('href="/pick"')
+      && !buyPage('pick-report').includes('?buy=pick-report'));
+    check('없는 길을 안내하지 않는다',
+      !buyPage('saju-report').includes('첫 화면에서 생년월일을 넣으시면'));
+  }
+
   // ── 공짜로 본 뒤에 무엇을 파는지 ────────────────────────────
   // 점수는 「언제」까지만 말한다. 파는 것은 「왜 그 점수인지」의 글이다
   check('택일 리포트로 이어 준다', out.includes('/products/pick-report'));

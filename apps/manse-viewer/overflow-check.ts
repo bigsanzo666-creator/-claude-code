@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
-const html = readFileSync('index.html', 'utf8');
+const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] });
 const page = await b.newPage({ viewport: { width: 390, height: 844 } });
 await page.setContent(`<!doctype html><html><body>${html}</body></html>`, { waitUntil: 'domcontentloaded' });

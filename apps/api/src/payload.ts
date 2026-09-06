@@ -15,7 +15,7 @@ import {
 import { pickDays, mergeHours, bestPerDay, slotSpan, slotLabel } from '../../../packages/saju-rules/src/index.ts';
 import { readFace, NEUTRAL_FEATURES } from '../../../packages/physiognomy/src/index.ts';
 import { readPalm, NEUTRAL_PALM_FEATURES } from '../../../packages/palmistry/src/index.ts';
-import type { ProductId } from '../../../packages/commerce/src/index.ts';
+import { CATALOG, type ProductId } from '../../../packages/commerce/src/index.ts';
 import type { ReportKind } from '../../../packages/report/src/prompt.ts';
 
 export interface BirthInput {
@@ -74,7 +74,11 @@ const KIND_EXCEPTIONS: Partial<Record<ProductId, ReportKind>> = {
 };
 
 export function kindOf(productId: ProductId): ReportKind {
-  return KIND_EXCEPTIONS[productId] ?? '사주';
+  const listed = KIND_EXCEPTIONS[productId];
+  if (listed) return listed;
+  // 얼굴과 손을 받는 상품은 전부 교차검증이다. 표에 적는 것을 잊어도 여기서 걸린다
+  if (CATALOG[productId]?.needsFace) return '교차검증';
+  return '사주';
 }
 
 /** @deprecated `kindOf()`를 쓸 것. 기존 호출부 호환용 */
@@ -186,9 +190,22 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
     세운: annualLuck(ms, an.yongsin, year, 5),
   };
 
-  if (req.productId === 'saju-report') return { kind: '사주', subject, data: base };
+  /*
+   * 갈래는 `kindOf()` 하나가 정한다.
+   *
+   * 전에는 여기서 「saju-report 면 사주, 나머지는 전부 교차검증」으로 갈랐다.
+   * 그래서 우리 아이 사주·재물운·오늘의 운세처럼 **얼굴과 손을 받지도 않는**
+   * 상품까지 교차검증으로 나갔고, 없는 얼굴·손 대신 중립값을 넣어 「세 갈래를
+   * 대조했습니다」라고 쓰는 글이 만들어졌다. 대조한 적이 없는 것을 대조했다고
+   * 쓰는 것이라, 손님이 돈을 내고 받는 글로는 나가면 안 된다.
+   *
+   * 갈래표(`KIND_EXCEPTIONS`)는 이미 어느 상품이 교차검증인지 알고 있었다.
+   * 두 곳에서 따로 정하던 것을 한 곳으로 모은다.
+   */
+  const kind = kindOf(req.productId);
+  if (kind !== '교차검증') return { kind, subject, data: base };
 
-  // 교차검증
+  // 교차검증만 얼굴과 손을 쓴다. 여기 오는 상품은 화면에서 둘을 받아 온다
   const face = readFace(req.face ?? NEUTRAL_FEATURES);
   const palm = readPalm(req.palm ?? NEUTRAL_PALM_FEATURES);
   return {

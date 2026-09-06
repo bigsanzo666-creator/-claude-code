@@ -333,6 +333,12 @@ body{background:var(--nb-paper)}
   .pr-wide .pr-shot{aspect-ratio:auto;height:100%;border-bottom:0;border-right:1px solid var(--nb-line)}
   .pr-body{align-self:center;padding:40px 38px}
 }
+/* 상품 화면에서 사러 가는 단추. 값 바로 아래에 놓아 눈이 멈춘 자리에서 눌리게 한다 */
+.pd-go{display:block;margin:14px 0 0;padding:16px;text-align:center;text-decoration:none;
+  border:0;border-radius:12px;background:linear-gradient(to bottom,#2b3550,var(--nb-ink));
+  color:var(--nb-paper-2);font:600 16px var(--nb-sans);
+  box-shadow:0 1px 2px rgba(20,26,40,.28),0 6px 16px -8px rgba(20,26,40,.5)}
+.pd-go:hover{filter:brightness(1.12)}
 ${SPIRITS_CSS}
 ${WHY_CSS}
 ${FOOTER_CSS}`;
@@ -458,6 +464,28 @@ ${footer}
  * 검색에도 같은 이유로 유리하다 — 사람들은 「사주」가 아니라 「재물운 사주」로
  * 검색하고, 그 검색어에 대응하는 페이지가 있어야 걸린다.
  */
+/**
+ * 이 상품을 사러 가는 길.
+ *
+ * 전에는 「첫 화면에서 생년월일을 넣으시면 구매하실 수 있습니다」라고만 적었다.
+ * 그 말대로 첫 화면에 가도 **이 상품을 사는 자리는 없었다** — 살 수 있는 곳은
+ * 관상·손금 화면 하나뿐이었다. 없는 길을 안내한 셈이라 아무도 살 수 없었다.
+ *
+ * 이제 주소에 상품을 실어 보낸다. 첫 화면이 그것을 읽고 곧바로 살 자리를 연다.
+ */
+function buyLink(product: Product): string {
+  if (product.needsPick) return '';
+  if (product.needsPartner) {
+    return `<a class="pd-go" href="/?buy=${encodeURIComponent(product.id)}">두 사람 생년월일 넣고 받기</a>`;
+  }
+  if (product.needsFace) {
+    return `<a class="pd-go" href="/?buy=${encodeURIComponent(product.id)}">얼굴·손까지 넣고 받기</a>`
+      + '<p class="pd-also">사진은 기기 밖으로 나가지 않습니다. 화면에서 특징만 고르시면 됩니다.</p>';
+  }
+  return `<a class="pd-go" href="/?buy=${encodeURIComponent(product.id)}">생년월일 넣고 받기</a>`
+    + '<p class="pd-also">결제 전에 무엇이 담기는지와 예시 문장을 먼저 보여 드립니다.</p>';
+}
+
 export function renderProductPage(
   product: Product, info: BusinessInfo, ready: boolean, footer: string,
   images: ProductImages = NO_IMAGES, faces: SpiritImages = NO_FACES,
@@ -512,10 +540,7 @@ ${PRODUCTS_CSS}
         <a href="/pick">택일 화면</a>에서 <b>의사에게 받은 후보 날짜</b>를 넣으시면
         점수를 <b>공짜로</b> 먼저 보실 수 있고, 그 뒤에 이 리포트를 고르시면 됩니다.</p>`
       : ''}
-    ${ready
-      ? (product.needsPick ? ''
-        : '<p class="pd-also">첫 화면에서 생년월일을 넣으시면 미리보기를 보신 뒤 구매하실 수 있습니다.</p>')
-      : '<p class="pd-also"><b>결제 준비 중입니다.</b> 사주 명식·궁합·관상·손금 풀이는 지금도 결제 없이 이용하실 수 있습니다.</p>'}
+    ${ready ? buyLink(product) : '<p class="pd-also"><b>결제 준비 중입니다.</b> 사주 명식·궁합·관상·손금 풀이는 지금도 결제 없이 이용하실 수 있습니다.</p>'}
     ${alsoIn}
   </div>
 

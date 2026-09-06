@@ -146,7 +146,23 @@ function renderPage(
   // 조각은 아티팩트로 따로 쓰일 때를 위해 제 제목을 달고 다닌다.
   // 여기서는 <head> 가 이미 제목을 냈으므로, 본문에 제목이 두 개 되지 않게 걷어낸다
   const fragment = readFileSync(VIEWER_PATH, 'utf8').replace(/<title>[\s\S]*?<\/title>\s*/i, '');
-  const config = JSON.stringify({ apiBase: '', checkout, ready: checkout !== null });
+  /*
+   * 화면이 「무엇을 팔 수 있는지」를 알아야 한다.
+   *
+   * 그동안 살 수 있는 자리가 관상·손금 화면에만 있었다. 사주만 보고 나온
+   * 손님에게는 결제 단추가 아예 없었고, 상품 화면은 「첫 화면에서 생년월일을
+   * 넣으시면 구매하실 수 있습니다」라고 적어 두었으니 없는 길을 안내한 셈이다.
+   *
+   * 생년월일만으로 만들 수 있는 상품을 같이 실어 보낸다 — 상대가 필요한 것,
+   * 얼굴·손이 필요한 것, 고를 날이 필요한 것은 뺀다.
+   */
+  const sellable = Object.values(CATALOG)
+    .filter((p) => !p.needsPartner && !p.needsFace && !p.needsPick)
+    .map((p) => ({ id: p.id, name: p.name, priceKrw: p.priceKrw, hook: p.hook }))
+    .sort((a, b) => a.priceKrw - b.priceKrw);
+  const config = JSON.stringify({
+    apiBase: '', checkout, ready: checkout !== null, sellable,
+  });
   return `<!doctype html>
 <html lang="ko">
 <head>

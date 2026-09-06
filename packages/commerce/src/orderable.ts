@@ -34,6 +34,8 @@ export interface Orderable {
   needsPartner: boolean;
   /** 생년월일 대신 고를 날 후보가 필요한가 */
   needsPick: boolean;
+  /** 얼굴과 손 사진이 필요한가 */
+  needsFace: boolean;
 }
 
 function fromPackage(id: PackageId): Orderable {
@@ -51,6 +53,7 @@ function fromPackage(id: PackageId): Orderable {
     isPackage: true,
     needsPartner: pack.members.some((m) => CATALOG[m].needsPartner === true),
     needsPick: pack.members.some((m) => CATALOG[m].needsPick === true),
+    needsFace: pack.members.some((m) => CATALOG[m].needsFace === true),
   };
 }
 
@@ -68,6 +71,7 @@ export function orderable(id: string): Orderable {
       isPackage: false,
       needsPartner: single.needsPartner === true,
       needsPick: single.needsPick === true,
+      needsFace: single.needsFace === true,
     };
   }
   if (PACKAGES[id as PackageId]) return fromPackage(id as PackageId);

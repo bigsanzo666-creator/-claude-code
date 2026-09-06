@@ -133,6 +133,51 @@ check('외부 CDN이 막혀도 페이지는 동작', true,
 check('무료 구간은 결제 없이 보임',
   (await page.locator('text=오늘의 일진').count()) > 0);
 
+// ── A2. 사주만 본 손님도 살 수 있는가 ──────────────────────────
+// 그동안 살 수 있는 자리가 관상·손금 화면 하나뿐이었다. 사주를 보고 나온
+// 손님에게는 결제 단추가 없었고, 가림막 단추는 상품 설명 페이지로 되돌아갔다
+section('A2. 사주 화면의 결제');
+{
+  const veils = await page.locator('[data-buy]').count();
+  check('가림막 단추가 결제로 이어진다', veils > 0, `${veils}개`);
+  await page.locator('[data-buy]').first().click();
+  await page.waitForSelector('#buyPanel', { timeout: 10000 });
+  await page.waitForSelector('#payBtn', { timeout: 10000 });
+  check('살 자리가 열린다', (await page.locator('#buyPanel').count()) === 1);
+  check('무엇이 담기는지 먼저 보여 준다', (await page.locator('#buyPanel .will li').count()) > 0);
+  check('예시 문장을 먼저 보여 준다',
+    ((await page.locator('#buyPanel .samp').textContent()) ?? '').length > 50);
+  check('동의 전에는 결제가 잠겨 있다', await page.locator('#payBtn').isDisabled());
+  await page.check('#agree');
+  check('동의하면 눌린다', !(await page.locator('#payBtn').isDisabled()));
+
+  // 사려는 것을 바꾸면 앞에서 본 미리보기와 동의는 다른 물건의 것이다
+  const before = (await page.locator('#payBtn').textContent()) ?? '';
+  await page.selectOption('#buyPick', 'daily-report');
+  await page.waitForFunction(
+    () => (document.getElementById('payBtn')?.textContent ?? '').includes('990'),
+    undefined, { timeout: 10000 });
+  const after = (await page.locator('#payBtn').textContent()) ?? '';
+  check('상품을 바꿀 수 있다', before !== after, `${before.trim()} → ${after.trim()}`);
+  check('바꾸면 동의가 풀린다', await page.locator('#payBtn').isDisabled());
+}
+
+// 주소로 바로 열기 — 밖에서 링크를 걸고 들어온 손님
+{
+  await page.goto(`${base}?buy=wealth-report`, { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => document.getElementById('stage')?.remove());
+  await passWizard();
+  await page.waitForSelector('#buyPanel', { timeout: 10000 });
+  check('주소로 바로 살 자리가 열린다',
+    ((await page.locator('#buyPanel h2').textContent()) ?? '').includes('돈그릇'));
+  // 없는 상품을 실어 보내도 화면이 깨지지 않는다
+  await page.goto(`${base}?buy=nope`, { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => document.getElementById('stage')?.remove());
+  await passWizard();
+  await page.waitForSelector('.chart', { timeout: 10000 });
+  check('없는 상품을 실어 보내도 그냥 넘어간다', (await page.locator('#buyPanel').count()) === 0);
+}
+
 // ── B. 유료 구간이 막혀 있는가 ─────────────────────────────────
 section('B. 유료 구간 — 결제 전');
 

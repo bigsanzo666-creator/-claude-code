@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
-const html = readFileSync('/home/user/-claude-code/apps/manse-viewer/index.html', 'utf8');
+const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 const errs: string[] = [];
