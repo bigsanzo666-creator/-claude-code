@@ -123,19 +123,34 @@ export function hasReading(reading: string): boolean {
   return BY_READING.has(reading.trim());
 }
 
-const ILMYEONG: Record<string, string> = JSON.parse(
+/**
+ * 인명용 한자표.
+ *
+ * 독음마다 두 묶음이다. `c` 는 한문 교육용 기초한자 1,800자 — 학교에서
+ * 가르치는 글자다. `x` 는 인명용으로만 더 열어 준 나머지.
+ *
+ * 이름은 남이 읽을 수 있어야 한다. 뜻이 아무리 좋아도 아무도 모르는 글자면
+ * 평생 「그거 무슨 자예요」를 듣는다. 그래서 둘을 갈라 두고, 이름을 지을 때는
+ * 기초한자를 먼저 쓴다.
+ */
+const ILMYEONG: Record<string, { c: string; x: string }> = JSON.parse(
   readFileSync(new URL('../data/ilmyeong.json', import.meta.url), 'utf8'),
 );
 
 /** 인명용 글자 전부 */
 const LEGAL = new Set<string>();
+/** 그중 기초한자. 이름에 먼저 쓴다 */
+const COMMON = new Set<string>();
 /** 그 글자를 그 독음으로 쓸 수 있는가 — 「독음+글자」로 담는다 */
 const LEGAL_READ = new Set<string>();
-for (const [reading, chars] of Object.entries(ILMYEONG)) {
-  for (const c of chars) {
-    LEGAL.add(c);
-    LEGAL_READ.add(reading + c);
-  }
+for (const [reading, group] of Object.entries(ILMYEONG)) {
+  for (const c of group.c) { LEGAL.add(c); COMMON.add(c); LEGAL_READ.add(reading + c); }
+  for (const c of group.x) { LEGAL.add(c); LEGAL_READ.add(reading + c); }
+}
+
+/** 학교에서 가르치는 기초한자인가. 이름을 지을 때 이쪽을 먼저 쓴다 */
+export function hanjaCommon(char: string): boolean {
+  return COMMON.has(char);
 }
 
 /**
@@ -180,4 +195,9 @@ function soundAlts(reading: string): string[] {
 /** 인명용 목록에 든 글자 수 */
 export function hanjaLegalCount(): number {
   return LEGAL.size;
+}
+
+/** 그중 기초한자 수 */
+export function hanjaCommonCount(): number {
+  return COMMON.size;
 }

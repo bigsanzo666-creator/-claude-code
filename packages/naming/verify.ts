@@ -121,7 +121,7 @@ check('줄 순서는 초년부터 전체까지',
 // ─── 한자 낱글자 표 ───────────────────────────────────────────
 {
   const { hanja, hanjaCount, byReading, hasReading, hanjaLegal,
-          hanjaLegalReading, hanjaLegalCount } =
+          hanjaLegalReading, hanjaLegalCount, hanjaCommon, hanjaCommonCount } =
     await import('./src/hanja.ts');
 
   check('표에 글자가 들어 있다', hanjaCount() > 8000, `${hanjaCount()}자`);
@@ -197,9 +197,90 @@ check('줄 순서는 초년부터 전체까지',
 
   // 목록에 있는 글자는 모두 우리 낱글자 표에도 있어야 한다
   const outside = Object.values(
-    JSON.parse(readFileSync(new URL('./data/ilmyeong.json', import.meta.url), 'utf8')) as Record<string, string>,
-  ).flatMap((v) => [...v]).filter((c) => hanja(c) === null);
+    JSON.parse(readFileSync(new URL('./data/ilmyeong.json', import.meta.url), 'utf8')) as Record<string, { c: string; x: string }>,
+  ).flatMap((v) => [...v.c, ...v.x]).filter((c) => hanja(c) === null);
   check('목록 글자는 모두 획수를 안다', outside.length === 0, `모르는 글자 ${outside.length}자`);
+
+  /*
+   * 기초한자. 학교에서 가르치는 1,800자다. 이름은 남이 읽을 수 있어야 하므로
+   * 이쪽을 먼저 쓴다.
+   */
+  check('기초한자가 천팔백 자쯤 된다',
+    hanjaCommonCount() > 1700 && hanjaCommonCount() < 1900, `${hanjaCommonCount()}자`);
+  check('흔한 글자는 기초한자다', '金李朴水火木日月山川大小天地人'.split('').every(hanjaCommon));
+  check('인명용으로만 열어 준 글자는 기초한자가 아니다',
+    !hanjaCommon('玧') && !hanjaCommon('琇') && hanjaLegal('玧') && hanjaLegal('琇'));
+}
+
+
+// ─── 이름 짓기 ────────────────────────────────────────────────
+{
+  const { readSurname, goodPairs, charsByStroke, nameField } = await import('./src/name.ts');
+  const { surnamesByReading } = await import('./src/surname.ts');
+  const { meaningBad, meaningGood } = await import('./src/fit.ts');
+  const { hanja: h1, hanjaLegal: legal } = await import('./src/hanja.ts');
+
+  // 뜻으로 거르기
+  check('뜻이 나쁜 글자를 잡는다',
+    ['calamity, disaster', 'illness, sickness', 'dried out, withered'].every(meaningBad));
+  check('낱말 안쪽까지 잡지 않는다', !meaningBad('east, eastern, eastward'),
+    '「eastward」가 「war」에 걸리면 안 된다');
+  check('뜻이 좋은 글자를 앞세운다',
+    ['beautiful, pretty', 'virtuous, worthy', 'bright, intelligent'].every(meaningGood));
+
+  // 성 읽기
+  const kim = readSurname('김');
+  check('한글 성을 읽는다', kim?.chars.join('') === '金' && kim?.total === 8, JSON.stringify(kim));
+  check('한자 성도 읽는다', readSurname('金')?.total === 8);
+  const ng = readSurname('남궁');
+  check('두 자 성을 읽는다', ng?.chars.length === 2 && ng?.total === 19, JSON.stringify(ng));
+  /*
+   * 「유」는 柳·劉·兪 가 다 있고 서로 다른 집안이다. 아무거나 집으면 남의 성이
+   * 되므로 정하지 않고 물어 본다.
+   */
+  check('집안이 여럿인 성은 함부로 정하지 않는다', readSurname('유') === null);
+  check('그럴 때는 골라 보여 준다', surnamesByReading('유').length >= 3,
+    surnamesByReading('유').map((s) => s.char).join(''));
+  check('모르는 성은 null', readSurname('쀍') === null);
+
+  // 획수 짝
+  const pairs = goodPairs(kim!);
+  check('길한 획수 짝을 찾는다', pairs.length > 10, `${pairs.length}짝`);
+  check('짝은 모두 네 격이 길하다', pairs.every((p) => p.frames.allGood));
+  check('짝은 모두 음양이 섞였다', pairs.every((p) => p.frames.yinYangMixed));
+
+  // 글자
+  const c9 = charsByStroke(9, ['수']);
+  check('획수로 글자를 찾는다', c9.length > 0 && c9.every((h) => h.strokes === 9));
+  check('찾은 글자는 모두 신고된다', c9.every((h) => legal(h.char)));
+  check('뜻이 나쁜 글자는 나오지 않는다', c9.every((h) => !meaningBad(h.meaning)));
+  check('필요한 기운을 앞세운다', c9[0]!.element === '수' || c9.slice(0, 5).some((h) => h.element === '수'),
+    c9.slice(0, 5).map((h) => `${h.char}${h.element ?? '-'}`).join(' '));
+
+  // 밭
+  const field = nameField({ surname: '김', elements: ['수', '목'] });
+  check('밭을 만든다', field.후보.length > 5, `${field.후보.length}짝`);
+  check('밭에 성이 든다', field.성.한자 === '金' && field.성.획수.join() === '8');
+  check('자리마다 글자가 있다', field.후보.every((p) => p.firstChars.length && p.lastChars.length));
+  check('성씨 글자는 이름에 넣지 않는다',
+    field.후보.every((p) => ![...p.firstChars, ...p.lastChars].some((h) => h.char === '金')));
+
+  // 돌림자
+  const dol = nameField({ surname: '김', fixed: { char: '珉', at: '뒤' } });
+  check('돌림자를 넣으면 그 자리가 고정된다',
+    dol.후보.length > 0 && dol.후보.every((p) => p.lastChars.length === 1 && p.lastChars[0]!.char === '珉'),
+    `${dol.후보.length}짝`);
+  check('돌림자 획수에 맞는 짝만 남는다',
+    dol.후보.every((p) => p.last === h1('珉')!.strokes));
+
+  // 신고 안 되는 글자로는 못 짓는다
+  let threw = false;
+  try { nameField({ surname: '김', fixed: { char: '龘', at: '뒤' } }); } catch { threw = true; }
+  check('신고 안 되는 돌림자는 막는다', threw);
+
+  let threw2 = false;
+  try { nameField({ surname: '쀍' }); } catch { threw2 = true; }
+  check('모르는 성은 막는다', threw2);
 }
 
 console.log(`\n${'═'.repeat(60)}`);
