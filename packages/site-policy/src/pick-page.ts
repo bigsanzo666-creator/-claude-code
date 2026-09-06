@@ -310,12 +310,18 @@ export const PICK_CSS = `
 .pk-form input[type=date],.pk-form select{width:100%;padding:11px 12px;font:15px var(--nb-sans);
   color:var(--nb-ink);background:var(--nb-paper);border:1px solid var(--nb-line);border-radius:0}
 .pk-times{display:flex;flex-wrap:wrap;gap:10px}
-.pk-t{display:inline-flex;align-items:center;gap:7px;padding:9px 13px;cursor:pointer;
+/* 폰에서 손가락으로 누른다. 13px 네모는 못 누른다 — 라벨째로 44px 을 준다 */
+.pk-t{display:inline-flex;align-items:center;gap:9px;padding:10px 14px;cursor:pointer;
+  min-height:44px;box-sizing:border-box;border-radius:10px;
   border:1px solid var(--nb-line);background:var(--nb-paper);font-size:14px;white-space:nowrap}
+.pk-t input{width:20px;height:20px;margin:0;accent-color:var(--nb-ink);cursor:pointer}
 .pk-on{border-color:var(--nb-gold);background:var(--nb-paper-2)}
-.pk-go{width:100%;padding:15px;border:1px solid var(--nb-ink);background:var(--nb-ink);
-  color:var(--nb-paper-2);font:500 15.5px var(--nb-sans);cursor:pointer}
-.pk-go:hover{background:transparent;color:var(--nb-ink)}
+.pk-go{width:100%;min-height:52px;padding:15px;border:0;border-radius:12px;
+  background:linear-gradient(to bottom,#2b3550,var(--nb-ink));
+  color:var(--nb-paper-2);font:600 16px var(--nb-sans);cursor:pointer;
+  box-shadow:0 1px 2px rgba(20,26,40,.28),0 6px 16px -8px rgba(20,26,40,.5)}
+.pk-go:hover{filter:brightness(1.12)}
+.pk-go:active{transform:translateY(1px)}
 
 .pk-out{margin:34px 0 0}
 .pk-out h2{margin:0 0 10px}
@@ -343,10 +349,11 @@ export const PICK_CSS = `
 .pk-next h3{margin:0 0 10px;font-family:var(--nb-serif);font-size:20px;font-weight:400}
 .pk-nd{margin:0 0 16px;font-size:14px;line-height:1.9;color:var(--nb-ink-2);word-break:keep-all}
 .pk-nd b{font-family:var(--nb-serif);font-weight:400;letter-spacing:.06em;color:var(--nb-ink)}
-.pk-buy{display:block;padding:15px;text-align:center;text-decoration:none;
-  border:1px solid var(--nb-ink);background:var(--nb-ink);color:var(--nb-paper-2);
-  font:500 15.5px var(--nb-sans)}
-.pk-buy:hover{background:transparent;color:var(--nb-ink)}
+.pk-buy{display:block;min-height:52px;padding:16px;text-align:center;text-decoration:none;
+  border:0;border-radius:12px;background:linear-gradient(to bottom,#2b3550,var(--nb-ink));
+  color:var(--nb-paper-2);font:600 16px var(--nb-sans);box-sizing:border-box;
+  box-shadow:0 1px 2px rgba(20,26,40,.28),0 6px 16px -8px rgba(20,26,40,.5)}
+.pk-buy:hover{filter:brightness(1.12)}
 .pk-nh{margin:12px 0 0;font-size:12.5px;line-height:1.7;color:var(--nb-ink-3)}
 .pk-why{margin:0 0 14px;font-size:13.5px;line-height:1.8;color:var(--nb-ink-2)}
 .pk-rules{margin:0;padding:0;list-style:none;display:grid;gap:14px;counter-reset:pkr}

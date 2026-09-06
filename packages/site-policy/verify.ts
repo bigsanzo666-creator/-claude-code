@@ -670,6 +670,12 @@ section('11. 문 — 신령계 들어가는 곳');
 
   check('화면 CSS가 함께 실린다', empty.includes('.pk-form') && PICK_CSS.includes('.pk-card'));
 
+  // 폰에서 손가락으로 누른다. 13px 네모는 마우스로만 눌린다
+  check('시간 고르는 칸이 손가락 크기다', PICK_CSS.includes('.pk-t{') && PICK_CSS.includes('min-height:44px'));
+  check('네모 자체도 키운다', PICK_CSS.includes('.pk-t input{width:20px;height:20px'));
+  check('단추가 손가락 크기다', PICK_CSS.includes('.pk-go{width:100%;min-height:52px'));
+  check('사는 단추도 손가락 크기다', PICK_CSS.includes('.pk-buy{display:block;min-height:52px'));
+
   // ── 상품 화면에서 사러 가는 길이 실제로 있는가 ──────────────
   // 「첫 화면에서 넣으시면 구매하실 수 있습니다」라고 적어 놓고 그 자리가 없으면
   // 없는 길을 안내한 것이다. 주소에 상품을 실어 보내 곧바로 열리게 한다
