@@ -176,8 +176,9 @@ section('A2. 사주 화면의 결제');
   const before = (await page.locator('#payBtn').textContent()) ?? '';
   await page.selectOption('#buyPick', 'daily-report');
   await page.waitForFunction(
-    () => (document.getElementById('payBtn')?.textContent ?? '').includes('990'),
-    undefined, { timeout: 10000 });
+    // 값을 여기 적어두면 카탈로그를 고칠 때마다 검증이 깨진다. 한 곳에서만 온다
+    (want: string) => (document.getElementById('payBtn')?.textContent ?? '').includes(want),
+    CATALOG['daily-report'].priceKrw.toLocaleString('ko-KR'), { timeout: 10000 });
   const after = (await page.locator('#payBtn').textContent()) ?? '';
   check('상품을 바꿀 수 있다', before !== after, `${before.trim()} → ${after.trim()}`);
   check('바꾸면 동의가 풀린다', await page.locator('#payBtn').isDisabled());

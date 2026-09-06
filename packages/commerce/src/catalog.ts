@@ -357,7 +357,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'daily-report': {
     id: 'daily-report',
     name: '오늘의 운세',
-    priceKrw: 990,
+    priceKrw: 1200,
     description: '오늘의 간지가 내 명식과 맺는 관계를 하루치로 읽어 드립니다.',
     previewRatio: 0.3,
     category: '시기',
