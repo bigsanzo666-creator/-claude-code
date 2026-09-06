@@ -181,6 +181,43 @@ export function fourFrames(surname: number[], given: number[]): FourFrames {
   };
 }
 
+/**
+ * 격의 한자 이름과 그것이 가리키는 때.
+ *
+ * 원격·형격·이격·정격은 손님이 읽을 수 없는 말이다. 작명소도 종이에는
+ * 「초년운·청년운·장년운·전체운」으로 적는다. 계산은 격으로 하고 화면에는
+ * 때를 적는다.
+ */
+export const FRAME_PLAIN = [
+  { key: 'won', frame: '원격', hanja: '元格', when: '초년운', of: '이름 글자끼리. 어린 시절과 바탕' },
+  { key: 'hyeong', frame: '형격', hanja: '亨格', when: '청년운', of: '성 + 이름 첫 글자. 한창때와 사람됨' },
+  { key: 'i', frame: '이격', hanja: '利格', when: '장년운', of: '성 + 이름 끝 글자. 바깥에서 얻는 것' },
+  { key: 'jeong', frame: '정격', hanja: '貞格', when: '전체운', of: '전부. 한 평생을 아우르는 것' },
+] as const;
+
+export interface FrameRow {
+  /** 초년운·청년운·장년운·전체운 */
+  when: string;
+  /** 원격·형격·이격·정격 */
+  frame: string;
+  hanja: string;
+  /** 그 격이 무엇을 더한 것인지 */
+  of: string;
+  /** 획수 합 */
+  total: number;
+  /** 81수에서 찾은 것 */
+  read: Number81;
+}
+
+/** 화면에 그대로 얹을 수 있는 네 줄. 초년 → 청년 → 장년 → 전체 순서 */
+export function frameRows(read: FrameRead): FrameRow[] {
+  const n = { won: read.wonN, hyeong: read.hyeongN, i: read.iN, jeong: read.jeongN };
+  return FRAME_PLAIN.map((f) => ({
+    when: f.when, frame: f.frame, hanja: f.hanja, of: f.of,
+    total: read[f.key], read: n[f.key],
+  }));
+}
+
 /** 네 격을 세우고 길흉까지 붙인다 */
 export function readFrames(surname: number[], given: number[]): FrameRead {
   const f = fourFrames(surname, given);

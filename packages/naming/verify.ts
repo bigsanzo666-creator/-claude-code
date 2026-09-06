@@ -8,7 +8,7 @@
  */
 
 import {
-  EIGHTY_ONE, number81, fourFrames, readFrames, middleStrokeCandidates,
+  EIGHTY_ONE, number81, fourFrames, readFrames, middleStrokeCandidates, frameRows, FRAME_PLAIN,
 } from './src/index.ts';
 
 let passed = 0, failed = 0;
@@ -92,6 +92,29 @@ check('후보에서 빠진 획수는 흉한 격이 있다',
   [...Array(30)].every((_, i) => picked.has(i + 1) || !readFrames([7], [i + 1, 16]).allGood));
 check('찾는 범위를 정할 수 있다',
   middleStrokeCandidates([7], 16, 10).every((c) => c.stroke <= 10));
+
+
+// ─── 남이 낸 감명서와 맞춰 본다 ─────────────────────────────
+// 청월당이 공개한 작명 리포트 「김리아 金漓妸」.
+// 초년 23 공명격 · 청년 23 공명격 · 장년 16 덕망격 · 전체 31 융창격.
+// 원획은 金 8, 漓 15(氵는 水 4획으로 센다), 妸 8.
+{
+  const rows = frameRows(readFrames([8], [15, 8]));
+  const want = [
+    ['초년운', 23, '공명격'], ['청년운', 23, '공명격'],
+    ['장년운', 16, '덕망격'], ['전체운', 31, '융창격'],
+  ] as const;
+  check('남의 감명서와 네 격이 다 맞는다',
+    rows.length === 4 && rows.every((r, i) =>
+      r.when === want[i][0] && r.total === want[i][1] && r.read.name === want[i][2]),
+    rows.map((r) => `${r.when} ${r.total} ${r.read.name}`).join(' · '));
+  check('네 격이 다 길하다', rows.every((r) => r.read.verdict === '길'));
+}
+
+check('격마다 쉬운 이름이 붙는다',
+  FRAME_PLAIN.length === 4 && FRAME_PLAIN.every((f) => f.when.endsWith('운') && f.frame.endsWith('격')));
+check('줄 순서는 초년부터 전체까지',
+  frameRows(readFrames([7], [9, 16])).map((r) => r.when).join() === '초년운,청년운,장년운,전체운');
 
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} / 실패 ${failed}`);
