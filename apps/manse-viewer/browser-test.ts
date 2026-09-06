@@ -121,7 +121,8 @@ await page.evaluate(() => document.getElementById('stage')?.remove());
  * 이니시스는 구매자 이메일이 없으면 결제창을 아예 띄우지 않는다. 그래서
  * 동의만으로는 결제 단추가 열리지 않는다 — 두 가지가 다 있어야 한다.
  */
-async function fillMail(v = 'test@example.com', tel = '01012345678') {
+async function fillMail(v = 'test@example.com', tel = '01012345678', who = '홍길동') {
+  await page.fill('#buyWho', who);
   await page.fill('#buyMail', v);
   await page.fill('#buyTel', tel);
 }
@@ -166,8 +167,10 @@ section('A2. 사주 화면의 결제');
   check('모양이 아닌 이메일은 안 받는다', await page.locator('#payBtn').isDisabled());
   await fillMail('test@example.com', '123');
   check('모양이 아닌 번호는 안 받는다', await page.locator('#payBtn').isDisabled());
+  await fillMail('test@example.com', '01012345678', '');
+  check('이름이 없으면 안 받는다', await page.locator('#payBtn').isDisabled());
   await fillMail();
-  check('동의·이메일·번호가 다 있으면 눌린다', !(await page.locator('#payBtn').isDisabled()));
+  check('이름·이메일·번호·동의가 다 있으면 눌린다', !(await page.locator('#payBtn').isDisabled()));
 
   // 사려는 것을 바꾸면 앞에서 본 미리보기와 동의는 다른 물건의 것이다
   const before = (await page.locator('#payBtn').textContent()) ?? '';
