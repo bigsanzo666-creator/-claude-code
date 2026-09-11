@@ -892,6 +892,19 @@ console.log(`\n${'═'.repeat(60)}`);
   check('신고 안 되는 돌림자는 막는다', bad);
 }
 
+// ─── 오늘의 운세 ──────────────────────────────────────────────
+{
+  const { buildPayload, kindOf } = await import('./src/payload.ts');
+  check('오늘의 운세는 오늘운세 갈래로 나간다', kindOf('daily-report') === '오늘운세');
+  const birth = { date: '1990-05-20', time: '14:30', gender: '남' as const };
+  const built = buildPayload({ productId: 'daily-report', birth });
+  check('오늘의 운세 kind는 오늘운세', built.kind === '오늘운세');
+  const d = built.data as any;
+  check('오늘의 날짜와 간지가 들어간다', !!d.오늘날짜 && !!d.오늘의간지);
+  check('오늘의 십신과 유불리가 계산된다', !!d.오늘의십신 && !!d.오늘의기운_유불리);
+  check('오늘의 행운 비책이 들어간다', Array.isArray(d.오늘의_처방전?.행운의_색상) && d.오늘의_처방전?.행운의_색상.length > 0);
+}
+
 console.log(`통과 ${passed} / 실패 ${failed}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
 console.log('전부 통과.');

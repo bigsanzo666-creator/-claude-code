@@ -10,7 +10,7 @@ import { orderable } from '../../../packages/commerce/src/orderable.ts';
 import { calculate } from '../../../packages/manseryeok/src/index.ts';
 import {
   analyze, calculateDaeun, currentDaeun, annualLuck,
-  compatibility, sajuToTraits, crossValidate, groupElement,
+  compatibility, sajuToTraits, crossValidate, groupElement, dailyLuck,
 } from '../../../packages/saju-rules/src/index.ts';
 import { pickDays, mergeHours, bestPerDay, slotSpan, slotLabel } from '../../../packages/saju-rules/src/index.ts';
 import { readFace, NEUTRAL_FEATURES } from '../../../packages/physiognomy/src/index.ts';
@@ -84,6 +84,8 @@ const KIND_EXCEPTIONS: Partial<Record<ProductId, ReportKind>> = {
   'charm-report': '교차검증',
   // 사람이 아니라 **날**을 보는 것
   'pick-report': '택일',
+  // 오늘 하루의 흐름을 보는 것
+  'daily-report': '오늘운세',
 };
 
 export function kindOf(productId: ProductId): ReportKind {
@@ -124,9 +126,62 @@ export function buildPayloads(
   }));
 }
 
+function seoulTodayISO(): string {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return kst.toISOString().slice(0, 10);
+}
+
+function luckyPrescription(elements: string[]) {
+  const el = elements[0] || '토';
+  const MAP: Record<string, { colors: string[]; directions: string[]; numbers: number[] }> = {
+    목: { colors: ['초록색', '청색'], directions: ['동쪽'], numbers: [3, 8] },
+    화: { colors: ['붉은색', '분홍색', '주황색'], directions: ['남쪽'], numbers: [2, 7] },
+    토: { colors: ['노란색', '베이지색', '황토색'], directions: ['중앙'], numbers: [5, 10] },
+    금: { colors: ['흰색', '은색', '아이보리'], directions: ['서쪽'], numbers: [4, 9] },
+    수: { colors: ['검은색', '남색', '짙은 파란색'], directions: ['북쪽'], numbers: [1, 6] },
+  };
+  return MAP[el] ?? MAP['토'];
+}
+
 /** 상품별로 리포트에 실을 데이터를 조립한다. */
 export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unknown; subject: string } {
   const subject = req.birth?.name?.trim() || '이 분';
+
+  /*
+   * 오늘의 운세.
+   *
+   * 오늘 하루치 일진(日辰)과 내 사주가 맺는 유불리 및 충합 관계를 본다.
+   * 평생 사주를 다 푸는 것이 아니라, 오늘 하루 무엇을 조심하고 어떤 행동을
+   * 취해야 할지 핵심만 처방전처럼 명쾌하게 전달한다.
+   */
+  if (req.productId === 'daily-report') {
+    const { ms, an } = sajuBundle(req.birth);
+    const today = seoulTodayISO();
+    const luck = dailyLuck(ms, an.yongsin, today);
+    const me = an.dayMaster.element;
+    const want = an.yongsin.primary.map((g) => groupElement(me, g));
+    const tips = luckyPrescription(want);
+    return {
+      kind: '오늘운세',
+      subject,
+      data: {
+        오늘날짜: today,
+        오늘의간지: `${luck.pillar.stem}${luck.pillar.branch} (${luck.pillar.stemHanja}${luck.pillar.branchHanja})`,
+        오늘의오행: { 천간: luck.pillar.element.stem, 지지: luck.pillar.element.branch },
+        내일간: an.dayMaster,
+        오늘의십신: { 천간: luck.stemGod, 지지: luck.branchGod },
+        오늘의기운_유불리: luck.favor,
+        사주와의_충합_관계: luck.interactions.length ? luck.interactions : ['특이 충돌이나 강한 묶임 없이 평온하게 흘러가는 기운입니다.'],
+        오늘의_처방전: {
+          나를_돕는_기운: want,
+          행운의_색상: tips.colors,
+          행운의_방향: tips.directions,
+          행운의_숫자: tips.numbers,
+        },
+      },
+    };
+  }
 
   /*
    * 택일.

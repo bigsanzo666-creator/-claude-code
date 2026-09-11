@@ -1084,10 +1084,25 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     var p = buyState.previewed;
 
     if (buyState.result) {
+      var isDaily = buyState.buying === 'daily-report' || (buyState.offer && buyState.offer.id === 'daily-report');
+      var upsellHtml = isDaily ? (
+        '<div style="margin-top:2rem;padding:1.5rem;background:#fbf9f5;border:1px solid #d4c5b9;border-radius:8px;text-align:center;">' +
+          '<h3 style="margin:0 0 0.5rem;color:#2c241e;font-size:1.15rem;">🌱 내 평생의 사주팔자와 재물운도 궁금하신가요?</h3>' +
+          '<p style="margin:0 0 1.2rem;color:#665c54;font-size:0.95rem;line-height:1.6;">' +
+            '오늘의 운세는 하루의 날씨와 같습니다. 타고난 내 그릇의 크기와 10년 대운의 큰 흐름은 ' +
+            '<strong>늘봄사주 종합 리포트</strong>에서 깊이 있게 풀어 드립니다.' +
+          '</p>' +
+          '<a href="/?buy=saju-report" style="display:inline-block;padding:0.75rem 1.8rem;font-size:1rem;font-weight:bold;color:#fff;background:#7c2d12;border-radius:6px;text-decoration:none;">' +
+            '평생 사주 종합 리포트 보러가기 (' + money(19900) + ') →' +
+          '</a>' +
+        '</div>'
+      ) : '';
+
       return '<div class="panel"><div class="panel-in">' +
         '<h2>리포트</h2>' +
         '<div class="bought">' + esc(buyState.result.text) + '</div>' +
-        '<p class="note" style="margin-top:1.2rem">주문번호 <span class="mono">' + esc(buyState.result.orderId) + '</span></p>' +
+        upsellHtml +
+        '<p class="note" style="margin-top:1.5rem">주문번호 <span class="mono">' + esc(buyState.result.orderId) + '</span></p>' +
         '</div></div>';
     }
 
@@ -1159,8 +1174,7 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
             ? '<div class="wait">' +
                 '<p class="step" id="stepText">주문을 만드는 중…</p>' +
                 '<p class="step-sec" id="stepSec">0초 지났습니다</p>' +
-                '<p class="step-warn">결제가 끝난 뒤에도 리포트를 쓰는 데 1~3분 걸립니다. ' +
-                  '이 창을 닫거나 새로고침하지 마세요.</p>' +
+                '<p class="step-warn">결제가 안전하게 완료되었습니다. 내용을 정성껏 정리하는 중이니 창을 닫지 말고 잠시만 기다려 주세요.</p>' +
               '</div>'
             : '') +
         '</div>';
@@ -1197,11 +1211,11 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
    * 위험하다.** 얼마나 걸리는지와 닫지 말라는 말을 크게 적고, 초를 센다.
    */
   var STEP_TEXT = {
-    order: '주문을 만드는 중…',
+    order: '주문을 준비하고 있습니다…',
     payment: '결제창을 여는 중…',
-    confirm: '결제를 확인하고 있습니다. 창을 닫지 마세요.',
-    report: '리포트를 쓰고 있습니다. 1~3분 걸립니다. 창을 닫지 마세요.',
-    done: '다 됐습니다.',
+    confirm: '결제가 확인되었습니다! 신령님이 결과를 짚어보고 있습니다…',
+    report: '신령님이 정성을 담아 결과를 정리하고 있습니다. 잠시만 기다려 주세요…',
+    done: '완성되었습니다.',
   };
 
   // 멈춘 것처럼 보이지 않게 초를 센다

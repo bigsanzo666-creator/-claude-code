@@ -17,12 +17,13 @@ const root = join(here, '..', '..');
 const scratch = mkdtempSync(join(tmpdir(), 'manse-'));
 const bundlePath = join(scratch, 'engine.js');
 
-execFileSync('npx', [
+const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+execFileSync(npx, [
   '--yes', 'esbuild@0.24.0',
   '--bundle', join(here, 'entry.ts'),
   '--format=iife', '--global-name=MS', '--minify', '--target=es2020',
   `--outfile=${bundlePath}`,
-], { stdio: 'inherit' });
+], { stdio: 'inherit', shell: process.platform === 'win32' });
 
 const template = readFileSync(join(here, 'index.template.html'), 'utf8');
 const engine = readFileSync(bundlePath, 'utf8');

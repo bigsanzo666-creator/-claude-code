@@ -53,7 +53,8 @@ export async function generateReport(
   options: GenerateOptions = {},
 ): Promise<GenerateResult> {
   const model = options.model ?? DEFAULT_MODEL;
-  const effort = options.effort ?? DEFAULT_EFFORT;
+  const effort = options.effort ?? (input.kind === '오늘운세' ? 'low' : DEFAULT_EFFORT);
+  const maxTokens = input.kind === '오늘운세' ? 3000 : 12000;
   const key = cacheKey({ input, model, effort });
 
   if (options.cache && !options.force) {
@@ -67,7 +68,7 @@ export async function generateReport(
   // 큰 max_tokens로 논스트리밍 요청을 보내면 HTTP 타임아웃에 걸릴 수 있다.
   const stream = client.beta.messages.stream({
     model,
-    max_tokens: 12000,
+    max_tokens: maxTokens,
     // 시스템 프롬프트는 입력과 무관하게 고정이라 캐시가 걸린다.
     // 사용자 데이터는 이 뒤에 오므로 프리픽스가 깨지지 않는다.
     system: [
