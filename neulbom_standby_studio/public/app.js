@@ -373,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (stageGate.classList.contains('active') && gateVideo) {
         gateVideo.muted = false;
         gateVideo.volume = 1.0;
-        gateVideo.play().catch(() => { });
+        gateVideo.play().catch(()=>{});
       }
       if (enterVideo) {
         enterVideo.muted = false;
@@ -526,7 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ================= 7. 10대 신령 1:1 대면 처소 (1080p 영상 원샷) =================
+// ================= 7. 10대 신령 1:1 대면 처소 (1080p 영상 원샷) =================
   const stageChamber = document.getElementById('stageChamber');
   const chamberSpiritVideo = document.getElementById('chamberSpiritVideo');
   const chamberSpiritName = document.getElementById('chamberSpiritName');
@@ -620,108 +620,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (stageChamber && stageChamber.classList.contains('active')) resizeParticleCanvas();
   });
 
-  // ================= 7-2. 신령 도발 말풍선 & 상품 드로어 & 1단계 맛보기 모달 =================
-  const chamberDialogueArea = document.getElementById('chamberDialogueArea');
-  const chamberOpenerText = document.getElementById('chamberOpenerText');
-  const chamberHookText = document.getElementById('chamberHookText');
-  const chamberProductsDrawer = document.getElementById('chamberProductsDrawer');
-  const chamberProductsList = document.getElementById('chamberProductsList');
-
-  const stagePreviewModal = document.getElementById('stagePreviewModal');
-  const btnClosePreview = document.getElementById('btnClosePreview');
-  const previewSpiritTag = document.getElementById('previewSpiritTag');
-  const previewProductTitle = document.getElementById('previewProductTitle');
-  const previewProductHook = document.getElementById('previewProductHook');
-  const previewStage1Title = document.getElementById('previewStage1Title');
-  const previewStage1Content = document.getElementById('previewStage1Content');
-  const previewStage2Title = document.getElementById('previewStage2Title');
-  const previewStage3Title = document.getElementById('previewStage3Title');
-  const previewStage4Title = document.getElementById('previewStage4Title');
-  const previewPriceOriginal = document.getElementById('previewPriceOriginal');
-  const previewPriceSale = document.getElementById('previewPriceSale');
-  const btnUnlockFullReport = document.getElementById('btnUnlockFullReport');
-
-  function showChamberOfferings() {
-    if (!currentSpirit) return;
-
-    // 1) 신령의 도발 말풍선 노출
-    if (chamberDialogueArea && chamberOpenerText && chamberHookText) {
-      chamberOpenerText.textContent = `"${currentSpirit.opener || ''}"`;
-      const firstProduct = currentSpirit.products && currentSpirit.products[0];
-      chamberHookText.textContent = firstProduct ? `"${firstProduct.hook || ''}"` : "";
-      chamberDialogueArea.classList.add('visible');
-    }
-
-    // 2) 하단 상품 드로어 렌더링 및 노출
-    if (chamberProductsDrawer && chamberProductsList && currentSpirit.products) {
-      chamberProductsList.innerHTML = '';
-      currentSpirit.products.forEach(product => {
-        const card = document.createElement('div');
-        card.className = 'product-item-card';
-        card.innerHTML = `
-          <div class="product-card-top">
-            <span class="product-card-title">${product.title}</span>
-            <span class="product-card-badge">1단계 무료</span>
-          </div>
-          <p class="product-card-hook">"${product.hook}"</p>
-          <p class="product-card-packaging">${product.packaging}</p>
-          <button type="button" class="product-card-btn">👁️ 1단계 무료 맛보기 보기</button>
-        `;
-        card.addEventListener('click', () => {
-          openPreviewModal(currentSpirit, product);
-        });
-        chamberProductsList.appendChild(card);
-      });
-      chamberProductsDrawer.classList.add('visible');
-    }
-  }
-
-  function hideChamberOfferings() {
-    if (chamberDialogueArea) chamberDialogueArea.classList.remove('visible');
-    if (chamberProductsDrawer) chamberProductsDrawer.classList.remove('visible');
-  }
-
-  function openPreviewModal(spirit, product) {
-    if (!product) return;
-    currentProduct = product;
-
-    if (previewSpiritTag) previewSpiritTag.textContent = `⛩️ ${spirit.name}의 첫 번째 가르침`;
-    if (previewProductTitle) previewProductTitle.textContent = product.title;
-    if (previewProductHook) previewProductHook.textContent = `"${product.hook}"`;
-
-    const stages = product.stages || [];
-    if (stages[0]) {
-      if (previewStage1Title) previewStage1Title.textContent = stages[0].title;
-      if (previewStage1Content) {
-        previewStage1Content.innerHTML = `
-          <p style="color: #ffd700; font-weight: 700; margin-bottom: 6px;">[ ${userState.name} 님의 타고난 사주 명식 진단 ]</p>
-          <p>${stages[0].preview || ''}</p>
-        `;
-      }
-    }
-    if (stages[1] && previewStage2Title) previewStage2Title.textContent = stages[1].title;
-    if (stages[2] && previewStage3Title) previewStage3Title.textContent = stages[2].title;
-    if (stages[3] && previewStage4Title) previewStage4Title.textContent = stages[3].title;
-
-    if (previewPriceOriginal) previewPriceOriginal.textContent = (product.priceOriginal || 89000).toLocaleString() + '원';
-    if (previewPriceSale) previewPriceSale.textContent = (product.priceSale || 35600).toLocaleString() + '원';
-
-    if (stagePreviewModal) stagePreviewModal.classList.add('active');
-  }
-
-  if (btnClosePreview) {
-    btnClosePreview.addEventListener('click', () => {
-      if (stagePreviewModal) stagePreviewModal.classList.remove('active');
-    });
-  }
-
-  if (btnUnlockFullReport) {
-    btnUnlockFullReport.addEventListener('click', () => {
-      alert(`[${currentProduct ? currentProduct.title : '비기'}] 결제 연동 모듈로 연결합니다.\n(심사 완료 후 토스 결제창이 팝업됩니다.)`);
-    });
-  }
-
-  // 8초 줌인 영상이 끝나면: 마지막 프레임에서 정지 유지 + 그 위로 파티클 시작 + 말풍선/상품 드로어 노출
+  // 8초 줌인 영상이 끝나면: 마지막 프레임에서 정지 유지 + 그 위로 파티클 시작 (사진은 완전 정지, 파티클만 움직임)
+  // 풍신령·명경신령·삼신할매는 영상 맨 끝(8.00초)이 하필 눈 감는 타이밍이라, freezeAt에 지정된
+  // "눈 뜬 직전 시점"으로 되감아서 그 프레임으로 멈춘다. 나머지 7명은 원래대로 끝에서 멈춘다.
   if (chamberSpiritVideo) {
     chamberSpiritVideo.addEventListener('ended', () => {
       chamberSpiritVideo.pause();
@@ -730,7 +631,6 @@ document.addEventListener('DOMContentLoaded', () => {
         chamberSpiritVideo.currentTime = freezeAt;
       }
       startChamberParticles();
-      showChamberOfferings();
     });
   }
 
@@ -739,15 +639,17 @@ document.addEventListener('DOMContentLoaded', () => {
     currentSpirit = spirit;
     currentProduct = spirit.products ? spirit.products[0] : null;
 
+    // 새 신령 처소를 열 때는 이전 파티클을 즉시 정지 (새 8초 영상이 끝난 뒤에만 다시 시작)
     stopChamberParticles();
-    hideChamberOfferings();
 
+    // 1) 정지 포스터 사진 없이, 아래 2)에서 영상이 검은 화면 위로 바로 페이드인
     if (chamberSpiritName) chamberSpiritName.textContent = spirit.name;
     if (chamberSpiritDomain) chamberSpiritDomain.textContent = spirit.domain;
 
+    // 2) 1080p 대면 영상 로드 후, 포스터 위로 서서히 페이드인
     if (chamberSpiritVideo) {
       chamberSpiritVideo.classList.remove('is-ready');
-      chamberSpiritVideo.removeEventListener('playing', chamberSpiritVideo._onReady || (() => { }));
+      chamberSpiritVideo.removeEventListener('playing', chamberSpiritVideo._onReady || (() => {}));
 
       if (spirit.video) {
         const onReady = () => {
@@ -766,6 +668,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    // 3) 9:16 모바일 마당 전환 (깜빡임 없이 즉시 활성화)
     if (stageCourtyard) stageCourtyard.classList.remove('active');
     if (stageChamber) stageChamber.classList.add('active');
   }
@@ -773,8 +676,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // 마당으로 복귀
   if (btnExitChamber) {
     btnExitChamber.addEventListener('click', () => {
-      hideChamberOfferings();
-      if (stagePreviewModal) stagePreviewModal.classList.remove('active');
       if (stageChamber) stageChamber.classList.remove('active');
       if (stageCourtyard) stageCourtyard.classList.add('active');
       if (chamberSpiritVideo) chamberSpiritVideo.pause();
