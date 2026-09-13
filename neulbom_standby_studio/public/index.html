@@ -11,7 +11,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=fix_flash_eyes_watermark">
+  <link rel="stylesheet" href="style.css?v=offerings_drawer_5">
 </head>
 
 <body>
@@ -37,7 +37,8 @@
       <div class="gate-content">
         <span class="badge-tag">⛩️ 10대 신령의 성지</span>
         <h1 class="main-title">천 년을 이어온 <span class="gold-text">신령계의 문</span>이<br>당신 앞에서 열립니다</h1>
-        <p class="sub-desc-original">문 너머에는 <span class="gold-highlight">10대 신령</span>이 기다리고 있습니다.<br>지금 문을 두드리면 당신의 명식이 봉인 해제됩니다.</p>
+        <p class="sub-desc-original">문 너머에는 <span class="gold-highlight">10대 신령</span>이 기다리고 있습니다.<br>지금 문을 두드리면 당신의 명식이
+          봉인 해제됩니다.</p>
         <div class="enter-actions">
           <button type="button" id="btnKnockGate" class="btn-primary pulse-gold">🚪 신령계 문 두드리기</button>
         </div>
@@ -210,7 +211,81 @@
 
   </div> <!-- /mobileContainer (엄격한 9:16 모바일 규격 닫기) -->
 
-  <script src="app.js?v=bgm_audio_active_4"></script>
+  <script src="app.js?v=fix_flash_eyes_watermark"></script>
+</body>
+
+</html>
+</div>
+</div>
+</div>
+
+<div class="preview-footer">
+  <div class="price-box">
+    <span class="price-discount">60% 특가</span>
+    <span id="previewPriceOriginal" class="price-original">89,000원</span>
+    <span id="previewPriceSale" class="price-sale">35,600원</span>
+  </div>
+  <button type="button" id="btnUnlockFullReport" class="btn-primary pulse-gold">
+    🔓 이 비기 전체 봉인 해제하기
+  </button>
+</div>
+</div>
+</div>
+
+<!-- ================= MODAL: 사주 신상 정보 입력 (무단침입 방지 Checkpoint) ================= -->
+<div id="sajuInputModal" class="modal-backdrop">
+  <div class="modal-dialog saju-input-dialog">
+    <div class="saju-modal-header">
+      <h3 class="saju-modal-title">신령계 입장 전, 명식(命式)을 봉인합니다</h3>
+    </div>
+
+    <div class="saju-form">
+      <div class="form-group">
+        <label for="inputName">성함</label>
+        <input type="text" id="inputName" placeholder="성함을 입력하세요" value="김늘봄">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group flex-2">
+          <label for="inputBirth">생년월일</label>
+          <input type="date" id="inputBirth" value="1995-05-15">
+        </div>
+        <div class="form-group flex-1">
+          <label for="inputTime">태어난 시간</label>
+          <select id="inputTime">
+            <option value="unknown">시간 모름</option>
+            <option value="ja">자시 (23:30~01:29)</option>
+            <option value="chuk">축시 (01:30~03:29)</option>
+            <option value="in">인시 (03:30~05:29)</option>
+            <option value="myo">묘시 (05:30~07:29)</option>
+            <option value="jin">진시 (07:30~09:29)</option>
+            <option value="sa">사시 (09:30~11:29)</option>
+            <option value="o">오시 (11:30~13:29)</option>
+            <option value="mi">미시 (13:30~15:29)</option>
+            <option value="sin">신시 (15:30~17:29)</option>
+            <option value="yu">유시 (17:30~19:29)</option>
+            <option value="sul">술시 (19:30~21:29)</option>
+            <option value="hae">해시 (21:30~23:29)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>성별</label>
+        <div class="gender-toggle">
+          <button type="button" id="btnGenderMale" class="gender-btn active" data-gender="male">남성</button>
+          <button type="button" id="btnGenderFemale" class="gender-btn" data-gender="female">여성</button>
+        </div>
+      </div>
+
+      <button type="button" id="btnSubmitSaju" class="btn-primary pulse-gold">⛩️ 이 명식으로 신령계 문 열기</button>
+    </div>
+  </div>
+</div>
+
+</div> <!-- /mobileContainer (엄격한 9:16 모바일 규격 닫기) -->
+
+<script src="app.js?v=offerings_drawer_5"></script>
 </body>
 
 </html>
