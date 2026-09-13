@@ -366,23 +366,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const panoramaViewport = document.getElementById('panoramaViewport');
 
-  // ================= 🔊 사운드 컨트롤 =================
+  // ================= 🔊 사운드 컨트롤 (A 가야금 + B 대금/물소리 합체 신령음) =================
+  const bgmAudio = new Audio('assets/신령음.mp3');
+  bgmAudio.loop = true;
+  bgmAudio.volume = 0.55;
+
   function setSound(enable) {
     isAudioActive = enable;
     if (enable) {
+      bgmAudio.play().catch(()=>{});
       if (stageGate.classList.contains('active') && gateVideo) {
         gateVideo.muted = false;
-        gateVideo.volume = 1.0;
+        gateVideo.volume = 0.6;
         gateVideo.play().catch(()=>{});
       }
       if (enterVideo) {
         enterVideo.muted = false;
-        enterVideo.volume = 1.0;
+        enterVideo.volume = 0.6;
       }
       soundControl.classList.add('active');
       soundIcon.textContent = '🔊';
       soundText.textContent = '신령음 ON';
     } else {
+      bgmAudio.pause();
       if (gateVideo) gateVideo.muted = true;
       if (enterVideo) enterVideo.muted = true;
       soundControl.classList.remove('active');
@@ -395,6 +401,17 @@ document.addEventListener('DOMContentLoaded', () => {
     e.stopPropagation();
     setSound(!isAudioActive);
   });
+
+  // 사용자 첫 터치/클릭 시 자동 신령음 ON 시작
+  const handleFirstInteraction = () => {
+    if (!isAudioActive) {
+      setSound(true);
+    }
+    document.removeEventListener('click', handleFirstInteraction);
+    document.removeEventListener('touchstart', handleFirstInteraction);
+  };
+  document.addEventListener('click', handleFirstInteraction, { once: true });
+  document.addEventListener('touchstart', handleFirstInteraction, { once: true });
 
   // ================= 1. 비디오 루프 금지 & 마지막 프레임 정지 =================
   if (gateVideo) {
