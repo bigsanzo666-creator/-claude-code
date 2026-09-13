@@ -363,15 +363,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const panoramaViewport = document.getElementById('panoramaViewport');
 
-  const payBtnText = document.getElementById('payBtnText');
-
-  const reportModal = document.getElementById('reportModal');
-  const btnCloseReport = document.getElementById('btnCloseReport');
-  const reportSpiritTitle = document.getElementById('reportSpiritTitle');
-  const reportOwnerText = document.getElementById('reportOwnerText');
-  const reportBodyContent = document.getElementById('reportBodyContent');
-  const btnInviteFriend = document.getElementById('btnInviteFriend');
-
   // ================= 🔊 사운드 컨트롤 =================
   function setSound(enable) {
     isAudioActive = enable;
@@ -538,21 +529,115 @@ document.addEventListener('DOMContentLoaded', () => {
   const chamberSpiritVideo = document.getElementById('chamberSpiritVideo');
   const chamberSpiritName = document.getElementById('chamberSpiritName');
   const chamberSpiritDomain = document.getElementById('chamberSpiritDomain');
-  const chamberSpiritOpener = document.getElementById('chamberSpiritOpener');
-  const chamberHook = document.getElementById('chamberHook');
   const btnExitChamber = document.getElementById('btnExitChamber');
+
+  // ================= 7-1. 정지 화면 위 신령 기운 파티클 (8초 영상이 끝난 뒤부터 무한 루프) =================
+  const chamberParticleCanvas = document.getElementById('chamberParticleCanvas');
+  const particleCtx = chamberParticleCanvas ? chamberParticleCanvas.getContext('2d') : null;
+  let particleAnimId = null;
+  let particles = [];
+
+  function resizeParticleCanvas() {
+    if (!chamberParticleCanvas || !stageChamber) return;
+    const rect = stageChamber.getBoundingClientRect();
+    chamberParticleCanvas.width = rect.width;
+    chamberParticleCanvas.height = rect.height;
+  }
+
+  function spawnParticle(w, h) {
+    return {
+      x: Math.random() * w,
+      y: h + Math.random() * 40,
+      r: 0.6 + Math.random() * 1.8,
+      speed: 0.15 + Math.random() * 0.35,
+      drift: (Math.random() - 0.5) * 0.3,
+      alpha: 0,
+      alphaMax: 0.25 + Math.random() * 0.45,
+      fadeSpeed: 0.004 + Math.random() * 0.006,
+      phase: Math.random() * Math.PI * 2
+    };
+  }
+
+  function initParticles() {
+    if (!chamberParticleCanvas) return;
+    resizeParticleCanvas();
+    const w = chamberParticleCanvas.width;
+    const h = chamberParticleCanvas.height;
+    particles = Array.from({ length: 34 }, () => {
+      const p = spawnParticle(w, h);
+      p.y = Math.random() * h;
+      p.alpha = Math.random() * p.alphaMax;
+      return p;
+    });
+  }
+
+  function drawParticles() {
+    if (!particleCtx || !chamberParticleCanvas) return;
+    const w = chamberParticleCanvas.width;
+    const h = chamberParticleCanvas.height;
+    particleCtx.clearRect(0, 0, w, h);
+
+    particles.forEach(p => {
+      p.y -= p.speed;
+      p.phase += 0.015;
+      p.x += Math.sin(p.phase) * p.drift;
+      if (p.alpha < p.alphaMax) p.alpha += p.fadeSpeed;
+
+      if (p.y < -20) Object.assign(p, spawnParticle(w, h));
+
+      const glow = particleCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 4);
+      glow.addColorStop(0, `rgba(255, 224, 158, ${p.alpha})`);
+      glow.addColorStop(1, 'rgba(255, 224, 158, 0)');
+      particleCtx.fillStyle = glow;
+      particleCtx.beginPath();
+      particleCtx.arc(p.x, p.y, p.r * 4, 0, Math.PI * 2);
+      particleCtx.fill();
+    });
+
+    particleAnimId = requestAnimationFrame(drawParticles);
+  }
+
+  function startChamberParticles() {
+    stopChamberParticles();
+    if (!chamberParticleCanvas) return;
+    initParticles();
+    particleAnimId = requestAnimationFrame(drawParticles);
+  }
+
+  function stopChamberParticles() {
+    if (particleAnimId) {
+      cancelAnimationFrame(particleAnimId);
+      particleAnimId = null;
+    }
+    if (particleCtx && chamberParticleCanvas) {
+      particleCtx.clearRect(0, 0, chamberParticleCanvas.width, chamberParticleCanvas.height);
+    }
+  }
+
+  window.addEventListener('resize', () => {
+    if (stageChamber && stageChamber.classList.contains('active')) resizeParticleCanvas();
+  });
+
+  // 8초 줌인 영상이 끝나면: 마지막 프레임에서 정지 유지 + 그 위로 파티클 시작 (사진은 완전 정지, 파티클만 움직임)
+  if (chamberSpiritVideo) {
+    chamberSpiritVideo.addEventListener('ended', () => {
+      chamberSpiritVideo.pause();
+      startChamberParticles();
+    });
+  }
 
   function openChamber(spirit) {
     if (!spirit) return;
     currentSpirit = spirit;
     currentProduct = spirit.products ? spirit.products[0] : null;
 
+    // 새 신령 처소를 열 때는 이전 파티클을 즉시 정지 (새 8초 영상이 끝난 뒤에만 다시 시작)
+    stopChamberParticles();
+
     // 1) 정지 포스터 이미지를 즉시 교체 (영상 로드 전 깜빡임/공백 방지)
     if (chamberSpiritBg) chamberSpiritBg.src = spirit.img;
     if (chamberSpiritName) chamberSpiritName.textContent = spirit.name;
     if (chamberSpiritDomain) chamberSpiritDomain.textContent = spirit.domain;
-    if (chamberSpiritOpener) chamberSpiritOpener.textContent = `“${spirit.opener}”`;
-    if (chamberHook && currentProduct) chamberHook.textContent = `“${currentProduct.hook}”`;
 
     // 2) 1080p 대면 영상 로드 후, 포스터 위로 서서히 페이드인
     if (chamberSpiritVideo) {
@@ -587,56 +672,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (stageChamber) stageChamber.classList.remove('active');
       if (stageCourtyard) stageCourtyard.classList.add('active');
       if (chamberSpiritVideo) chamberSpiritVideo.pause();
-    });
-  }
-
-  // 1:1 상담 비기 열기 버튼 클릭 시 리포트 호출
-  const btnPayAndOpen = document.getElementById('btnPayAndOpen');
-  if (btnPayAndOpen) {
-    btnPayAndOpen.addEventListener('click', () => {
-      openReport(currentSpirit, currentProduct);
-    });
-  }
-
-  function openReport(spirit, prod) {
-    if (!reportModal || !spirit || !prod) return;
-    if (reportSpiritTitle) reportSpiritTitle.textContent = `${spirit.name}의 최종 비기서`;
-    if (reportOwnerText) reportOwnerText.textContent = `${userState.name} 님의 명식으로 봉인 해제된 [${prod.title}]`;
-
-    if (reportBodyContent) {
-      reportBodyContent.innerHTML = '';
-      prod.stages.forEach(stg => {
-        const card = document.createElement('div');
-        card.className = 'report-stage-card';
-        card.innerHTML = `
-          <h4 class="report-stage-title">🏮 ${stg.num}: ${stg.title}</h4>
-          <p class="report-stage-text">${stg.preview || stg.locked}</p>
-        `;
-        reportBodyContent.appendChild(card);
-      });
-    }
-
-    reportModal.classList.add('active');
-  }
-
-  // 최종 리포트 닫기
-  if (btnCloseReport) {
-    btnCloseReport.addEventListener('click', () => reportModal.classList.remove('active'));
-  }
-
-  // 친구 초대 공유
-  if (btnInviteFriend) {
-    btnInviteFriend.addEventListener('click', () => {
-      if (navigator.share) {
-        navigator.share({
-          title: '늘봄사주 · 10대 신령의 성지',
-          text: `${userState.name}님이 신령계에서 자신의 비기서를 확인했습니다. 당신의 운명도 파헤쳐보세요!`,
-          url: window.location.href
-        }).catch(()=>{});
-      } else {
-        navigator.clipboard.writeText(window.location.href);
-        alert('초대 링크가 복사되었습니다! 친구에게 공유하고 복채 페이백을 받으세요.');
-      }
+      stopChamberParticles();
     });
   }
 });

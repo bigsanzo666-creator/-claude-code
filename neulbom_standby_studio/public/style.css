@@ -663,20 +663,6 @@ body {
   box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.9);
 }
 
-.modal-close {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--border-glass);
-  color: #fff;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 1rem;
-}
-
 .modal-spirit-profile {
   display: flex;
   gap: 14px;
@@ -1047,74 +1033,6 @@ body {
   color: var(--gold-light);
 }
 
-/* 리포트 모달 */
-.report-dialog {
-  max-height: 92vh;
-}
-
-.report-header {
-  text-align: center;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-glass);
-}
-
-.report-emblem {
-  font-size: 2.2rem;
-  margin-bottom: 6px;
-}
-
-.report-title {
-  font-size: 1.3rem;
-  font-weight: 900;
-  color: var(--gold-primary);
-}
-
-.report-subtitle {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.report-body {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-bottom: 20px;
-}
-
-.report-stage-card {
-  background: rgba(12, 12, 20, 0.9);
-  border: 1px solid var(--border-gold);
-  border-radius: 14px;
-  padding: 16px;
-}
-
-.report-stage-title {
-  font-size: 0.95rem;
-  font-weight: 900;
-  color: #fff;
-  margin-bottom: 8px;
-}
-
-.report-stage-text {
-  font-size: 0.85rem;
-  color: #e4e4f0;
-  line-height: 1.6;
-}
-
-.btn-secondary {
-  width: 100%;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--border-glass);
-  border-radius: 12px;
-  color: #fff;
-  font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-
 /* 하단 바 완전 제거 */
 .courtyard-spirits-tray {
   display: none !important;
@@ -1176,12 +1094,23 @@ body {
   opacity: 1;
 }
 
-/* 상단 뒤로가기 & 신령 명패: 뒤로가기 버튼 바로 옆에 나란히 배치 (우측 신령음 버튼과 겹치지 않도록 좌측에만 정렬) */
+/* 정지 화면 위 신령 기운 파티클: 영상보다 위, 상단 HUD보다는 아래 */
+.chamber-particle-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* 상단 뒤로가기 & 신령 명패: 뒤로가기 버튼 바로 옆에 나란히 배치. right를 96px로 잡아 우측 신령음 버튼(.global-audio-badge)과 겹칠 여지 자체를 없앰 */
 .chamber-top-bar {
   position: absolute;
   top: 16px;
   left: 16px;
-  right: 16px;
+  right: 96px;
   z-index: 20;
   display: flex;
   justify-content: flex-start;
@@ -1244,85 +1173,6 @@ body {
 .chamber-spirit-badge .badge-role {
   color: #ccc;
   font-size: 0.72rem;
-}
-
-/* 하단 심플 & 럭셔리 1:1 대화 시트 (신령을 가리지 않도록 컴팩트한 하단 그라데이션) */
-.chamber-dialogue-sheet {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  z-index: 15;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  background: linear-gradient(to top, rgba(5, 3, 10, 0.96) 0%, rgba(10, 6, 18, 0.88) 75%, transparent 100%);
-  backdrop-filter: blur(8px);
-  padding: 35px 20px 28px;
-  border-top: 1px solid rgba(212, 175, 55, 0.25);
-}
-
-.chamber-voice-box {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.spirit-icon-seal {
-  font-size: 1.4rem;
-  line-height: 1;
-  padding: 6px;
-  background: rgba(212, 175, 55, 0.15);
-  border: 1px solid rgba(212, 175, 55, 0.4);
-  border-radius: 8px;
-}
-
-.voice-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.chamber-dialogue-opener {
-  margin: 0;
-  color: #ffd700;
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1.45;
-  font-family: 'Noto Serif KR', serif;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.8);
-}
-
-.chamber-sub-hook {
-  margin: 0;
-  color: #e0e0e0;
-  font-size: 0.86rem;
-  line-height: 1.4;
-  font-family: 'Pretendard', sans-serif;
-}
-
-.chamber-cta-wrap {
-  width: 100%;
-}
-
-.btn-clean-consult {
-  width: 100%;
-  padding: 14px 20px;
-  background: linear-gradient(135deg, #d4af37 0%, #aa820a 100%);
-  color: #111;
-  font-size: 1rem;
-  font-weight: 800;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
-  transition: transform 0.2s, box-shadow 0.2s;
-  letter-spacing: 0.5px;
-}
-
-.btn-clean-consult:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(212, 175, 55, 0.6);
 }
 
 /* ================= AI 워터마크 커버 (영상 재생 스테이지 우측 하단) ================= */
