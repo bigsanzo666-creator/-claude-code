@@ -1,0 +1,9 @@
+{
+  "name": "@saju/korean",
+  "version": "0.1.0",
+  "description": "한국어 문장 조립 유틸 — 조사 처리 등. 여러 패키지가 공유한다.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "license": "UNLICENSED"
+}

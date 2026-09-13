@@ -1,0 +1,9 @@
+{
+  "name": "@saju/traits",
+  "version": "0.1.0",
+  "description": "사주·관상·손금을 대조하기 위한 공통 성향 척도",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "license": "UNLICENSED"
+}

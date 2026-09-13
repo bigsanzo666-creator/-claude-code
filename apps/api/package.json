@@ -1,0 +1,11 @@
+{
+  "name": "@saju/api",
+  "version": "0.1.0",
+  "description": "결제·리포트 API 서버",
+  "type": "module",
+  "scripts": {
+    "verify": "node --experimental-strip-types verify.ts",
+    "start": "node --experimental-strip-types src/main.ts"
+  },
+  "license": "UNLICENSED"
+}

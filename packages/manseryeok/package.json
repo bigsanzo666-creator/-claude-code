@@ -1,0 +1,12 @@
+{
+  "name": "@saju/manseryeok",
+  "version": "0.1.0",
+  "description": "사주 명식(만세력) 계산 엔진 — 절기·진태양시·서머타임 보정 포함",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "verify": "node --experimental-strip-types verify.ts"
+  },
+  "license": "UNLICENSED"
+}
