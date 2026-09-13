@@ -17,6 +17,10 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon',
   '.mp4': 'video/mp4',
   '.webm': 'video/webm',
+  '.mp3': 'audio/mpeg',
+  '.ogg': 'audio/ogg',
+  '.wav': 'audio/wav',
+  '.m4a': 'audio/mp4',
 };
 
 const server = http.createServer((req, res) => {
@@ -37,7 +41,7 @@ const server = http.createServer((req, res) => {
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
     const range = req.headers.range;
 
-    if (range && (ext === '.mp4' || ext === '.webm')) {
+    if (range && (ext === '.mp4' || ext === '.webm' || ext === '.mp3' || ext === '.ogg' || ext === '.m4a')) {
       const parts = range.replace(/bytes=/, '').split('-');
       const start = parseInt(parts[0], 10);
       const end = parts[1] ? parseInt(parts[1], 10) : stats.size - 1;

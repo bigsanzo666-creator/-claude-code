@@ -367,15 +367,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const panoramaViewport = document.getElementById('panoramaViewport');
 
   // ================= 🔊 사운드 컨트롤 (A 가야금 + B 대금/물소리 합체 신령음) =================
-  const bgmAudio = new Audio('assets/신령음.mp3');
+  const bgmAudio = new Audio();
+  bgmAudio.src = 'assets/bgm.mp3';
   bgmAudio.loop = true;
-  bgmAudio.volume = 0.55;
+  bgmAudio.volume = 0.65;
+  bgmAudio.preload = 'auto';
+
+  function playBgm() {
+    const playPromise = bgmAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        console.log('[BGM] 재생 성공');
+      }).catch(err => {
+        console.warn('[BGM] 자동재생 차단됨 또는 대기 중:', err);
+      });
+    }
+  }
 
   function setSound(enable) {
     isAudioActive = enable;
     if (enable) {
-      bgmAudio.play().catch(()=>{});
-      if (stageGate.classList.contains('active') && gateVideo) {
+      playBgm();
+      if (stageGate && stageGate.classList.contains('active') && gateVideo) {
         gateVideo.muted = false;
         gateVideo.volume = 0.6;
         gateVideo.play().catch(()=>{});
@@ -402,16 +415,16 @@ document.addEventListener('DOMContentLoaded', () => {
     setSound(!isAudioActive);
   });
 
-  // 사용자 첫 터치/클릭 시 자동 신령음 ON 시작
-  const handleFirstInteraction = () => {
+  // 사용자 첫 터치/클릭 시 자동 신령음 ON 시작 (브라우저 Autoplay 정책 대응)
+  const triggerAudioOnInteraction = () => {
     if (!isAudioActive) {
       setSound(true);
+    } else {
+      playBgm();
     }
-    document.removeEventListener('click', handleFirstInteraction);
-    document.removeEventListener('touchstart', handleFirstInteraction);
   };
-  document.addEventListener('click', handleFirstInteraction, { once: true });
-  document.addEventListener('touchstart', handleFirstInteraction, { once: true });
+  window.addEventListener('click', triggerAudioOnInteraction, { once: true });
+  window.addEventListener('touchstart', triggerAudioOnInteraction, { once: true });
 
   // ================= 1. 비디오 루프 금지 & 마지막 프레임 정지 =================
   if (gateVideo) {
