@@ -295,6 +295,18 @@ body {
   pointer-events: none;
 }
 
+/* AI 생성 워터마크 가림막 (마당 원본 이미지 왼쪽 밑 / 대면 처소 양쪽 밑). 딱딱한 박스 대신 배경에 자연스럽게 녹아드는 어두운 번짐 */
+.watermark-mask-bl {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 150px;
+  height: 60px;
+  z-index: 30;
+  pointer-events: none;
+  background: radial-gradient(ellipse at bottom left, rgba(4, 3, 8, 0.92) 0%, rgba(4, 3, 8, 0.6) 50%, rgba(4, 3, 8, 0) 100%);
+}
+
 /* 신령 핫스팟 (파노라마 위 핀) */
 .spirit-hotspot {
   position: absolute;
@@ -1063,21 +1075,7 @@ body {
   opacity: 1 !important;
 }
 
-/* 2K 신령 실물 세로 배경 (9:16 꽉 채우며 얼굴/상반신 2K 퀄리티 시원하게 노출, 1080p 영상 로드 전 정지 포스터) */
-.chamber-bg-image {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 10%;
-  z-index: 1;
-  transform: scale(1.01);
-  filter: brightness(0.98) contrast(1.05);
-}
-
-/* 10대 신령 1080p 대면 영상: 포스터 이미지 위에 깔리며, 로드 완료 후에만 서서히 페이드인 */
+/* 10대 신령 1080p 대면 영상: 검은 배경 위에서 로드 완료 후 서서히 페이드인 (중간 포스터 사진 없음) */
 .chamber-bg-video {
   position: absolute;
   top: 0;

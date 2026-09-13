@@ -206,6 +206,7 @@ const SPIRITS_DATA = [
     groupName: "2그룹: 삼합 독점",
     img: "assets/신령들/삼신할매.jpeg",
     video: "assets/대면상담/삼신할매대면상담.mp4",
+    freezeAt: 6.9,
     opener: "세상에 올 때 첫 숨을 어느 시간에 들이마실지, 내가 지켜보고 있다.",
     products: [
       {
@@ -233,6 +234,7 @@ const SPIRITS_DATA = [
     groupName: "3그룹: 현실 4대장",
     img: "assets/신령들/명경신령.jpeg",
     video: "assets/대면상담/명경신령대면상담.mp4",
+    freezeAt: 7.75,
     opener: "거울은 거짓말을 안 해. 네가 보기 싫은 구석까지 비추지.",
     products: [
       {
@@ -314,6 +316,7 @@ const SPIRITS_DATA = [
     groupName: "3그룹: 현실 4대장",
     img: "assets/신령들/풍신령.jpeg",
     video: "assets/대면상담/풍신령대면상담.mp4",
+    freezeAt: 7.1,
     opener: "바람을 등지면 뛰어가고, 바람을 마주 보면 넘어져. 바람의 방향을 알아야지.",
     products: [
       {
@@ -525,7 +528,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ================= 7. 10대 신령 1:1 대면 처소 (1080p 영상 원샷) =================
   const stageChamber = document.getElementById('stageChamber');
-  const chamberSpiritBg = document.getElementById('chamberSpiritBg');
   const chamberSpiritVideo = document.getElementById('chamberSpiritVideo');
   const chamberSpiritName = document.getElementById('chamberSpiritName');
   const chamberSpiritDomain = document.getElementById('chamberSpiritDomain');
@@ -619,9 +621,15 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // 8초 줌인 영상이 끝나면: 마지막 프레임에서 정지 유지 + 그 위로 파티클 시작 (사진은 완전 정지, 파티클만 움직임)
+  // 풍신령·명경신령·삼신할매는 영상 맨 끝(8.00초)이 하필 눈 감는 타이밍이라, freezeAt에 지정된
+  // "눈 뜬 직전 시점"으로 되감아서 그 프레임으로 멈춘다. 나머지 7명은 원래대로 끝에서 멈춘다.
   if (chamberSpiritVideo) {
     chamberSpiritVideo.addEventListener('ended', () => {
       chamberSpiritVideo.pause();
+      const freezeAt = currentSpirit && currentSpirit.freezeAt;
+      if (freezeAt) {
+        chamberSpiritVideo.currentTime = freezeAt;
+      }
       startChamberParticles();
     });
   }
@@ -634,8 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 새 신령 처소를 열 때는 이전 파티클을 즉시 정지 (새 8초 영상이 끝난 뒤에만 다시 시작)
     stopChamberParticles();
 
-    // 1) 정지 포스터 이미지를 즉시 교체 (영상 로드 전 깜빡임/공백 방지)
-    if (chamberSpiritBg) chamberSpiritBg.src = spirit.img;
+    // 1) 정지 포스터 사진 없이, 아래 2)에서 영상이 검은 화면 위로 바로 페이드인
     if (chamberSpiritName) chamberSpiritName.textContent = spirit.name;
     if (chamberSpiritDomain) chamberSpiritDomain.textContent = spirit.domain;
 

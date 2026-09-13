@@ -112,6 +112,9 @@
           <div class="spirit-hotspot" data-spirit="yeon" style="left: 88%; top: 72%;">
             <div class="hotspot-pulse red-pulse"></div>
           </div>
+
+          <!-- 마당 원본 이미지 맨 왼쪽 밑 워터마크 가림막 (이미지와 함께 스크롤되도록 panorama-canvas 안에 배치) -->
+          <div class="watermark-mask-bl"></div>
         </div>
       </div>
 
@@ -132,8 +135,7 @@
 
     <!-- ================= STAGE 4: 100% 2K 신령 1:1 대면 처소 (9:16 모바일 세로 풀스크린) ================= -->
     <section id="stageChamber" class="stage-section chamber-section">
-      <!-- 2K 신령 실물 세로 배경 (화면 100% 꽉 채우는 원샷, 1080p 대면 영상 로드 전 정지 포스터) -->
-      <img id="chamberSpiritBg" src="assets/신령들/도화신령.jpeg" alt="신령 대면 원샷" class="chamber-bg-image">
+      <!-- 정지 포스터 사진을 아예 없애고, 1080p 대면 영상이 검은 배경 위에서 0초부터 바로 페이드인 (사진→영상 전환 번쩍임 원천 차단) -->
       <!-- 10대 신령 1080p 대면 영상: loop 제거 — 8초 줌인이 끝나면 마지막 프레임에서 정지 -->
       <video id="chamberSpiritVideo" playsinline autoplay muted class="chamber-bg-video"></video>
       <!-- 정지 화면 위로 은은하게 떠다니는 신령 기운 파티클 (영상 종료 후에만 시작) -->
@@ -150,6 +152,8 @@
         </div>
       </div>
 
+      <!-- 처소 하단 워터마크 가림막: 신령마다 AI 워터마크 위치가 왼쪽/오른쪽으로 제각각이라 양쪽 다 가림 -->
+      <div class="watermark-mask-bl"></div>
       <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
     </section>
 
