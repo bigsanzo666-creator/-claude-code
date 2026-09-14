@@ -338,6 +338,62 @@ const SPIRITS_DATA = [
   }
 ];
 
+// ==========================================================================
+// 신령 1:1 상담 질문 흐름
+//
+// ⚠️ 여기 적힌 멘트와 선택지는 전부 "자리"만 잡아둔 임시 문구다.
+//    신령마다 물어볼 것이 다르므로, 확정되는 대로 say / options 만 바꿔 끼우면 된다.
+//    구조는 손댈 필요 없다.
+//
+// 한 단계 = { say: 신령 대사, fields: 답하는 칸들 }
+//   fields 종류
+//     - select : "지금은 [기혼] 상태예요." 처럼 문장 안에 들어가는 고르는 칸
+//     - text   : 자유롭게 쓰는 칸 (글자수 표시)
+//   맨 마지막 단계의 버튼은 자동으로 "결과 받아보기"가 된다.
+// ==========================================================================
+const CHAMBER_FLOWS = {
+  pung: [
+    {
+      say: "(임시 멘트 1) 바람이 어디서 불어오는지 보려면\n너를 조금 더 알아야겠구나.",
+      fields: [
+        {
+          type: "select", id: "marital",
+          before: "지금은", after: "상태예요.",
+          placeholder: "선택",
+          options: ["미혼", "연애 중", "기혼", "이혼", "사별"]
+        },
+        {
+          type: "select", id: "job",
+          before: "직업은", after: "이에요.",
+          placeholder: "직업 상태",
+          options: ["직장인", "자영업", "프리랜서", "학생", "주부", "구직 중", "기타"]
+        }
+      ]
+    },
+    {
+      say: "(임시 멘트 2) 올해 네 마음이 가장 많이 머문 곳은 어디였지?",
+      fields: [
+        {
+          type: "select", id: "focus",
+          before: "요즘 제일 마음 쓰이는 건", after: "이에요.",
+          placeholder: "선택",
+          options: ["돈", "일", "사람", "건강", "가족", "연애"]
+        }
+      ]
+    },
+    {
+      say: "(임시 멘트 3) 마지막으로 고민이 있다면 알려주세요.",
+      fields: [
+        {
+          type: "text", id: "worry",
+          placeholder: "궁금한 점을 자유롭게 입력해 주세요. (200자 이내)",
+          maxLength: 200
+        }
+      ]
+    }
+  ]
+};
+
 let userState = { name: "김늘봄", birthDate: "1996-05-18", birthTime: "묘시" };
 let currentSpirit = null;
 let currentProduct = null;
@@ -620,6 +676,115 @@ document.addEventListener('DOMContentLoaded', () => {
     if (stageChamber && stageChamber.classList.contains('active')) resizeParticleCanvas();
   });
 
+  // ================= 7-2. 신령 1:1 상담 대화 (영상이 멈춘 뒤 한 단계씩 진행) =================
+  const chamberConsult = document.getElementById('chamberConsult');
+  const consultSay = document.getElementById('consultSay');
+  const consultFields = document.getElementById('consultFields');
+  const consultCta = document.getElementById('consultCta');
+  let consultSteps = [];
+  let consultStepIndex = 0;
+  let consultAnswers = {};
+
+  function renderConsultStep() {
+    const step = consultSteps[consultStepIndex];
+    if (!step) return;
+
+    consultSay.textContent = `“${step.say}”`;
+    consultFields.innerHTML = '';
+
+    (step.fields || []).forEach(field => {
+      if (field.type === 'select') {
+        const row = document.createElement('div');
+        row.className = 'consult-row';
+
+        const select = document.createElement('select');
+        const head = document.createElement('option');
+        head.value = '';
+        head.textContent = field.placeholder || '선택';
+        select.appendChild(head);
+        (field.options || []).forEach(opt => {
+          const o = document.createElement('option');
+          o.value = opt;
+          o.textContent = opt;
+          select.appendChild(o);
+        });
+        select.value = consultAnswers[field.id] || '';
+        select.addEventListener('change', () => { consultAnswers[field.id] = select.value; });
+
+        if (field.before) row.appendChild(document.createTextNode(field.before));
+        row.appendChild(select);
+        if (field.after) row.appendChild(document.createTextNode(field.after));
+        consultFields.appendChild(row);
+      }
+
+      if (field.type === 'text') {
+        const wrap = document.createElement('div');
+        wrap.className = 'consult-textwrap';
+
+        const area = document.createElement('textarea');
+        area.placeholder = field.placeholder || '';
+        area.maxLength = field.maxLength || 200;
+        area.value = consultAnswers[field.id] || '';
+
+        const counter = document.createElement('span');
+        counter.className = 'consult-counter';
+        const paint = () => { counter.textContent = `${area.value.length}/${area.maxLength}`; };
+        paint();
+
+        area.addEventListener('input', () => {
+          consultAnswers[field.id] = area.value;
+          paint();
+        });
+
+        wrap.appendChild(area);
+        wrap.appendChild(counter);
+        consultFields.appendChild(wrap);
+      }
+    });
+
+    const isLast = consultStepIndex === consultSteps.length - 1;
+    consultCta.textContent = isLast ? '결과 받아보기' : '다음으로';
+  }
+
+  function startConsult(spirit) {
+    if (!chamberConsult || !spirit) return;
+    consultSteps = CHAMBER_FLOWS[spirit.id] || [];
+    consultStepIndex = 0;
+    consultAnswers = {};
+    if (!consultSteps.length) {
+      chamberConsult.hidden = true;
+      return;
+    }
+    chamberConsult.hidden = false;
+    renderConsultStep();
+  }
+
+  function hideConsult() {
+    if (!chamberConsult) return;
+    chamberConsult.hidden = true;
+    consultSteps = [];
+    consultStepIndex = 0;
+    consultAnswers = {};
+  }
+
+  if (consultCta) {
+    consultCta.addEventListener('click', () => {
+      const isLast = consultStepIndex === consultSteps.length - 1;
+      if (!isLast) {
+        consultStepIndex += 1;
+        renderConsultStep();
+        return;
+      }
+
+      // 여기까지가 이번 작업 범위. 실제 점괘 풀이는 다음 단계에서 붙인다.
+      console.log('[상담 답변]', currentSpirit && currentSpirit.id, consultAnswers);
+      consultSay.textContent = '“별빛을 모으고 있어요…”';
+      consultFields.innerHTML = '<div class="consult-row">여기서부터 점괘 화면이 연결됩니다. (다음 단계 작업)</div>';
+      consultCta.textContent = '점괘 화면 연결 예정';
+      consultCta.disabled = true;
+    });
+  }
+
   // 8초 줌인 영상이 끝나면: 마지막 프레임에서 정지 유지 + 그 위로 파티클 시작 (사진은 완전 정지, 파티클만 움직임)
   // 풍신령·명경신령·삼신할매는 영상 맨 끝(8.00초)이 하필 눈 감는 타이밍이라, freezeAt에 지정된
   // "눈 뜬 직전 시점"으로 되감아서 그 프레임으로 멈춘다. 나머지 7명은 원래대로 끝에서 멈춘다.
@@ -631,6 +796,7 @@ document.addEventListener('DOMContentLoaded', () => {
         chamberSpiritVideo.currentTime = freezeAt;
       }
       startChamberParticles();
+      startConsult(currentSpirit);
     });
   }
 
@@ -639,8 +805,9 @@ document.addEventListener('DOMContentLoaded', () => {
     currentSpirit = spirit;
     currentProduct = spirit.products ? spirit.products[0] : null;
 
-    // 새 신령 처소를 열 때는 이전 파티클을 즉시 정지 (새 8초 영상이 끝난 뒤에만 다시 시작)
+    // 새 신령 처소를 열 때는 이전 파티클·상담 대화를 즉시 정리 (새 8초 영상이 끝난 뒤에만 다시 시작)
     stopChamberParticles();
+    hideConsult();
 
     // 1) 정지 포스터 사진 없이, 아래 2)에서 영상이 검은 화면 위로 바로 페이드인
     if (chamberSpiritName) chamberSpiritName.textContent = spirit.name;
@@ -680,6 +847,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (stageCourtyard) stageCourtyard.classList.add('active');
       if (chamberSpiritVideo) chamberSpiritVideo.pause();
       stopChamberParticles();
+      hideConsult();
     });
   }
 });

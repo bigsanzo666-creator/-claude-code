@@ -152,6 +152,14 @@
         </div>
       </div>
 
+      <!-- 신령 1:1 상담 대화: 8초 영상이 멈춘 뒤 신령이 한 단계씩 물어본다. 멘트와 선택지는 app.js의 CHAMBER_FLOWS에서 신령별로 채운다 -->
+      <div class="chamber-consult" id="chamberConsult" hidden>
+        <p class="consult-say" id="consultSay"></p>
+        <p class="consult-note">* 답변하지 않아도 다음으로 넘어갈 수 있어요</p>
+        <div class="consult-fields" id="consultFields"></div>
+        <button type="button" class="consult-cta" id="consultCta">다음으로</button>
+      </div>
+
       <!-- 처소 하단 워터마크 가림막: 신령마다 AI 워터마크 위치가 왼쪽/오른쪽으로 제각각이라 양쪽 다 가림 -->
       <div class="watermark-mask-bl"></div>
       <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">

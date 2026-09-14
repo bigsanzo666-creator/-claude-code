@@ -1173,6 +1173,131 @@ body {
   font-size: 0.72rem;
 }
 
+/* ================= 신령 1:1 상담 대화 (영상 정지 후 하단에서 떠오름) ================= */
+.chamber-consult {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  z-index: 18;
+  padding: 60px 22px calc(26px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, rgba(4, 3, 10, 0.95) 0%, rgba(6, 4, 14, 0.82) 62%, rgba(6, 4, 14, 0) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  animation: consultRise 0.6s ease both;
+}
+
+@keyframes consultRise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.consult-say {
+  margin: 0;
+  text-align: center;
+  color: #fff;
+  font-family: 'Noto Serif KR', serif;
+  font-size: 1.12rem;
+  font-weight: 700;
+  line-height: 1.55;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+  white-space: pre-line;
+}
+
+.consult-note {
+  margin: 0;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.72rem;
+}
+
+.consult-fields {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+/* "지금은 [기혼] 상태예요." 처럼 문장 안에 선택 칸이 들어가는 형태 */
+.consult-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #eae6f5;
+  font-size: 0.95rem;
+}
+
+.consult-row select {
+  background: rgba(28, 22, 45, 0.92);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 10px 14px;
+  min-width: 120px;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, rgba(212, 175, 55, 0.9) 50%), linear-gradient(135deg, rgba(212, 175, 55, 0.9) 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(50% - 2px), calc(100% - 13px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.consult-textwrap {
+  width: 100%;
+  position: relative;
+}
+
+.consult-textwrap textarea {
+  width: 100%;
+  min-height: 108px;
+  resize: none;
+  background: rgba(28, 22, 45, 0.9);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 14px;
+  color: #fff;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  padding: 14px 14px 28px;
+  font-family: inherit;
+}
+
+.consult-textwrap textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.consult-counter {
+  position: absolute;
+  right: 12px;
+  bottom: 8px;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.consult-cta {
+  width: 100%;
+  margin-top: 4px;
+  padding: 15px 20px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f0dfa0 0%, #d4af37 100%);
+  color: #1a1206;
+  font-size: 1.02rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 6px 22px rgba(212, 175, 55, 0.45);
+}
+
+.consult-cta:active {
+  transform: translateY(1px);
+}
+
 /* ================= AI 워터마크 커버 (영상 재생 스테이지 우측 하단) ================= */
 .watermark-seal-cover {
   position: absolute;
