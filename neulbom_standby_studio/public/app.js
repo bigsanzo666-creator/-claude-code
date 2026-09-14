@@ -339,58 +339,224 @@ const SPIRITS_DATA = [
 ];
 
 // ==========================================================================
-// 신령 1:1 상담 질문 흐름
-//
-// ⚠️ 여기 적힌 멘트와 선택지는 전부 "자리"만 잡아둔 임시 문구다.
-//    신령마다 물어볼 것이 다르므로, 확정되는 대로 say / options 만 바꿔 끼우면 된다.
-//    구조는 손댈 필요 없다.
+// 신령 1:1 상담 질문 흐름 — 10대 신령 전부
 //
 // 한 단계 = { say: 신령 대사, fields: 답하는 칸들 }
-//   fields 종류
-//     - select : "지금은 [기혼] 상태예요." 처럼 문장 안에 들어가는 고르는 칸
-//     - text   : 자유롭게 쓰는 칸 (글자수 표시)
+//   칸 종류
+//     - select     : "지금은 [기혼] 이에요." 처럼 문장 안에 들어가는 고르는 칸
+//     - shorttext  : 문장 안에 들어가는 짧게 쓰는 칸 (성씨 등)
+//     - date       : 날짜 고르는 칸
+//     - daterange  : 시작~끝 날짜 고르는 칸 (수술 가능 기간 등)
+//     - birthtime  : 태어난 시간 고르는 칸 (12시진)
+//     - photo      : 사진 올리는 칸 (얼굴·손바닥)
+//     - text       : 자유롭게 쓰는 칸 (글자수 표시)
 //   맨 마지막 단계의 버튼은 자동으로 "결과 받아보기"가 된다.
 // ==========================================================================
+const BIRTH_TIME_OPTIONS = [
+  "시간 모름",
+  "자시 (23:30~01:29)", "축시 (01:30~03:29)", "인시 (03:30~05:29)",
+  "묘시 (05:30~07:29)", "진시 (07:30~09:29)", "사시 (09:30~11:29)",
+  "오시 (11:30~13:29)", "미시 (13:30~15:29)", "신시 (15:30~17:29)",
+  "유시 (17:30~19:29)", "술시 (19:30~21:29)", "해시 (21:30~23:29)"
+];
+
+const FREE_TEXT_FIELD = {
+  type: "text", id: "worry",
+  placeholder: "궁금한 점을 자유롭게 입력해 주세요. (200자 이내)",
+  maxLength: 200
+};
+
 const CHAMBER_FLOWS = {
+  // 1. 도화신령 — 연애 · 매력
+  dohwa: [
+    {
+      say: "네 매력이 어디서 터지는지 보려면,\n지금 네 자리부터 알아야겠다.",
+      fields: [
+        { type: "select", id: "marital", before: "지금은", after: "이에요.", placeholder: "선택",
+          options: ["미혼", "썸 타는 중", "연애 중", "기혼", "이혼·사별"] }
+      ]
+    },
+    {
+      say: "뭐가 제일 궁금해서 나를 찾아왔지?",
+      fields: [
+        { type: "select", id: "want", before: "제일 궁금한 건", after: "예요.", placeholder: "선택",
+          options: ["내 매력이 뭔지", "인연이 언제 오는지", "이 사람과 잘 될지"] }
+      ]
+    },
+    { say: "마지막으로, 속에 담아둔 말이 있으면 풀어놔.", fields: [FREE_TEXT_FIELD] }
+  ],
+
+  // 2. 월신령 — 재회 · 이별 치유
+  wol: [
+    {
+      say: "떠난 지 얼마나 됐지?",
+      fields: [
+        { type: "select", id: "since", before: "헤어진 지", after: "됐어요.", placeholder: "선택",
+          options: ["한 달 안", "1~6개월", "6개월~1년", "1년 넘음"] }
+      ]
+    },
+    {
+      say: "밤마다 너를 붙잡는 게 뭐야?",
+      fields: [
+        { type: "select", id: "pain", before: "제일 힘든 건", after: "이에요.", placeholder: "선택",
+          options: ["그 사람이 그립다", "연락이 올지 모르겠다", "마음 정리가 안 된다"] }
+      ]
+    },
+    { say: "마지막으로, 그 사람에게 못 한 말이 있다면.", fields: [FREE_TEXT_FIELD] }
+  ],
+
+  // 3. 실신령 — 궁합 · 인연
+  yeon: [
+    {
+      say: "그 사람과 지금 어디까지 왔지?",
+      fields: [
+        { type: "select", id: "stage", before: "우리는", after: "사이예요.", placeholder: "선택",
+          options: ["짝사랑", "썸", "연애 중", "결혼 준비", "부부"] }
+      ]
+    },
+    {
+      say: "붉은 실은 두 사람 것을 겹쳐야 보인다.\n그 사람이 태어난 날을 알려줘.",
+      fields: [
+        { type: "date", id: "partnerBirth", before: "그 사람은", after: "에 태어났어요." },
+        { type: "birthtime", id: "partnerTime", before: "태어난 시간은", after: "예요." }
+      ]
+    },
+    { say: "마지막으로, 그 사람에 대해 더 할 말이 있다면.", fields: [FREE_TEXT_FIELD] }
+  ],
+
+  // 4. 삼합신령 — 사주 × 관상 × 손금
+  samhap: [
+    {
+      say: "사주는 이미 받았다.\n이제 네 얼굴과 손을 보자.",
+      fields: [
+        { type: "photo", id: "facePhoto", label: "얼굴 사진 올리기" },
+        { type: "photo", id: "palmPhoto", label: "손바닥 사진 올리기" }
+      ]
+    },
+    {
+      say: "셋을 겹쳐서 무엇을 보고 싶은 거지?",
+      fields: [
+        { type: "select", id: "want", before: "알고 싶은 건", after: "예요.", placeholder: "선택",
+          options: ["겉의 나와 속의 나 차이", "대박이 터지는 구간", "타고난 것과 내가 바꾼 것"] }
+      ]
+    },
+    { say: "마지막으로, 남들이 모르는 네 이야기가 있다면.", fields: [FREE_TEXT_FIELD] }
+  ],
+
+  // 5. 작명신령 — 평생 이름
+  jakmyeong: [
+    {
+      say: "이름은 평생 불릴 소리다.\n아이 성씨부터 알려다오.",
+      fields: [
+        { type: "shorttext", id: "surname", before: "아이 성은", after: "이에요.", placeholder: "예: 김", maxLength: 4 },
+        { type: "select", id: "gender", before: "아이는", after: "예요.", placeholder: "선택",
+          options: ["아들", "딸", "아직 모름"] }
+      ]
+    },
+    {
+      say: "아이가 세상에 나온 날을 알아야\n소리를 고를 수 있다.",
+      fields: [
+        { type: "date", id: "childBirth", before: "아이는", after: "에 태어났어요." },
+        { type: "birthtime", id: "childTime", before: "태어난 시간은", after: "예요." }
+      ]
+    },
+    { say: "마지막으로, 아이에게 바라는 것이 있다면.", fields: [FREE_TEXT_FIELD] }
+  ],
+
+  // 6. 삼신할매 — 출산 · 택일
+  samsin: [
+    {
+      say: "의사가 가능하다고 한 날짜부터\n말해보렴.",
+      fields: [
+        { type: "daterange", id: "surgeryRange", before: "수술 가능한 날은", after: "사이예요." }
+      ]
+    },
+    {
+      say: "산모는 지금 어떤 상태냐.",
+      fields: [
+        { type: "select", id: "order", before: "이번이", after: "예요.", placeholder: "선택",
+          options: ["첫 아이", "둘째 이상"] }
+      ]
+    },
+    { say: "마지막으로, 병원에서 들은 말이 있으면 적어두렴.", fields: [FREE_TEXT_FIELD] }
+  ],
+
+  // 7. 명경신령 — 나의 본질 · 재능
+  myeonggyeong: [
+    {
+      say: "거울 앞에 서기 전에,\n지금 뭘 하고 사는지부터.",
+      fields: [
+        { type: "select", id: "job", before: "직업은", after: "이에요.", placeholder: "선택",
+          options: ["직장인", "자영업", "프리랜서", "학생", "주부", "구직 중", "기타"] }
+      ]
+    },
+    {
+      say: "요즘 제일 답답한 게 뭐야?",
+      fields: [
+        { type: "select", id: "pain", before: "요즘은", after: "예요.", placeholder: "선택",
+          options: ["내가 뭘 잘하는지 모르겠다", "이 길이 맞는지 모르겠다", "사람한테 지친다"] }
+      ]
+    },
+    { say: "마지막으로, 거울에 비추고 싶은 게 있다면.", fields: [FREE_TEXT_FIELD] }
+  ],
+
+  // 8. 재신령 — 돈그릇 · 재물
+  jae: [
+    {
+      say: "네 곳간은 지금 어떤 상태지?",
+      fields: [
+        { type: "select", id: "money", before: "지금은", after: "이에요.", placeholder: "선택",
+          options: ["모으는 중", "빚 갚는 중", "투자 중", "사업 중", "늘 모자란다"] }
+      ]
+    },
+    {
+      say: "제일 알고 싶은 게 뭐야?",
+      fields: [
+        { type: "select", id: "want", before: "알고 싶은 건", after: "예요.", placeholder: "선택",
+          options: ["언제 돈이 들어오는지", "왜 안 모이는지", "지금 투자해도 되는지"] }
+      ]
+    },
+    { say: "마지막으로, 돈 때문에 걸리는 일이 있다면.", fields: [FREE_TEXT_FIELD] }
+  ],
+
+  // 9. 산신령 — 자녀 · 가족 · 노후
+  san: [
+    {
+      say: "누구 이야기를 들으러 왔느냐.",
+      fields: [
+        { type: "select", id: "who", before: "여쭤볼 사람은", after: "예요.", placeholder: "선택",
+          options: ["내 아이", "부모님", "내 노후"] }
+      ]
+    },
+    {
+      say: "그 사람과 요즘은 어떠냐.",
+      fields: [
+        { type: "select", id: "state", before: "요즘은", after: "예요.", placeholder: "선택",
+          options: ["자주 부딪힌다", "걱정된다", "앞날이 궁금하다"] }
+      ]
+    },
+    { say: "마지막으로, 가슴에 얹힌 것이 있으면 내려놓거라.", fields: [FREE_TEXT_FIELD] }
+  ],
+
+  // 10. 풍신령 — 시기 · 타이밍
   pung: [
     {
-      say: "(임시 멘트 1) 바람이 어디서 불어오는지 보려면\n너를 조금 더 알아야겠구나.",
+      say: "바람이 어디서 불어오는지 보려면,\n네 자리부터 알아야겠다.",
       fields: [
-        {
-          type: "select", id: "marital",
-          before: "지금은", after: "상태예요.",
-          placeholder: "선택",
-          options: ["미혼", "연애 중", "기혼", "이혼", "사별"]
-        },
-        {
-          type: "select", id: "job",
-          before: "직업은", after: "이에요.",
-          placeholder: "직업 상태",
-          options: ["직장인", "자영업", "프리랜서", "학생", "주부", "구직 중", "기타"]
-        }
+        { type: "select", id: "marital", before: "지금은", after: "이에요.", placeholder: "선택",
+          options: ["미혼", "연애 중", "기혼", "이혼·사별"] },
+        { type: "select", id: "job", before: "직업은", after: "이에요.", placeholder: "선택",
+          options: ["직장인", "자영업", "프리랜서", "학생", "주부", "구직 중", "기타"] }
       ]
     },
     {
-      say: "(임시 멘트 2) 올해 네 마음이 가장 많이 머문 곳은 어디였지?",
+      say: "곧 결정해야 할 일이 뭐지?",
       fields: [
-        {
-          type: "select", id: "focus",
-          before: "요즘 제일 마음 쓰이는 건", after: "이에요.",
-          placeholder: "선택",
-          options: ["돈", "일", "사람", "건강", "가족", "연애"]
-        }
+        { type: "select", id: "decision", before: "곧 정해야 할 일은", after: "이에요.", placeholder: "선택",
+          options: ["이직", "이사·이민", "시험", "투자", "고백·결혼", "딱히 없다"] }
       ]
     },
-    {
-      say: "(임시 멘트 3) 마지막으로 고민이 있다면 알려주세요.",
-      fields: [
-        {
-          type: "text", id: "worry",
-          placeholder: "궁금한 점을 자유롭게 입력해 주세요. (200자 이내)",
-          maxLength: 200
-        }
-      ]
-    }
+    { say: "마지막으로, 지금 망설이는 게 있다면.", fields: [FREE_TEXT_FIELD] }
   ]
 };
 
@@ -715,6 +881,120 @@ document.addEventListener('DOMContentLoaded', () => {
         row.appendChild(select);
         if (field.after) row.appendChild(document.createTextNode(field.after));
         consultFields.appendChild(row);
+      }
+
+      if (field.type === 'shorttext') {
+        const row = document.createElement('div');
+        row.className = 'consult-row';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'consult-inline-input';
+        input.placeholder = field.placeholder || '';
+        if (field.maxLength) input.maxLength = field.maxLength;
+        input.value = consultAnswers[field.id] || '';
+        input.addEventListener('input', () => { consultAnswers[field.id] = input.value; });
+
+        if (field.before) row.appendChild(document.createTextNode(field.before));
+        row.appendChild(input);
+        if (field.after) row.appendChild(document.createTextNode(field.after));
+        consultFields.appendChild(row);
+      }
+
+      if (field.type === 'date') {
+        const row = document.createElement('div');
+        row.className = 'consult-row';
+
+        const input = document.createElement('input');
+        input.type = 'date';
+        input.className = 'consult-inline-input';
+        input.value = consultAnswers[field.id] || '';
+        input.addEventListener('change', () => { consultAnswers[field.id] = input.value; });
+
+        if (field.before) row.appendChild(document.createTextNode(field.before));
+        row.appendChild(input);
+        if (field.after) row.appendChild(document.createTextNode(field.after));
+        consultFields.appendChild(row);
+      }
+
+      if (field.type === 'daterange') {
+        const row = document.createElement('div');
+        row.className = 'consult-row';
+        const saved = consultAnswers[field.id] || { from: '', to: '' };
+
+        const from = document.createElement('input');
+        from.type = 'date';
+        from.className = 'consult-inline-input';
+        from.value = saved.from;
+
+        const to = document.createElement('input');
+        to.type = 'date';
+        to.className = 'consult-inline-input';
+        to.value = saved.to;
+
+        const save = () => { consultAnswers[field.id] = { from: from.value, to: to.value }; };
+        from.addEventListener('change', save);
+        to.addEventListener('change', save);
+
+        if (field.before) row.appendChild(document.createTextNode(field.before));
+        row.appendChild(from);
+        row.appendChild(document.createTextNode('~'));
+        row.appendChild(to);
+        if (field.after) row.appendChild(document.createTextNode(field.after));
+        consultFields.appendChild(row);
+      }
+
+      if (field.type === 'birthtime') {
+        const row = document.createElement('div');
+        row.className = 'consult-row';
+
+        const select = document.createElement('select');
+        BIRTH_TIME_OPTIONS.forEach(opt => {
+          const o = document.createElement('option');
+          o.value = opt;
+          o.textContent = opt;
+          select.appendChild(o);
+        });
+        select.value = consultAnswers[field.id] || BIRTH_TIME_OPTIONS[0];
+        select.addEventListener('change', () => { consultAnswers[field.id] = select.value; });
+
+        if (field.before) row.appendChild(document.createTextNode(field.before));
+        row.appendChild(select);
+        if (field.after) row.appendChild(document.createTextNode(field.after));
+        consultFields.appendChild(row);
+      }
+
+      if (field.type === 'photo') {
+        const box = document.createElement('label');
+        box.className = 'consult-photo';
+
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.hidden = true;
+
+        const thumb = document.createElement('img');
+        thumb.className = 'consult-photo-thumb';
+        thumb.hidden = true;
+
+        const label = document.createElement('span');
+        label.className = 'consult-photo-label';
+        label.textContent = `＋ ${field.label || '사진 올리기'}`;
+
+        input.addEventListener('change', () => {
+          const file = input.files && input.files[0];
+          if (!file) return;
+          consultAnswers[field.id] = file.name;
+          thumb.src = URL.createObjectURL(file);
+          thumb.hidden = false;
+          label.textContent = '사진 바꾸기';
+          box.classList.add('has-photo');
+        });
+
+        box.appendChild(input);
+        box.appendChild(thumb);
+        box.appendChild(label);
+        consultFields.appendChild(box);
       }
 
       if (field.type === 'text') {

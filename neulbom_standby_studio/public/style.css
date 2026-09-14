@@ -1248,6 +1248,63 @@ body {
   background-repeat: no-repeat;
 }
 
+/* 문장 안에 들어가는 짧게 쓰는 칸 · 날짜 칸 */
+.consult-inline-input {
+  background: rgba(28, 22, 45, 0.92);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: inherit;
+  padding: 10px 12px;
+  min-width: 96px;
+  max-width: 170px;
+  text-align: center;
+}
+
+.consult-inline-input::placeholder {
+  color: rgba(255, 255, 255, 0.38);
+  font-weight: 400;
+}
+
+.consult-inline-input[type="date"] {
+  min-width: 140px;
+  color-scheme: dark;
+}
+
+/* 사진 올리는 칸 */
+.consult-photo {
+  width: 100%;
+  min-height: 64px;
+  border: 1px dashed rgba(212, 175, 55, 0.55);
+  border-radius: 14px;
+  background: rgba(28, 22, 45, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  color: var(--gold-light, #ffd700);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.consult-photo.has-photo {
+  border-style: solid;
+  justify-content: flex-start;
+}
+
+.consult-photo-thumb {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  flex: 0 0 auto;
+}
+
 .consult-textwrap {
   width: 100%;
   position: relative;
