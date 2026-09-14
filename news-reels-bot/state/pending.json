@@ -1,0 +1,63 @@
+[
+  {
+    "id": "e37a85248a",
+    "category": "스포츠",
+    "headline": "우에다 아야세, 페예노르트 거액 제안에도 침묵 깬 이유는?",
+    "summary": "일본 축구대표팀 간판 스트라이커 우에다 아야세를 향해 페예노르트가 약 1,500만 파운드 규모 영입을 검토 중이라는 보도가 나왔다. 정작 본인은 자신의 거취에 대해 확고한 의사를 내비친 것으로 전해져 관심이 집중된다.",
+    "source": "네이버뉴스 - 스포티비뉴스(SPOTV NEWS)",
+    "media_path": "state/media/e37a85248a.png",
+    "created_at": "2026-08-14T08:15:02.235324+00:00",
+    "status": "approved",
+    "telegram_message_id": 4,
+    "reminded_at": null,
+    "responded_at": "2026-08-14T08:22:21.554201+00:00",
+    "posted_at": null,
+    "instagram_media_id": null
+  },
+  {
+    "id": "78a37a2a7e",
+    "category": "스포츠",
+    "headline": "우에다 아야세, 페예노르트 거액 제안에도 침묵 깬 이유는?",
+    "summary": "일본 축구대표팀 간판 스트라이커 우에다 아야세를 향해 페예노르트가 약 1,500만 파운드 규모 영입을 검토 중이라는 보도가 나왔다. 정작 본인은 자신의 거취에 대해 확고한 의사를 내비친 것으로 전해져 관심이 집중된다.",
+    "source": "네이버뉴스 - 스포티비뉴스(SPOTV NEWS)",
+    "media_path": "state/media/carousel_e37a85248a/1_cover.png",
+    "post_type": "carousel",
+    "media_paths": [
+      "state/media/carousel_e37a85248a/1_cover.png",
+      "state/media/carousel_e37a85248a/2_fact1.png",
+      "state/media/carousel_e37a85248a/3_fact2.png",
+      "state/media/carousel_e37a85248a/4_fact3.png",
+      "state/media/carousel_e37a85248a/5_closing.png"
+    ],
+    "created_at": "2026-08-14T10:34:45.983094+00:00",
+    "status": "approved",
+    "telegram_message_id": 10,
+    "reminded_at": null,
+    "responded_at": "2026-08-14T10:39:55.934549+00:00",
+    "posted_at": null,
+    "instagram_media_id": null
+  },
+  {
+    "id": "ca82c8a121",
+    "category": "스포츠",
+    "headline": "우에다 아야세, 페예노르트 거액 제안에도 침묵 깬 이유는?",
+    "summary": "일본 축구대표팀 간판 스트라이커 우에다 아야세를 향해 페예노르트가 약 1,500만 파운드 규모 영입을 검토 중이라는 보도가 나왔다. 정작 본인은 자신의 거취에 대해 확고한 의사를 내비친 것으로 전해져 관심이 집중된다.",
+    "source": "네이버뉴스 - 스포티비뉴스(SPOTV NEWS)",
+    "media_path": "state/media/carousel_e37a85248a_html/1_cover.png",
+    "post_type": "carousel",
+    "media_paths": [
+      "state/media/carousel_e37a85248a_html/1_cover.png",
+      "state/media/carousel_e37a85248a_html/2_fact1.png",
+      "state/media/carousel_e37a85248a_html/3_fact2.png",
+      "state/media/carousel_e37a85248a_html/4_fact3.png",
+      "state/media/carousel_e37a85248a_html/5_closing.png"
+    ],
+    "created_at": "2026-08-14T13:55:20.898753+00:00",
+    "status": "pending",
+    "telegram_message_id": 16,
+    "reminded_at": null,
+    "responded_at": null,
+    "posted_at": null,
+    "instagram_media_id": null
+  }
+]

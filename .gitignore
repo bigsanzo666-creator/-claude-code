@@ -1,0 +1,4 @@
+.env
+news-reels-bot/.env
+__pycache__/
+*.pyc
