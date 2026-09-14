@@ -1173,6 +1173,13 @@ body {
   font-size: 0.72rem;
 }
 
+/* hidden 속성이 아래 display 규칙에 밀리지 않도록 못 박는다.
+   이게 없으면 hidden=true 인데도 화면에 그대로 떠 있다. */
+.chamber-consult[hidden],
+.reading-sheet[hidden] {
+  display: none !important;
+}
+
 /* ================= 신령 1:1 상담 대화 (영상 정지 후 하단에서 떠오름) ================= */
 .chamber-consult {
   position: absolute;
@@ -1353,6 +1360,156 @@ body {
 
 .consult-cta:active {
   transform: translateY(1px);
+}
+
+/* ================= 점괘 화면 (상담 끝난 뒤 신령 위로 올라옴) ================= */
+.reading-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 22;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(to top, rgba(3, 2, 8, 0.985) 62%, rgba(5, 3, 12, 0.82) 100%);
+  animation: consultRise 0.55s ease both;
+}
+
+.reading-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 74px 20px 18px;
+}
+
+.reading-head {
+  text-align: center;
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.28);
+}
+
+.reading-seal {
+  font-size: 1.9rem;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.reading-title {
+  margin: 0 0 6px;
+  font-family: 'Noto Serif KR', serif;
+  font-size: 1.24rem;
+  font-weight: 900;
+  color: #ffd700;
+  line-height: 1.4;
+}
+
+.reading-sub {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.reading-stages {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.reading-card {
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-radius: 16px;
+  background: rgba(14, 11, 24, 0.9);
+  padding: 16px 16px 18px;
+  position: relative;
+  overflow: hidden;
+}
+
+.reading-card-step {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: #1a1206;
+  background: linear-gradient(135deg, #f0dfa0 0%, #d4af37 100%);
+  border-radius: 999px;
+  padding: 3px 10px;
+  margin-bottom: 9px;
+}
+
+.reading-card-title {
+  margin: 0 0 9px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.45;
+}
+
+.reading-card-body {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: #ddd8ea;
+}
+
+/* 잠긴 단계: 글자를 흐리게 덮고 자물쇠를 올린다 */
+.reading-card.is-locked .reading-card-body {
+  filter: blur(5px);
+  user-select: none;
+  opacity: 0.75;
+}
+
+.reading-card.is-locked::after {
+  content: "🔒 잠김";
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  background: rgba(8, 6, 16, 0.92);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #ffd700;
+  white-space: nowrap;
+}
+
+.reading-card.is-locked {
+  padding-bottom: 52px;
+}
+
+.reading-foot {
+  padding: 14px 20px calc(18px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(212, 175, 55, 0.22);
+  background: rgba(4, 3, 10, 0.97);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reading-cta {
+  width: 100%;
+  padding: 15px 20px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f0dfa0 0%, #d4af37 100%);
+  color: #1a1206;
+  font-size: 1.02rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 6px 22px rgba(212, 175, 55, 0.42);
+}
+
+.reading-back {
+  width: 100%;
+  padding: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* ================= AI 워터마크 커버 (영상 재생 스테이지 우측 하단) ================= */

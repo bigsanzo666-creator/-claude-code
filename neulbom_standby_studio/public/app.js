@@ -1056,12 +1056,89 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // 여기까지가 이번 작업 범위. 실제 점괘 풀이는 다음 단계에서 붙인다.
+      // 상담 답변을 들고 점괘 화면으로 넘어간다.
+      // (지금은 화면에만 들고 있다. 서버로 보내는 작업은 다음 단계)
       console.log('[상담 답변]', currentSpirit && currentSpirit.id, consultAnswers);
+
       consultSay.textContent = '“별빛을 모으고 있어요…”';
-      consultFields.innerHTML = '<div class="consult-row">여기서부터 점괘 화면이 연결됩니다. (다음 단계 작업)</div>';
-      consultCta.textContent = '점괘 화면 연결 예정';
+      consultFields.innerHTML = '';
       consultCta.disabled = true;
+      consultCta.textContent = '풀이를 여는 중…';
+
+      // 신령이 명식을 읽는 듯한 짧은 뜸
+      setTimeout(() => {
+        hideConsult();
+        openReading(currentSpirit);
+      }, 1400);
+    });
+  }
+
+  // ================= 7-3. 점괘 화면 =================
+  const readingSheet = document.getElementById('readingSheet');
+  const readingScroll = document.getElementById('readingScroll');
+  const readingTitle = document.getElementById('readingTitle');
+  const readingSub = document.getElementById('readingSub');
+  const readingStages = document.getElementById('readingStages');
+  const readingCta = document.getElementById('readingCta');
+  const readingBack = document.getElementById('readingBack');
+
+  function openReading(spirit) {
+    if (!readingSheet || !spirit) return;
+    const product = (spirit.products && spirit.products[0]) || null;
+    if (!product) return;
+
+    readingTitle.textContent = `${spirit.name}의 ${product.title}`;
+    readingSub.textContent = `${userState.name} 님의 명식으로 열린 풀이`;
+
+    readingStages.innerHTML = '';
+    (product.stages || []).forEach(stage => {
+      const locked = !stage.preview;
+      const card = document.createElement('article');
+      card.className = 'reading-card' + (locked ? ' is-locked' : '');
+
+      const step = document.createElement('span');
+      step.className = 'reading-card-step';
+      step.textContent = stage.num;
+
+      const title = document.createElement('h4');
+      title.className = 'reading-card-title';
+      title.textContent = stage.title;
+
+      const body = document.createElement('p');
+      body.className = 'reading-card-body';
+      body.textContent = stage.preview || stage.locked || '';
+
+      card.appendChild(step);
+      card.appendChild(title);
+      card.appendChild(body);
+      readingStages.appendChild(card);
+    });
+
+    readingScroll.scrollTop = 0;
+    readingSheet.hidden = false;
+  }
+
+  function hideReading() {
+    if (!readingSheet) return;
+    readingSheet.hidden = true;
+    readingStages.innerHTML = '';
+  }
+
+  if (readingCta) {
+    readingCta.addEventListener('click', () => {
+      // 결제 연결은 PG 심사 통과 후 작업한다.
+      readingCta.textContent = '결제 연결 예정 (심사 통과 후)';
+      readingCta.disabled = true;
+    });
+  }
+
+  if (readingBack) {
+    readingBack.addEventListener('click', () => {
+      hideReading();
+      if (stageChamber) stageChamber.classList.remove('active');
+      if (stageCourtyard) stageCourtyard.classList.add('active');
+      if (chamberSpiritVideo) chamberSpiritVideo.pause();
+      stopChamberParticles();
     });
   }
 
@@ -1088,6 +1165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 새 신령 처소를 열 때는 이전 파티클·상담 대화를 즉시 정리 (새 8초 영상이 끝난 뒤에만 다시 시작)
     stopChamberParticles();
     hideConsult();
+    hideReading();
 
     // 1) 정지 포스터 사진 없이, 아래 2)에서 영상이 검은 화면 위로 바로 페이드인
     if (chamberSpiritName) chamberSpiritName.textContent = spirit.name;
@@ -1128,6 +1206,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (chamberSpiritVideo) chamberSpiritVideo.pause();
       stopChamberParticles();
       hideConsult();
+      hideReading();
     });
   }
 });

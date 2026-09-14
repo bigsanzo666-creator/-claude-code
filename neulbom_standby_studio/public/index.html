@@ -11,7 +11,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=consult_10spirits">
+  <link rel="stylesheet" href="style.css?v=reading_screen">
 </head>
 
 <body>
@@ -160,6 +160,22 @@
         <button type="button" class="consult-cta" id="consultCta">다음으로</button>
       </div>
 
+      <!-- 점괘 화면: 상담이 끝나면 신령 위로 올라온다. 1단계는 열려 있고 2~4단계는 잠겨 있다 -->
+      <div class="reading-sheet" id="readingSheet" hidden>
+        <div class="reading-scroll" id="readingScroll">
+          <div class="reading-head">
+            <span class="reading-seal">🏮</span>
+            <h3 class="reading-title" id="readingTitle"></h3>
+            <p class="reading-sub" id="readingSub"></p>
+          </div>
+          <div class="reading-stages" id="readingStages"></div>
+        </div>
+        <div class="reading-foot">
+          <button type="button" class="reading-cta" id="readingCta">🏮 잠긴 풀이 전부 열어보기</button>
+          <button type="button" class="reading-back" id="readingBack">신령계 마당으로 돌아가기</button>
+        </div>
+      </div>
+
       <!-- 처소 하단 워터마크 가림막: 신령마다 AI 워터마크 위치가 왼쪽/오른쪽으로 제각각이라 양쪽 다 가림 -->
       <div class="watermark-mask-bl"></div>
       <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
@@ -218,7 +234,7 @@
 
   </div> <!-- /mobileContainer (엄격한 9:16 모바일 규격 닫기) -->
 
-  <script src="app.js?v=consult_10spirits"></script>
+  <script src="app.js?v=reading_screen"></script>
 </body>
 
 </html>
