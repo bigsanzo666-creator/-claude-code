@@ -369,6 +369,7 @@ const FREE_TEXT_FIELD = {
 const CHAMBER_FLOWS = {
   // 1. 도화신령 — 연애 · 매력
   dohwa: [
+    { hook: true, say: "{이름}, 너 지금 마음에 걸어둔 사람 하나 있구나?" },
     {
       say: "네 매력이 어디서 터지는지 보려면,\n지금 네 자리부터 알아야겠다.",
       fields: [
@@ -388,6 +389,7 @@ const CHAMBER_FLOWS = {
 
   // 2. 월신령 — 재회 · 이별 치유
   wol: [
+    { hook: true, say: "{이름}, 너 아직 그 사람 번호 못 지웠구나?" },
     {
       say: "떠난 지 얼마나 됐지?",
       fields: [
@@ -407,6 +409,7 @@ const CHAMBER_FLOWS = {
 
   // 3. 실신령 — 궁합 · 인연
   yeon: [
+    { hook: true, say: "{이름}, 너 지금 맘에 드는 사람 있구나?" },
     {
       say: "그 사람과 지금 어디까지 왔지?",
       fields: [
@@ -426,6 +429,7 @@ const CHAMBER_FLOWS = {
 
   // 4. 삼합신령 — 사주 × 관상 × 손금
   samhap: [
+    { hook: true, say: "{이름}, 남들이 보는 너랑 진짜 너랑 다르다는 거,\n너도 이미 알고 있었구나?" },
     {
       say: "사주는 이미 받았다.\n이제 네 얼굴과 손을 보자.",
       fields: [
@@ -445,6 +449,7 @@ const CHAMBER_FLOWS = {
 
   // 5. 작명신령 — 평생 이름
   jakmyeong: [
+    { hook: true, say: "{이름}, 아이 이름 짓느라\n밤늦게까지 뒤적였구나?" },
     {
       say: "이름은 평생 불릴 소리다.\n아이 성씨부터 알려다오.",
       fields: [
@@ -465,6 +470,7 @@ const CHAMBER_FLOWS = {
 
   // 6. 삼신할매 — 출산 · 택일
   samsin: [
+    { hook: true, say: "{이름}, 병원에서 날짜를 받아 들고도\n밤에 잠이 안 왔지?" },
     {
       say: "의사가 가능하다고 한 날짜부터\n말해보렴.",
       fields: [
@@ -483,6 +489,7 @@ const CHAMBER_FLOWS = {
 
   // 7. 명경신령 — 나의 본질 · 재능
   myeonggyeong: [
+    { hook: true, say: "{이름}, 요즘 거울 보면서\n'내가 지금 뭘 하고 있나' 했구나?" },
     {
       say: "거울 앞에 서기 전에,\n지금 뭘 하고 사는지부터.",
       fields: [
@@ -502,6 +509,7 @@ const CHAMBER_FLOWS = {
 
   // 8. 재신령 — 돈그릇 · 재물
   jae: [
+    { hook: true, say: "{이름}, 이번 달도 통장 열어보고\n한숨 한 번 쉬었구나?" },
     {
       say: "네 곳간은 지금 어떤 상태지?",
       fields: [
@@ -521,6 +529,7 @@ const CHAMBER_FLOWS = {
 
   // 9. 산신령 — 자녀 · 가족 · 노후
   san: [
+    { hook: true, say: "{이름}, 요즘 가족 생각에\n잠드는 게 늦어졌구나?" },
     {
       say: "누구 이야기를 들으러 왔느냐.",
       fields: [
@@ -540,6 +549,7 @@ const CHAMBER_FLOWS = {
 
   // 10. 풍신령 — 시기 · 타이밍
   pung: [
+    { hook: true, say: "{이름}, 너 지금 뭔가 결정 못 하고\n계속 미뤄두고 있구나?" },
     {
       say: "바람이 어디서 불어오는지 보려면,\n네 자리부터 알아야겠다.",
       fields: [
@@ -845,6 +855,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ================= 7-2. 신령 1:1 상담 대화 (영상이 멈춘 뒤 한 단계씩 진행) =================
   const chamberConsult = document.getElementById('chamberConsult');
   const consultSay = document.getElementById('consultSay');
+  const consultNote = document.querySelector('#chamberConsult .consult-note');
   const consultFields = document.getElementById('consultFields');
   const consultCta = document.getElementById('consultCta');
   let consultSteps = [];
@@ -855,7 +866,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const step = consultSteps[consultStepIndex];
     if (!step) return;
 
-    consultSay.textContent = `“${step.say}”`;
+    // {이름} 자리에 손님 성함을 넣는다
+    const say = String(step.say || '').replace(/\{이름\}/g, userState.name || '그대');
+    consultSay.textContent = `“${say}”`;
+
+    // 훅 한마디 화면은 답할 게 없으므로 "답변 안 해도 됩니다" 안내를 감춘다
+    if (consultNote) consultNote.hidden = !!step.hook;
+
     consultFields.innerHTML = '';
 
     (step.fields || []).forEach(field => {
@@ -1023,7 +1040,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const isLast = consultStepIndex === consultSteps.length - 1;
-    consultCta.textContent = isLast ? '결과 받아보기' : '다음으로';
+    consultCta.textContent = step.hook ? '…어떻게 알았지?' : (isLast ? '결과 받아보기' : '다음으로');
   }
 
   function startConsult(spirit) {
