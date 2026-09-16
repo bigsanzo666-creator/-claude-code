@@ -11,7 +11,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=hook_line2">
+  <link rel="stylesheet" href="style.css?v=legal1">
 </head>
 
 <body>
@@ -42,6 +42,9 @@
           <button type="button" id="btnKnockGate" class="btn-primary pulse-gold">🚪 신령계 문 두드리기</button>
         </div>
       </div>
+
+      <!-- 랜딩(문) 화면 전용 소형 푸터. 내용은 legal.js 한 곳에서 가져온다 -->
+      <footer class="biz-mini" id="gateBizFooter"></footer>
 
       <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
     </section>
@@ -172,6 +175,9 @@
         </div>
         <div class="reading-foot">
           <button type="button" class="reading-cta" id="readingCta">🏮 잠긴 풀이 전부 열어보기</button>
+          <!-- 결제 직전 고지 (전자상거래법 제13조). 문구와 사업자 한 줄은 legal.js에서 온다 -->
+          <p class="pay-consent" id="payConsent"></p>
+          <p class="pay-bizline" id="payBizLine"></p>
           <button type="button" class="reading-back" id="readingBack">신령계 마당으로 돌아가기</button>
         </div>
       </div>
@@ -232,9 +238,32 @@
       </div>
     </div>
 
+    <!-- 풀스크린 화면(마당·대면·점괘)에서 몰입을 깨지 않는 슬림 링크.
+         누르면 사업자 정보와 약관을 볼 수 있다. -->
+    <button type="button" class="biz-slim-link" id="bizSlimLink">사업자 정보 · 약관</button>
+
+    <!-- ================= 사업자 정보 / 약관 모달 (모든 화면 공용) ================= -->
+    <div class="legal-modal" id="legalModal" hidden>
+      <div class="legal-dim" id="legalDim"></div>
+      <div class="legal-panel" role="dialog" aria-modal="true" aria-labelledby="legalPanelTitle">
+        <div class="legal-panel-head">
+          <h3 class="legal-panel-title" id="legalPanelTitle">사업자 정보</h3>
+          <button type="button" class="legal-close" id="legalClose" aria-label="닫기">✕</button>
+        </div>
+        <div class="legal-tabs" id="legalTabs">
+          <button type="button" class="legal-tab is-on" data-doc="biz">사업자 정보</button>
+          <button type="button" class="legal-tab" data-doc="terms">이용약관</button>
+          <button type="button" class="legal-tab" data-doc="privacy">개인정보</button>
+          <button type="button" class="legal-tab" data-doc="refund">취소·환불</button>
+        </div>
+        <div class="legal-body" id="legalBody"></div>
+      </div>
+    </div>
+
   </div> <!-- /mobileContainer (엄격한 9:16 모바일 규격 닫기) -->
 
-  <script src="app.js?v=hook_line2"></script>
+  <script src="legal.js?v=legal1"></script>
+  <script src="app.js?v=legal1"></script>
 </body>
 
 </html>

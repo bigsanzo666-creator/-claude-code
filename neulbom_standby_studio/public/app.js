@@ -1226,4 +1226,173 @@ document.addEventListener('DOMContentLoaded', () => {
       hideReading();
     });
   }
+
+  // ================= 8. 사업자 정보 · 약관 =================
+  // 내용은 전부 legal.js 한 곳에서 온다. 여기서는 그리기만 한다.
+  setupLegal();
 });
+
+function setupLegal() {
+  if (typeof LEGAL === 'undefined') return;
+
+  const biz = LEGAL.business;
+  const modal = document.getElementById('legalModal');
+  const body = document.getElementById('legalBody');
+  const title = document.getElementById('legalPanelTitle');
+  const tabs = Array.from(document.querySelectorAll('.legal-tab'));
+
+  const text = (s) => document.createTextNode(s);
+
+  function openLegal(docKey) {
+    if (!modal) return;
+    tabs.forEach(t => t.classList.toggle('is-on', t.dataset.doc === docKey));
+    renderLegalDoc(docKey);
+    modal.hidden = false;
+  }
+
+  function closeLegal() {
+    if (modal) modal.hidden = true;
+  }
+
+  function renderLegalDoc(docKey) {
+    body.innerHTML = '';
+
+    if (docKey === 'biz') {
+      title.textContent = '사업자 정보';
+      const rows = [
+        ['상호', biz.companyName],
+        ['대표', biz.representative],
+        ['사업자등록번호', biz.registrationNumber],
+        ['통신판매업 신고', biz.mailOrderNumber || '신고 진행 중'],
+        ['주소', biz.address],
+        ['연락처', biz.phone],
+        ['고객센터', `${biz.phone} · ${biz.email}`],
+        ['개인정보 보호책임자', biz.privacyOfficer],
+        ['호스팅 제공', biz.hostingProvider]
+      ];
+      const dl = document.createElement('dl');
+      rows.forEach(([k, v]) => {
+        const row = document.createElement('div');
+        row.className = 'legal-row';
+        const dt = document.createElement('dt');
+        dt.appendChild(text(k));
+        const dd = document.createElement('dd');
+        dd.appendChild(text(v));
+        row.appendChild(dt);
+        row.appendChild(dd);
+        dl.appendChild(row);
+      });
+      body.appendChild(dl);
+
+      const note = document.createElement('p');
+      note.className = 'legal-note';
+      note.appendChild(text(LEGAL.disclaimer));
+      body.appendChild(note);
+      return;
+    }
+
+    const doc = LEGAL.docs[docKey];
+    if (!doc) return;
+    title.textContent = doc.title;
+
+    (doc.summary || []).forEach(line => {
+      const p = document.createElement('p');
+      p.appendChild(text(line));
+      body.appendChild(p);
+    });
+
+    (doc.sections || []).forEach(sec => {
+      const h = document.createElement('h4');
+      h.appendChild(text(sec.h));
+      body.appendChild(h);
+      (sec.p || []).forEach(line => {
+        const p = document.createElement('p');
+        p.appendChild(text(line));
+        body.appendChild(p);
+      });
+    });
+
+    // 전문은 홈페이지에 있다. 여기 옮겨 적으면 두 문서가 서로 다른 말을 하게 된다.
+    if (doc.fullPath) {
+      const link = document.createElement('a');
+      link.className = 'legal-full-link';
+      link.href = biz.siteUrl + doc.fullPath;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.appendChild(text(`${doc.title} 전문 보기 →`));
+      body.appendChild(link);
+    }
+  }
+
+  // --- 랜딩(문) 화면 소형 푸터 ---
+  const gateFooter = document.getElementById('gateBizFooter');
+  if (gateFooter) {
+    const links = document.createElement('div');
+    links.className = 'biz-mini-links';
+    [['terms', '이용약관'], ['privacy', '개인정보처리방침'], ['refund', '취소·환불'], ['biz', '사업자 정보']]
+      .forEach(([key, label]) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.appendChild(text(label));
+        b.addEventListener('click', () => openLegal(key));
+        links.appendChild(b);
+      });
+
+    const info = document.createElement('div');
+    info.className = 'biz-mini-info';
+    info.appendChild(text(
+      `${biz.companyName} · 대표 ${biz.representative} · 사업자등록번호 ${biz.registrationNumber} · ` +
+      `통신판매업 신고 ${biz.mailOrderNumber} · ${biz.phone}`
+    ));
+
+    gateFooter.appendChild(links);
+    gateFooter.appendChild(info);
+  }
+
+  // --- 풀스크린 화면 슬림 링크 ---
+  const slim = document.getElementById('bizSlimLink');
+  if (slim) slim.addEventListener('click', () => openLegal('biz'));
+
+  // 마당·대면 단계에 들어가면 슬림 링크를 띄운다 (문·입장 연출에서는 감춤)
+  const immersiveStages = ['stageCourtyard', 'stageChamber'];
+  const syncImmersive = () => {
+    const on = immersiveStages.some(id => {
+      const el = document.getElementById(id);
+      return el && el.classList.contains('active');
+    });
+    document.body.classList.toggle('stage-immersive', on);
+  };
+  immersiveStages.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) new MutationObserver(syncImmersive).observe(el, { attributes: true, attributeFilter: ['class'] });
+  });
+  syncImmersive();
+
+  // --- 결제 직전 고지 ---
+  const consent = document.getElementById('payConsent');
+  if (consent) {
+    consent.appendChild(text(LEGAL.purchaseConsent + ' '));
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.appendChild(text('환불규정 보기'));
+    b.addEventListener('click', () => openLegal('refund'));
+    consent.appendChild(b);
+  }
+
+  const bizLine = document.getElementById('payBizLine');
+  if (bizLine) {
+    bizLine.appendChild(text(
+      `${biz.companyName} · 대표 ${biz.representative} · 사업자등록번호 ${biz.registrationNumber} · ${biz.phone}`
+    ));
+  }
+
+  // --- 닫기 ---
+  const closeBtn = document.getElementById('legalClose');
+  const dim = document.getElementById('legalDim');
+  if (closeBtn) closeBtn.addEventListener('click', closeLegal);
+  if (dim) dim.addEventListener('click', closeLegal);
+  tabs.forEach(t => t.addEventListener('click', () => openLegal(t.dataset.doc)));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal && !modal.hidden) closeLegal();
+  });
+}
