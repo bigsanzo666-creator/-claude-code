@@ -972,7 +972,10 @@ document.addEventListener('DOMContentLoaded', () => {
           o.textContent = opt;
           select.appendChild(o);
         });
-        select.value = consultAnswers[field.id] || BIRTH_TIME_OPTIONS[0];
+        // 화면에 이미 골라져 보이는 값은 손대지 않아도 답으로 잡아 둔다.
+        // 안 그러면 손님 화면에는 「시간 모름」이 보이는데 기록에는 아무것도 안 남는다.
+        consultAnswers[field.id] = consultAnswers[field.id] || BIRTH_TIME_OPTIONS[0];
+        select.value = consultAnswers[field.id];
         select.addEventListener('change', () => { consultAnswers[field.id] = select.value; });
 
         if (field.before) row.appendChild(document.createTextNode(field.before));
@@ -1040,6 +1043,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const isLast = consultStepIndex === consultSteps.length - 1;
+    consultCta.disabled = false;
     consultCta.textContent = step.hook ? '…어떻게 알았지?' : (isLast ? '결과 받아보기' : '다음으로');
   }
 
@@ -1064,6 +1068,33 @@ document.addEventListener('DOMContentLoaded', () => {
     consultAnswers = {};
   }
 
+  // 손님이 적은 것을 서버에 적어 둔다. 실패해도 풀이는 그대로 이어진다 —
+  // 기록 하나 때문에 손님 화면이 멈추면 안 된다.
+  function sendConsult(payload) {
+    return fetch('/api/consult', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(r => r.json()).catch(() => ({ ok: false }));
+  }
+
+  // 진짜 명식을 계산해 온다. 못 받아 오면 null — 그러면 미리 써 둔 글로 대신한다.
+  function fetchReading(payload) {
+    return fetch('/api/reading', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        spiritId: payload.spiritId,
+        birthDate: payload.birthDate,
+        birthTime: payload.birthTime,
+        gender: payload.gender
+      })
+    })
+      .then(r => r.json())
+      .then(data => (data && data.ok ? data : null))
+      .catch(() => null);
+  }
+
   if (consultCta) {
     consultCta.addEventListener('click', () => {
       const isLast = consultStepIndex === consultSteps.length - 1;
@@ -1073,20 +1104,31 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // 상담 답변을 들고 점괘 화면으로 넘어간다.
-      // (지금은 화면에만 들고 있다. 서버로 보내는 작업은 다음 단계)
-      console.log('[상담 답변]', currentSpirit && currentSpirit.id, consultAnswers);
+      // hideConsult() 가 답변을 비우므로, 넘기기 전에 먼저 챙겨 둔다
+      const spirit = currentSpirit;
+      const payload = {
+        spiritId: spirit ? spirit.id : '',
+        spiritName: spirit ? spirit.name : '',
+        name: userState.name,
+        birthDate: userState.birthDate,
+        birthTime: userState.birthTime,
+        gender: userState.gender,
+        answers: Object.assign({}, consultAnswers)
+      };
 
       consultSay.textContent = '“별빛을 모으고 있어요…”';
       consultFields.innerHTML = '';
       consultCta.disabled = true;
       consultCta.textContent = '풀이를 여는 중…';
 
-      // 신령이 명식을 읽는 듯한 짧은 뜸
-      setTimeout(() => {
+      sendConsult(payload);
+
+      // 계산이 빨리 끝나도 신령이 명식을 읽는 뜸은 그대로 둔다
+      const wait = new Promise(resolve => setTimeout(resolve, 1400));
+      Promise.all([fetchReading(payload), wait]).then(([live]) => {
         hideConsult();
-        openReading(currentSpirit);
-      }, 1400);
+        openReading(spirit, live);
+      });
     });
   }
 
@@ -1099,13 +1141,254 @@ document.addEventListener('DOMContentLoaded', () => {
   const readingCta = document.getElementById('readingCta');
   const readingBack = document.getElementById('readingBack');
 
-  function openReading(spirit) {
+  // ==========================================================================
+  // 진짜 명식으로 계산한 풀이를 그린다.
+  //
+  // 여기 나오는 값은 전부 서버가 packages/manseryeok · packages/saju-rules 로
+  // 계산한 것이다. 이 파일이 지어내는 문장은 없다.
+  //
+  // 화면 규칙: 큰 글씨는 쉬운 말, 그 옆 작은 글씨가 명리 용어와 한 줄 뜻.
+  // ==========================================================================
+  const readingLive = document.getElementById('readingLive');
+
+  // 기둥 이름을 쉬운 말로
+  const PILLAR_PLAIN = {
+    연주: '태어난 해', 월주: '태어난 달', 일주: '태어난 날', 시주: '태어난 시각'
+  };
+
+  // 십이운성 — 기세가 어느 굽이에 있는가. 좋고 나쁨이 아니다.
+  const STAGE_PLAIN = {
+    장생: '막 싹트는 자리', 목욕: '다듬어지는 자리', 관대: '옷을 갖춰 입는 자리',
+    건록: '제 몫을 하는 자리', 제왕: '기세가 가장 센 자리', 쇠: '한풀 꺾여 차분해지는 자리',
+    병: '속도를 늦추는 자리', 사: '멈춰서 고르는 자리', 묘: '안으로 갈무리하는 자리',
+    절: '끊고 다시 시작하는 자리', 태: '새로 배는 자리', 양: '품어 기르는 자리'
+  };
+
+  function el(tag, cls, text) {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text !== undefined && text !== null) node.textContent = String(text);
+    return node;
+  }
+
+  /** 룰 엔진 문장에 섞여 오는 ** 표시를 걷어낸다 */
+  function plainText(value) {
+    return String(value == null ? '' : value).replace(/\*\*/g, '');
+  }
+
+  function liveBlock(easyTitle, termTitle) {
+    const section = el('section', 'live-block');
+    const head = el('div', 'live-block-head');
+    head.appendChild(el('h4', 'live-h', easyTitle));
+    if (termTitle) head.appendChild(el('span', 'live-term', termTitle));
+    section.appendChild(head);
+    return section;
+  }
+
+  function renderLiveReading(spirit, data) {
+    if (!readingLive) return false;
+    readingLive.innerHTML = '';
+    if (!data || !data.reading) return false;
+
+    const r = data.reading;
+    const godMeaning = (data.glossary && data.glossary.gods) || {};
+
+    // 한 줄 요약
+    readingLive.appendChild(el('p', 'live-head', plainText(r.head)));
+
+    // ── 여덟 글자
+    const eight = liveBlock('네 여덟 글자', '명식(命式)');
+    const table = el('div', 'live-eight');
+    (r.eight || []).forEach(row => {
+      const col = el('div', 'live-pillar');
+      col.appendChild(el('span', 'live-pillar-when', PILLAR_PLAIN[row.position] || row.position));
+      col.appendChild(el('span', 'live-pillar-term', row.position));
+      col.appendChild(el('span', 'live-pillar-letters', row.stem + row.branch));
+
+      const gods = el('div', 'live-pillar-gods');
+      const top = el('span', 'live-god');
+      top.appendChild(el('b', null, row.stemGod));
+      if (godMeaning[row.stemGod]) top.appendChild(el('i', null, godMeaning[row.stemGod]));
+      gods.appendChild(top);
+
+      const bottom = el('span', 'live-god');
+      bottom.appendChild(el('b', null, row.branchGod));
+      if (godMeaning[row.branchGod]) bottom.appendChild(el('i', null, godMeaning[row.branchGod]));
+      gods.appendChild(bottom);
+      col.appendChild(gods);
+
+      const stage = el('span', 'live-pillar-stage', STAGE_PLAIN[row.stage] || row.stage);
+      stage.title = row.stage;
+      col.appendChild(stage);
+      table.appendChild(col);
+    });
+    eight.appendChild(table);
+    if (data.basis && data.basis.hourKnown === false) {
+      eight.appendChild(el('p', 'live-note',
+        '태어난 시각을 「모름」으로 두셔서 시각 기둥 하나는 비워 두었습니다. 나머지 세 기둥으로 풀었습니다.'));
+    }
+    readingLive.appendChild(eight);
+
+    // ── 오행 무게
+    const bars = liveBlock('타고난 기운의 무게', '오행(五行)');
+    (r.bars || []).forEach(b => {
+      const row = el('div', 'live-bar-row' + (b.self ? ' is-self' : ''));
+      const label = el('span', 'live-bar-label');
+      label.appendChild(el('b', null, b.plain));
+      label.appendChild(el('i', null, b.element));
+      row.appendChild(label);
+      const track = el('div', 'live-bar-track');
+      const fill = el('div', 'live-bar-fill');
+      fill.style.width = Math.max(2, Math.min(100, Number(b.pct) || 0)) + '%';
+      track.appendChild(fill);
+      row.appendChild(track);
+      row.appendChild(el('span', 'live-bar-pct', b.pct + '%'));
+      bars.appendChild(row);
+    });
+    bars.appendChild(el('p', 'live-note', '네 기운은 저울에 올리지 않아 무게가 따로 잡히지 않습니다.'));
+    readingLive.appendChild(bars);
+
+    // ── 신강·신약
+    if (r.strength) {
+      const st = liveBlock('미는 힘과 기대는 힘', '신강·신약');
+      const verdict = el('p', 'live-verdict');
+      verdict.appendChild(el('b', null, r.strength.verdict));
+      verdict.appendChild(el('i', null, '나를 받쳐 주는 글자가 ' + r.strength.ratio + '%'));
+      st.appendChild(verdict);
+      st.appendChild(el('p', 'live-say', plainText(r.strength.say)));
+      readingLive.appendChild(st);
+    }
+
+    // ── 채워야 할 기운
+    if (r.fill) {
+      const fl = liveBlock('붙으면 풀리는 기운', '용신(用神)');
+      if ((r.fill.need || []).length) {
+        const need = el('p', 'live-chips');
+        need.appendChild(el('span', 'live-chip-label', '쓰면 좋은 것'));
+        r.fill.need.forEach(n => need.appendChild(el('span', 'live-chip is-need', n)));
+        fl.appendChild(need);
+      }
+      if ((r.fill.avoid || []).length) {
+        const avoid = el('p', 'live-chips');
+        avoid.appendChild(el('span', 'live-chip-label', '덜어낼 것'));
+        r.fill.avoid.forEach(n => avoid.appendChild(el('span', 'live-chip is-avoid', n)));
+        fl.appendChild(avoid);
+      }
+      fl.appendChild(el('p', 'live-say', plainText(r.fill.say)));
+      readingLive.appendChild(fl);
+    }
+
+    // ── 이 신령이 짚는 주제
+    const topics = data.topics || [];
+    if (topics.length) {
+      const tp = liveBlock((spirit ? spirit.name : '신령') + '이 짚어 보는 것', null);
+      topics.forEach(t => {
+        const card = el('div', 'live-topic');
+        const head = el('div', 'live-topic-head');
+        head.appendChild(el('b', 'live-topic-label', t.label));
+        head.appendChild(el('span', 'live-topic-count', t.abundance));
+        card.appendChild(head);
+        card.appendChild(el('p', 'live-topic-term', t.term + ' ' + t.termHanja + ' — ' + t.gloss));
+
+        (t.notes || []).forEach(n => card.appendChild(el('p', 'live-say', plainText(n))));
+
+        if ((t.evidence || []).length) {
+          const ev = el('div', 'live-evidence');
+          ev.appendChild(el('span', 'live-evidence-label', '어느 글자에서 나왔나'));
+          t.evidence.forEach(e => {
+            ev.appendChild(el('span', 'live-evidence-item', e.where + ' · ' + e.what + ' (' + e.depth + ')'));
+          });
+          card.appendChild(ev);
+        }
+        tp.appendChild(card);
+      });
+      readingLive.appendChild(tp);
+    }
+
+    // ── 십 년 운
+    if ((r.luck || []).length) {
+      const lk = liveBlock('열 해씩 흐르는 운', '대운(大運)');
+      const grid = el('div', 'live-luck');
+      r.luck.forEach(l => {
+        const cell = el('div', 'live-luck-cell' + (l.now ? ' is-now' : '') + ' favor-' + l.favor);
+        cell.appendChild(el('span', 'live-luck-ganzhi', l.ganzhi));
+        cell.appendChild(el('span', 'live-luck-ages', l.ages));
+        cell.appendChild(el('span', 'live-luck-years', l.years));
+        cell.appendChild(el('span', 'live-luck-say', l.say));
+        if (l.now) cell.appendChild(el('span', 'live-luck-now', '지금 여기'));
+        grid.appendChild(cell);
+      });
+      lk.appendChild(grid);
+      readingLive.appendChild(lk);
+    } else {
+      const lk = liveBlock('열 해씩 흐르는 운', '대운(大運)');
+      lk.appendChild(el('p', 'live-note', '성별을 알아야 십 년 운의 방향이 정해집니다.'));
+      readingLive.appendChild(lk);
+    }
+
+    // ── 올해와 앞으로
+    if ((r.years || []).length) {
+      const yr = liveBlock('올해와 다가오는 해', '세운(歲運)');
+      const grid = el('div', 'live-years');
+      r.years.forEach(y => {
+        const cell = el('div', 'live-year-cell' + (y.now ? ' is-now' : '') + ' favor-' + y.favor);
+        cell.appendChild(el('span', 'live-year-num', y.year + '년'));
+        cell.appendChild(el('span', 'live-year-ganzhi', y.ganzhi));
+        cell.appendChild(el('span', 'live-year-say', y.say));
+        grid.appendChild(cell);
+      });
+      yr.appendChild(grid);
+      readingLive.appendChild(yr);
+    }
+
+    // ── 눈에 띄는 것
+    if ((r.notes || []).length) {
+      const nt = liveBlock('눈에 띄는 것', null);
+      r.notes.forEach(n => nt.appendChild(el('p', 'live-say', plainText(n))));
+      readingLive.appendChild(nt);
+    }
+
+    // ── 여기까지가 무료
+    if (r.cut) readingLive.appendChild(el('p', 'live-cut', plainText(r.cut)));
+
+    // ── 계산 근거. 서비스마다 명식이 다른 것이 손님 불신의 원인이라 숨기지 않는다.
+    if (data.basis) {
+      const b = data.basis;
+      const box = el('details', 'live-basis');
+      box.appendChild(el('summary', null, '이 명식이 어떻게 나왔는지 보기'));
+      const rows = [
+        ['적어 주신 시각', b.inputTime || '모름'],
+        ['해 위치로 바로잡은 시각', b.correctedTime || '—'],
+        ['기준이 된 날짜', b.correctedDate || '—'],
+        ['바로잡은 양', (b.solarTimeOffsetMin > 0 ? '+' : '') + b.solarTimeOffsetMin + '분'],
+        ['서머타임', b.dstApplied ? '적용' : '없음'],
+        ['이 달을 여는 절기', b.monthTermName + ' (' + b.monthTermEnteredAt + ')'],
+        ['입춘 기준 해', b.solarYear + '년']
+      ];
+      rows.forEach(([k, v]) => {
+        const line = el('div', 'live-basis-row');
+        line.appendChild(el('dt', null, k));
+        line.appendChild(el('dd', null, v));
+        box.appendChild(line);
+      });
+      readingLive.appendChild(box);
+    }
+
+    return true;
+  }
+
+  function openReading(spirit, live) {
     if (!readingSheet || !spirit) return;
     const product = (spirit.products && spirit.products[0]) || null;
     if (!product) return;
 
     readingTitle.textContent = `${spirit.name}의 ${product.title}`;
-    readingSub.textContent = `${userState.name} 님의 명식으로 열린 풀이`;
+
+    // 진짜로 계산이 됐을 때만 「계산해서 열었다」고 말한다. 못 했으면 말을 바꾼다.
+    const computed = renderLiveReading(spirit, live);
+    readingSub.textContent = computed
+      ? `${userState.name} 님의 여덟 글자를 그대로 계산한 풀이`
+      : `${userState.name} 님을 위한 풀이`;
 
     readingStages.innerHTML = '';
     (product.stages || []).forEach(stage => {
@@ -1139,6 +1422,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!readingSheet) return;
     readingSheet.hidden = true;
     readingStages.innerHTML = '';
+    if (readingLive) readingLive.innerHTML = '';
   }
 
   if (readingCta) {

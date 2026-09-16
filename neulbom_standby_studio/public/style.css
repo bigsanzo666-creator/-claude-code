@@ -1781,3 +1781,453 @@ body.stage-immersive .biz-slim-link {
   pointer-events: none;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
 }
+
+/* ==========================================================================
+   진짜 명식으로 계산한 풀이 (.reading-live)
+
+   여기 값은 전부 서버가 계산한 것이다. 화면 규칙은 하나 —
+   큰 글씨는 쉬운 말, 작은 글씨는 명리 용어와 한 줄 뜻.
+   ========================================================================== */
+
+.reading-live {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.reading-live:empty { display: none; }
+
+.live-head {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.6;
+  color: #f4e7c0;
+  text-align: center;
+  padding: 14px 12px;
+  border-radius: 14px;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.24);
+}
+
+.live-block {
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 16px;
+  background: rgba(14, 11, 24, 0.82);
+  padding: 15px 15px 17px;
+}
+
+.live-block-head {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.live-h {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.live-term {
+  font-size: 0.72rem;
+  color: rgba(212, 175, 55, 0.8);
+  letter-spacing: 0.3px;
+}
+
+.live-say {
+  margin: 0 0 7px;
+  font-size: 0.87rem;
+  line-height: 1.75;
+  color: rgba(238, 232, 216, 0.88);
+}
+
+.live-say:last-child { margin-bottom: 0; }
+
+.live-note {
+  margin: 10px 0 0;
+  font-size: 0.75rem;
+  line-height: 1.65;
+  color: rgba(238, 232, 216, 0.5);
+}
+
+/* ── 여덟 글자 ─────────────────────────────────────────── */
+.live-eight {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+}
+
+.live-pillar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-align: center;
+  padding: 10px 4px 11px;
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.06);
+  border: 1px solid rgba(212, 175, 55, 0.16);
+}
+
+.live-pillar-when {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: rgba(238, 232, 216, 0.82);
+}
+
+.live-pillar-term {
+  font-size: 0.6rem;
+  color: rgba(212, 175, 55, 0.62);
+}
+
+.live-pillar-letters {
+  font-size: 1.28rem;
+  font-weight: 800;
+  color: #f0dfa0;
+  letter-spacing: 1px;
+  margin: 3px 0 4px;
+}
+
+.live-pillar-gods {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+}
+
+.live-god {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.live-god b {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(238, 232, 216, 0.9);
+}
+
+.live-god i {
+  font-style: normal;
+  font-size: 0.56rem;
+  line-height: 1.35;
+  color: rgba(238, 232, 216, 0.45);
+}
+
+.live-pillar-stage {
+  margin-top: 5px;
+  font-size: 0.58rem;
+  line-height: 1.35;
+  color: rgba(212, 175, 55, 0.66);
+}
+
+/* ── 오행 막대 ─────────────────────────────────────────── */
+.live-bar-row {
+  display: grid;
+  grid-template-columns: 108px 1fr 40px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.live-bar-row:last-of-type { margin-bottom: 0; }
+
+.live-bar-label {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.live-bar-label b {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: rgba(238, 232, 216, 0.9);
+}
+
+.live-bar-label i {
+  font-style: normal;
+  font-size: 0.6rem;
+  color: rgba(212, 175, 55, 0.6);
+}
+
+.live-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.live-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.5) 0%, #d4af37 100%);
+}
+
+.live-bar-pct {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(238, 232, 216, 0.72);
+  text-align: right;
+}
+
+.live-bar-row.is-self .live-bar-label b { color: #f0dfa0; }
+
+/* ── 신강·신약 ─────────────────────────────────────────── */
+.live-verdict {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 8px;
+  flex-wrap: wrap;
+}
+
+.live-verdict b {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #f0dfa0;
+}
+
+.live-verdict i {
+  font-style: normal;
+  font-size: 0.72rem;
+  color: rgba(238, 232, 216, 0.55);
+}
+
+/* ── 용신 ──────────────────────────────────────────────── */
+.live-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 8px;
+}
+
+.live-chip-label {
+  font-size: 0.7rem;
+  color: rgba(238, 232, 216, 0.5);
+  margin-right: 2px;
+}
+
+.live-chip {
+  font-size: 0.74rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+}
+
+.live-chip.is-need {
+  color: #f0dfa0;
+  background: rgba(212, 175, 55, 0.14);
+  border-color: rgba(212, 175, 55, 0.35);
+}
+
+.live-chip.is-avoid {
+  color: rgba(238, 232, 216, 0.62);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ── 주제 ──────────────────────────────────────────────── */
+.live-topic {
+  border-top: 1px solid rgba(212, 175, 55, 0.14);
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
+.live-topic:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.live-topic-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.live-topic-label {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.live-topic-count {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #1a1206;
+  background: linear-gradient(135deg, #f0dfa0 0%, #d4af37 100%);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+.live-topic-term {
+  margin: 0 0 8px;
+  font-size: 0.7rem;
+  line-height: 1.6;
+  color: rgba(212, 175, 55, 0.75);
+}
+
+.live-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px dashed rgba(212, 175, 55, 0.18);
+}
+
+.live-evidence-label {
+  width: 100%;
+  font-size: 0.65rem;
+  color: rgba(238, 232, 216, 0.42);
+  margin-bottom: 2px;
+}
+
+.live-evidence-item {
+  font-size: 0.66rem;
+  color: rgba(238, 232, 216, 0.66);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+/* ── 대운 · 세운 ───────────────────────────────────────── */
+.live-luck {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 6px;
+}
+
+.live-luck-cell,
+.live-year-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+  padding: 9px 5px 10px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.live-luck-cell.favor-유리,
+.live-year-cell.favor-유리 {
+  background: rgba(212, 175, 55, 0.1);
+  border-color: rgba(212, 175, 55, 0.3);
+}
+
+.live-luck-cell.is-now,
+.live-year-cell.is-now {
+  border-color: rgba(212, 175, 55, 0.75);
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.3) inset;
+}
+
+.live-luck-ganzhi,
+.live-year-ganzhi {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #f0dfa0;
+}
+
+.live-luck-ages,
+.live-year-num {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(238, 232, 216, 0.85);
+}
+
+.live-luck-years {
+  font-size: 0.6rem;
+  color: rgba(238, 232, 216, 0.45);
+}
+
+.live-luck-say,
+.live-year-say {
+  font-size: 0.62rem;
+  line-height: 1.45;
+  color: rgba(238, 232, 216, 0.6);
+  margin-top: 2px;
+}
+
+.live-luck-now {
+  margin-top: 4px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #1a1206;
+  background: linear-gradient(135deg, #f0dfa0 0%, #d4af37 100%);
+  border-radius: 999px;
+  padding: 2px 0;
+}
+
+.live-years {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+/* ── 무료가 끝나는 자리 ────────────────────────────────── */
+.live-cut {
+  margin: 4px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.8;
+  color: #f4e7c0;
+  text-align: center;
+  padding: 14px 14px;
+  border-radius: 14px;
+  background: rgba(212, 175, 55, 0.07);
+  border: 1px dashed rgba(212, 175, 55, 0.32);
+}
+
+/* ── 계산 근거 ─────────────────────────────────────────── */
+.live-basis {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  padding: 11px 13px;
+}
+
+.live-basis > summary {
+  cursor: pointer;
+  font-size: 0.74rem;
+  color: rgba(238, 232, 216, 0.55);
+  list-style: none;
+}
+
+.live-basis > summary::-webkit-details-marker { display: none; }
+.live-basis > summary::before { content: '▸ '; color: rgba(212, 175, 55, 0.6); }
+.live-basis[open] > summary::before { content: '▾ '; }
+
+.live-basis-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 7px;
+  font-size: 0.7rem;
+}
+
+.live-basis-row dt {
+  margin: 0;
+  color: rgba(238, 232, 216, 0.45);
+  flex-shrink: 0;
+}
+
+.live-basis-row dd {
+  margin: 0;
+  color: rgba(238, 232, 216, 0.78);
+  text-align: right;
+}
+
+@media (max-width: 380px) {
+  .live-bar-row { grid-template-columns: 88px 1fr 34px; }
+  .live-pillar-letters { font-size: 1.12rem; }
+  .live-god i { display: none; }
+}
