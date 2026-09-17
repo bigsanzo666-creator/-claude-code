@@ -89,8 +89,14 @@ export const NO_VIDEOS: StageVideos = { walk: false, open: false };
  * 그래서 덮개 위에도 같은 정보를 놓는다. 값은 아래 푸터와 **같은 곳**
  * (렌더 환경변수 → BusinessInfo)에서 온다. 두 군데가 다른 말을 하면 그 자체가 위반이다.
  *
- * 첫 장면에만 둔다. 문 앞 화면은 신령이 화면을 채우고 아래에서 묻는 구조라
- * 여기에 줄을 더 넣으면 신령의 말이 화면 위로 밀려 잘린다.
+ * **길과 문 앞, 두 장면 모두에 둔다.**
+ * 처음에는 첫 장면(길)에만 두었는데, 길 영상이 끝나면 문 앞으로 저절로 넘어간다
+ * (`walk.addEventListener('ended', toGate)`). 그래서 손님도 심사자도 실제로
+ * 머무는 화면은 문 앞이고, 사업자 정보는 몇 초 만에 사라졌다.
+ *
+ * 문 앞은 신령이 화면을 채우고 발치에서 묻는 구조라 자리가 빠듯하다.
+ * 그래서 글자와 여백을 줄여 넣었고, 짧은 화면에서 신령의 말이 위로 밀려
+ * 잘리지 않는 것을 360×560 까지 재어 확인했다.
  */
 function renderStageBiz(info: BusinessInfo): string {
   const rows: Array<[string, string]> = [
@@ -109,7 +115,6 @@ function renderStageBiz(info: BusinessInfo): string {
   return `<footer class="st-biz">
     <nav class="st-biz-links">
       <a href="/products">판매 상품</a>
-      <a href="/pick">제왕절개 택일</a>
       <a href="/terms">이용약관</a>
       <a href="/privacy">개인정보처리방침</a>
       <a href="/refund">취소·환불</a>
@@ -227,6 +232,7 @@ export function renderStage(
       </form>
 
       <button type="button" class="st-skip" id="stSkip">밝히지 않고 그냥 둘러보기</button>
+      ${renderStageBiz(info)}
     </div>
   </section>
 
@@ -569,7 +575,17 @@ body.st-locked{overflow:hidden}
 .st-gate-who .st-veil-2{background:
   linear-gradient(to bottom,var(--nb-veil-0),var(--nb-veil-0) 42%,
   var(--nb-veil-1) 56%,var(--nb-paper) 66%)}
-.st-talk{display:grid;gap:0;padding-bottom:30px}
+/*
+ * 문 앞 화면은 발치에 넣을 것이 제일 많다 — 신령의 말, 묻는 칸,
+ * 「그냥 둘러보기」, 그리고 사업자 정보까지.
+ *
+ * 작은 폰(360×560)에서 생년월일·시각을 묻는 단계가 제일 높아져서, 그대로 두면
+ * 넘치는 만큼 **위가 잘려 신령의 말이 사라졌다.** 잘라 버리는 대신 이 칸
+ * 안에서만 밀어 볼 수 있게 한다. 자리가 넉넉하면 전과 똑같이 발치에 붙는다.
+ */
+.st-talk{display:flex;flex-direction:column;justify-content:flex-end;
+  top:0;overflow-y:auto;overscroll-behavior:contain;
+  padding-top:18px;padding-bottom:30px}
 .st-talk .st-form{grid-template-columns:1fr;gap:14px}
 
 /* ── 묻는 화면의 칸과 단추 ────────────────────────────────────
@@ -629,12 +645,12 @@ body.st-locked{overflow:hidden}
    「표시했다」고 하는 것은 표시한 것이 아니다.
    덮개 위에 얹는 것이라 흐름을 따라 내려간다. 띄우지 않는다 —
    띄우면 발치의 단추를 가리고, 가리면 손님이 못 들어온다. */
-.st-biz{margin:22px 0 0;padding:14px 0 0;border-top:1px solid var(--nb-line-soft)}
-.st-biz-links{display:flex;flex-wrap:wrap;gap:6px 14px;margin:0 0 9px}
-.st-biz-links a{font:12.5px var(--nb-sans);color:var(--nb-gold);text-decoration:none}
+.st-biz{margin:16px 0 0;padding:11px 0 0;border-top:1px solid var(--nb-line-soft)}
+.st-biz-links{display:flex;flex-wrap:wrap;gap:4px 13px;margin:0 0 7px}
+.st-biz-links a{font:12px var(--nb-sans);color:var(--nb-gold);text-decoration:none}
 .st-biz-links a:hover{text-decoration:underline;text-underline-offset:3px}
-.st-biz-rows{display:flex;flex-wrap:wrap;gap:2px 12px;margin:0;
-  font:11.5px/1.75 var(--nb-sans);color:var(--nb-ink-3);word-break:keep-all}
+.st-biz-rows{display:flex;flex-wrap:wrap;gap:0 10px;margin:0;
+  font:11px/1.6 var(--nb-sans);color:var(--nb-ink-3);word-break:keep-all}
 .st-biz-rows b{font-weight:400;color:var(--nb-ink-3);opacity:.75}
 
 /* 신령계·신령 판은 안에서 조금 움직일 수 있다. 뒤 화면으로 넘어가는 스크롤이 아니라
