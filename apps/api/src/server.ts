@@ -16,7 +16,7 @@ import { randomUUID } from 'node:crypto';
 import {
   CATALOG, getProduct, createOrder, markPending, markFulfilled, markViewed,
   hasEntitlement, assessRefund, refundNotice, confirmPayment, refundOrder, failOrder,
-  orderable, isOrderable, upsellFor,
+  orderable, isOrderable, upsellFor, packagesContaining,
   WITHDRAWAL_NOTICE, type Order, type PaymentGateway, type ProductId,
 } from '../../../packages/commerce/src/index.ts';
 import { cacheKey } from '../../../packages/report/src/cache.ts';
@@ -356,6 +356,36 @@ function upsellOffer(productId: string) {
     needsPartner: pack.needsPartner,
     members: pack.members.map((m) => ({ id: m, name: CATALOG[m].name, priceKrw: CATALOG[m].priceKrw })),
   };
+}
+
+/**
+ * 단품을 보고 있는 손님에게 **묶음을 전부 사다리로** 내민다.
+ *
+ * 하나만 내밀면 손님은 「살까 말까」 둘 중에 고른다. 셋을 나란히 놓으면
+ * 「어느 걸 살까」로 물음이 바뀐다. 사람은 양 끝을 피하고 가운데를 고른다.
+ *
+ * 값은 전부 계산된 것이다. 「따로 사면 얼마」는 구성 상품의 **실제 판매가
+ * 합계**이지 판 적 없는 정가가 아니다. 지어낸 할인율은 쓰지 않는다.
+ */
+function upsellOffers(productId: string) {
+  const packs = packagesContaining(productId as never);
+  if (!packs.length) return [];
+  const here = orderable(productId).priceKrw;
+  return packs.map((pack) => {
+    const apart = pack.members.reduce((sum, m) => sum + CATALOG[m].priceKrw, 0);
+    return {
+      id: pack.id,
+      name: pack.name,
+      hook: pack.hook,
+      priceKrw: pack.priceKrw,
+      addKrw: pack.priceKrw - here,
+      apartKrw: apart,
+      saveKrw: apart - pack.priceKrw,
+      recommended: pack.recommended === true,
+      needsPartner: orderable(pack.id).needsPartner,
+      members: pack.members.map((m) => ({ id: m, name: CATALOG[m].name, priceKrw: CATALOG[m].priceKrw })),
+    };
+  });
 }
 
 function validateReading(body: any): ReadingRequest {
@@ -733,6 +763,8 @@ export function createApi(deps: ApiDeps) {
         preview: { ...each[0].preview, contents },
         // 단품을 보고 있으면 이것을 품은 묶음을 함께 알려 준다
         upsell: item.isPackage ? null : upsellOffer(item.id),
+        // 묶음 사다리. 결제 직전에 단품·묶음을 나란히 놓는다
+        upsells: item.isPackage ? [] : upsellOffers(item.id),
       });
     },
 
