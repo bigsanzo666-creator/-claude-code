@@ -60,6 +60,7 @@ export function renderFooter(info: BusinessInfo): string {
   <nav class="biz-links">
     <a href="/products">판매 상품</a>
     <a href="/pick">제왕절개 택일</a>
+    <a href="/dream">꿈해몽</a>
     <a href="/terms">이용약관</a>
     <a href="/privacy">개인정보처리방침</a>
     <a href="/refund">취소·환불</a>

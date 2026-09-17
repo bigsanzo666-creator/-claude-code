@@ -23,6 +23,8 @@ const PAGES: { path: string; changefreq: string; priority: string }[] = [
   { path: '/', changefreq: 'daily', priority: '1.0' },
   // 택일은 아무도 자동으로 안 해 주는 자리다. 여기로 들어온 손님이 나머지를 본다
   { path: '/pick', changefreq: 'weekly', priority: '0.9' },
+  // 값을 받지 않는 입구다. 검색으로 사람이 들어오는 자리라 높게 둔다
+  { path: '/dream', changefreq: 'weekly', priority: '0.9' },
   { path: '/products', changefreq: 'weekly', priority: '0.8' },
   { path: '/terms', changefreq: 'yearly', priority: '0.2' },
   { path: '/privacy', changefreq: 'yearly', priority: '0.2' },

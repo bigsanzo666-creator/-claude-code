@@ -27,6 +27,7 @@ import {
   renderSpiritRow, renderSocialHead, HOME_TITLE, HOME_DESCRIPTION,
   renderStage, STAGE_CSS, STAGE_SCRIPT,
   renderPickPage, PLACES, TIMES, DATE_SLOTS, type PickForm,
+  renderDreamPage, readDream,
   renderRobots, renderSitemap,
   type BusinessInfo,
 } from '../../../packages/site-policy/src/index.ts';
@@ -713,6 +714,26 @@ export function createApi(deps: ApiDeps) {
      * 주소만 등록해 두면 무엇을 긁어야 하는지 몰라 수집이 한참 걸린다.
      * 값을 받지 않는 판으로 손님을 데려오는 장사라 이 두 파일이 곧 매출이다.
      */
+    /*
+     * 꿈해몽 — 값을 받지 않는다.
+     *
+     * 사람을 데려오는 입구다. 사주는 생년월일을 적어야 하지만 꿈은 아무것도
+     * 적을 필요가 없다. 문턱이 제일 낮아 검색으로 들어오기도 제일 쉽다.
+     *
+     * 모델을 부르지 않는다 — 표에서 꺼내므로 몇 명이 오든 원가가 0이다.
+     * 공짜로 내놓는 것에 모델을 붙이면 사람이 몰릴수록 돈이 나간다.
+     */
+    'GET /dream': async (_req, res) =>
+      sendHtml(res, renderDreamPage(business, renderFooter(business))),
+
+    'POST /dream': async (req, res) => {
+      const form = await readForm(req);
+      // 보내온 것을 그대로 믿지 않는다. 길이를 잘라서 쓴다
+      const text = String(form.get('text') ?? '').slice(0, 500);
+      const reading = text.trim() ? readDream(text) : null;
+      sendHtml(res, renderDreamPage(business, renderFooter(business), text, reading));
+    },
+
     'GET /robots.txt': async (_req, res) => {
       const body = renderRobots(business);
       res.writeHead(200, {
