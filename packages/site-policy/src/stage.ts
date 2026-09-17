@@ -75,6 +75,51 @@ export interface StageVideos {
 
 export const NO_VIDEOS: StageVideos = { walk: false, open: false };
 
+/**
+ * 첫 화면 발치에 붙는 사업자 정보.
+ *
+ * 전자상거래법 제10조가 요구하는 것이면서, **카드사·PG 등록심사가 실제로 보는
+ * 자리**다. 심사는 「메인 페이지 하단」을 본다.
+ *
+ * 아래에는 이미 온전한 푸터(`renderFooter`)가 깔려 있다. 그런데 첫 화면이
+ * 화면을 덮고 스크롤을 잠가서, 「그냥 둘러보기」를 누르지 않으면 그 푸터에
+ * 닿을 수 없었다. 심사자는 거기까지 찾지 않는다 —
+ * 2026-09-17 카카오페이 심사에서 「사이트 하단 정보 확인이 어렵다」로 보완 요청이 왔다.
+ *
+ * 그래서 덮개 위에도 같은 정보를 놓는다. 값은 아래 푸터와 **같은 곳**
+ * (렌더 환경변수 → BusinessInfo)에서 온다. 두 군데가 다른 말을 하면 그 자체가 위반이다.
+ *
+ * 첫 장면에만 둔다. 문 앞 화면은 신령이 화면을 채우고 아래에서 묻는 구조라
+ * 여기에 줄을 더 넣으면 신령의 말이 화면 위로 밀려 잘린다.
+ */
+function renderStageBiz(info: BusinessInfo): string {
+  const rows: Array<[string, string]> = [
+    ['상호', info.companyName],
+    ['대표', info.representative],
+    ['사업자등록번호', info.registrationNumber],
+    ['통신판매업 신고', info.mailOrderNumber || '신고 진행 중'],
+    ['주소', info.address],
+    ['전화', info.landline || info.phone],
+    ['이메일', info.email],
+  ];
+  const items = rows
+    .filter(([, v]) => v)
+    .map(([k, v]) => `<span><b>${esc(k)}</b> ${esc(v)}</span>`)
+    .join('\n      ');
+  return `<footer class="st-biz">
+    <nav class="st-biz-links">
+      <a href="/products">판매 상품</a>
+      <a href="/pick">제왕절개 택일</a>
+      <a href="/terms">이용약관</a>
+      <a href="/privacy">개인정보처리방침</a>
+      <a href="/refund">취소·환불</a>
+    </nav>
+    <p class="st-biz-rows">
+      ${items}
+    </p>
+  </footer>`;
+}
+
 export function renderStage(
   info: BusinessInfo, scenes: SceneImages = NO_SCENES, videos: StageVideos = NO_VIDEOS,
   faces: SpiritImages = NO_FACES_SET,
@@ -138,6 +183,7 @@ export function renderStage(
       <p class="st-kicker">${esc(info.serviceName || '늘봄사주')}</p>
       <h1 class="st-h">풍신령이<br><em>문까지 데려다</em> 드립니다</h1>
       <button type="button" class="st-next" id="stGo">문 앞으로</button>
+      ${renderStageBiz(info)}
     </div>
   </section>
 
@@ -577,6 +623,19 @@ body.st-locked{overflow:hidden}
 .st-skip{display:block;margin:16px 0 0;padding:0;border:0;background:none;
   font:13px var(--nb-sans);color:var(--nb-ink-3);text-decoration:underline;
   text-underline-offset:3px;cursor:pointer}
+
+/* ── 첫 화면 발치의 사업자 정보 ───────────────────────────────
+   심사가 보는 자리다. 작게 두되 **읽히게** 둔다 — 흐릿하게 깔아 놓고
+   「표시했다」고 하는 것은 표시한 것이 아니다.
+   덮개 위에 얹는 것이라 흐름을 따라 내려간다. 띄우지 않는다 —
+   띄우면 발치의 단추를 가리고, 가리면 손님이 못 들어온다. */
+.st-biz{margin:22px 0 0;padding:14px 0 0;border-top:1px solid var(--nb-line-soft)}
+.st-biz-links{display:flex;flex-wrap:wrap;gap:6px 14px;margin:0 0 9px}
+.st-biz-links a{font:12.5px var(--nb-sans);color:var(--nb-gold);text-decoration:none}
+.st-biz-links a:hover{text-decoration:underline;text-underline-offset:3px}
+.st-biz-rows{display:flex;flex-wrap:wrap;gap:2px 12px;margin:0;
+  font:11.5px/1.75 var(--nb-sans);color:var(--nb-ink-3);word-break:keep-all}
+.st-biz-rows b{font-weight:400;color:var(--nb-ink-3);opacity:.75}
 
 /* 신령계·신령 판은 안에서 조금 움직일 수 있다. 뒤 화면으로 넘어가는 스크롤이 아니라
    이 화면 안에서만 도는 것이다 */
