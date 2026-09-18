@@ -10,7 +10,7 @@
  * 기동 로그에 분명히 남긴다.
  */
 
-import { PortOneGateway } from '../../../packages/commerce/src/index.ts';
+import { CATALOG, PortOneGateway } from '../../../packages/commerce/src/index.ts';
 import { generateReport, MemoryReportCache } from '../../../packages/report/src/index.ts';
 import { loadBusinessInfo, missingFields } from '../../../packages/site-policy/src/index.ts';
 import { createPool, migrate, PostgresOrderStore, PostgresReportStore } from '../../../packages/store/src/index.ts';
@@ -106,6 +106,16 @@ console.log(`  사업자정보 ${missing.length ? `미입력 ${missing.length}�
 const productImages = findProductImages();
 const strays = strayImages();
 console.log(`  상품그림  ${productImages.size} / ${ALL_PRODUCT_IDS.length}장`);
+/*
+ * 몇 장 빠졌는지가 아니라 **무엇이 빠졌는지**를 적는다.
+ *
+ * 「25 / 31장」만 보고는 어느 상품을 다시 뽑아야 하는지 알 수 없다.
+ * 배포 기록만 보고 바로 그림을 채울 수 있어야 한다.
+ */
+const noImage = ALL_PRODUCT_IDS.filter((id) => !productImages.has(id));
+if (noImage.length) {
+  console.log(`  ↳ 그림 없는 상품: ${noImage.map((id) => `${CATALOG[id].name}(${id})`).join(', ')}`);
+}
 if (strays.length) {
   console.warn(`  ⚠ 이름이 카탈로그와 맞지 않는 그림 ${strays.length}개: ${strays.join(', ')}`);
 }

@@ -69,6 +69,16 @@ const KOREAN_NAMES: Record<string, string> = {
   '얼굴과손': 'face-palm-report',
   '사주손금': 'saju-palm-report',
   '사주관상': 'saju-face-report',
+  '제왕절개': 'pick-report',
+  '택일': 'pick-report',
+  '이름짓기': 'naming-report',
+  '작명': 'naming-report',
+  '이름안겹치게': 'naming-plus-report',
+  '작명플러스': 'naming-plus-report',
+  '시험운': 'exam-report',
+  '합격운': 'exam-report',
+  '진학운': 'admission-report',
+  '취업운': 'job-report',
 };
 
 /** 띄어쓰기·밑줄·유니코드 조합 차이를 지운다 — 「돈 그릇」도 「돈그릇」으로 본다 */

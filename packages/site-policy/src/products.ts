@@ -36,6 +36,23 @@ function esc(value: string): string {
 const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
 
 /**
+ * 그림 자리.
+ *
+ * 그림이 아직 없는 상품은 **자리를 아예 안 만들고 있었다.** 그러면 격자에서
+ * 옆 칸은 그림이 있고 이 칸만 짧아져 줄이 어긋난다 — 빠뜨린 것처럼 보인다.
+ *
+ * 그림이 없으면 그 상품을 파는 신령의 **도장 한 글자**로 자리를 지킨다.
+ * 신령 얼굴이 이미 같은 방식을 쓰고 있다. 그림이 들어오면 저절로 바뀐다.
+ */
+function shot(product: Product, images: ProductImages): string {
+  if (images.has(product.id)) {
+    return `<span class="pr-shot"><img class="pr-thumb" src="${imageUrl(product.id)}" alt="" width="480" height="640" loading="lazy" decoding="async"></span>`;
+  }
+  const keeper = spiritOf(product.category);
+  return `<span class="pr-shot pr-seal" aria-hidden="true">${esc(keeper?.seal ?? '命')}</span>`;
+}
+
+/**
  * 그림이 있는 상품의 아이디 모음.
  *
  * 서버가 기동할 때 실제로 있는 파일을 세어 넘겨준다. 여기서 파일을 뒤지지 않는
@@ -147,12 +164,9 @@ function productCard(
   // 21개를 낱장으로 늘어놓으면 아무도 끝까지 못 본다. 그래서 목록은 **그림 격자**다 —
   // 후킹 질문·이름·값만 싣고, 설명과 담기는 내용은 상세 페이지가 맡는다.
   // alt 를 비우는 것은 장식이기 때문이다. 바로 아래에 상품 이름이 글자로 있다.
-  const shot = images.has(product.id)
-    ? `<span class="pr-shot"><img class="pr-thumb" src="${imageUrl(product.id)}" alt="" width="480" height="640" loading="lazy" decoding="async"></span>`
-    : '';
   return `<article class="pr-card">
   <a class="pr-link" href="/products/${esc(product.id)}">
-    ${shot}
+    ${shot(product, images)}
     ${product.hook === groupQuestion ? '' : `<span class="pr-hook">${esc(product.hook)}</span>`}
     <h3>${esc(product.name)}</h3>
   </a>
@@ -170,12 +184,9 @@ function productCard(
  */
 function featureCard(product: Product, ready: boolean, images: ProductImages, prices = true): string {
   const items = (CONTENTS[product.id] ?? []).map((t) => `<li>${bold(t)}</li>`).join('');
-  const shot = images.has(product.id)
-    ? `<span class="pr-shot"><img class="pr-thumb" src="${imageUrl(product.id)}" alt="" width="480" height="640" loading="lazy" decoding="async"></span>`
-    : '';
   return `<article class="pr-card pr-wide">
   <a class="pr-link" href="/products/${esc(product.id)}">
-    ${shot}
+    ${shot(product, images)}
     <span class="pr-body">
       <span class="pr-tag">가장 깊이 봅니다</span>
       <span class="pr-hook">${esc(product.hook)}</span>
@@ -277,6 +288,11 @@ body{background:var(--nb-paper)}
 .pr-shot{display:block;aspect-ratio:3/4;overflow:hidden;
   background:var(--nb-paper-2);border:1px solid var(--nb-line-soft)}
 .pr-thumb{width:100%;height:100%;object-fit:cover}
+/* 그림이 아직 없는 자리. 빈 네모 대신 그 갈래를 지키는 신령의 도장이 선다 */
+.pr-seal{display:flex;align-items:center;justify-content:center;
+  font-family:var(--nb-serif);font-size:38px;color:var(--nb-gold);opacity:.5;
+  background:var(--nb-paper-2)}
+.pr-wide .pr-seal{font-size:52px}
 /* 확대는 쇼핑몰 몸짓이다. 수묵 그림에는 테두리 한 줄이면 된다 */
 .pr-shot{transition:border-color .15s}
 .pr-link:hover .pr-shot,.pr-link:focus .pr-shot{border-color:var(--nb-gold)}
