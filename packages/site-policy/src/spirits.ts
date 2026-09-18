@@ -392,3 +392,172 @@ export const SPIRITS_CSS = `
   .sp-card{flex:none}
   .sp-card .sp-face{width:92px;height:92px}
 }`;
+
+/* ═══════════════════════════════════════════════════════════════════════
+   신령이 신령을 소개한다
+
+   이 집의 영업사원은 여덟이고, 각자 자기 분야만 본다. 손님이 한 신령의
+   풀이를 다 읽고 나면 **그 신령이 다음 신령에게 말을 넣는다.**
+
+       도화신령  "네 매력은 내가 봤다. 그런데 그 사람 마음은 내 소관이 아니야.
+                 실터의 연신령이 그걸 본다 — 내가 말을 넣어 줄까?"
+       연신령    "도화가 직접 부탁을 하다니. 그럼 특별히,
+                 네가 제일 궁금한 것 하나부터 봐 주지."
+
+   화면에 「묶음 39,800원 · 20% 아낍니다」라고 적는 것과 파는 물건은 같다.
+   다른 것은 **손님이 그것을 할인으로 받느냐 부탁으로 받느냐**다.
+
+   ## 왜 신령마다 한 줄씩만 두는가
+
+   여덟이 서로를 소개하면 짝이 쉰여섯이다. 쉰여섯 벌을 손으로 적으면
+   반드시 어딘가 어색해지고, 신령을 하나 더 들일 때마다 열다섯 줄이 는다.
+   그래서 **보내는 말 여덟 줄, 맞는 말 여덟 줄**만 둔다. 상대 이름은 끼워 넣는다.
+
+   ## 같은 신령이면 소개가 아니다
+
+   「늘봄 아이」처럼 한 신령 안에서 끝나는 묶음이 절반이다. 거기서 남을
+   부르면 말이 안 된다. 그때는 그 신령이 직접 「기왕 온 김에」로 말한다.
+
+   ## 지어낸 할인율은 여기에도 없다
+
+   신령이 「특별히 깎아 준다」고 말하지만, 그 값은 구성 상품 **실제 판매가의
+   합**에서 깎은 값이다. 판 적 없는 정가를 지어내지 않는다.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/** 보내는 신령이 하는 말. `to` 에 받을 신령 이름, `place` 에 그 신령이 사는 곳이 들어간다 */
+export const SEND_OFF: Record<string, (to: string, place: string) => string> = {
+  flower: (to, place) =>
+    `네 쪽은 꽃가지로 다 짚었다. 그런데 그 다음은 내 꽃밭 밖의 일이야. ` +
+    `${place}에 ${to}이 있다 — 내가 말을 넣어 줄까?`,
+  moon: (to, place) =>
+    `물에 비친 달까지는 내가 봤다. 여기서부터는 달빛이 안 닿아. ` +
+    `${place}의 ${to}에게 부탁해 두마.`,
+  thread: (to, place) =>
+    `걸린 실은 다 세었다. 실이 어디로 이어지는지는 ${place}에서 봐야 해. ` +
+    `${to}에게 내가 한마디 해 두지.`,
+  mountain: (to, place) =>
+    `이 집 일은 여기까지 봤다. 나머지는 ${place}의 ${to}이 나보다 낫지. ` +
+    `늙은이가 부탁하면 그 아이가 안 거절한단다.`,
+  mirror: (to, place) =>
+    `거울에 비친 것은 다 보여 주었다. 거울 밖의 일은 ${place}의 ${to}이 본다. ` +
+    `내가 비춰 보낸 사람이라고 말해 두마.`,
+  cross: (to, place) =>
+    `세 가닥을 겹쳐 봤으니 큰 그림은 잡혔다. 한 가닥을 더 당겨 보려면 ` +
+    `${place}의 ${to}에게 가야 해. 내 매듭을 보여 주면 알아볼 거야.`,
+  jar: (to, place) =>
+    `그릇 크기는 됫박으로 달았다. 그 그릇이 언제 어떻게 채워지는지는 ` +
+    `${place}의 ${to} 몫이야. 곳간 열쇠를 들려 보내마.`,
+  wind: (to, place) =>
+    `종이 울리는 때는 일러 주었다. 울린 뒤에 무엇이 오는지는 ` +
+    `${place}의 ${to}이 안다. 바람 편에 말을 실어 보내지.`,
+};
+
+/** 소개받은 신령이 하는 말. `from` 에 보낸 신령 이름이 들어간다 */
+export const WELCOME: Record<string, (from: string) => string> = {
+  flower: (from) =>
+    `${from}이 직접 말을 넣었구나. 그 아이가 아무한테나 그러지 않는데. ` +
+    `그럼 꽃가지 하나 더 꺾어 주지 — 제일 궁금한 것 하나, 그것부터 말해 보렴.`,
+  moon: (from) =>
+    `${from}의 부탁이라면 달빛을 조금 더 비춰 주마. ` +
+    `가슴에 걸린 것 하나만 말해 보렴. 그것부터 보자.`,
+  thread: (from) =>
+    `${from}이 청을 넣다니. 그 아이 부탁은 내가 안 거절한다. ` +
+    `실을 한 가닥 더 풀어 주마 — 제일 알고 싶은 것 하나를 말해 보렴.`,
+  mountain: (from) =>
+    `${from}이 보냈으면 그냥 온 손님이 아니지. 앉아 보렴. ` +
+    `이 늙은이한테 묻고 싶은 것 하나, 그것도 같이 봐 주마.`,
+  mirror: (from) =>
+    `${from}의 소개라면 거울을 한 번 더 닦아 주지. ` +
+    `비춰 보고 싶은 것 하나를 말해 보렴. 거울은 안 속인다.`,
+  cross: (from) =>
+    `${from}이 보낸 사람이구나. 그럼 매듭을 하나 더 풀어 주마. ` +
+    `셋을 겹쳐서 꼭 확인하고 싶은 것 하나, 그것을 말해 보렴.`,
+  jar: (from) =>
+    `${from}의 청이라면 곳간 문을 조금 더 열어 주지. ` +
+    `돈 때문에 제일 걸리는 것 하나를 말해 보렴. 그것부터 달아 보자.`,
+  wind: (from) =>
+    `${from}이 바람 편에 말을 실어 보냈구나. 그럼 종을 한 번 더 울려 주마. ` +
+    `때를 알고 싶은 것 하나, 그것을 말해 보렴.`,
+};
+
+/** 같은 신령 안에서 하나 더 볼 때. 소개가 아니라 「기왕 온 김에」다 */
+export const ONE_MORE: Record<string, string> = {
+  flower: '기왕 꽃가지를 들었으니 이것도 같이 짚어 줄까. 따로 오는 것보다 낫다.',
+  moon: '달이 아직 안 기울었다. 이것까지 같이 비춰 봐 주마.',
+  thread: '실타래를 이미 풀었으니 한 가닥 더 세는 건 어렵지 않다.',
+  mountain: '앉은 김에 이것도 같이 보자꾸나. 두 번 걸음할 것 없다.',
+  mirror: '거울을 닦아 놓았으니 이것도 같이 비춰 주마.',
+  cross: '매듭을 이미 풀었으니 여기서 한 가닥 더 당겨 보자.',
+  jar: '됫박을 꺼낸 김에 이것도 같이 달아 주지.',
+  wind: '종이 울리는 참이니 이것도 같이 들어 보자.',
+};
+
+/**
+ * 소개로 넘어간 손님에게 **실제로 더 주는 것**.
+ *
+ * 신령이 「원하는 것 하나를 말해 보렴」이라고 하면, 그 말은 지켜야 한다.
+ * 그래서 묶음으로 사면 리포트에 **손님이 적은 물음 하나**가 함께 들어간다.
+ * 말만 하고 안 주면 그게 거짓 광고다.
+ */
+export const HANDOFF_GIFT = '신령에게 묻고 싶은 것 하나를 적어 주시면, 리포트에 그 답까지 함께 담아 드립니다.';
+
+/** 소개 한 판에 필요한 것 전부 */
+export interface Handoff {
+  /** 같은 신령이면 소개가 아니라 「기왕 온 김에」다 */
+  kind: '소개' | '덧보기';
+  fromId: string;
+  fromName: string;
+  toId: string;
+  toName: string;
+  toPlace: string;
+  /** 보내는 신령의 말. 「덧보기」면 빈 문자열 */
+  send: string;
+  /** 받는 신령의 말. 「덧보기」면 그 신령이 직접 하는 말 */
+  greet: string;
+  gift: string;
+}
+
+/** 신령 아이디로 찾는다. 모르는 아이디면 null */
+function bySpiritId(id: string) {
+  return SPIRITS.find((s) => s.id === id) ?? null;
+}
+
+/**
+ * 어느 신령에게서 어느 신령에게로 넘어가는가.
+ *
+ * 같은 신령이면 「덧보기」, 다르면 「소개」다.
+ * 모르는 신령이 들어오면 null 을 돌려준다 — 없는 말을 지어내지 않는다.
+ */
+export function handoffBetween(fromId: string, toId: string): Handoff | null {
+  const from = bySpiritId(fromId);
+  const to = bySpiritId(toId);
+  if (!from || !to) return null;
+
+  if (from.id === to.id) {
+    const say = ONE_MORE[from.id];
+    if (!say) return null;
+    return {
+      kind: '덧보기',
+      fromId: from.id, fromName: from.name,
+      toId: to.id, toName: to.name, toPlace: to.place,
+      send: '', greet: say, gift: HANDOFF_GIFT,
+    };
+  }
+
+  const send = SEND_OFF[from.id];
+  const greet = WELCOME[to.id];
+  if (!send || !greet) return null;
+  return {
+    kind: '소개',
+    fromId: from.id, fromName: from.name,
+    toId: to.id, toName: to.name, toPlace: to.place,
+    send: send(to.name, to.place),
+    greet: greet(from.name),
+    gift: HANDOFF_GIFT,
+  };
+}
+
+/** 어느 갈래를 어느 신령이 지키는가 */
+export function spiritOfCategory(category: string): string | null {
+  return SPIRITS.find((s) => s.keeps === category)?.id ?? null;
+}
