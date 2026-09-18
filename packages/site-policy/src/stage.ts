@@ -274,34 +274,25 @@ ${SPIRITS.map((sp) => renderSpiritStage(sp, scenes, faces)).join('\n')}
  * 맨 위에는 **무료 사주**를 크게 건다. 이미 태어난 날을 받았으므로 볼 것이
  * 이미 있다. 값을 묻기 전에 먼저 주는 것이 순서다.
  */
-/**
- * 신령들이 서 있는 자리.
- *
- * 배경 그림(`신령계`) 안의 장소와 **같은 자리**여야 한다. 그림에는 기와집이
- * 왼쪽 위에 있는데 산신령이 오른쪽 아래에 서 있으면 지도가 아니라 그냥
- * 그림 위에 얹은 단추다.
- *
- * 값은 그림 가로·세로에 대한 %다. 그림을 새로 뽑으면 **여기 숫자만 고친다.**
- * 배경 프롬프트(`docs/scene-prompts.md`)에 같은 자리를 못 박아 두었다.
- */
-const SPOTS: Record<string, { x: number; y: number }> = {
-  // 신령계.jpg 안의 장소 자리에 맞춘 값이다. 그림을 새로 뽑으면 여기만 고친다
-  mountain: { x: 21, y: 17 },   // 왼쪽 위 — 산자락 기와집
-  wind: { x: 79, y: 15 },       // 오른쪽 위 — 누각 처마와 풍경
-  flower: { x: 21, y: 34 },     // 왼쪽 — 복사꽃 나무
-  thread: { x: 82, y: 36 },     // 오른쪽 — 붉은 실 걸린 나무
-  mirror: { x: 50, y: 50 },     // 가운데 — 맑은 샘
-  jar: { x: 20, y: 66 },        // 왼쪽 아래 — 곳간과 항아리
-  moon: { x: 79, y: 70 },       // 오른쪽 아래 — 달 비친 연못
-  // 돌길 한가운데. 셋을 겹쳐 보는 신령이라 어느 터에도 치우치지 않는다
-  cross: { x: 50, y: 26 },      // 가운데 위 — 돌계단 길
-};
 
 /**
- * 신령계 — 누구에게 물을지 고르는 화면.
+ * 신령계 — 누구에게 물을지 고르는 **메뉴판**.
  *
- * 격자로 늘어놓으면 그냥 목록이다. **배경 그림 위에 신령을 자리마다 세운다.**
- * 손님은 상품 이름이 아니라 「저기 저 사람한테 물어볼까」로 고른다.
+ * ## 마당을 없앴다
+ *
+ * 전에는 배경 그림 위에 신령 여덟을 자리마다 세웠다. 그림은 예뻤지만
+ * **작은 화면에서 얼굴이 손톱만 했고**, 무엇을 봐 주는 신령인지 읽으려면
+ * 눈을 굴려야 했다. 손님이 고르는 데 쓰는 시간이 곧 이탈이다.
+ *
+ * 그래서 **옆으로 미는 카드 판**으로 바꿨다. 한 장이 화면의 74%를 차지하고
+ * 다음 장이 옆에 걸쳐 보인다 — 걸쳐 보이는 것이 「더 있다」는 신호라서
+ * 손님이 민다. 안 걸치면 한 장만 보고 끝난다.
+ *
+ * ## 값은 여기서 말하지 않는다
+ *
+ * 아직 뭘 봐 주는지도 모르는 사람에게 계산부터 시키면 물러선다.
+ * 카드에는 **얼굴 · 이름 · 담당 · 손님이 품은 물음** 넷만 있다.
+ * 값은 `/products` 에 전부 적혀 있어 카드사 심사에도 문제가 없다.
  *
  * 맨 아래에 **무료 사주**를 걸어 둔다. 값을 묻기 전에 먼저 주는 것이 순서다.
  */
@@ -309,22 +300,30 @@ function renderWorld(
   scenes: SceneImages, faces: SpiritImages, clips: SpiritImages, clipWebms: SpiritImages,
 ): string {
   const shot = scenes.has('world') ? ` style="--st-shot:url(${sceneUrl('world')})"` : '';
-  const pins = SPIRITS.map((sp) => {
-    const at = SPOTS[sp.id] ?? { x: 50, y: 50 };
-    return `      <button type="button" class="wd-pin" data-sp="${esc(sp.id)}"
-        style="left:${at.x}%;top:${at.y}%" aria-label="${esc(sp.name)} — ${esc(sp.keeps)}">
-        ${stageFace(sp.id, sp.seal, faces, 72)}
-        <span class="wd-tag"><b>${esc(sp.name)}</b><i>${esc(sp.keeps)}</i></span>
+  const cards = SPIRITS.map((sp) => {
+    // 손님 머릿속에 이미 있는 물음을 그대로 적는다. 상품 이름은 그 다음이다
+    const ask = CATEGORIES.find((c) => c.key === sp.keeps)?.question ?? sp.intro;
+    return `      <button type="button" class="wd-card" data-sp="${esc(sp.id)}"
+        aria-label="${esc(sp.name)} — ${esc(ask)}">
+        ${cardFace(sp.id, sp.seal, faces)}
+        <span class="wd-c-in">
+          <span class="wd-c-who"><b>${esc(sp.name)}</b><i>${esc(sp.keeps)}</i></span>
+          <span class="wd-c-ask">${esc(ask)}</span>
+        </span>
       </button>`;
   }).join('\n');
 
   return `  <section class="st" id="stWorld"${shot}>
-    <div class="st-map">
-${pins}
-    </div>
-    <div class="wd-bottom">
+    <div class="st-veil st-veil-3"></div>
+    <div class="wd-head">
       <p class="st-kicker" id="stHello">신령계</p>
       <h2 class="st-h wd-h">누구에게 <em>물어보시겠습니까</em></h2>
+    </div>
+    <div class="wd-rail" role="list">
+${cards}
+    </div>
+    <div class="wd-bottom">
+      <p class="wd-swipe" aria-hidden="true">옆으로 밀어 여덟 신령을 보세요</p>
       <button type="button" class="wd-free" id="stFree">
         <span class="wd-free-t">먼저, 무료로 보는 내 사주</span>
         <span class="wd-free-go">공짜로 보기 →</span>
@@ -332,6 +331,20 @@ ${pins}
     </div>
 ${renderPeeks(faces, clips, clipWebms)}
   </section>`;
+}
+
+/**
+ * 메뉴판 카드의 얼굴 — **세로로 긴 네모**다.
+ *
+ * 둥근 얼굴은 목록에서 작아 보인다. 3:4 로 크게 세우면 그림이 상품처럼 선다.
+ * 그림이 없으면 도장 한 글자가 같은 크기 자리를 지킨다.
+ */
+function cardFace(id: string, seal: string, faces: SpiritImages): string {
+  if (!faces.has(id)) {
+    return `<span class="wd-c-shot wd-c-seal" aria-hidden="true">${esc(seal)}</span>`;
+  }
+  return `<span class="wd-c-shot"><img src="${spiritImageUrl(id)}" alt=""
+          width="300" height="400" loading="lazy" decoding="async"></span>`;
 }
 
 /**
@@ -668,39 +681,70 @@ body.st-locked{overflow:hidden}
   color:var(--nb-gold)}
 
 /* 신령계 — 배경 그림 위에 신령이 자리마다 서 있다 */
-#stWorld{background-position:center;background-size:cover}
-.st-map{position:absolute;inset:0}
-.wd-pin{position:absolute;transform:translate(-50%,-50%);display:grid;justify-items:center;
-  gap:5px;padding:0;border:0;background:none;cursor:pointer;font:inherit;color:inherit;
-  animation:wdFloat 5.5s ease-in-out infinite alternate}
-.wd-pin:nth-child(2n){animation-duration:6.5s}
-.wd-pin:nth-child(3n){animation-duration:7.5s}
-@keyframes wdFloat{from{transform:translate(-50%,-50%)}to{transform:translate(-50%,calc(-50% - 7px))}}
-.wd-pin .st-face{width:54px;height:54px;
-  box-shadow:0 0 0 1px var(--nb-paper-2),0 6px 18px rgba(0,0,0,.28)}
-.wd-pin .st-seal{font-size:21px}
-.wd-pin:hover .st-face,.wd-pin:focus-visible .st-face{border-color:var(--nb-gold);
-  box-shadow:0 0 0 2px var(--nb-gold),0 6px 18px rgba(0,0,0,.28)}
-.wd-tag{display:grid;justify-items:center;padding:3px 9px;background:var(--nb-veil-1);
-  backdrop-filter:blur(2px)}
-.wd-tag b{font-family:var(--nb-serif);font-weight:500;font-size:13px;white-space:nowrap}
-.wd-tag i{font-style:normal;font-size:10.5px;letter-spacing:.12em;color:var(--nb-gold)}
+/* ── 신령계 메뉴판 ──────────────────────────────────────────
+   배경 그림은 남기되 뒤로 물린다. 주인공은 카드다 */
+/* 세 칸(제목·카드·무료사주)을 한 덩어리로 세로 가운데에 둔다.
+   가운데 칸을 1fr 로 두면 카드 밑에 빈 바닥이 길게 남는다 */
+#stWorld{background-position:center;background-size:cover;
+  display:grid;grid-template-rows:auto auto auto;align-content:center}
+#stWorld .st-veil-3{background:linear-gradient(to bottom,
+  rgba(6,6,10,.82),rgba(6,6,10,.62) 40%,rgba(6,6,10,.9))}
 
-/* 제목을 아래에 둔다. 위에 두면 그림 위쪽의 기와집과 누각을 덮는다.
-   지도가 주인공이고 글자는 그 아래에서 거든다 */
-.wd-h{font-size:21px;margin:0 0 14px;line-height:1.4;word-break:keep-all;
-  max-width:520px;margin-left:auto;margin-right:auto}
-.wd-bottom{position:absolute;left:0;right:0;bottom:0;padding:56px 20px 22px;
-  background:linear-gradient(to top,var(--nb-paper) 44%,var(--nb-veil-1) 76%,var(--nb-veil-0))}
-.wd-bottom .st-kicker{max-width:520px;margin:0 auto 8px}
+.wd-head{position:relative;z-index:2;padding:26px 20px 14px;
+  max-width:560px;margin:0 auto;width:100%;box-sizing:border-box}
+.wd-h{font-size:22px;margin:0;line-height:1.4;word-break:keep-all}
+
+/*
+ * 옆으로 미는 판.
+ *
+ * 카드 하나가 화면의 74%를 차지하고 **다음 장이 옆에 걸쳐** 보인다.
+ * 걸쳐 보이는 것이 「더 있다」는 신호라서 손님이 민다. 딱 맞게 끊으면
+ * 한 장만 보고 끝낸다. 손을 떼면 카드가 자리에 맞춰 선다(scroll-snap).
+ */
+/* 카드는 제 내용만큼만 높다. 늘려 두면 이름과 물음 사이가 휑하게 벌어진다 */
+.wd-rail{position:relative;z-index:2;display:flex;align-items:flex-start;gap:12px;
+  overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;
+  padding:4px 20px 18px;scrollbar-width:none}
+.wd-rail::-webkit-scrollbar{display:none}
+
+.wd-card{flex:0 0 74%;max-width:300px;scroll-snap-align:center;
+  display:grid;gap:0;padding:0;border:1px solid var(--nb-line);border-radius:14px;
+  background:var(--nb-paper-2);overflow:hidden;cursor:pointer;font:inherit;color:inherit;
+  text-align:left;transition:border-color .15s ease,transform .15s ease}
+.wd-card:hover,.wd-card:focus-visible{border-color:var(--nb-gold);transform:translateY(-3px)}
+
+/* 세로로 긴 네모. 둥근 얼굴은 목록에서 작아 보인다 */
+.wd-c-shot{display:block;width:100%;aspect-ratio:3/4;overflow:hidden;background:var(--nb-paper-3)}
+.wd-c-shot img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 18%}
+.wd-c-seal{display:flex;align-items:center;justify-content:center;
+  font-family:var(--nb-serif);font-size:56px;color:var(--nb-gold);opacity:.5}
+
+.wd-c-in{display:grid;align-content:start;gap:7px;padding:14px 15px 16px}
+.wd-c-who{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.wd-c-who b{font-family:var(--nb-serif);font-weight:500;font-size:17px}
+.wd-c-who i{font-style:normal;font-size:11px;letter-spacing:.14em;color:var(--nb-gold)}
+/* 손님 머릿속에 이미 있는 물음. 카드에서 제일 크게 읽혀야 한다 */
+.wd-c-ask{font-family:var(--nb-serif);font-size:16px;line-height:1.55;
+  color:var(--nb-ink);word-break:keep-all}
+
+.wd-bottom{position:relative;z-index:2;padding:0 20px 22px;
+  max-width:560px;margin:0 auto;width:100%;box-sizing:border-box}
+.wd-swipe{margin:0 0 12px;font-size:12px;letter-spacing:.06em;color:var(--nb-ink-3);text-align:center}
 .wd-free{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
-  max-width:520px;margin:0 auto;padding:15px 20px;border:1px solid var(--nb-gold);
+  padding:15px 20px;border:1px solid var(--nb-gold);border-radius:12px;
   background:var(--nb-paper-2);cursor:pointer;font:inherit;color:inherit;text-align:left}
-.wd-free:hover{background:var(--nb-paper)}
+.wd-free:hover{background:var(--nb-paper-3)}
 .wd-free-t{font-family:var(--nb-serif);font-size:16.5px;word-break:keep-all}
 .wd-free-go{font-size:13.5px;color:var(--nb-gold);white-space:nowrap}
 
-@media (prefers-reduced-motion:reduce){ .wd-pin{animation:none} }
+/* 넓은 화면에서는 밀 필요가 없다. 한눈에 펼친다 */
+@media (min-width:760px){
+  .wd-rail{flex-wrap:wrap;justify-content:center;overflow:visible;scroll-snap-type:none}
+  .wd-card{flex:0 0 200px}
+  .wd-swipe{display:none}
+}
+@media (prefers-reduced-motion:reduce){ .wd-card{transition:none} }
 
 /* 나가시겠습니까 */
 .st-ask{position:absolute;inset:0;z-index:10;display:grid;place-items:center;padding:24px;
@@ -889,8 +933,6 @@ body.st-locked{overflow:hidden}
   .st{left:50%;right:auto;transform:translateX(-50%);
     width:min(100%,calc(100dvh * 784 / 1168))}
   .st-h{font-size:34px}
-  .wd-pin .st-face{width:72px;height:72px}
-  .wd-tag b{font-size:14.5px}
   .wd-h{font-size:27px}
   .st-page{padding:56px 24px}
   .st-in{padding-bottom:52px}
@@ -1162,8 +1204,8 @@ export const STAGE_SCRIPT = `<script>(function(){
   };
 
   stage.addEventListener('click',function(e){
-    var pin=e.target.closest('.wd-pin');
-    if(pin){ openPeek(pin.dataset.sp); return; }
+    var card=e.target.closest('.wd-card');
+    if(card){ openPeek(card.dataset.sp); return; }
     var go=e.target.closest('[data-peek-go]');
     if(go){ enter(go.dataset.peekGo); return; }
     if(e.target.closest('[data-peek-x]')){ history.back(); return; }

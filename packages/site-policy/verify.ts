@@ -411,17 +411,20 @@ section('10. 들어가는 길 — 전체 화면');
   }
   // 숫자를 박아 두면 신령이 늘 때마다 여기부터 깨진다. 신령 수를 따라간다
   check('신령마다 저마다 판을 갖는다', (st.match(/id="stSp-/g) ?? []).length === SPIRITS.length);
-  // 격자로 늘어놓으면 그냥 목록이다. 배경 그림 위에 자리마다 세운다
-  check('신령이 배경 그림 위 자리마다 선다',
-    (st.match(/class="wd-pin"/g) ?? []).length === SPIRITS.length);
-  check('신령마다 자리가 다르다',
-    new Set((st.match(/left:[0-9.]+%;top:[0-9.]+%/g) ?? [])).size === SPIRITS.length);
-  // 위는 제목이, 아래는 무료 사주가 차지한다. 그 사이에만 세워야 안 겹친다
-  check('제목·무료 사주와 겹치지 않는다',
-    (st.match(/top:([0-9.]+)%/g) ?? []).every((t) => {
-      const y = Number(t.slice(4, -1));
-      return y >= 10 && y <= 74;
-    }));
+  /*
+   * 메뉴판. 배경 그림 위에 얼굴을 흩어 놓던 것을 옆으로 미는 카드로 바꿨다.
+   * 작은 화면에서 얼굴이 손톱만 했고, 무엇을 봐 주는지 읽으려면 눈을 굴려야 했다.
+   */
+  check('신령마다 카드 한 장이 선다',
+    (st.match(/class="wd-card"/g) ?? []).length === SPIRITS.length);
+  check('카드가 옆으로 밀린다', STAGE_CSS.includes('scroll-snap-type:x mandatory'));
+  // 딱 맞게 끊으면 한 장만 보고 끝낸다. 다음 장이 걸쳐 보여야 민다
+  check('다음 장이 옆에 걸쳐 보인다', /\.wd-card\{flex:0 0 7[0-9]%/.test(STAGE_CSS));
+  // 카드에 제일 크게 읽혀야 하는 것은 상품 이름이 아니라 손님이 품은 물음이다
+  check('카드마다 손님이 품은 물음이 적힌다',
+    (st.match(/class="wd-c-ask"/g) ?? []).length === SPIRITS.length
+    && st.includes('이 사람, 어떨까?') && st.includes('먹고사는 일은 풀릴까?'));
+  check('얼굴은 세로로 긴 네모다', STAGE_CSS.includes('.wd-c-shot{display:block;width:100%;aspect-ratio:3/4'));
   check('신령계에서 무료 사주를 먼저 건다', st.includes('id="stFree"') && st.includes('무료'));
   // 아직 뭘 봐 주는지도 모르는 사람에게 계산부터 시키면 물러선다
   check('고르는 화면에는 값이 없다', !/[0-9],[0-9]{3}원/.test(st));
@@ -532,8 +535,8 @@ section('10. 들어가는 길 — 전체 화면');
   check('영상을 버리는 것은 데이터를 아낄 때뿐이다',
     STAGE_SCRIPT.includes("var thin=!!(c&&(c.saveData||/2g/.test(c.effectiveType||'')));"));
   // 저 혼자 도는 장식은 그때 멈춘다
-  check('떠다니는 신령 표는 그때 멈춘다',
-    STAGE_CSS.includes('@media (prefers-reduced-motion:reduce){ .wd-pin{animation:none} }'));
+  check('움직임을 줄여 달라면 카드도 안 움직인다',
+    STAGE_CSS.includes('@media (prefers-reduced-motion:reduce){ .wd-card{transition:none} }'));
 
   // 폰에서 뒤로가기는 제일 많이 누르는 단추다. 우리 화면은 주소가 안 바뀌므로
   // 그냥 두면 한 번에 사이트가 꺼진다 — 잘못 눌러 들어온 손님이 그대로 나간다
