@@ -415,7 +415,18 @@ function upsellOffers(productId: string) {
       needsPartner: orderable(pack.id).needsPartner,
       members: pack.members.map((m) => ({ id: m, name: CATALOG[m].name, priceKrw: CATALOG[m].priceKrw })),
     };
-  });
+  })
+    /*
+     * 내미는 차례를 **여기 한 곳에서** 정한다.
+     *
+     * 추천을 맨 위에, 그다음은 싼 것부터. 화면이 제 마음대로 줄을 세우면
+     * 화면을 고칠 때마다 차례가 흔들린다.
+     *
+     * 다만 차례만 바꾼다. **비싼 쪽을 미리 골라 두지는 않는다** — 그건
+     * 2024년 공정위가 다크패턴으로 이름 붙여 둔 짓이다. 고르는 것은 손님이고,
+     * 우리는 무엇이 있는지 보기 좋게 늘어놓을 뿐이다.
+     */
+    .sort((a, b) => (Number(b.recommended) - Number(a.recommended)) || (a.priceKrw - b.priceKrw));
 }
 
 function validateReading(body: any): ReadingRequest {

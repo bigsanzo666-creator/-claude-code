@@ -297,6 +297,9 @@ body.pair #panelF,body.pair #panelP{display:none}
 .pk-s{font-size:.8rem;color:var(--ink-3)}
 .pk-p{text-align:right;font-size:1rem;font-weight:700;color:var(--ink);white-space:nowrap}
 .pk-add{display:block;margin-top:.2rem;font-size:.76rem;font-weight:400;color:var(--ink-3)}
+/* 단품은 맨 아래 한 칸 물러서 있다. 감추지는 않는다 — 고르는 것은 손님이다 */
+.pk-solo{background:transparent}
+.pk-solo.pk-on{background:var(--surface)}
 /* 신령이 신령을 부르는 자리 — 값이 아니라 말이 서는 곳이다 */
 .hx{margin:.7rem 0 0;padding:1.05rem 1.1rem;border:1px solid var(--seal);
   background:var(--surface);border-radius:10px}
@@ -1097,19 +1100,23 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   function upsellRow() {
     var list = buyState.offers || [];
     if (!list.length) return '';
-    var solo = buyState.buying || 'cross-report';
     var soloName = buyState.soloName ||
       ((buyState.previewed && buyState.previewed.product && !buyState.pick)
         ? buyState.previewed.product.name : '');
     var soloPrice = list[0].priceKrw - list[0].addKrw;
 
-    var rows = '<label class="pk' + (!buyState.pick ? ' pk-on' : '') + '">' +
-      '<input type="radio" name="packPick" class="pkBox" value="" ' +
-        (!buyState.pick ? 'checked' : '') + '>' +
-      '<span class="pk-t"><b class="pk-h">' + esc(soloName || '이것만 받기') + '</b></span>' +
-      '<span class="pk-p">' + money(soloPrice) + '</span>' +
-    '</label>';
-
+    /*
+     * 묶음을 위에, 단품을 아래에 둔다.
+     *
+     * 단품이 맨 위에 있으면 손님이 푸는 문제가 「이거 살까 말까」다.
+     * 묶음이 먼저 눈에 들어오면 「어느 걸 살까」로 바뀐다. 차례는 서버가
+     * 정해서 보낸다 — 추천이 맨 앞, 그다음은 싼 것부터.
+     *
+     * 다만 **미리 골라 두는 것은 여전히 단품이다.** 비싼 쪽에 미리 점을
+     * 찍어 두는 건 공정위가 다크패턴으로 이름 붙여 둔 짓이다. 보여 주는
+     * 차례를 바꾸는 것과 손님 대신 골라 두는 것은 다른 일이다.
+     */
+    var rows = '';
     for (var i = 0; i < list.length; i++) {
       var o = list[i];
       var on = buyState.pick === o.id;
@@ -1127,9 +1134,20 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
           (o.needsPartner ? '<span class="pk-s">상대의 생년월일이 필요합니다</span>' : '') +
         '</span>' +
         '<span class="pk-p">' + money(o.priceKrw) +
-          '<span class="pk-add">여기서 +' + money(o.addKrw) + '</span></span>' +
+          '<span class="pk-add">단품보다 +' + money(o.addKrw) + '</span></span>' +
       '</label>';
     }
+
+    rows += '<label class="pk pk-solo' + (!buyState.pick ? ' pk-on' : '') + '">' +
+      '<input type="radio" name="packPick" class="pkBox" value="" ' +
+        (!buyState.pick ? 'checked' : '') + '>' +
+      '<span class="pk-t">' +
+        '<b class="pk-h">' + esc(soloName || '이것만 받기') + '</b>' +
+        '<span class="pk-s">묶지 않고 이것 하나만</span>' +
+      '</span>' +
+      '<span class="pk-p">' + money(soloPrice) + '</span>' +
+    '</label>';
+
     return '<div class="pk-wrap">' + rows + '</div>' + handoffBox(list);
   }
 

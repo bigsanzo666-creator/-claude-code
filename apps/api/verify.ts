@@ -801,6 +801,26 @@ check('따로 사면 값은 낱개 판매가의 합계',
 check('절약액은 그 차액', offer.saveKrw === offer.apartKrw - offer.priceKrw);
 check('제일 싼 묶음을 내민다', offer.id === upsellFor('cross-report')!.id);
 
+/*
+ * 사다리 차례.
+ *
+ * 추천이 맨 앞, 그다음은 싼 것부터. 화면이 제 마음대로 줄을 세우지 않도록
+ * 서버가 정해서 보낸다. 차례는 바꾸되 **미리 골라 두지는 않는다**.
+ */
+const ladder = single.body.upsells as any[];
+check('사다리를 함께 보낸다', Array.isArray(ladder) && ladder.length > 0, `${ladder?.length}칸`);
+check('추천이 맨 앞에 온다',
+  ladder.every((o, i) => i === 0 || !(o.recommended && !ladder[i - 1].recommended)),
+  ladder.map((o) => (o.recommended ? '★' : '·') + o.priceKrw).join(' '));
+check('그다음은 싼 것부터',
+  ladder.every((o, i) => i === 0 || ladder[i - 1].recommended || o.priceKrw >= ladder[i - 1].priceKrw));
+// 값만 보고 고르지 않게, 누가 불러 주는지를 함께 보낸다
+check('묶음마다 신령이 부르는 말이 붙는다',
+  ladder.every((o) => o.handoff && typeof o.handoff.greet === 'string' && o.handoff.greet.length > 0));
+// 화면에서 미리 체크되는 것은 단품이다. 서버는 그것을 강요할 수단을 주지 않는다
+check('서버가 대신 골라 두지 않는다',
+  ladder.every((o) => !('selected' in o) && !('checked' in o) && !('default' in o)));
+
 const before = generateCalls;
 const packOrder = await api('POST', '/api/orders',
   { ...packReading, acknowledgedNotice: true, previewShown: true });
