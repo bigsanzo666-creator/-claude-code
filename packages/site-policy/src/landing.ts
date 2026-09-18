@@ -78,10 +78,10 @@ export const LANDING_CSS = `
   letter-spacing:-.01em;word-break:keep-all;margin:0 0 14px}
 .lp-hero h1 em{font-style:normal;color:var(--nb-gold)}
 .lp-sub{margin:0 0 26px;font-size:15.5px;color:var(--nb-ink-2);max-width:30em;word-break:keep-all}
-.lp-cta{display:inline-block;padding:15px 34px;border:1px solid var(--nb-ink);background:var(--nb-ink);
-  color:var(--nb-paper-2);text-decoration:none;font-size:15.5px;font-weight:500;letter-spacing:.02em;
+.lp-cta{display:inline-block;padding:15px 34px;border:1px solid var(--nb-gold);background:var(--nb-gold);
+  color:var(--nb-paper);text-decoration:none;font-size:15.5px;font-weight:600;letter-spacing:.02em;
   transition:background .15s,color .15s}
-.lp-cta:hover,.lp-cta:focus{background:transparent;color:var(--nb-ink)}
+.lp-cta:hover,.lp-cta:focus{background:transparent;color:var(--nb-gold)}
 .lp-free{display:block;margin-top:14px;font-size:13px;color:var(--nb-ink-3)}
 .lp-pledge{padding:56px 0 0}
 .lp-row{display:grid;gap:0}

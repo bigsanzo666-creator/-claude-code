@@ -231,7 +231,7 @@ ${renderSocialHead(info, {
   })}
 ${FONT_LINK}
 <style>
-:root{color-scheme:light}
+:root{color-scheme:dark}
 body{margin:0}
 ${PRODUCTS_CSS}
 ${PICK_CSS}
@@ -317,9 +317,9 @@ export const PICK_CSS = `
 .pk-t input{width:20px;height:20px;margin:0;accent-color:var(--nb-ink);cursor:pointer}
 .pk-on{border-color:var(--nb-gold);background:var(--nb-paper-2)}
 .pk-go{width:100%;min-height:52px;padding:15px;border:0;border-radius:12px;
-  background:linear-gradient(to bottom,#2b3550,var(--nb-ink));
-  color:var(--nb-paper-2);font:600 16px var(--nb-sans);cursor:pointer;
-  box-shadow:0 1px 2px rgba(20,26,40,.28),0 6px 16px -8px rgba(20,26,40,.5)}
+  background:linear-gradient(135deg,var(--nb-gold),#A37C15);
+  color:#120D04;font:700 16px var(--nb-sans);cursor:pointer;
+  box-shadow:0 8px 30px rgba(212,175,55,.34)}
 .pk-go:hover{filter:brightness(1.12)}
 .pk-go:active{transform:translateY(1px)}
 
@@ -350,9 +350,9 @@ export const PICK_CSS = `
 .pk-nd{margin:0 0 16px;font-size:14px;line-height:1.9;color:var(--nb-ink-2);word-break:keep-all}
 .pk-nd b{font-family:var(--nb-serif);font-weight:400;letter-spacing:.06em;color:var(--nb-ink)}
 .pk-buy{display:block;min-height:52px;padding:16px;text-align:center;text-decoration:none;
-  border:0;border-radius:12px;background:linear-gradient(to bottom,#2b3550,var(--nb-ink));
-  color:var(--nb-paper-2);font:600 16px var(--nb-sans);box-sizing:border-box;
-  box-shadow:0 1px 2px rgba(20,26,40,.28),0 6px 16px -8px rgba(20,26,40,.5)}
+  border:0;border-radius:12px;background:linear-gradient(135deg,var(--nb-gold),#A37C15);
+  color:#120D04;font:700 16px var(--nb-sans);box-sizing:border-box;
+  box-shadow:0 8px 30px rgba(212,175,55,.34)}
 .pk-buy:hover{filter:brightness(1.12)}
 .pk-nh{margin:12px 0 0;font-size:12.5px;line-height:1.7;color:var(--nb-ink-3)}
 .pk-why{margin:0 0 14px;font-size:13.5px;line-height:1.8;color:var(--nb-ink-2)}

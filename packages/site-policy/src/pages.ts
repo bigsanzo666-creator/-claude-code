@@ -106,11 +106,13 @@ export const FOOTER_CSS = `
 `;
 
 const CSS = `
-/* 정책 페이지도 본 화면과 같은 한지 한 벌이다. 여기만 검게 뒤집히면 딴 집 같다 */
-:root{color-scheme:light;
-  --fg:#1B2A45;--muted:#525C72;--line:#EBE4D6;--bg:#F4EFE3;--accent:#96742F}
+/* 정책 페이지도 본 화면과 같은 밤 한 벌이다. 여기만 하얗게 뒤집히면 딴 집 같다.
+   값은 상품 화면 쪽과 같은 것을 쓴다 — 한쪽만 고치면 화면이 어긋난다 */
+:root{color-scheme:dark;
+  --fg:#F5F5F7;--muted:#A0A0B2;--line:rgba(255,255,255,.14);--bg:#06060A;--accent:#D4AF37}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.75 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:15px/1.75 "Noto Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
 main{max-width:720px;margin:0 auto;padding:32px 20px 64px}
 h1{font-size:24px;margin:0 0 4px}
 .meta{color:var(--muted);font-size:13px;margin:0 0 28px}
@@ -120,7 +122,7 @@ ul,ol{padding-left:22px}
 a{color:var(--accent)}
 table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
 th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
-th{background:color-mix(in srgb,var(--line) 40%,transparent);white-space:nowrap}
+th{background:rgba(212,175,55,.12);white-space:nowrap}
 .wrap{overflow-x:auto}
 ${FOOTER_CSS}
 `;

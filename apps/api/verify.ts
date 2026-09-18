@@ -552,10 +552,10 @@ check('VSOP87 같은 말이 첫 화면 상단에 없다',
   home.html.indexOf('VSOP87') === -1 || home.html.indexOf('VSOP87') > iTry);
 check('푸터 스타일이 함께 나간다', home.html.includes('.biz-rows'));
 // 색을 한 곳에서만 정한다 — 첫 화면·목록·상세가 서로 다른 색으로 뜨면 그림이 겉돈다
-check('색이 토큰 한 곳에서 나온다', home.html.includes('--nb-ink:#1B2A45'));
-// 폰을 어둡게 쓰는 손님에게도 같은 한지 한 벌이 나가야 한다
-check('밝은 쪽 하나로 못 박는다',
-  home.html.includes('color-scheme:light') && !home.html.includes('prefers-color-scheme:dark'));
+check('색이 토큰 한 곳에서 나온다', home.html.includes('--nb-ink:#F5F5F7'));
+// 폰이 밝든 어둡든 같은 밤 한 벌이 나가야 한다
+check('밤 한 벌로 못 박는다',
+  home.html.includes('color-scheme:dark') && !home.html.includes('prefers-color-scheme:light'));
 // 무료 만세력 조각은 자기 색을 들고 온다. 한 장의 종이로 보이도록 덮어 준다
 check('무료 화면 색을 우리 색으로 맞춘다', home.html.includes('--paper:var(--nb-paper)'));
 // 관상 칸의 이름표가 버튼 오른쪽으로 밀려 나 있었다. 한 줄짜리로 세워 둔다

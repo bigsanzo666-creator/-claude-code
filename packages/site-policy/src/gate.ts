@@ -228,10 +228,10 @@ export const GATE_CSS = `
   border:1px solid var(--nb-line);border-radius:0;appearance:none}
 .gate-f input:focus,.gate-f select:focus{outline:2px solid var(--nb-gold);outline-offset:-2px}
 .gate-bar{grid-column:1/-1;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:2px}
-.gate-go{padding:14px 30px;border:1px solid var(--nb-ink);background:var(--nb-ink);
-  color:var(--nb-paper-2);font:500 15.5px var(--nb-sans);letter-spacing:.02em;cursor:pointer;
+.gate-go{padding:14px 30px;border:1px solid var(--nb-gold);background:var(--nb-gold);
+  color:var(--nb-paper);font:500 15.5px var(--nb-sans);letter-spacing:.02em;cursor:pointer;
   transition:background .15s,color .15s}
-.gate-go:hover,.gate-go:focus{background:transparent;color:var(--nb-ink)}
+.gate-go:hover,.gate-go:focus{background:transparent;color:var(--nb-gold)}
 .gate-msg{font-size:13.5px;color:var(--nb-gold)}
 .gate-skip{margin:18px 0 0;font-size:13px;color:var(--nb-ink-3)}
 .gate-skip a{color:var(--nb-gold)}

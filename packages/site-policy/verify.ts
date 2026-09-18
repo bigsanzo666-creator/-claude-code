@@ -85,9 +85,9 @@ for (const [name, html] of pages) {
   check(`${name}: 사업자 정보 동반`, html.includes('220-81-62517'));
   check(`${name}: 시행일 표시`, html.includes(POLICY_EFFECTIVE_DATE));
   check(`${name}: 개정판 번호 표시`, html.includes('제1.1판'));
-  // 정책 페이지만 검게 뒤집히면 딴 집처럼 보인다. 본 화면과 같은 한지 한 벌이다
-  check(`${name}: 밝은 쪽 하나로 못 박는다`,
-    html.includes('color-scheme:light') && !html.includes('prefers-color-scheme:dark'));
+  // 정책 페이지만 하얗게 뒤집히면 딴 집처럼 보인다. 본 화면과 같은 밤 한 벌이다
+  check(`${name}: 밤 한 벌로 못 박는다`,
+    html.includes('color-scheme:dark') && !html.includes('prefers-color-scheme:light'));
 }
 
 section('5. 약관과 환불 로직의 일치');
@@ -251,20 +251,20 @@ section('10. 첫 화면');
     PRODUCTS_CSS.includes('max-width:1080px'));
   // 글씨는 두 벌만. 한 페이지에 명조 두 벌이 돌면 어디는 나눔명조, 어디는 시스템 명조로 뜬다
   check('제목 글씨는 실제로 받아 오는 것만 쓴다',
-    PRODUCTS_CSS.includes('--nb-serif:"Nanum Myeongjo"') && FONT_LINK.includes('Nanum+Myeongjo'));
+    PRODUCTS_CSS.includes('--nb-serif:"Noto Serif KR"') && FONT_LINK.includes('Noto+Serif+KR'));
   check('본문 글씨도 실제로 받아 오는 것만 쓴다',
-    PRODUCTS_CSS.includes('--nb-sans:"IBM Plex Sans KR"') && FONT_LINK.includes('IBM+Plex+Sans+KR'));
+    PRODUCTS_CSS.includes('--nb-sans:"Noto Sans KR"') && FONT_LINK.includes('Noto+Sans+KR'));
   check('로고가 인장보다 크다', LANDING_CSS.includes('.lp-name{font-family:var(--nb-serif);font-size:20px')
     && LANDING_CSS.includes('.lp-seal{width:26px'));
 
-  // 폰을 어둡게 쓰는 손님에게 이 집이 통째로 검은 화면이 되고 있었다.
-  // 사주를 보러 온 사람에게 어두운 화면을 내미는 것은 파는 물건과도 안 맞는다
-  check('색은 한지 한 벌뿐이다',
-    PRODUCTS_CSS.includes('color-scheme:light')
-    && !PRODUCTS_CSS.includes('prefers-color-scheme:dark')
-    && !LANDING_CSS.includes('prefers-color-scheme:dark')
-    && !STAGE_CSS.includes('prefers-color-scheme:dark'));
-  check('종이색이 한 단계 밝다', PRODUCTS_CSS.includes('--nb-paper:#F4EFE3'));
+  // 손님 폰이 밝든 어둡든 이 집은 언제나 밤이다. 신령 그림이 전부 어두운 바탕이라
+  // 밝은 종이에 얹으면 그림만 검은 네모로 뜬다
+  check('색은 밤 한 벌뿐이다',
+    PRODUCTS_CSS.includes('color-scheme:dark')
+    && !PRODUCTS_CSS.includes('prefers-color-scheme:light')
+    && !LANDING_CSS.includes('prefers-color-scheme:light')
+    && !STAGE_CSS.includes('prefers-color-scheme:light'));
+  check('바탕은 신령계와 같은 밤색', PRODUCTS_CSS.includes('--nb-paper:#06060A'));
 
   // 그림이 없으면 배경을 걸지 않는다 — 회색 네모를 남기지 않는 것은 상품 그림과 같은 규칙이다
   check('첫 화면 그림이 있으면 배경으로 깐다', renderHero(full, true, true).includes('url(/img/hero)'));

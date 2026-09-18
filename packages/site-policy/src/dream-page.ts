@@ -109,7 +109,7 @@ ${renderSocialHead(info, {
   })}
 ${FONT_LINK}
 <style>
-:root{color-scheme:light}
+:root{color-scheme:dark}
 body{margin:0}
 ${PRODUCTS_CSS}
 ${DREAM_CSS}
@@ -151,13 +151,13 @@ export const DREAM_CSS = `
   border:1px solid var(--nb-line);background:var(--nb-paper-2)}
 .dr-l{font-size:12px;letter-spacing:.14em;color:var(--nb-gold)}
 .dr-form textarea{width:100%;box-sizing:border-box;padding:14px;resize:vertical;
-  font:16px/1.7 var(--nb-sans);color:var(--nb-ink);background:#fff;
+  font:16px/1.7 var(--nb-sans);color:var(--nb-ink);background:var(--nb-paper-3);
   border:1px solid var(--nb-line);border-radius:0}
 .dr-form textarea:focus{outline:2px solid var(--nb-gold);outline-offset:-2px}
 .dr-hint{margin:0;font-size:13px;line-height:1.7;color:var(--nb-ink-3);word-break:keep-all}
-.dr-go{padding:15px;border:1px solid var(--nb-ink);background:var(--nb-ink);
-  color:var(--nb-paper-2);font:500 15.5px var(--nb-sans);cursor:pointer}
-.dr-go:hover{background:transparent;color:var(--nb-ink)}
+.dr-go{padding:15px;border:1px solid var(--nb-gold);background:var(--nb-gold);
+  color:var(--nb-paper);font:500 15.5px var(--nb-sans);cursor:pointer}
+.dr-go:hover{background:transparent;color:var(--nb-gold)}
 
 /* 풀이 */
 .dr-out{margin:0 0 30px}
@@ -180,9 +180,9 @@ export const DREAM_CSS = `
   color:var(--nb-ink-2);background:rgba(154,123,51,.06);
   border:1px dashed var(--nb-line);word-break:keep-all}
 .dr-next{display:block;padding:15px;text-align:center;text-decoration:none;
-  border:1px solid var(--nb-ink);background:var(--nb-ink);color:var(--nb-paper-2);
+  border:1px solid var(--nb-gold);background:var(--nb-gold);color:var(--nb-paper);
   font:500 15.5px var(--nb-sans)}
-.dr-next:hover{background:transparent;color:var(--nb-ink)}
+.dr-next:hover{background:transparent;color:var(--nb-gold)}
 
 /* 아는 낱말 */
 .dr-sub{margin:34px 0 12px;font-family:var(--nb-serif);font-weight:500;font-size:19px}

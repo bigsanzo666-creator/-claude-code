@@ -181,7 +181,7 @@ ${renderSocialHead(business, {
     title: HOME_TITLE, description: HOME_DESCRIPTION, path: '/', image: hero,
   })}
 ${FONT_LINK}
-<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+<style>:root{color-scheme:dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 ${LANDING_CSS}
 ${PRODUCTS_CSS}
 ${STAGE_CSS}
@@ -233,13 +233,14 @@ const FOOTER_CSS = `
  */
 const VIEWER_SKIN = `
 :root{
-  --paper:var(--nb-paper); --surface:var(--nb-paper-2); --surface-2:var(--nb-paper-2);
+  --paper:var(--nb-paper); --surface:var(--nb-paper-2); --surface-2:var(--nb-paper-3);
   --ink:var(--nb-ink); --ink-2:var(--nb-ink-2); --ink-3:var(--nb-ink-3);
   --rule:var(--nb-line); --rule-soft:var(--nb-line-soft);
+  --seal:var(--nb-gold); --seal-soft:rgba(212,175,55,.16);
   --field:var(--nb-paper-2);
 }
 /* 조각 안에 색이 직접 박힌 두 곳. 보라색 알약 버튼 하나가 화면 전체를 싸구려로 만든다 */
-.wiz-next{background:var(--nb-ink);color:var(--nb-paper-2);border-radius:0;letter-spacing:.02em}
+.wiz-next{background:var(--nb-gold);color:var(--nb-paper);border-radius:0;letter-spacing:.02em}
 .wiz-dot.on{background:var(--nb-gold)}
 
 /* 얼굴·손금을 고르는 칸의 배치가 깨져 있다.

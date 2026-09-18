@@ -593,29 +593,29 @@ body.st-locked{overflow:hidden}
    종이에 붙인 종이로 보인다. 모서리를 둥글리고, 안쪽에 빛을 한 줄 넣고,
    아래로 그림자를 살짝 깐다. */
 .st-q input,.st-q select{padding:15px 16px;border-radius:12px;
-  background:linear-gradient(to bottom,#fff,var(--nb-paper-2));
+  background:linear-gradient(to bottom,var(--nb-paper-3),var(--nb-paper-2));
   border:1px solid var(--nb-line);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 1px 2px rgba(60,45,20,.05);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 1px 2px rgba(0,0,0,.5);
   transition:border-color .15s ease,box-shadow .15s ease}
-.st-q select{background-image:linear-gradient(to bottom,#fff,var(--nb-paper-2)),
+.st-q select{background-image:linear-gradient(to bottom,var(--nb-paper-3),var(--nb-paper-2)),
   linear-gradient(45deg,transparent 50%,var(--nb-ink-2) 50%),
   linear-gradient(135deg,var(--nb-ink-2) 50%,transparent 50%);
   background-position:0 0,calc(100% - 21px) calc(50% + 1px),calc(100% - 15px) calc(50% + 1px);
   background-size:100% 100%,7px 7px,7px 7px;background-repeat:no-repeat;padding-right:44px}
 .st-q input:focus,.st-q select:focus{outline:0;border-color:var(--nb-gold);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 0 0 3px rgba(166,124,58,.16)}
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 0 0 3px rgba(212,175,55,.24)}
 /* 날과 시는 한 물음이다. 옆으로 붙이면 「미시 (오후 1:30 ~ 3:30)」이 잘린다 */
 .st-two{display:grid;gap:10px}
 
 .st-talk .st-go{width:100%;padding:17px;border:0;border-radius:12px;
-  background:linear-gradient(to bottom,#2b3550,var(--nb-ink));
-  color:var(--nb-paper-2);font:600 16px var(--nb-sans);letter-spacing:.02em;
-  box-shadow:0 1px 2px rgba(20,26,40,.28),0 6px 16px -8px rgba(20,26,40,.5);
+  background:linear-gradient(135deg,var(--nb-gold),#A37C15);
+  color:#120D04;font:700 16px var(--nb-sans);letter-spacing:.02em;
+  box-shadow:0 8px 30px rgba(212,175,55,.34);
   transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}
 .st-talk .st-go:hover{filter:brightness(1.12);
-  background:linear-gradient(to bottom,#2b3550,var(--nb-ink));color:var(--nb-paper-2)}
+  background:linear-gradient(135deg,var(--nb-gold),#A37C15);color:var(--nb-paper-2)}
 .st-talk .st-go:active{transform:translateY(1px);
-  box-shadow:0 1px 2px rgba(20,26,40,.3)}
+  box-shadow:0 4px 14px rgba(212,175,55,.28)}
 .st-top{display:flex;align-items:center;gap:12px;margin:0 0 14px;min-height:26px}
 .st-back{padding:2px 8px;margin-left:-8px;border:0;background:none;
   font:20px/1 var(--nb-sans);color:var(--nb-ink-2);cursor:pointer}
@@ -630,9 +630,9 @@ body.st-locked{overflow:hidden}
 .st-q[hidden]{display:none}
 .st-talk .st-go{width:100%;padding:16px}
 .st-talk .st-msg{display:block;margin:10px 0 0;min-height:1em}
-.st-go,.st-next{padding:15px 32px;border:1px solid var(--nb-ink);background:var(--nb-ink);
-  color:var(--nb-paper-2);font:500 15.5px var(--nb-sans);letter-spacing:.02em;cursor:pointer}
-.st-go:hover,.st-next:hover{background:transparent;color:var(--nb-ink)}
+.st-go,.st-next{padding:15px 32px;border:1px solid var(--nb-gold);background:var(--nb-gold);
+  color:var(--nb-paper);font:500 15.5px var(--nb-sans);letter-spacing:.02em;cursor:pointer}
+.st-go:hover,.st-next:hover{background:transparent;color:var(--nb-gold)}
 /* 글 아래에 그대로 붙는다. 화면 구석에 따로 떠 있으면 넓은 화면에서 글자를 덮는다 */
 .st-next{margin:10px 0 0}
 .st-msg{font-size:13.5px;color:var(--nb-gold)}
@@ -713,7 +713,7 @@ body.st-locked{overflow:hidden}
 .st-ask-bar{display:flex;gap:10px}
 .st-stay,.st-leave{flex:1;padding:13px 10px;font:500 15px var(--nb-sans);cursor:pointer;
   border:1px solid var(--nb-ink)}
-.st-stay{background:var(--nb-ink);color:var(--nb-paper-2)}
+.st-stay{background:var(--nb-gold);color:var(--nb-paper)}
 .st-leave{background:none;color:var(--nb-ink-3);border-color:var(--nb-line)}
 
 /* 신령 하나의 판 */
@@ -758,9 +758,9 @@ body.st-locked{overflow:hidden}
 .sp-taste-more{margin:14px 0 0;padding-top:14px;border-top:1px dashed var(--nb-line);
   font-family:var(--nb-serif);font-size:15px;color:var(--nb-gold);line-height:1.75}
 .sp-buy{display:block;width:100%;margin:14px 0 0;padding:14px;text-align:center;
-  text-decoration:none;border:1px solid var(--nb-ink);background:var(--nb-ink);
-  color:var(--nb-paper-2);font:500 15px var(--nb-sans)}
-.sp-buy:hover{background:transparent;color:var(--nb-ink)}
+  text-decoration:none;border:1px solid var(--nb-gold);background:var(--nb-gold);
+  color:var(--nb-paper);font:500 15px var(--nb-sans)}
+.sp-buy:hover{background:transparent;color:var(--nb-gold)}
 
 /* 왜 묻는지 밝히면 손님이 덜 도망간다 */
 .st-why{font-style:normal;font-size:11px;letter-spacing:0;color:var(--nb-ink-3)}
@@ -812,7 +812,7 @@ body.st-locked{overflow:hidden}
 .rd-now{border-color:var(--nb-gold);background:var(--nb-paper)}
 .rd-now b{color:var(--nb-gold)}
 .rd-badge{display:inline-block;margin-top:6px;padding:2px 7px;font-size:10.5px;
-  letter-spacing:.1em;background:var(--nb-gold);color:var(--nb-paper-2)}
+  letter-spacing:.1em;background:var(--nb-gold);color:var(--nb-paper)}
 .rd-note{margin:0;padding-left:16px;font-size:13.5px;line-height:1.85;color:var(--nb-ink-2)}
 .rd-note li{margin:0 0 6px;word-break:keep-all}
 .rd-cut{margin:24px 0 0;padding-top:16px;border-top:1px dashed var(--nb-line);
@@ -830,7 +830,7 @@ body.st-locked{overflow:hidden}
 .sp-bar[hidden]{display:none}
 .sp-bar-go{display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:15px 18px;text-decoration:none;border:1px solid var(--nb-ink);
-  background:var(--nb-ink);color:var(--nb-paper-2)}
+  background:var(--nb-gold);color:var(--nb-paper)}
 .sp-bar-n{font:500 15px var(--nb-sans);word-break:keep-all}
 .sp-bar-p{flex:0 0 auto;font:500 15px var(--nb-sans)}
 /* 신령을 누르면 그 자리에서 앞으로 나오는 판 */
@@ -853,8 +853,8 @@ body.st-locked{overflow:hidden}
 .wd-peek-list li{font-size:14px;line-height:1.6;color:var(--nb-ink-2);word-break:keep-all}
 .wd-peek-list li::before{content:'· '}
 .wd-peek-go{display:block;width:100%;padding:15px;border:1px solid var(--nb-ink);
-  background:var(--nb-ink);color:var(--nb-paper-2);font:500 15.5px var(--nb-sans);cursor:pointer}
-.wd-peek-go:hover{background:transparent;color:var(--nb-ink)}
+  background:var(--nb-gold);color:var(--nb-paper);font:500 15.5px var(--nb-sans);cursor:pointer}
+.wd-peek-go:hover{background:transparent;color:var(--nb-gold)}
 .wd-peek-x{display:block;width:100%;margin:12px 0 0;padding:0;border:0;background:none;
   font:13px var(--nb-sans);color:var(--nb-ink-3);text-decoration:underline;
   text-underline-offset:3px;cursor:pointer}
@@ -867,8 +867,8 @@ body.st-locked{overflow:hidden}
 .tk-say{padding:13px 15px;font-size:14.5px;line-height:1.85;word-break:keep-all;
   border:1px solid var(--nb-line-soft);background:var(--nb-paper-2)}
 /* 신령의 말은 왼쪽, 손님의 말은 오른쪽. 누가 한 말인지 한눈에 갈린다 */
-.tk-me{justify-self:end;max-width:82%;background:var(--nb-ink);color:var(--nb-paper-2);
-  border-color:var(--nb-ink)}
+.tk-me{justify-self:end;max-width:82%;background:var(--nb-paper-3);color:var(--nb-ink);
+  border-color:var(--nb-line)}
 .tk-ask{display:block;margin:8px 0 0;color:var(--nb-gold);font-family:var(--nb-serif);font-size:15.5px}
 .tk-wait{color:var(--nb-ink-3);font-style:italic}
 .tk-row{display:flex;gap:8px;align-items:stretch}
@@ -877,9 +877,9 @@ body.st-locked{overflow:hidden}
   color:var(--nb-ink);background:var(--nb-paper-2);border:1px solid var(--nb-line);
   border-radius:0;appearance:none}
 .tk-in:focus{outline:2px solid var(--nb-gold);outline-offset:-2px}
-.tk-go{flex:0 0 auto;padding:0 20px;border:1px solid var(--nb-ink);background:var(--nb-ink);
-  color:var(--nb-paper-2);font:500 15px var(--nb-sans);cursor:pointer}
-.tk-go:hover{background:transparent;color:var(--nb-ink)}
+.tk-go{flex:0 0 auto;padding:0 20px;border:1px solid var(--nb-gold);background:var(--nb-gold);
+  color:var(--nb-paper);font:500 15px var(--nb-sans);cursor:pointer}
+.tk-go:hover{background:transparent;color:var(--nb-gold)}
 .tk-go[disabled]{opacity:.45;cursor:default}
 .tk-note{margin:10px 0 0;font-size:12px;line-height:1.7;color:var(--nb-ink-3);word-break:keep-all}
 @media (min-width:760px){

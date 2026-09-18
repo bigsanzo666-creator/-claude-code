@@ -226,28 +226,30 @@ function packageCard(pack: BundlePackage, ready: boolean): string {
  */
 export const FONT_LINK = `<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=IBM+Plex+Sans+KR:wght@300;400;500;600&display=swap">`;
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap">`;
 
 export const PRODUCTS_CSS = `
 /*
- * 색은 **한지 한 벌뿐이다.**
+ * 색은 **밤 한 벌뿐이다.**
  *
- * 어두운 모드로 뒤집히게 두었더니, 폰을 어둡게 쓰는 손님에게는 이 집이
- * 통째로 검은 화면이 됐다. 사주를 보러 온 사람에게 어두운 화면을 내미는
- * 것은 파는 물건과도 안 맞는다 — 우리가 파는 것은 「그래서 어떻게 하면
- * 되는가」이지 무거운 기분이 아니다.
+ * 손님 폰이 밝든 어둡든 이 집은 언제나 밤이다. 신령계는 밤에 열리고,
+ * 영상도 신령 그림도 전부 어두운 바탕에 그려져 있다. 밝은 종이 위에
+ * 그것을 얹으면 그림만 검은 네모로 뜬다.
  *
- * 그래서 밝은 쪽 하나로 못 박고, 종이색도 한 단계 올렸다.
+ * 색은 여기 한 곳에서만 온다. 다른 데 색을 적으면 한쪽만 고쳐져서
+ * 화면이 어긋난다.
  */
 :root{
-  color-scheme:light;
-  --nb-paper:#F4EFE3; --nb-paper-2:#FCFAF4; --nb-line:#E0D6C2; --nb-line-soft:#EBE4D6;
-  --nb-ink:#1B2A45; --nb-ink-2:#525C72; --nb-ink-3:#948E7C; --nb-gold:#96742F;
-  --nb-veil-0:rgba(244,239,227,0); --nb-veil-1:rgba(244,239,227,.72);
+  color-scheme:dark;
+  --nb-paper:#06060A; --nb-paper-2:#12121C; --nb-paper-3:#1A1A26;
+  --nb-line:rgba(212,175,55,.34); --nb-line-soft:rgba(255,255,255,.12);
+  --nb-ink:#F5F5F7; --nb-ink-2:#C8C8D4; --nb-ink-3:#A0A0B2;
+  --nb-gold:#D4AF37; --nb-gold-2:#F3E5AB; --nb-crimson:#9E1B32;
+  --nb-veil-0:rgba(6,6,10,0); --nb-veil-1:rgba(6,6,10,.72);
   /* 글씨는 두 벌만 쓴다. 아래 무료 만세력 조각이 이미 이 둘을 받아 오므로
      새로 받지 않는다 — 한 페이지에 명조 두 벌, 고딕 두 벌이 도는 것을 막는다 */
-  --nb-serif:"Nanum Myeongjo",AppleMyungjo,Batang,serif;
-  --nb-sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --nb-serif:"Noto Serif KR",AppleMyungjo,Batang,serif;
+  --nb-sans:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
 }
 body{background:var(--nb-paper)}
 .pr,.lp{width:100%;max-width:1080px;margin:0 auto;padding:0 22px;box-sizing:border-box;
@@ -302,7 +304,7 @@ body{background:var(--nb-paper)}
 .pr-link .pr-soon{display:inline;margin:0 0 0 10px}
 .pr-rec{border-color:var(--nb-gold)}
 .pr-badge{display:inline-block;margin-bottom:12px;padding:3px 10px;background:var(--nb-gold);
-  color:var(--nb-paper-2);font-size:11.5px;font-weight:700;letter-spacing:.06em}
+  color:var(--nb-paper);font-size:11.5px;font-weight:700;letter-spacing:.06em}
 .pr-note{margin:56px 0 0;padding:22px 0 0;border-top:1px solid var(--nb-line-soft);
   font-size:13px;line-height:1.85;color:var(--nb-ink-3)}
 .pr-note a{color:var(--nb-gold)}
@@ -344,9 +346,9 @@ html,body{overflow-x:clip;max-width:100%}
 
 /* 상품 화면에서 사러 가는 단추. 값 바로 아래에 놓아 눈이 멈춘 자리에서 눌리게 한다 */
 .pd-go{display:block;margin:14px 0 0;padding:16px;text-align:center;text-decoration:none;
-  border:0;border-radius:12px;background:linear-gradient(to bottom,#2b3550,var(--nb-ink));
-  color:var(--nb-paper-2);font:600 16px var(--nb-sans);
-  box-shadow:0 1px 2px rgba(20,26,40,.28),0 6px 16px -8px rgba(20,26,40,.5)}
+  border:0;border-radius:12px;background:linear-gradient(135deg,var(--nb-gold),#A37C15);
+  color:#120D04;font:700 16px var(--nb-sans);
+  box-shadow:0 8px 30px rgba(212,175,55,.34)}
 .pd-go:hover{filter:brightness(1.12)}
 ${SPIRITS_CSS}
 ${WHY_CSS}
@@ -449,7 +451,7 @@ ${renderSocialHead(info, {
   })}
 ${FONT_LINK}
 <style>
-:root{color-scheme:light dark}
+:root{color-scheme:dark}
 body{margin:0}
 ${PRODUCTS_CSS}
 </style>
@@ -522,7 +524,7 @@ ${renderSocialHead(info, {
   })}
 ${FONT_LINK}
 <style>
-:root{color-scheme:light dark}
+:root{color-scheme:dark}
 body{margin:0}
 ${PRODUCTS_CSS}
 </style>
