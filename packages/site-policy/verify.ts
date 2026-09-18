@@ -183,7 +183,10 @@ for (const pack of Object.values(PACKAGES)) {
   check(`${pack.name}: 묶음가 표시`, off.includes(m.bundleKrw.toLocaleString('ko-KR')));
   check(`${pack.name}: 따로 사는 합계도 함께 표시`, off.includes(m.individualKrw.toLocaleString('ko-KR')));
 }
-check('추천 배지는 하나뿐', (off.match(/pr-badge/g) ?? []).length === 1);
+// 주제마다 2종·3종 두 칸이 있고 그중 하나에만 배지가 붙는다.
+// 예전에는 묶음이 넷뿐이라 화면 전체에서 하나였다
+check('추천 배지가 주제 수만큼', (off.match(/pr-badge/g) ?? []).length ===
+  Object.values(PACKAGES).filter((p) => p.recommended).length);
 check('지어낸 정가가 아님을 밝힌다', off.includes('판매한 적 없는 정가를 지어내'));
 
 // 받을 내용을 못 박아야 손님도 심사자도 결제 전에 안다

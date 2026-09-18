@@ -44,6 +44,14 @@ export type ProductId =
   | 'face-palm-report' | 'saju-palm-report' | 'saju-face-report'
   // 돈과 일
   | 'wealth-report' | 'career-report' | 'learning-report'
+  /*
+   * 같은 계산을 이름만 바꿔 파는 자리.
+   *
+   * 시험·진학은 인성(印星), 취업은 관성(官星)으로 본다 — 공부·문서운,
+   * 출세운과 계산이 같다. 장사로는 이게 맞다. 손님은 「공부·문서운」을
+   * 검색하지 않고 「수능 사주」를 검색한다. 찾는 말로 이름을 붙여야 찾아온다.
+   */
+  | 'exam-report' | 'admission-report' | 'job-report'
   // 시기
   | 'daily-report' | 'newyear-report' | 'travel-report';
 
@@ -96,7 +104,14 @@ export interface Product {
   topic?: string;
 }
 
-const TOPIC_PRICE = 6900;
+/**
+ * 한 주제만 떼어 파는 값.
+ *
+ * 6,900원이었다. 경쟁사(청월당)는 이 자리를 아예 **무료로 풀어** 사람을 모으고
+ * 큰 상품으로 넘긴다. 우리는 무료 구간이 따로 있으므로(여덟 글자·오행·대운,
+ * 그리고 꿈해몽) 여기서는 제값을 받는다. 싸면 대충 만든 것으로 보인다.
+ */
+const TOPIC_PRICE = 14900;
 
 function topic(
   id: ProductId, topicId: string, name: string, category: Category,
@@ -114,13 +129,13 @@ export const CATALOG: Record<ProductId, Product> = {
     ...topic('charm-report', 'charm', '매력 삼합', '연애',
       '나는 어떤 사람에게 끌릴까?',
       '도화·홍염을 사주·관상·손금 세 갈래로 대조해, 내 매력이 어디서 나오는지 씁니다.'),
-    priceKrw: 12900,
+    priceKrw: 24900,
     needsFace: true,
   },
   'single-report': {
     id: 'single-report',
     name: '솔로 탈출 — 언제 만날까',
-    priceKrw: 12900,
+    priceKrw: 24900,
     description: '인연이 들어오는 시기를 대운·세운에서 찾고, 그때 내가 어떤 상태일지 함께 씁니다.',
     previewRatio: 0.2,
     category: '연애',
@@ -129,7 +144,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'marriage-timing-report': {
     id: 'marriage-timing-report',
     name: '결혼 시기',
-    priceKrw: 19900,
+    priceKrw: 24900,
     description: '배우자 자리와 대운의 흐름을 대조해 결혼이 무르익는 구간을 짚습니다.',
     previewRatio: 0.2,
     category: '연애',
@@ -140,7 +155,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'reunion-report': {
     id: 'reunion-report',
     name: '재회 가능성',
-    priceKrw: 19900,
+    priceKrw: 29800,
     description: '두 명식의 합·충 관계와 올해의 흐름을 대조해, 다시 이어질 여지와 그 조건을 씁니다.',
     previewRatio: 0.15,
     category: '재회',
@@ -160,7 +175,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'letgo-report': {
     id: 'letgo-report',
     name: '마음 정리 — 언제쯤 괜찮아질까',
-    priceKrw: 14900,
+    priceKrw: 24900,
     description: '대운과 세운의 흐름에서 이 마음이 가벼워지는 구간을 짚습니다. 돌아온다고 지어내지 않습니다.',
     previewRatio: 0.2,
     category: '재회',
@@ -171,7 +186,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'compat-report': {
     id: 'compat-report',
     name: '궁합 리포트',
-    priceKrw: 19900,
+    priceKrw: 29800,
     description: '두 명식을 다섯 축으로 대조하고, 맞는 부분과 부딪히는 부분을 함께 씁니다.',
     previewRatio: 0.2,
     category: '궁합',
@@ -181,7 +196,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'crush-compat-report': {
     id: 'crush-compat-report',
     name: '썸 궁합',
-    priceKrw: 9900,
+    priceKrw: 19900,
     description: '아직 시작하지 않은 관계를, 두 명식의 첫 끌림 축만 뽑아 가볍게 봅니다.',
     previewRatio: 0.3,
     category: '궁합',
@@ -193,7 +208,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'child-report': {
     id: 'child-report',
     name: '우리 아이 사주',
-    priceKrw: 19900,
+    priceKrw: 29800,
     description: '아이의 명식을 부모가 읽을 수 있게 풀어, 타고난 기질과 키울 때 볼 것을 씁니다.',
     previewRatio: 0.2,
     category: '가족',
@@ -202,7 +217,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'child-aptitude-report': {
     id: 'child-aptitude-report',
     name: '자녀 진로·적성',
-    priceKrw: 19900,
+    priceKrw: 29800,
     description: '식상·인성·관성의 배치로 아이가 잘 쓰는 힘과 안 맞는 길을 가려 씁니다.',
     previewRatio: 0.2,
     category: '가족',
@@ -211,7 +226,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'parent-child-report': {
     id: 'parent-child-report',
     name: '부모·자식 궁합',
-    priceKrw: 19900,
+    priceKrw: 29800,
     description: '부모와 자녀의 명식을 대조해, 왜 부딪히는지와 어떻게 물러서면 되는지를 씁니다.',
     previewRatio: 0.2,
     category: '가족',
@@ -231,7 +246,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'pick-report': {
     id: 'pick-report',
     name: '제왕절개 택일 리포트',
-    priceKrw: 29000,
+    priceKrw: 59000,
     description: '의사에게 받은 후보 날짜와 수술이 가능한 시각을 넣으면, 그 안에서만 재서 순위와 까닭을 씁니다. 날마다 제일 좋은 시각까지 냅니다.',
     previewRatio: 0.2,
     category: '가족',
@@ -255,8 +270,8 @@ export const CATALOG: Record<ProductId, Product> = {
   'naming-report': {
     id: 'naming-report',
     name: '아이 이름 짓기',
-    priceKrw: 49000,
-    description: '아이의 사주를 보고 그 흐름에 맞는 이름을 지어 드립니다. 먼저 다섯을 드리고, 마음에 드는 것이 없으면 둘을 더 지어 드립니다. 넣고 싶은 글자가 있으면 그 글자로 짓습니다.',
+    priceKrw: 89900,
+    description: '아이의 사주를 보고 그 흐름에 맞는 이름을 **세 개** 지어 드립니다. 셋 다 마음에 들지 않으시면 **두 개를 더** 지어 드립니다. 넣고 싶은 글자가 있으면 그 글자로 짓습니다. 대법원 인명용 한자 8,050자 안에서만 고르므로 출생신고가 안 되는 이름이 나오지 않습니다.',
     previewRatio: 0.2,
     category: '가족',
     hook: '우리 아이 이름, 뭐로 지을까?',
@@ -265,8 +280,8 @@ export const CATALOG: Record<ProductId, Product> = {
   'naming-plus-report': {
     id: 'naming-plus-report',
     name: '아이 이름 짓기 — 안 겹치게',
-    priceKrw: 89000,
-    description: '마음에 드는 이름이 나올 때까지 지어 드립니다. 개수를 정해 두지 않습니다. 거기에 요즘 많이 쓰는 이름과 겹치지 않는 것까지 따로 골라 드립니다.',
+    priceKrw: 149000,
+    description: '**마음에 드실 때까지** 지어 드립니다. 개수를 정해 두지 않습니다. 하루 한두 번씩 새 이름과 풀이 리포트를 받아 보실 수 있고, 요즘 많이 쓰는 이름과 **겹치지 않는 것**까지 따로 골라 드립니다. 대법원 인명용 한자 8,050자 안에서만 고릅니다.',
     previewRatio: 0.2,
     category: '가족',
     hook: '반에 같은 이름 없게 지을 수 없을까?',
@@ -275,7 +290,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'latelife-report': {
     id: 'latelife-report',
     name: '노후·말년운',
-    priceKrw: 19900,
+    priceKrw: 24900,
     description: '시주와 후반 대운을 중심으로, 남은 흐름에서 무엇을 준비하면 되는지 씁니다.',
     previewRatio: 0.2,
     category: '가족',
@@ -286,7 +301,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'saju-report': {
     id: 'saju-report',
     name: '사주 종합 리포트',
-    priceKrw: 19900,
+    priceKrw: 34900,
     description: '명식·강약·용신·대운·세운을 하나의 글로 풀어 드립니다.',
     previewRatio: 0.2,
     category: '나',
@@ -302,7 +317,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'cross-report': {
     id: 'cross-report',
     name: '삼합 리포트 — 사주 × 관상 × 손금',
-    priceKrw: 49000,
+    priceKrw: 69000,
     description: '세 갈래를 같은 척도로 대조해, 일치하는 것과 엇갈리는 것을 가려 드립니다.',
     previewRatio: 0.12,
     needsFace: true,
@@ -321,7 +336,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'face-palm-report': {
     id: 'face-palm-report',
     name: '얼굴과 손 — 관상 × 손금',
-    priceKrw: 24000,
+    priceKrw: 39900,
     description: '생년월일 없이 얼굴과 손만으로 봅니다. 두 갈래가 같은 말을 하는 곳과 엇갈리는 곳을 가려 씁니다.',
     previewRatio: 0.15,
     needsFace: true,
@@ -331,7 +346,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'saju-palm-report': {
     id: 'saju-palm-report',
     name: '타고난 것과 살아온 것 — 사주 × 손금',
-    priceKrw: 29000,
+    priceKrw: 44900,
     description: '태어날 때 정해진 것(사주)과 살면서 새겨진 것(손금)을 맞춰 봅니다.',
     previewRatio: 0.15,
     needsFace: true,
@@ -341,7 +356,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'saju-face-report': {
     id: 'saju-face-report',
     name: '속과 겉 — 사주 × 관상',
-    priceKrw: 29000,
+    priceKrw: 44900,
     description: '사주가 말하는 속과 얼굴이 말하는 겉을 대조합니다. 남들이 보는 나와 진짜 나의 거리를 씁니다.',
     previewRatio: 0.15,
     needsFace: true,
@@ -374,7 +389,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'daily-report': {
     id: 'daily-report',
     name: '오늘의 운세',
-    priceKrw: 1200,
+    priceKrw: 1900,
     description: '오늘의 간지가 내 명식과 맺는 관계를 하루치로 읽어 드립니다.',
     previewRatio: 0.3,
     category: '시기',
@@ -383,12 +398,31 @@ export const CATALOG: Record<ProductId, Product> = {
   'newyear-report': {
     id: 'newyear-report',
     name: '신년운세',
-    priceKrw: 14900,
+    priceKrw: 24900,
     description: '올해의 세운이 명식과 어떻게 만나는지, 달별 흐름까지 짚어 드립니다.',
     previewRatio: 0.2,
     category: '시기',
     hook: '올해는 나아질까?',
   },
+  /*
+   * 시험·진학·취업.
+   *
+   * 수능이 해마다 11월이고, 이 세 가지를 찾는 사람은 본인이 아니라 **부모**인
+   * 경우가 많다. 부모는 자식 일에 지갑을 더 연다. 그래서 시험운만 값이 높다.
+   */
+  'exam-report': {
+    ...topic('exam-report', 'learning', '시험 합격운', '돈과 일',
+      '이번 시험, 붙을 수 있을까?',
+      '인성(印星)과 그해 세운으로 본 시험운 — 붙는 자리인지, 한 해 미루는 편이 나은지 씁니다.'),
+    priceKrw: 19900,
+  },
+  'admission-report': topic('admission-report', 'learning', '진학운', '돈과 일',
+    '어느 쪽으로 보내야 할까?',
+    '인성(印星)으로 본 배움의 결 — 어느 갈래가 이 아이에게 맞는지 씁니다.'),
+  'job-report': topic('job-report', 'career', '취업운', '돈과 일',
+    '언제쯤 자리가 잡힐까?',
+    '관성(官星)으로 본 자리 운 — 붙는 시기와 맞는 조직의 결을 씁니다.'),
+
   'travel-report': topic('travel-report', 'travel', '이동·해외운', '시기',
     '떠나야 할까, 머물러야 할까?',
     '역마(驛馬)로 본 이동의 기운 — 이사·이직·해외를 함께 봅니다.'),

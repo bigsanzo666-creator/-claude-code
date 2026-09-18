@@ -87,8 +87,21 @@ for (const pack of Object.values(PACKAGES)) {
   check(`${pack.name}: 절약률을 내림한다 — 올려 적으면 과장이다`,
     m.percent <= (m.savedKrw / m.individualKrw) * 100, `${m.percent}%`);
 }
-check('가운데를 추천한다 — 극단을 피하는 심리',
-  Object.values(PACKAGES).filter((p) => p.recommended).length === 1);
+/*
+ * 주제마다 2종·3종 두 칸이 있고, 그중 **하나만** 추천이어야 한다.
+ * 둘 다 추천이면 추천이 아니고, 아무것도 추천하지 않으면 손님이 단품에 머문다.
+ * 예전에는 묶음이 넷뿐이라 「전체에서 하나」였다.
+ */
+check('주제마다 추천이 하나씩', (() => {
+  const byTheme = new Map<string, number>();
+  for (const p of Object.values(PACKAGES)) {
+    const theme = p.id.replace(/-[23]$/, '');
+    byTheme.set(theme, (byTheme.get(theme) ?? 0) + (p.recommended ? 1 : 0));
+  }
+  return [...byTheme.values()].every((n) => n === 1);
+})());
+check('추천은 싼 칸에 붙인다 — 얹는 금액이 작아야 얹는다',
+  Object.values(PACKAGES).every((p) => !p.recommended || p.id.endsWith('-2')));
 check('묶음마다 절약률이 20%를 넘는다',
   Object.values(PACKAGES).every((p) => bundleMath(p.id).percent >= 20));
 check('삼합 리포트를 보는 사람에게 삼합이 든 묶음만 권한다',
@@ -268,7 +281,7 @@ section('살 수 있는 것 — 단품과 묶음');
 
 check('단품은 자기 자신 한 편', orderable('cross-report').members.length === 1);
 check('단품 값은 카탈로그에서', orderable('cross-report').priceKrw === CATALOG['cross-report'].priceKrw);
-check('묶음도 살 수 있다', isOrderable('samhap-pack'));
+check('묶음도 살 수 있다', isOrderable('self-3'));
 check('모르는 것은 못 산다', !isOrderable('free-lunch'));
 
 let threw = false;
