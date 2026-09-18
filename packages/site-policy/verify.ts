@@ -9,7 +9,7 @@
 import {
   loadBusinessInfo, missingFields, isComplete, isValidRegistrationNumber,
   renderFooter, renderTerms, renderPrivacy, renderRefund, POLICY_EFFECTIVE_DATE,
-  renderProducts, renderProductsPage, renderProductPage, renderHero, renderTryHeading,
+  renderProducts, renderProductsPage, renderProductPage, renderHero, renderTryHeading, CONTENTS_FOR,
   LANDING_CSS, PRODUCTS_CSS, FONT_LINK,
   SPIRITS, PITCH, spiritOf, renderSpiritRow, renderSpiritHead, renderSpiritPitch, SPIRITS_CSS,
   renderSocialHead, HOME_TITLE, HOME_DESCRIPTION, FALLBACK_NAME,
@@ -315,6 +315,25 @@ section('9. 신령 — 칸마다 주인이 있는가');
   // 스물한 개 전부 신령이 할 말이 있어야 한다. 하나라도 비면 그 칸은 다시 표가 된다
   const noPitch = Object.keys(CATALOG).filter((id) => !PITCH[id]);
   check('상품마다 신령의 말이 있다', noPitch.length === 0, noPitch.join(','));
+
+  /*
+   * 담기는 것 목록의 강조는 `**굵게**` 하나뿐이다.
+   *
+   * `<b>` 로 적어 두었더니 화면에 「&lt;b&gt;다섯&lt;/b&gt;」이 글자 그대로
+   * 나갔다. 돈 받는 상품 페이지에 태그가 보이고 있었다.
+   */
+  const tagged = Object.keys(CATALOG)
+    .flatMap((id) => (CONTENTS_FOR(id) ?? []).map((t) => ({ id, t })))
+    .filter(({ t }) => /[<>]/.test(t));
+  check('담기는 것에 태그를 직접 적지 않는다', tagged.length === 0,
+    tagged.map(({ id, t }) => `${id}: ${t.slice(0, 28)}`).join(' / ') || '**굵게** 만 씁니다');
+
+  // 적어 둔 것이 실제로 화면에 굵게 나오는지
+  const oneList = CONTENTS_FOR('wealth-report') ?? [];
+  check('돈그릇에도 담기는 것이 있다', oneList.length >= 5, `${oneList.length}줄`);
+  const pdHtml = renderProductPage(CATALOG['wealth-report'], full, true, '');
+  check('굵게 적은 것이 화면에서 굵게 나온다',
+    pdHtml.includes('<strong>') && !pdHtml.includes('&lt;b&gt;'));
   // 「봐 드립니다」로 끝나는 안내문은 신령의 말이 아니다
   check('신령은 안내문처럼 말하지 않는다',
     Object.values(PITCH).every((t) => !t.includes('드립니다')));

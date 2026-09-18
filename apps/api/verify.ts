@@ -11,7 +11,7 @@ import {
   CATALOG, FakeGateway, markPaid, markPending, createOrder,
   PACKAGES, bundleMath, orderable, upsellFor,
 } from '../../packages/commerce/src/index.ts';
-import { loadBusinessInfo, SPIRITS } from '../../packages/site-policy/src/index.ts';
+import { loadBusinessInfo, SPIRITS, CONTENTS_FOR } from '../../packages/site-policy/src/index.ts';
 import { findSpiritVideos } from './src/images.ts';
 import { createApi, MemoryOrderStore } from './src/server.ts';
 import { buildPayload } from './src/payload.ts';
@@ -927,6 +927,25 @@ section('H1. 값이 다르면 물건도 다르다');
   check('사주 × 손금에 관상이 실리지 않는다', !('관상' in (sp.data as object)));
   const sf = buildPayload({ productId: 'saju-face-report', birth: BIRTH2 } as never);
   check('사주 × 관상에 손금이 실리지 않는다', !('손금' in (sf.data as object)));
+
+  /*
+   * 화면에 적은 것과 자료가 같은 말을 해야 한다.
+   *
+   * 「다섯 해를 봅니다」라고 적어 놓고 세 해만 실으면 그건 거짓 광고다.
+   * 상세페이지 글과 리포트 자료가 다른 말을 하면 그 자체가 위반이다.
+   */
+  const 해수: Record<string, number> = {
+    'wealth-report': 3, 'career-report': 3, 'expression-report': 3, 'peers-report': 3,
+    'helper-report': 3, 'learning-report': 3, 'travel-report': 3, 'admission-report': 3,
+    'exam-report': 5, 'job-report': 5,
+  };
+  for (const [id, want] of Object.entries(해수)) {
+    const d = buildPayload({ productId: id, birth: BIRTH2 } as never).data as { 세운: unknown[] };
+    const 말 = { 3: '세 해', 5: '다섯 해' }[want];
+    const said = (CONTENTS_FOR(id) ?? []).some((t) => t.includes(`올해부터 ${말}`));
+    check(`${CATALOG[id as never].name} — 적어 둔 해수와 자료가 맞는다`,
+      d.세운.length === want && said, `${d.세운.length}해`);
+  }
 
   // 주제 상품은 그 주제만 받는다. 자료에 다 들어 있으면 모델은 결국 쓴다
   const w = buildPayload({ productId: 'wealth-report', birth: BIRTH2 } as never);

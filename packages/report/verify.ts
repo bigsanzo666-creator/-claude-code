@@ -217,6 +217,10 @@ if (failed) { console.log('\n실패 항목:'); for (const f of failures) console
   check('같은 글자를 두 번 쓰지 말라고 적는다', naming.includes('같은 글자를 쓰지 않습니다'));
   check('이름이 앞날을 정한다고 말하지 않게 한다',
     naming.includes('앞날을 정한다고 말하지 않습니다'));
+// 상품 설명이 약속한 개수와 프롬프트가 같은 말을 해야 한다.
+// 셋을 약속하고 다섯을 주면 많이 주는 것이 아니라 약속과 다른 것을 주는 것이다
+check('약속한 이름 개수와 프롬프트가 맞는다',
+  naming.includes('이름 셋') && !naming.includes('이름 다섯'));
 }
 
 console.log('전부 통과. (모델 호출 없음 — 이 검증은 비용이 들지 않는다)');
