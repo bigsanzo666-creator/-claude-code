@@ -20,6 +20,7 @@ import {
   WITHDRAWAL_NOTICE, type Order, type PaymentGateway, type ProductId,
 } from '../../../packages/commerce/src/index.ts';
 import { cacheKey } from '../../../packages/report/src/cache.ts';
+import { cleanQuestion, QUESTION_MAX } from '../../../packages/report/src/prompt.ts';
 import {
   loadBusinessInfo, renderFooter, renderTerms, renderPrivacy, renderRefund,
   renderProducts, renderProductsPage, PRODUCTS_CSS,
@@ -29,6 +30,7 @@ import {
   renderPickPage, PLACES, TIMES, DATE_SLOTS, type PickForm,
   renderDreamPage, readDream,
   renderRobots, renderSitemap,
+  handoffBetween, spiritOfCategory, type Handoff,
   type BusinessInfo,
 } from '../../../packages/site-policy/src/index.ts';
 import {
@@ -77,7 +79,7 @@ export class MemoryOrderStore implements OrderStore {
 
 /** 리포트 생성기. 실제로는 @saju/report 의 generateReport 를 감싼다. */
 export type ReportGenerator = (args: {
-  kind: string; data: unknown; subject: string;
+  kind: string; data: unknown; subject: string; question?: string;
 }) => Promise<{ text: string }>;
 
 /** 브라우저 결제창에 필요한 값. 비어 있으면 화면이 결제 버튼을 감춘다 */
@@ -368,6 +370,30 @@ function upsellOffer(productId: string) {
  * 값은 전부 계산된 것이다. 「따로 사면 얼마」는 구성 상품의 **실제 판매가
  * 합계**이지 판 적 없는 정가가 아니다. 지어낸 할인율은 쓰지 않는다.
  */
+/**
+ * 이 묶음을 파는 것은 **신령이 신령을 소개하는 일**이다.
+ *
+ * 값만 나란히 놓으면 손님이 푸는 문제는 「싼 것 고르기」다. 이 집에서는
+ * 지금 봐 준 신령이 친우를 불러 주는 일이라, 문제가 「더 볼까 말까」로 바뀐다.
+ *
+ * 소개받은 신령은 **묻고 싶은 것 하나**를 받아 준다. 말뿐인 선물이 아니다 —
+ * 리포트가 실제로 그 답을 담는다. 말만 하고 안 주면 거짓 광고다.
+ *
+ * 같은 신령이 지키는 갈래끼리 묶이면 소개가 아니라 **덧보기**다. 남을 부를 일이
+ * 아니라 「앉은 김에 이것도」가 맞는 말이다.
+ */
+function handoffFor(soloId: string, members: readonly string[]): Handoff | null {
+  const fromId = spiritOfCategory(CATALOG[soloId as never]?.category ?? '');
+  if (!fromId) return null;
+  // 얹히는 편 가운데 **다른 신령이 지키는 것**을 찾는다. 없으면 같은 신령이다
+  const other = members.find((m) => m !== soloId
+    && spiritOfCategory(CATALOG[m as never]?.category ?? '') !== fromId);
+  const toId = other
+    ? spiritOfCategory(CATALOG[other as never]?.category ?? '')
+    : fromId;
+  return toId ? handoffBetween(fromId, toId) : null;
+}
+
 function upsellOffers(productId: string) {
   const packs = packagesContaining(productId as never);
   if (!packs.length) return [];
@@ -379,6 +405,8 @@ function upsellOffers(productId: string) {
       name: pack.name,
       hook: pack.hook,
       priceKrw: pack.priceKrw,
+      // 신령이 신령을 부르는 말. 못 만들면 null 이고 화면은 값만 보여 준다
+      handoff: handoffFor(productId, pack.members),
       addKrw: pack.priceKrw - here,
       apartKrw: apart,
       saveKrw: apart - pack.priceKrw,
@@ -426,6 +454,17 @@ function validateReading(body: any): ReadingRequest {
       throw new HttpError(400, '돌림자 자리는 앞이나 뒤여야 합니다.');
     }
   }
+  /*
+   * 신령이 약속한 「원하는 것 하나」.
+   *
+   * 안 적어도 된다. 적었으면 한 줄로 다듬어 싣는다 — 줄바꿈이 잔뜩 든 글을
+   * 그대로 프롬프트에 넣으면 모델이 그걸 지시문으로 읽는다.
+   */
+  if (body.question !== undefined && body.question !== null && typeof body.question !== 'string') {
+    throw new HttpError(400, '질문은 글로 적어 주세요.');
+  }
+  body.question = cleanQuestion(body.question) ?? undefined;
+
   return body as ReadingRequest;
 }
 
@@ -806,9 +845,11 @@ export function createApi(deps: ApiDeps) {
        * 이용권은 「이 입력으로 만든 것」에 묶인다. 묶음은 편이 여럿이므로
        * 편 전체를 하나로 묶어 지문을 뜬다 — 한 편만 바뀌어도 다른 주문이 된다.
        */
+      // 질문이 다르면 다른 주문이다. 이용권이 이 지문에 묶이므로 여기에도 들어가야 한다
+      const asked = reading.question;
       const inputHash = parts.length === 1
         ? cacheKey({
-          input: { kind: parts[0].kind as any, data: parts[0].data, subject },
+          input: { kind: parts[0].kind as any, data: parts[0].data, subject, question: asked },
           model: 'claude-opus-5',
           effort: 'medium',
         })
@@ -817,6 +858,7 @@ export function createApi(deps: ApiDeps) {
             kind: parts[0].kind as any,
             data: { 묶음: reading.productId, 편: parts.map((x) => ({ 상품: x.productId, 자료: x.data })) },
             subject,
+            question: asked,
           },
           model: 'claude-opus-5',
           effort: 'medium',
@@ -937,7 +979,9 @@ export function createApi(deps: ApiDeps) {
        */
       const chunks: string[] = [];
       for (const part of parts) {
-        const made = await deps.generate({ kind: part.kind, data: part.data, subject: part.subject });
+        const made = await deps.generate({
+          kind: part.kind, data: part.data, subject: part.subject, question: part.question,
+        });
         chunks.push(parts.length === 1
           ? made.text
           : `# ${CATALOG[part.productId].name}\n\n${made.text}`);

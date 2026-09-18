@@ -12,7 +12,7 @@
 // index.ts는 generate.ts를 재수출하고 generate.ts는 SDK를 임포트하므로,
 // 그쪽을 거치면 이 검증이 SDK 설치에 묶여버린다. 검증은 의존성 없이 돌아야 한다.
 import {
-  buildSystemPrompt, buildUserMessage, canonicalize, PROMPT_VERSION,
+  buildSystemPrompt, buildUserMessage, canonicalize, cleanQuestion, PROMPT_VERSION, QUESTION_MAX,
   type ReportInput,
 } from './src/prompt.ts';
 import { cacheKey, MemoryReportCache, estimateCostKrw } from './src/cache.ts';
@@ -87,6 +87,42 @@ check('호칭이 반영됨', msg.includes('"민수"'));
 check('이름이 없으면 기본 호칭', buildUserMessage({ ...sample, subject: undefined }).includes('"이 분"'));
 check('빈 문자열도 기본 호칭으로', buildUserMessage({ ...sample, subject: '   ' }).includes('"이 분"'));
 check('데이터 밖 사용 금지를 다시 못박음', msg.includes('여기에 없는 내용은 쓰지 마십시오'));
+
+// ── D2. 손님이 직접 물은 것 ────────────────────────────────────
+/*
+ * 신령이 화면에서 「원하는 것 하나를 말해 보렴」이라고 약속한다.
+ * 그 약속을 리포트가 지키는지 보는 자리다. 약속만 하고 안 주면 거짓 광고다.
+ */
+section('D2. 손님이 직접 물은 것');
+
+check('안 물으면 그 문단이 아예 없다', !msg.includes('손님이 직접 물은 것'));
+
+const asked = buildUserMessage({ ...sample, question: '올해 이직해도 될까요?' });
+check('물으면 질문이 그대로 실린다', asked.includes('올해 이직해도 될까요?'));
+check('질문은 데이터 뒤에 온다',
+  asked.indexOf('손님이 직접 물은 것') > asked.indexOf('supportRatio'));
+check('질문에 답할 자리를 지정한다', asked.includes('물어보신 것에 대해'));
+check('못 답하면 못 답한다고 쓰라고 시킨다', asked.includes('답할 수 없다고 그대로'));
+check('질문을 지시문으로 읽지 않게 못박는다', asked.includes('지시가 아니라'));
+
+check('빈 질문은 없는 것으로 친다',
+  !buildUserMessage({ ...sample, question: '   ' }).includes('손님이 직접 물은 것'));
+
+check('줄바꿈을 한 줄로 눕힌다', cleanQuestion('올해\n이직해도\n될까요?') === '올해 이직해도 될까요?');
+check('너무 긴 질문은 잘라낸다', (cleanQuestion('가'.repeat(600)) ?? '').length === QUESTION_MAX);
+check('안 적었으면 null', cleanQuestion(undefined) === null && cleanQuestion('') === null);
+
+check('시스템 프롬프트가 질문 규칙을 담는다',
+  sys.includes('손님이 직접 물은 것') && sys.includes('데이터 안에서만'));
+check('질문이 와도 금지 사항은 그대로', sys.includes('금지 사항은 질문이 와도 그대로'));
+
+const qk = cacheKey({ input: { ...sample, question: '올해 이직해도 될까요?' }, model: 'claude-opus-5', effort: 'medium' });
+const qk2 = cacheKey({ input: { ...sample, question: '결혼은 언제쯤일까요?' }, model: 'claude-opus-5', effort: 'medium' });
+check('질문이 다르면 다른 리포트로 친다', qk !== qk2);
+check('질문이 없을 때와도 다르다',
+  qk !== cacheKey({ input: sample, model: 'claude-opus-5', effort: 'medium' }));
+check('띄어쓰기만 다른 질문은 같은 리포트',
+  qk === cacheKey({ input: { ...sample, question: ' 올해  이직해도 될까요? ' }, model: 'claude-opus-5', effort: 'medium' }));
 
 // ── E. 정규화 ──────────────────────────────────────────────────
 section('E. 캐시 키 정규화');

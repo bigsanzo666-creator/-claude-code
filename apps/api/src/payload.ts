@@ -17,7 +17,7 @@ import { readFace, NEUTRAL_FEATURES } from '../../../packages/physiognomy/src/in
 import { readPalm, NEUTRAL_PALM_FEATURES } from '../../../packages/palmistry/src/index.ts';
 import { nameField, type NameWish } from '../../../packages/naming/src/index.ts';
 import { CATALOG, type ProductId } from '../../../packages/commerce/src/index.ts';
-import type { ReportKind } from '../../../packages/report/src/prompt.ts';
+import { cleanQuestion, type ReportKind } from '../../../packages/report/src/prompt.ts';
 
 export interface BirthInput {
   date: string;
@@ -61,6 +61,13 @@ export interface ReadingRequest {
   /** 교차검증용 관상·손금 특징 */
   face?: Parameters<typeof readFace>[0];
   palm?: Parameters<typeof readPalm>[0];
+  /**
+   * 손님이 신령에게 직접 물은 것 한 가지.
+   *
+   * 화면에서 신령이 「원하는 것 하나를 말해 보렴」이라고 했으니 여기로 받아
+   * 리포트까지 실어 보낸다. 안 적었으면 없는 채로 간다.
+   */
+  question?: string;
 }
 
 /**
@@ -119,10 +126,20 @@ function sajuBundle(birth: BirthInput) {
  */
 export function buildPayloads(
   req: ReadingRequest,
-): { productId: ProductId; kind: ReportKind; data: unknown; subject: string }[] {
-  return orderable(req.productId).members.map((productId) => ({
+): { productId: ProductId; kind: ReportKind; data: unknown; subject: string; question?: string }[] {
+  const members = orderable(req.productId).members;
+  /*
+   * 질문은 **마지막 편에만** 싣는다.
+   *
+   * 편마다 실으면 같은 답이 세 번 나온다. 손님은 한 번 물었는데 세 번
+   * 답하는 글은 성의가 아니라 허술함으로 읽힌다. 묶음은 이어 붙여 한 벌로
+   * 나가므로, 마지막 편 끝에 답이 오면 읽는 사람이 다 읽고 나서 받는다.
+   */
+  const question = cleanQuestion(req.question);
+  return members.map((productId, i) => ({
     productId,
     ...buildPayload({ ...req, productId }),
+    question: question && i === members.length - 1 ? question : undefined,
   }));
 }
 

@@ -13,7 +13,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { canonicalize, PROMPT_VERSION, type ReportInput } from './prompt.ts';
+import { canonicalize, cleanQuestion, PROMPT_VERSION, type ReportInput } from './prompt.ts';
 
 export interface CacheKeyParts {
   input: ReportInput;
@@ -34,6 +34,8 @@ export function cacheKey({ input, model, effort }: CacheKeyParts): string {
     effort,
     kind: input.kind,
     subject: input.subject ?? null,
+    // 질문이 다르면 다른 리포트다. 이것을 빼면 앞사람 답이 뒷사람에게 나간다
+    question: cleanQuestion(input.question),
     data: input.data,
   });
   return createHash('sha256').update(material).digest('hex');

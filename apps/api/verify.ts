@@ -27,6 +27,8 @@ function section(t: string) { console.log(`\n${t}\n${'─'.repeat(60)}`); }
 const gateway = new FakeGateway();
 const orders = new MemoryOrderStore();
 let generateCalls = 0;
+/** 생성기가 실제로 무엇을 받았는지. 화면의 약속이 리포트까지 가는지 본다 */
+const generateArgs: { kind: string; subject: string; question?: string }[] = [];
 
 /** 심사에 통과할 만큼 채워진 사업자 정보. 실제 값이 아니다 */
 const business = loadBusinessInfo({
@@ -41,8 +43,9 @@ const handler = createApi({
   gateway,
   orders,
   business,
-  generate: async ({ kind, subject }) => {
+  generate: async ({ kind, subject, question }) => {
     generateCalls++;
+    generateArgs.push({ kind, subject, question });
     return { text: `[가짜 ${kind} 리포트: ${subject}]\n\n두 번째 문단입니다.` };
   },
 });
@@ -192,7 +195,10 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   }
   check('상품 21개가 각각 제 페이지를 가진다', ok === Object.keys(CAT).length, `${ok}/${Object.keys(CAT).length}`);
   const one = await page('/products/wealth-report');
-  check('상세페이지에 가격이 실판매가로 나온다', one.html.includes('6,900원'));
+  // 값을 여기 적어 두면 값을 고칠 때마다 검증이 깨진다. 카탈로그에서 가져온다
+  check('상세페이지에 가격이 실판매가로 나온다',
+    one.html.includes(CAT['wealth-report'].priceKrw.toLocaleString('ko-KR') + '원'),
+    `${CAT['wealth-report'].priceKrw.toLocaleString('ko-KR')}원`);
   check('상세페이지에 명리 용어를 함께 단다', one.html.includes('재성(財星)'));
   check('상세페이지에서 목록으로 돌아갈 수 있다', one.html.includes('href="/products"'));
   check('상세페이지에도 사업자 정보', one.html.includes('220-81-62517'));
@@ -730,7 +736,7 @@ section('H. 저장소 장애가 사이트를 죽이지 않는다');
 // ── H. 묶음 사기 ────────────────────────────────────────────────
 section('H. 묶음도 살 수 있다');
 
-const PACK = 'samhap-pack';
+const PACK = 'self-3';
 const pack = PACKAGES[PACK];
 const packMath = bundleMath(PACK);
 const packReading = { productId: PACK, birth: BIRTH };
@@ -788,6 +794,61 @@ const badPack = await api('POST', '/api/orders',
   { productId: 'no-such-pack', birth: BIRTH, acknowledgedNotice: true });
 check('없는 묶음은 거부', badPack.status === 400);
 
+// ── H2. 신령이 약속한 질문 하나 ──────────────────────────────────
+/*
+ * 화면에서 신령이 「원하는 것 하나를 말해 보렴」이라고 한다.
+ * 그 말이 리포트까지 실제로 가는지 여기서 본다. 안 가면 거짓 광고다.
+ */
+section('H2. 물어본 것이 리포트까지 간다');
+
+const Q = '올해 이직해도 괜찮을까요?';
+// 아무것도 안 물은 같은 손님. 이것과 견준다
+const quietBase = await api('POST', '/api/orders',
+  { productId: 'cross-report', birth: BIRTH, acknowledgedNotice: true, previewShown: true });
+const askOrder = await api('POST', '/api/orders',
+  { productId: 'cross-report', birth: BIRTH, question: Q, acknowledgedNotice: true, previewShown: true });
+check('질문을 실은 주문이 생긴다', askOrder.status === 201, askOrder.body.error);
+check('질문이 다르면 다른 주문으로 친다',
+  askOrder.body.order.inputHash !== quietBase.body.order.inputHash);
+
+const askId: string = askOrder.body.order.id;
+await api('POST', `/api/orders/${askId}/pending`);
+gateway.put({ paymentId: askId, status: 'paid', amountKrw: askOrder.body.order.amountKrw,
+  merchantOrderId: askId, method: 'card', paidAt: new Date().toISOString(), raw: {} });
+generateArgs.length = 0;
+const askDone = await api('POST', `/api/orders/${askId}/confirm`, { paymentId: askId });
+check('결제가 확정된다', askDone.status === 200, askDone.body.error);
+check('물어본 것이 그대로 생성기까지 간다', generateArgs.at(-1)?.question === Q,
+  generateArgs.at(-1)?.question ?? '안 감');
+
+// 묶음은 편이 여럿이다. 같은 답을 여러 번 하면 성의가 아니라 허술함이다
+generateArgs.length = 0;
+const packAsk = await api('POST', '/api/orders',
+  { ...packReading, question: Q, acknowledgedNotice: true, previewShown: true });
+const packAskId: string = packAsk.body.order.id;
+await api('POST', `/api/orders/${packAskId}/pending`);
+gateway.put({ paymentId: packAskId, status: 'paid', amountKrw: packAsk.body.order.amountKrw,
+  merchantOrderId: packAskId, method: 'card', paidAt: new Date().toISOString(), raw: {} });
+await api('POST', `/api/orders/${packAskId}/confirm`, { paymentId: packAskId });
+check('묶음에서는 한 편에만 답한다',
+  generateArgs.filter((g) => g.question).length === 1,
+  `${generateArgs.filter((g) => g.question).length}편`);
+check('그 한 편은 마지막 편이다', generateArgs.at(-1)?.question === Q);
+
+// 안 물어도 된다. 그게 기본이다
+generateArgs.length = 0;
+const quiet = await api('POST', '/api/orders',
+  { productId: 'cross-report', birth: BIRTH, question: '   ', acknowledgedNotice: true });
+check('빈 질문은 없는 것으로 친다', quiet.body.order.inputHash === quietBase.body.order.inputHash);
+
+const badQ = await api('POST', '/api/orders',
+  { productId: 'cross-report', birth: BIRTH, question: { 나쁜: '것' }, acknowledgedNotice: true });
+check('글이 아닌 질문은 거부', badQ.status === 400, badQ.body.error);
+
+const longQ = await api('POST', '/api/orders',
+  { productId: 'cross-report', birth: BIRTH, question: '가'.repeat(600), acknowledgedNotice: true });
+check('아주 긴 질문도 서버가 버틴다', longQ.status === 201, longQ.body.error);
+
 // ─── 택일 리포트 ──────────────────────────────────────────────
 // 아직 태어나지 않은 아이의 날을 고르는 상품이라, 생년월일 없이도 서야 한다
 {
@@ -804,7 +865,9 @@ check('없는 묶음은 거부', badPack.status === 400);
   // 손님이 고른 것은 「16~17시」다. 우리가 재려고 잡은 16:30 이 나가면 안 된다
   check('고른 말 그대로 되돌려 준다',
     c.some((x: string) => x.includes('16~17시')) && !c.join(' ').includes('16:30'));
-  check('값은 서버가 가진 것으로', noBirth.body?.product?.priceKrw === 29000);
+  check('값은 서버가 가진 것으로',
+    noBirth.body?.product?.priceKrw === CATALOG['pick-report'].priceKrw,
+    `${noBirth.body?.product?.priceKrw}원`);
 
   const noDates = await api('POST', '/api/preview', { productId: 'pick-report' });
   check('후보 날짜가 없으면 거부', noDates.status === 400);
