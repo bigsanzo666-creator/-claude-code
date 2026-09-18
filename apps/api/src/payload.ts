@@ -11,6 +11,7 @@ import { calculate } from '../../../packages/manseryeok/src/index.ts';
 import {
   analyze, calculateDaeun, currentDaeun, annualLuck,
   compatibility, sajuToTraits, crossValidate, groupElement, dailyLuck,
+  extractTopic, allTopics, type TopicId,
 } from '../../../packages/saju-rules/src/index.ts';
 import { pickDays, mergeHours, bestPerDay, slotSpan, slotLabel } from '../../../packages/saju-rules/src/index.ts';
 import { readFace, NEUTRAL_FEATURES } from '../../../packages/physiognomy/src/index.ts';
@@ -80,6 +81,75 @@ export interface ReadingRequest {
  * 빠짐없이 적는 대신 예외만 적는다. 상품이 늘 때마다 이 표를 고치는 것을
  * 잊으면 그 상품은 조용히 잘못된 갈래로 나가는데, 기본값을 두면 그 사고가 없다.
  */
+/**
+ * 주제별 상품이 어느 주제를 보는가.
+ *
+ * ## 이걸 안 하고 있었다
+ *
+ * 룰 엔진에는 주제별로 명식을 자르는 장치(`extractTopic`)가 처음부터 있었는데
+ * **유료 리포트가 그걸 한 번도 부르지 않았다.** 그래서 돈그릇(14,900원)을 산
+ * 손님과 사주 종합(34,900원)을 산 손님이 **글자 하나까지 같은 글**을 받고
+ * 있었다. 캐시 열쇠까지 같아서 정말로 같은 글이 나갔다.
+ *
+ * 값이 다른데 물건이 같으면 그건 파는 것이 아니다. 여기서 끊는다.
+ *
+ * ## 그래서 무엇이 달라지는가
+ *
+ * 주제 상품은 **여덟 글자와 그 주제 하나**를 받는다.
+ * 사주 종합은 **여덟 글자와 여덟 주제 전부**에 대운 전체·신살·특징까지 받는다.
+ * 값 차이가 물건 차이로 선다.
+ */
+interface TopicScope {
+  /** 볼 주제들. 여럿이면 그만큼 넓게 본다 */
+  topics: TopicId[];
+  /** 손님이 이 상품을 누르며 품은 물음. 글이 여기에 답해야 한다 */
+  asks: string;
+  /** 몇 해치 세운을 실을 것인가. 때를 묻는 상품일수록 길게 */
+  years: number;
+}
+
+const TOPIC_OF_PRODUCT: Partial<Record<ProductId, TopicScope>> = {
+  'wealth-report': { topics: ['wealth'], asks: '내 돈그릇은 얼마만 한가', years: 3 },
+  'career-report': { topics: ['career'], asks: '이 일을 계속하는 게 맞는가', years: 3 },
+  'expression-report': { topics: ['expression'], asks: '나는 무엇을 잘 타고났는가', years: 3 },
+  'peers-report': { topics: ['peers'], asks: '사람과는 어떻게 지내는 편인가', years: 3 },
+  'helper-report': { topics: ['helper'], asks: '나를 도와줄 사람은 어디에 있는가', years: 3 },
+  'learning-report': { topics: ['learning'], asks: '공부와 문서의 일은 어떤가', years: 3 },
+  'travel-report': { topics: ['travel'], asks: '자리를 옮기는 일은 어떤가', years: 3 },
+
+  /*
+   * 아래 셋은 위의 것과 뿌리가 겹친다. 그래서 **보는 자리를 넓혀서** 가른다.
+   * 같은 자료에 이름만 달리 붙이면 그건 같은 물건을 두 값에 파는 것이다.
+   */
+  // 시험은 문서의 기운에 **자리를 얻는 기운**을 겹쳐 본다. 때가 중요하니 세운을 길게
+  'exam-report': { topics: ['learning', 'career'], asks: '이번 시험에 붙을 수 있는가', years: 5 },
+  // 진학은 문서의 기운에 **타고난 결(재능)**을 겹쳐 본다. 어느 쪽으로 보낼지의 물음이다
+  'admission-report': { topics: ['learning', 'expression'], asks: '어느 쪽으로 가야 이 아이가 덜 힘든가', years: 3 },
+  // 취업은 자리의 기운에 문서의 기운을 겹쳐 본다
+  'job-report': { topics: ['career', 'learning'], asks: '내 자리는 언제 어디서 열리는가', years: 5 },
+};
+
+/**
+ * 교차검증 상품이 **실제로 대조하는 갈래**.
+ *
+ * 상품 이름과 설명이 곧 약속이다. 「사주 × 손금」이라고 팔았으면 관상은
+ * 싣지 않는다. 자료에 있으면 모델은 결국 쓴다.
+ */
+const CROSS_SOURCES: Partial<Record<ProductId, { 사주: boolean; 관상: boolean; 손금: boolean }>> = {
+  // 생년월일을 아예 받지 않는 상품이다. 사주가 실리면 거짓말이 된다
+  'face-palm-report': { 사주: false, 관상: true, 손금: true },
+  'saju-palm-report': { 사주: true, 관상: false, 손금: true },
+  'saju-face-report': { 사주: true, 관상: true, 손금: false },
+  'cross-report': { 사주: true, 관상: true, 손금: true },
+  'charm-report': { 사주: true, 관상: true, 손금: true },
+};
+
+/** 그 상품이 보는 축만 남긴다. 비워 두면 여덟 축을 다 본다 */
+const CROSS_AXES: Partial<Record<ProductId, string[]>> = {
+  // 매력은 사람을 끌어들이는 힘과 밖으로 내보이는 힘에서 나온다
+  'charm-report': ['대인관계', '표현력'],
+};
+
 const KIND_EXCEPTIONS: Partial<Record<ProductId, ReportKind>> = {
   // 두 사람의 명식을 대조하는 것은 전부 「궁합」 갈래다
   'compat-report': '궁합',
@@ -98,6 +168,7 @@ const KIND_EXCEPTIONS: Partial<Record<ProductId, ReportKind>> = {
 export function kindOf(productId: ProductId): ReportKind {
   const listed = KIND_EXCEPTIONS[productId];
   if (listed) return listed;
+  if (TOPIC_OF_PRODUCT[productId]) return '주제';
   // 얼굴과 손을 받는 상품은 전부 교차검증이다. 표에 적는 것을 잊어도 여기서 걸린다
   if (CATALOG[productId]?.needsFace) return '교차검증';
   // 성을 받는 상품은 전부 작명이다
@@ -346,6 +417,69 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
   };
 
   /*
+   * 주제 하나만 보는 상품.
+   *
+   * 여덟 글자와 **그 주제에 해당하는 글자들**만 싣는다. 십신 비중 전체,
+   * 신살 전체, 대운 전체는 빼 둔다 — 그건 사주 종합이 파는 것이다.
+   *
+   * 지시문으로 「그 주제만 쓰라」고 시키는 것으로는 부족하다. 자료에 다 들어
+   * 있으면 모델은 결국 쓴다. **자료 자체를 잘라야** 물건이 갈린다.
+   */
+  const scope = TOPIC_OF_PRODUCT[req.productId];
+  if (scope) {
+    return {
+      kind: '주제',
+      subject,
+      data: {
+        손님이_묻는_것: scope.asks,
+        명식: base.명식,
+        계산근거: base.계산근거,
+        일간: base.일간,
+        강약: base.강약,
+        용신: base.용신,
+        주제: scope.topics.map((t) => extractTopic(an, t)),
+        지금_대운: { 방향: daeun.direction, 현재: currentDaeun(daeun, age) },
+        세운: annualLuck(ms, an.yongsin, year, scope.years),
+      },
+    };
+  }
+
+  /*
+   * 사주 종합은 **여덟 주제를 전부** 받는다.
+   *
+   * 값 차이가 물건 차이로 서게 하는 자리다. 낱개로 여덟 번 사는 것보다
+   * 한 번에 사는 쪽이 낫다는 것이 자료에서부터 사실이어야 한다.
+   */
+  if (req.productId === 'saju-report') {
+    return { kind: '사주', subject, data: { ...base, 여덟_주제: allTopics(an) } };
+  }
+
+  /*
+   * 신년운세는 **한 해**를 보는 글이다.
+   *
+   * 평생 명식을 통째로 실으면 모델이 평생 사주를 쓰고, 그러면 34,900원짜리
+   * 사주 종합과 같은 글이 24,900원에 나간다. 올해와 내년의 흐름, 그리고
+   * 그 해의 기운이 여덟 주제 각각에 어떻게 닿는지까지만 싣는다.
+   */
+  if (req.productId === 'newyear-report') {
+    return {
+      kind: '사주',
+      subject,
+      data: {
+        손님이_묻는_것: '올 한 해는 나에게 어떤 해인가',
+        명식: base.명식,
+        계산근거: base.계산근거,
+        일간: base.일간,
+        강약: base.강약,
+        용신: base.용신,
+        지금_대운: { 방향: daeun.direction, 현재: currentDaeun(daeun, age) },
+        올해와_내년: annualLuck(ms, an.yongsin, year, 2),
+        여덟_주제: allTopics(an),
+      },
+    };
+  }
+
+  /*
    * 갈래는 `kindOf()` 하나가 정한다.
    *
    * 전에는 여기서 「saju-report 면 사주, 나머지는 전부 교차검증」으로 갈랐다.
@@ -360,17 +494,43 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
   const kind = kindOf(req.productId);
   if (kind !== '교차검증') return { kind, subject, data: base };
 
-  // 교차검증만 얼굴과 손을 쓴다. 여기 오는 상품은 화면에서 둘을 받아 온다
-  const face = readFace(req.face ?? NEUTRAL_FEATURES);
-  const palm = readPalm(req.palm ?? NEUTRAL_PALM_FEATURES);
+  /*
+   * 어느 갈래를 싣는가는 **상품마다 다르다.**
+   *
+   * 전에는 다섯 상품이 전부 사주·관상·손금 셋을 받았다. 그래서
+   * 「생년월일 없이 얼굴과 손만으로 봅니다」라고 팔아 놓은 상품에 사주가
+   * 실리고, 「사주 × 손금」이라고 팔아 놓은 상품에 관상까지 실렸다.
+   * 자료에 있으면 모델은 쓴다 — 대조한 적 없는 것을 대조했다고 쓰는 글이
+   * 나가게 된다. 상품 설명과 글이 다른 말을 하면 그 자체가 위반이다.
+   */
+  const uses = CROSS_SOURCES[req.productId] ?? { 사주: true, 관상: true, 손금: true };
+  const face = uses.관상 ? readFace(req.face ?? NEUTRAL_FEATURES) : null;
+  const palm = uses.손금 ? readPalm(req.palm ?? NEUTRAL_PALM_FEATURES) : null;
+  const profiles = [
+    ...(uses.사주 ? [sajuToTraits(an)] : []),
+    ...(face ? [face.profile] : []),
+    ...(palm ? [palm.profile] : []),
+  ];
+
+  /*
+   * 매력 삼합은 셋을 다 보되 **매력이 걸린 축만** 본다.
+   * 그래서 삼합 리포트(69,000원)와 값도 다르고 물건도 다르다.
+   */
+  const axes = CROSS_AXES[req.productId];
+  const cross = crossValidate(...profiles);
+  const 교차검증 = axes
+    ? { ...cross, comparisons: cross.comparisons.filter((c) => axes.includes(c.axis)) }
+    : cross;
+
   return {
     kind: '교차검증',
     subject,
     data: {
-      사주: base,
-      관상: { 부위별: face.notes, 신호: face.profile.signals },
-      손금: { 항목별: palm.notes, 신호: palm.profile.signals },
-      교차검증: crossValidate(sajuToTraits(an), face.profile, palm.profile),
+      보는_갈래: Object.entries(uses).filter(([, on]) => on).map(([k]) => k),
+      ...(uses.사주 ? { 사주: axes ? { 명식: base.명식, 일간: base.일간, 매력: extractTopic(an, 'charm') } : base } : {}),
+      ...(face ? { 관상: { 부위별: face.notes, 신호: face.profile.signals } } : {}),
+      ...(palm ? { 손금: { 항목별: palm.notes, 신호: palm.profile.signals } } : {}),
+      교차검증,
     },
   };
 }

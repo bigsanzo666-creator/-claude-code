@@ -14,6 +14,8 @@ import {
 import { loadBusinessInfo, SPIRITS } from '../../packages/site-policy/src/index.ts';
 import { findSpiritVideos } from './src/images.ts';
 import { createApi, MemoryOrderStore } from './src/server.ts';
+import { buildPayload } from './src/payload.ts';
+import { cacheKey } from '../../packages/report/src/cache.ts';
 import { StandbyGateway, standbyGenerate } from './src/standby.ts';
 
 let passed = 0, failed = 0;
@@ -857,6 +859,86 @@ check('없는 묶음은 거부', badPack.status === 400);
  * 화면에서 신령이 「원하는 것 하나를 말해 보렴」이라고 한다.
  * 그 말이 리포트까지 실제로 가는지 여기서 본다. 안 가면 거짓 광고다.
  */
+// ── H1. 값이 다르면 물건도 달라야 한다 ────────────────────────
+/*
+ * 31개 상품이 실제로는 **여섯 가지 글**만 만들고 있었다.
+ *
+ * 돈그릇(14,900원)과 사주 종합(34,900원)이 글자 하나까지 같은 자료로 만들어졌고,
+ * 캐시 열쇠까지 같아서 정말로 같은 글이 나갔다. 값이 다른데 물건이 같으면
+ * 그건 파는 것이 아니다.
+ *
+ * 여기서 그것을 막는다. 아직 못 가른 것은 아래에 **이름을 적어 두고**,
+ * 새로 겹치는 것이 생기면 바로 걸린다.
+ */
+section('H1. 값이 다르면 물건도 다르다');
+{
+  const BIRTH2 = { date: '1990-09-25', time: '14:40', longitude: 126.978, gender: '남' as const };
+  const PARTNER2 = { date: '1992-03-03', time: '09:00', longitude: 126.978, gender: '여' as const };
+  const byReport = new Map<string, string[]>();
+  for (const p of Object.values(CATALOG)) {
+    let built;
+    try {
+      built = buildPayload({
+        productId: p.id, birth: BIRTH2, partner: PARTNER2,
+        name: { surname: '김' }, pick: { dates: ['2027-04-30'], times: ['16~17시'] },
+      } as never);
+    } catch { continue; }
+    const key = cacheKey({
+      input: { kind: built.kind, data: built.data, subject: built.subject },
+      model: 'claude-opus-5', effort: 'medium',
+    });
+    byReport.set(key, [...(byReport.get(key) ?? []), p.id]);
+  }
+
+  /*
+   * 아직 못 가른 것. **사장님이 정해 주셔야 하는 자리다** —
+   * 무엇을 더 보고 무엇을 빼서 값 차이를 세울지는 장사의 결정이다.
+   * 하나씩 갈라질 때마다 여기서 지운다.
+   */
+  const 아직: string[][] = [
+    ['single-report', 'marriage-timing-report', 'letgo-report', 'latelife-report',
+      'child-report', 'child-aptitude-report'],
+    ['crush-compat-report', 'reunion-report', 'parent-child-report'],
+    ['naming-report', 'naming-plus-report'],
+  ];
+  const 적어둔것 = new Set(아직.map((g) => [...g].sort().join(',')));
+
+  const 겹침 = [...byReport.values()].filter((ids) => ids.length > 1);
+  const 새로겹친것 = 겹침.filter((ids) => !적어둔것.has([...ids].sort().join(',')));
+
+  check('적어 두지 않은 상품이 새로 겹치지 않는다', 새로겹친것.length === 0,
+    새로겹친것.map((ids) => ids.join(' = ')).join(' / ') || '없음');
+  check('낱개 주제 상품과 사주 종합이 다른 글이 된다',
+    byReport.size >= 20, `${byReport.size}가지 글`);
+
+  // 값이 제일 싼 것과 제일 비싼 것이 같은 글이면 그건 장사가 아니다
+  for (const ids of 겹침) {
+    const prices = ids.map((id) => CATALOG[id as never].priceKrw);
+    check(`겹치는 무리 안에서 값이 두 배를 넘지 않는다 — ${ids.length}개`,
+      Math.max(...prices) <= Math.min(...prices) * 2,
+      `${Math.min(...prices).toLocaleString()}원 ~ ${Math.max(...prices).toLocaleString()}원`);
+  }
+
+  // 「생년월일 없이 얼굴과 손만으로 봅니다」라고 팔아 놓고 사주를 실으면 거짓말이다
+  const fp = buildPayload({ productId: 'face-palm-report', birth: BIRTH2 } as never);
+  check('얼굴과 손 상품에 사주가 실리지 않는다', !('사주' in (fp.data as object)),
+    Object.keys(fp.data as object).join('/'));
+  const sp = buildPayload({ productId: 'saju-palm-report', birth: BIRTH2 } as never);
+  check('사주 × 손금에 관상이 실리지 않는다', !('관상' in (sp.data as object)));
+  const sf = buildPayload({ productId: 'saju-face-report', birth: BIRTH2 } as never);
+  check('사주 × 관상에 손금이 실리지 않는다', !('손금' in (sf.data as object)));
+
+  // 주제 상품은 그 주제만 받는다. 자료에 다 들어 있으면 모델은 결국 쓴다
+  const w = buildPayload({ productId: 'wealth-report', birth: BIRTH2 } as never);
+  check('주제 상품은 주제 갈래로 나간다', w.kind === '주제');
+  check('주제 상품에 신살·특징 전체가 실리지 않는다',
+    !('신살' in (w.data as object)) && !('두드러진_특징' in (w.data as object)));
+  check('주제 상품이 사주 종합보다 자료가 적다',
+    JSON.stringify(w.data).length
+      < JSON.stringify(buildPayload({ productId: 'saju-report', birth: BIRTH2 } as never).data).length,
+    `${JSON.stringify(w.data).length}자 < 사주 종합`);
+}
+
 section('H2. 물어본 것이 리포트까지 간다');
 
 const Q = '올해 이직해도 괜찮을까요?';
