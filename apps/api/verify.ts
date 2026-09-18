@@ -311,6 +311,44 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   const part = await fetch(`http://127.0.0.1:${ip}/video/hero`, { headers: { Range: 'bytes=0-3' } });
   check('조각으로 달라면 조각으로 준다',
     part.status === 206 && (await part.arrayBuffer()).byteLength === 4);
+
+  /*
+   * 그림과 영상을 통째로 메모리에 올리지 않는다.
+   *
+   * 예전에는 한 장 보낼 때마다 그 파일을 전부 읽어 들였다. 신령 영상은 한 개가
+   * 7메가고 우리 서버는 512메가짜리다 — 손님이 몰리는 날 넘친다. 손님이 없을
+   * 때는 안 터지므로, 터지기 전에 여기서 잡아야 한다.
+   */
+  const heroSize = Number(vid.headers.get('content-length'));
+  check('영상 길이를 제대로 알려 준다', heroSize > 0, `${heroSize}바이트`);
+
+  // 「bytes=-2」 는 끝에서 두 바이트다. 0 부터로 읽으면 영상 앞부분을 보내게 된다
+  const tail = await fetch(`http://127.0.0.1:${ip}/video/hero`, { headers: { Range: 'bytes=-2' } });
+  const tailBody = Buffer.from(await tail.arrayBuffer());
+  const whole = Buffer.from(await (await get('/video/hero')).arrayBuffer());
+  check('끝에서 달라면 끝을 준다',
+    tail.status === 206 && tailBody.length === 2 && tailBody.equals(whole.subarray(-2)),
+    tail.headers.get('content-range') ?? '');
+
+  // 가운데 조각도 원본과 같은 자리여야 한다. 흘려보내며 자리를 잘못 잡으면 영상이 깨진다
+  const mid = await fetch(`http://127.0.0.1:${ip}/video/hero`, { headers: { Range: 'bytes=3-9' } });
+  const midBody = Buffer.from(await mid.arrayBuffer());
+  check('가운데 조각도 제자리를 준다',
+    mid.status === 206 && midBody.equals(whole.subarray(3, 10)),
+    mid.headers.get('content-range') ?? '');
+
+  const over = await fetch(`http://127.0.0.1:${ip}/video/hero`,
+    { headers: { Range: `bytes=${heroSize + 10}-${heroSize + 20}` } });
+  check('없는 자리를 달라면 416으로 돌려보낸다', over.status === 416,
+    over.headers.get('content-range') ?? '');
+  await over.arrayBuffer();
+
+  // 여럿이 한꺼번에 눌러도 다 제대로 받아야 한다. 흘려보내다 서로 엉키면 여기서 걸린다
+  const many = await Promise.all(Array.from({ length: 12 }, () => get('/video/hero')));
+  const bodies = await Promise.all(many.map(async (r) => Buffer.from(await r.arrayBuffer())));
+  check('열두 명이 동시에 받아도 온전하다',
+    many.every((r) => r.status === 200) && bodies.every((b) => b.equals(whole)),
+    `${bodies.filter((b) => b.equals(whole)).length}/12`);
   const spImg = await get('/img/spirits/flower');
   check('신령 얼굴을 200으로 준다', spImg.status === 200
     && spImg.headers.get('content-type') === 'image/png');

@@ -9,7 +9,7 @@
  */
 
 import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { readFileSync } from 'node:fs';
+import { readFileSync, createReadStream, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
@@ -470,14 +470,57 @@ function validateReading(body: any): ReadingRequest {
 }
 
 /**
+ * 파일을 **통째로 메모리에 올리지 않고** 조금씩 흘려보낸다.
+ *
+ * 예전에는 그림 하나를 보낼 때마다 그 파일을 전부 메모리로 읽어 들였다.
+ * 신령 영상 한 개가 7메가인데 우리 서버는 512메가짜리다 — 손님 열 명이
+ * 동시에 다른 신령을 누르면 70메가가 한꺼번에 뜬다. 손님이 없을 때는
+ * 안 터지고 **광고를 켠 날 터진다.** 그래서 미리 고친다.
+ *
+ * 흘려보내면 메모리에 올라가는 것은 한 번에 몇십 킬로바이트뿐이다.
+ */
+function pipeFile(
+  res: ServerResponse, path: string, head: Record<string, string | number>,
+  status = 200, start?: number, end?: number,
+): void {
+  const stream = createReadStream(path, start === undefined ? {} : { start, end });
+  /*
+   * 여는 데 실패하면(배포 중에 파일이 바뀌는 등) 머리글을 아직 안 보냈을 때만
+   * 404 로 답할 수 있다. 이미 보냈으면 연결을 끊는 수밖에 없다 —
+   * 반쪽짜리 그림을 200 이라고 우기는 것보다 낫다.
+   */
+  stream.on('error', () => {
+    if (!res.headersSent) { res.writeHead(404); res.end('그림을 열지 못했습니다.'); }
+    else res.destroy();
+  });
+  // 손님이 창을 닫으면 읽던 것을 놓아 준다. 안 놓으면 파일 손잡이가 쌓인다
+  res.on('close', () => stream.destroy());
+  res.writeHead(status, head);
+  stream.pipe(res);
+}
+
+/** 그림 한 장. 크기는 보내기 직전에 재고, 내용은 흘려보낸다 */
+function sendImage(res: ServerResponse, file: ProductImage): void {
+  pipeFile(res, file.path, {
+    'Content-Type': file.type,
+    'Content-Length': statSync(file.path).size,
+    // 한 시간. 그림을 다시 뽑아 올려도 오래 묵지 않는다
+    'Cache-Control': 'public, max-age=3600',
+  });
+}
+
+/**
  * 영상 보내기.
  *
  * 브라우저는 영상을 통째로 받지 않고 **조각내어** 요청한다. 그 요청을 못 받아
  * 주면 재생이 아예 시작되지 않는다. 첫 화면 영상과 문 여는 영상이 같은 규칙을
  * 쓰므로 한 곳에 둔다 — 두 곳에 두면 언젠가 한쪽만 고친다.
+ *
+ * 달라고 한 조각만 읽어 보낸다. 예전에는 1메가를 달라고 해도 7메가를 통째로
+ * 읽고 거기서 잘라 줬다.
  */
 function sendVideo(req: IncomingMessage, res: ServerResponse, file: ProductImage): void {
-  const body = readFileSync(file.path);
+  const size = statSync(file.path).size;
   const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
   const head = {
     'Content-Type': file.type,
@@ -485,24 +528,30 @@ function sendVideo(req: IncomingMessage, res: ServerResponse, file: ProductImage
     'Accept-Ranges': 'bytes',
   };
   if (!range) {
-    res.writeHead(200, { ...head, 'Content-Length': body.length });
-    res.end(body);
+    pipeFile(res, file.path, { ...head, 'Content-Length': size });
     return;
   }
-  const start = range[1] ? Number(range[1]) : 0;
-  const end = range[2] ? Math.min(Number(range[2]), body.length - 1) : body.length - 1;
-  if (!(start >= 0 && start <= end && end < body.length)) {
-    res.writeHead(416, { ...head, 'Content-Range': `bytes */${body.length}` });
+  /*
+   * 「bytes=-500」 은 **끝에서 500바이트**라는 뜻이다. 앞의 숫자가 없으면
+   * 0 이 아니다 — 이것을 0 으로 읽으면 영상 앞부분을 보내게 된다.
+   */
+  const suffix = !range[1] && Boolean(range[2]);
+  const start = suffix
+    ? Math.max(0, size - Number(range[2]))
+    : (range[1] ? Number(range[1]) : 0);
+  const end = suffix
+    ? size - 1
+    : (range[2] ? Math.min(Number(range[2]), size - 1) : size - 1);
+  if (!(Number.isFinite(start) && Number.isFinite(end) && start >= 0 && start <= end && end < size)) {
+    res.writeHead(416, { ...head, 'Content-Range': `bytes */${size}` });
     res.end();
     return;
   }
-  const slice = body.subarray(start, end + 1);
-  res.writeHead(206, {
+  pipeFile(res, file.path, {
     ...head,
-    'Content-Range': `bytes ${start}-${end}/${body.length}`,
-    'Content-Length': slice.length,
-  });
-  res.end(slice);
+    'Content-Range': `bytes ${start}-${end}/${size}`,
+    'Content-Length': end - start + 1,
+  }, 206, start, end);
 }
 
 export function createApi(deps: ApiDeps) {
@@ -616,14 +665,7 @@ export function createApi(deps: ApiDeps) {
     'GET /img/products/:id': async (_req, res, id) => {
       const image = images.get(id);
       if (!image) throw new HttpError(404, `그림이 없습니다: ${id}`);
-      const body = readFileSync(image.path);
-      res.writeHead(200, {
-        'Content-Type': image.type,
-        'Content-Length': body.length,
-        // 한 시간. 그림을 다시 뽑아 올려도 오래 묵지 않는다
-        'Cache-Control': 'public, max-age=3600',
-      });
-      res.end(body);
+      sendImage(res, image);
     },
 
     /**
@@ -648,13 +690,7 @@ export function createApi(deps: ApiDeps) {
     'GET /img/spirits/:id': async (_req, res, id) => {
       const image = spirits.get(id);
       if (!image) throw new HttpError(404, `신령 그림이 없습니다: ${id}`);
-      const body = readFileSync(image.path);
-      res.writeHead(200, {
-        'Content-Type': image.type,
-        'Content-Length': body.length,
-        'Cache-Control': 'public, max-age=3600',
-      });
-      res.end(body);
+      sendImage(res, image);
     },
 
     /** 문이 열리는 영상. 첫 화면 영상과 같은 방식으로 조각내어 준다 */
@@ -684,25 +720,13 @@ export function createApi(deps: ApiDeps) {
     'GET /img/scene/:id': async (_req, res, id) => {
       const image = scenes.get(id);
       if (!image) throw new HttpError(404, `배경 그림이 없습니다: ${id}`);
-      const body = readFileSync(image.path);
-      res.writeHead(200, {
-        'Content-Type': image.type,
-        'Content-Length': body.length,
-        'Cache-Control': 'public, max-age=3600',
-      });
-      res.end(body);
+      sendImage(res, image);
     },
 
     /** 첫 화면에 까는 그림. 상품이 아니므로 주소도 따로 둔다 */
     'GET /img/hero': async (_req, res) => {
       if (!hero) throw new HttpError(404, '첫 화면 그림이 없습니다.');
-      const body = readFileSync(hero.path);
-      res.writeHead(200, {
-        'Content-Type': hero.type,
-        'Content-Length': body.length,
-        'Cache-Control': 'public, max-age=3600',
-      });
-      res.end(body);
+      sendImage(res, hero);
     },
 
     /**
