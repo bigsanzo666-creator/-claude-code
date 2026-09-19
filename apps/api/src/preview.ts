@@ -188,6 +188,34 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
       contents.push('지어 드린 이름마다 한자 뜻·소리·네 격 획수를 함께 적음');
       contents.push('고른 글자는 모두 대법원 인명용 한자 — 출생신고가 됩니다');
     }
+  } else if (d?.결혼시기) {
+    const m = d.결혼시기;
+    contents.push(m.spouseStar);
+    contents.push(m.spouseSeat);
+    contents.push(`앞으로 ${m.years.length}해를 한 해씩 견줌`);
+    contents.push(`나이대(대운)마다 어떤 결인지 ${m.byDecade.length}구간`);
+    for (const w of m.strongest) {
+      contents.push(`기운이 제일 세게 드는 해: ${w.year}년 ${w.age}세 (${w.pillar}) — ${w.says[0]}`);
+    }
+  } else if (d?.노후) {
+    const l = d.노후;
+    contents.push(l.lateSeat);
+    contents.push(`예순 이후 십 년씩 ${l.decades.length}구간`);
+    for (const x of l.decades.slice(0, 3)) {
+      contents.push(`${x.startAge}~${x.endAge}세 ${x.pillar} — ${x.favor}`);
+    }
+    contents.push('수명이나 병은 보지 않습니다');
+  } else if (Array.isArray(d?.세_해_달마다)) {
+    if (d.명식) contents.push(`아이 명식 ${d.명식.연주} ${d.명식.월주} ${d.명식.일주} ${d.명식.시주 ?? '—'}`);
+    if (d.강약) contents.push(`일간 강약: ${d.강약.verdict} (${d.강약.supportRatio}%)`);
+    if (d.용신) contents.push(`채워야 할 기운: ${(d.용신.primary ?? []).join('·')}`);
+    for (const h of (d.두드러진_특징 ?? []).slice(0, 2)) contents.push(String(h));
+    const years = d.세_해_달마다 as any[];
+    const months = years.reduce((n, y) => n + y.달.length, 0);
+    contents.push(`앞으로 세 해를 **달마다** — ${years.map((y: any) => y.해).join('·')}년, 모두 ${months}달`);
+    const first = years[0]?.달?.[0];
+    if (first) contents.push(`예: ${first.from} ${first.termName}부터 ${first.pillar} — ${first.stemGod}/${first.branchGod}, ${first.favor}`);
+    contents.push('달은 달력이 아니라 절기로 끊습니다');
   } else if (d?.오늘의간지) {
     /*
      * 오늘의 운세. 1,900원이라고 미리보기를 비워 두면 안 된다 —

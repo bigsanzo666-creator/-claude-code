@@ -21,6 +21,7 @@ import {
   type StrengthDetail, type YongsinResult, type ElementWeight,
 } from './strength.ts';
 import { findRelations, findSinsal, type Relation, type Sinsal, type PillarName } from './relations.ts';
+import { josa } from '../../korean/src/index.ts';
 
 export * from './tables.ts';
 export * from './tenGods.ts';
@@ -167,7 +168,8 @@ function buildHighlights(a: {
   // 과잉
   const heavy = a.elements.filter((e) => e.weight >= 35).sort((x, y) => y.weight - x.weight);
   for (const e of heavy) {
-    out.push(`${e.element}이 ${e.weight}%로 크게 치우쳐 있다. 이 기운이 명식 전체를 끌고 간다.`);
+    // 「토이 40%로」가 나가고 있었다. 오행 이름은 받침이 있는 것과 없는 것이 섞인다
+    out.push(`${josa(e.element, '이')} ${e.weight}%로 크게 치우쳐 있다. 이 기운이 명식 전체를 끌고 간다.`);
   }
 
   // 결핍
@@ -175,7 +177,7 @@ function buildHighlights(a: {
     out.push(`${a.missingElements.join('·')} 기운이 명식에 전혀 없다. 지장간까지 따져도 나오지 않는다.`);
   }
   for (const g of a.missingGroups) {
-    out.push(`${g}이 하나도 없다 — ${groupAbsenceNote(g)}`);
+    out.push(`${josa(g, '이')} 하나도 없다 — ${groupAbsenceNote(g)}`);
   }
 
   // 특정 십신 과다
@@ -239,3 +241,4 @@ export function formatAnalysis(a: Analysis): string {
 
 export { GOD_MEANING };
 export * from './pick.ts';
+export * from './season.ts';

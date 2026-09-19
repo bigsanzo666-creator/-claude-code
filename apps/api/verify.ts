@@ -897,8 +897,7 @@ section('H1. 값이 다르면 물건도 다르다');
    * 하나씩 갈라질 때마다 여기서 지운다.
    */
   const 아직: string[][] = [
-    ['single-report', 'marriage-timing-report', 'letgo-report', 'latelife-report',
-      'child-report', 'child-aptitude-report'],
+    ['single-report', 'letgo-report', 'child-aptitude-report'],
     ['crush-compat-report', 'reunion-report', 'parent-child-report'],
     ['naming-report', 'naming-plus-report'],
   ];

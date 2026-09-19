@@ -43,7 +43,8 @@ export const SOLAR_TERMS: SolarTerm[] = [
   { name: '대한', hanja: '大寒', longitude: 300, isMonthStart: false },
 ];
 
-const MONTH_STARTS = SOLAR_TERMS.filter((t) => t.isMonthStart);
+/** 절(節)만 — 명리에서 한 달이 시작되는 열두 날 */
+export const MONTH_STARTS = SOLAR_TERMS.filter((t) => t.isMonthStart);
 
 /**
  * 태양 황경으로부터 그 시점을 지배하는 절(월의 시작)을 찾는다.

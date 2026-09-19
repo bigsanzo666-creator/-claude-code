@@ -12,6 +12,7 @@ import {
   analyze, calculateDaeun, currentDaeun, annualLuck,
   compatibility, sajuToTraits, crossValidate, groupElement, dailyLuck,
   extractTopic, allTopics, type TopicId,
+  marriageTiming, lateLife, monthlyLuck,
 } from '../../../packages/saju-rules/src/index.ts';
 import { pickDays, mergeHours, bestPerDay, slotSpan, slotLabel } from '../../../packages/saju-rules/src/index.ts';
 import { readFace, NEUTRAL_FEATURES } from '../../../packages/physiognomy/src/index.ts';
@@ -163,6 +164,16 @@ const KIND_EXCEPTIONS: Partial<Record<ProductId, ReportKind>> = {
   'pick-report': '택일',
   // 오늘 하루의 흐름을 보는 것
   'daily-report': '오늘운세',
+  /*
+   * 때를 묻는 상품들.
+   *
+   * 셋 다 여덟 글자를 통째로 받아 가고 있었다. 재료가 같으니 나오는 글도
+   * 같았다 — 결혼 시기와 노후 말년과 우리 아이가 한 글자도 안 다른 글을
+   * 받았다. 상품이 묻는 것이 다르면 재료도 달라야 한다.
+   */
+  'marriage-timing-report': '결혼시기',
+  'latelife-report': '말년',
+  'child-report': '아이',
 };
 
 export function kindOf(productId: ProductId): ReportKind {
@@ -452,6 +463,81 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
    */
   if (req.productId === 'saju-report') {
     return { kind: '사주', subject, data: { ...base, 여덟_주제: allTopics(an) } };
+  }
+
+  /*
+   * 결혼 시기 — 나이대마다 어떤 결인지와, 기운이 제일 세게 들어오는 두 해.
+   *
+   * 두 해를 집는다. 하나만 집으면 그 해가 지나면 끝인 것처럼 읽힌다.
+   */
+  if (req.productId === 'marriage-timing-report') {
+    return {
+      kind: '결혼시기',
+      subject,
+      data: {
+        손님이_묻는_것: '결혼은 언제쯤이 좋은가',
+        명식: base.명식,
+        계산근거: base.계산근거,
+        일간: base.일간,
+        강약: base.강약,
+        용신: base.용신,
+        결혼시기: marriageTiming(ms, an, daeun, req.birth?.gender ?? '남', year, 20),
+      },
+    };
+  }
+
+  /*
+   * 노후·말년운 — **예순 이후만.**
+   *
+   * 젊은 시절 대운까지 실으면 평생 사주가 되고, 34,900원짜리 사주 종합과
+   * 같은 글이 24,900원에 나간다.
+   */
+  if (req.productId === 'latelife-report') {
+    return {
+      kind: '말년',
+      subject,
+      data: {
+        손님이_묻는_것: '내 노후는 어떨까',
+        명식: base.명식,
+        계산근거: base.계산근거,
+        일간: base.일간,
+        강약: base.강약,
+        용신: base.용신,
+        노후: lateLife(ms, an, calculateDaeun(ms, req.birth?.gender ?? '남', an.yongsin, 12)),
+      },
+    };
+  }
+
+  /*
+   * 우리 아이 사주 — 앞으로 **세 해를 달마다.**
+   *
+   * 달은 달력이 아니라 절기로 끊는다. 명리에서 한 달은 절(節)이 드는
+   * 날부터다. 달력으로 끊으면 월주가 하루 이틀씩 어긋난다.
+   */
+  if (req.productId === 'child-report') {
+    return {
+      kind: '아이',
+      subject,
+      data: {
+        손님이_묻는_것: '우리 아이는 어떤 아이일까, 앞으로 세 해는 어떤가',
+        명식: base.명식,
+        계산근거: base.계산근거,
+        일간: base.일간,
+        기둥별_십신: base.기둥별_십신,
+        십신_비중: base.십신_비중,
+        없는_십신: base.없는_십신,
+        오행: base.오행,
+        강약: base.강약,
+        용신: base.용신,
+        관계: base.관계,
+        두드러진_특징: base.두드러진_특징,
+        지금_대운: { 방향: daeun.direction, 현재: currentDaeun(daeun, age) },
+        세_해_달마다: [year, year + 1, year + 2].map((y) => ({
+          해: y,
+          달: monthlyLuck(ms, an.yongsin, y),
+        })),
+      },
+    };
   }
 
   /*

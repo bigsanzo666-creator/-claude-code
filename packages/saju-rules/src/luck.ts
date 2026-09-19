@@ -104,7 +104,8 @@ function clashMeaning(position: string): string {
   }
 }
 
-function toLuckPillar(ms: Myeongsik, pillar: Pillar, yongsin: YongsinResult): LuckPillar {
+/** 간지 하나가 이 명식에 어떻게 닿는가. 대운·세운·월운·일진이 다 이걸 쓴다 */
+export function luckOf(ms: Myeongsik, pillar: Pillar, yongsin: YongsinResult): LuckPillar {
   const dayStem = ms.day.stem;
   const branchMain = HIDDEN_STEMS[pillar.branch].at(-1)!.stem;
   const stemGod = tenGodOf(dayStem, pillar.stem);
@@ -161,7 +162,7 @@ export function calculateDaeun(
       endAge: s + 9,
       startYear: ms.meta.solarYear + s,
       endYear: ms.meta.solarYear + s + 9,
-      ...toLuckPillar(ms, pillar, yongsin),
+      ...luckOf(ms, pillar, yongsin),
     });
   }
 
@@ -186,7 +187,7 @@ export function annualLuck(
     out.push({
       year,
       age: year - ms.meta.solarYear,
-      ...toLuckPillar(ms, yearPillar(year), yongsin),
+      ...luckOf(ms, yearPillar(year), yongsin),
     });
   }
   return out;
@@ -202,7 +203,7 @@ export function dailyLuck(ms: Myeongsik, yongsin: YongsinResult, dateISO: string
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateISO);
   if (!m) throw new Error(`날짜 형식이 올바르지 않습니다: ${dateISO}`);
   const jdn = toJulianDay(+m[1], +m[2], +m[3]) + 0.5;
-  return { date: dateISO, ...toLuckPillar(ms, dayPillar(jdn), yongsin) };
+  return { date: dateISO, ...luckOf(ms, dayPillar(jdn), yongsin) };
 }
 
 /** 앞으로 며칠간의 일진. 달력 형태로 보여줄 때 쓴다. */
