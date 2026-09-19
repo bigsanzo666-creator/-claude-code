@@ -12,346 +12,112 @@ const SPIRITS_DATA = [
     img: "assets/신령들/도화신령.jpeg",
     video: "assets/대면상담/도화신령대면상담.mp4",
     opener: "누구한테 마음이 가는지, 내가 연못 위 연꽃잎으로 짚어 줄게.",
-    products: [
-      {
-        id: "1-1",
-        title: "매력 삼합 (사주 × 관상 × 손금)",
-        hook: "남들은 네 어디에 홀릴까. 얼굴이냐, 손이냐, 아니면 네가 모르는 그 한 점이야?",
-        packaging: "네 얼굴과 손금만 보고, 네가 숨긴 매력의 발원지를 내가 먼저 짚어줄게.",
-        priceOriginal: 89000,
-        priceSale: 35600,
-        priceCross: 25000,
-        stages: [
-          { num: "1단계", title: "남들이 너한테 먼저 다가오는 진짜 이유", preview: "사주 일지에 숨겨진 도화살의 파동이 강하여, 가만히 있어도 타인이 시선을 떼지 못하는 강한 자석의 기운을 타고났습니다." },
-          { num: "2단계", title: "네가 스스로도 모르는 매력의 색깔", locked: "눈꼬리와 입술 선에서 뿜어져 나오는 붉은 도화의 기운으로, 상대방의 이성을 마비시키고 감성을 자극하는 치명적 흡인력 분석." },
-          { num: "3단계", title: "그 매력이 켜지는 사람과 꺼지는 사람", locked: "네 도화의 불꽃에 불나방처럼 뛰어들 궁합의 띠와, 반대로 네 매력을 시기하여 깎아내릴 위험한 인연의 감별법." },
-          { num: "4단계", title: "지금부터 그 불을 어디에 둬야 하는지", locked: "도화 기운을 흘리지 않고 네가 원하는 단 한 사람을 완전히 사로잡는 구체적인 행동 및 시선 처리 비기." }
-        ]
-      },
-      {
-        id: "1-2",
-        title: "솔로 탈출 비기",
-        hook: "이번에도 '인연이 없나 봐'로 넘길 거야? 들어오는 달과 장소를 네가 몰라서 그런 거 아니야?",
-        packaging: "인연이 네 앞에 서는 정확한 달과, 네가 있어야 할 자리를 찍어줄게.",
-        priceOriginal: 59000,
-        priceSale: 23600,
-        priceCross: 18000,
-        stages: [
-          { num: "1단계", title: "지금까지 솔로가 길어졌던 사주 속 진짜 원인", preview: "인연이 없던 것이 아니라, 본인의 관성(官星) 기운을 가로막고 있던 식상의 과다로 인해 다가오던 인연을 스스로 밀어냈던 형국." },
-          { num: "2단계", title: "새로운 인연의 파동이 가장 강하게 들어오는 3개월", locked: "올해 하반기 중 천을귀인이 들어와 심장을 뛰게 만들 결정적 3개 월수와 주의해야 할 날짜." },
-          { num: "3단계", title: "그 사람이 나타날 구체적인 장소와 상황 묘사", locked: "동북 방향의 물가나 배움의 공간에서 마주치게 될 상대방의 직업군과 첫 만남의 분위기." },
-          { num: "4단계", title: "첫 만남에서 놓치지 않고 낚아채는 매력 발산법", locked: "상대방의 사주 기운을 단숨에 녹여 먼저 고백하게 만드는 맞춤형 대화법." }
-        ]
-      },
-      {
-        id: "1-3",
-        title: "결혼 시기 확정",
-        hook: "서른 전에 갈까, 서른다섯 넘겨야 풀릴까? 네 사주에서 식장 문 열리는 해는 이미 정해져 있는데.",
-        packaging: "일찍 가면 깨지는지, 늦게 갈수록 대박 나는지 네 혼인 도장을 확인해 준다.",
-        priceOriginal: 79000,
-        priceSale: 31600,
-        priceCross: 24000,
-        stages: [
-          { num: "1단계", title: "사주 명식에 찍힌 천생 배필과의 혼인 적기", preview: "대운의 흐름상 일지와 합을 이루는 정관 대운이 도래하여 결혼의 기운이 무르익는 시점입니다." },
-          { num: "2단계", title: "일찍 결혼했을 때 겪게 되는 위험과 액땜법", locked: "사주 내 원진살이나 삼형살이 작동하여 초혼에 풍파를 겪지 않도록 피해 가는 지혜." },
-          { num: "3단계", title: "가장 축복받으며 재물운이 함께 터지는 골든 타임", locked: "두 사람의 재백궁이 결합하여 부를 일구어낼 최상의 결혼 연도와 계절." },
-          { num: "4단계", title: "평생 해로하기 위해 지켜야 할 배우자와의 서약", locked: "가정의 주도권을 어떻게 분배해야 평생 다툼 없이 화목할 수 있는지에 대한 신령의 가르침." }
-        ]
-      }
-    ]
+    productIds: ["charm-report", "single-report", "marriage-timing-report"]
   },
   {
     id: "wol",
     name: "월신령",
-    domain: "재회 · 이별 치유",
+    domain: "재회 · 이별 치유 · 그리움",
     group: "entrance",
     groupName: "1그룹: 입구 3대장",
     img: "assets/신령들/월신령.jpeg",
     video: "assets/대면상담/월신령대면상담.mp4",
-    opener: "떠난 사람은 물에 비친 달 같아. 그래도 하늘에 달은 남아 있지.",
-    products: [
-      {
-        id: "2-1",
-        title: "재회 가능성 측정",
-        hook: "프로필 사진은 왜 자꾸 바꿔? 그 사람, 진짜 너 잊었을까? 아니면 밤마다 네 생각에 뒤척일까?",
-        packaging: "그 사람이 지금 후회하는지, 먼저 연락 올 날이 있는지 달빛 아래서 짚어줄게.",
-        priceOriginal: 79000,
-        priceSale: 31600,
-        priceCross: 24000,
-        stages: [
-          { num: "1단계", title: "그 사람이 지금 느끼는 감정의 진짜 실체", preview: "겉으로는 태연한 척 일상을 살아가지만, 밤이 되면 일지의 합으로 인해 당신의 빈자리를 실감하고 있는 상태입니다." },
-          { num: "2단계", title: "먼저 연락이 올 확률(%)과 가장 유력한 날짜", locked: "상대방의 마음이 가장 약해지고 자존심을 꺾게 되는 구체적인 날짜와 연락 확률." },
-          { num: "3단계", title: "지금 먼저 연락하면 망하는 이유와 대처법", locked: "지금 성급히 연락하면 차단당할 위험이 높으므로 상대방이 먼저 다가오게 만드는 심리적 역공 타이밍." },
-          { num: "4단계", title: "다시 만났을 때 같은 이유로 헤어지지 않는 비기", locked: "과거의 상처를 되풀이하지 않고 관계의 주도권을 쥐는 실전 재회 가이드." }
-        ]
-      },
-      {
-        id: "2-2",
-        title: "마음 정리 치유 리포트",
-        hook: "미련인 거 알면서 왜 못 놓아? 그 사람 팔자가 네 인생의 복을 갉아먹고 있었던 거라면?",
-        packaging: "잡고 있을수록 네 운이 새는 인연인지, 깨끗이 털어내야 새 복이 오는지 명쾌하게 갈라준다.",
-        priceOriginal: 49000,
-        priceSale: 19600,
-        priceCross: 15000,
-        stages: [
-          { num: "1단계", title: "이 이별이 네 사주에 미치는 운명적 의미", preview: "단순한 실연이 아니라, 네 팔자에 더 큰 귀인이 들어오기 위해 썩은 고리를 끊어내는 천우신조의 액땜." },
-          { num: "2단계", title: "그 사람이 네게 남기고 간 운명의 빚과 교훈", locked: "그 관계를 통해 네 영혼이 배운 것과, 앞으로 피해야 할 이성의 사주적 특징." },
-          { num: "3단계", title: "가슴의 응어리를 씻어내고 운을 회복하는 기간", locked: "마음의 상처가 아물고 새로운 기운이 솟아나는 정확한 회복 주기." },
-          { num: "4단계", title: "다음 인연이 찾아오는 시기와 그 인연의 그릇", locked: "과거를 털어낸 자리에 들어올 진짜 배필의 특징과 만남의 순간." }
-        ]
-      }
-    ]
+    opener: "떠나간 사람 때문에 밤잠 설치고 있지? 그 마음 이리 내봐.",
+    productIds: ["reunion-report", "letgo-report"]
   },
   {
     id: "yeon",
     name: "실신령",
-    domain: "인연 · 궁합 · 썸",
+    domain: "궁합 · 인연의 끈 · 결혼",
     group: "entrance",
     groupName: "1그룹: 입구 3대장",
     img: "assets/신령들/연신령.jpeg",
     video: "assets/대면상담/실신령대면상담.mp4",
-    opener: "붉은 실은 끊어지기 전까지는 얽혀 있는지 이어진 건지 몰라.",
-    products: [
-      {
-        id: "3-1",
-        title: "궁합 리포트 프리미엄",
-        hook: "우리가 천생연분일까, 아니면 전생의 빚쟁이일까? 같이 살수록 돈이 붙는 합인지, 밑 빠진 독인지 알아?",
-        packaging: "두 사람 사주를 맞물려, 살면서 돈이 모이는 자리와 칼자루 쥔 사람을 가려준다.",
-        priceOriginal: 99000,
-        priceSale: 39600,
-        priceCross: 31000,
-        stages: [
-          { num: "1단계", title: "두 사람의 타고난 성향과 첫눈의 끌림 분석", preview: "상대방의 강한 금(金) 기운과 당신의 부드러운 수(水) 기운이 만나 서로에게 본능적인 안식처가 되어주는 형국입니다." },
-          { num: "2단계", title: "함께 살면 재물이 불어나는지 새어나가는지", locked: "두 사람의 재물운이 합을 이루어 시너지를 내는지, 아니면 충돌하여 낭비가 심해지는지 재물 궁합 정밀 진단." },
-          { num: "3단계", title: "실이 단단해지는 황금기와 얇아지는 권태 위기", locked: "함께 가정을 꾸리기에 가장 복된 해와, 권태기로 인해 밖으로 눈 돌릴 수 있는 위기의 해." },
-          { num: "4단계", title: "끝까지 해로하기 위해 둘 중 누가 양보해야 하는지", locked: "다툼이 일어났을 때 실이 끊어지지 않도록 먼저 손을 내밀어야 하는 운명적 칼자루의 주인 지정." }
-        ]
-      },
-      {
-        id: "3-2",
-        title: "썸 궁합",
-        hook: "답장은 달콤한데, 왜 만날 약속은 늘 네가 잡아? 이 사람, 진짜 너한테 반한 거야? 아니면 너만 어장에 빠진 거야?",
-        packaging: "반함인지 어장인지, 그 사람의 말 뒤에 숨은 진짜 온도를 재준다.",
-        priceOriginal: 69000,
-        priceSale: 27600,
-        priceCross: 22000,
-        stages: [
-          { num: "1단계", title: "그 사람이 너한테 쓰는 말과 진짜 계산 속마음", preview: "겉으로는 세상 다정하게 굴지만, 사주 속 편재 성향으로 인해 여러 선택지를 저울질하고 있는 심리 상태." },
-          { num: "2단계", title: "네가 착각하기 쉬운 가짜 호감 신호 구별법", locked: "단순한 예의와 매너인지, 아니면 진짜 심장이 뛰어서 밤잠을 설치고 있는 것인지 명확히 선을 긋습니다." },
-          { num: "3단계", title: "이 썸이 연인으로 발전할 확률(%)과 소요 시간", locked: "사주 기운의 합을 측정하여 정식 교제로 이어질 실제 확률과 최적의 고백 타이밍." },
-          { num: "4단계", title: "지금 멈춰서 간을 볼지, 한 발 더 당길지 결단", locked: "주도권을 단숨에 빼앗아와 상대방이 애가 타서 먼저 매달리게 만드는 실전 밀당 전략." }
-        ]
-      }
-    ]
+    opener: "너와 그 사람 사이에 붉은 실이 닿아 있는지 짚어 줄게.",
+    productIds: ["compat-report", "crush-compat-report"]
   },
   {
     id: "samhap",
     name: "삼합신령",
-    domain: "사주 × 관상 × 손금 삼합",
-    group: "premium",
-    groupName: "2그룹: 삼합 독점",
+    domain: "사주 × 관상 × 손금 삼합 종합",
+    group: "courtyard",
+    groupName: "2그룹: 마당 중앙 영험 4대장",
     img: "assets/신령들/삼합신령.jpeg",
     video: "assets/대면상담/삼합신령대면상담.mp4",
-    opener: "셋이 겹치는 자리에만 진짜 네 운명이 숨어 있지.",
-    products: [
-      {
-        id: "4-1",
-        title: "삼합 리포트",
-        hook: "남들이 보는 너랑, 네가 밤에 혼자 있는 너랑, 같은 사람이야? 세 가지 눈이 겹치는 운명의 대박 구간을 확인해볼까?",
-        packaging: "겉의 나와 속의 내가 어디서 갈라지고 어디서 대박이 터지는지 세 줄로 맞춰주는 프리미엄 리포트.",
-        priceOriginal: 189000,
-        priceSale: 75600,
-        priceCross: 60400,
-        stages: [
-          { num: "1단계", title: "사주로 본 타고난 팔자의 원형과 가면", preview: "생년월일시에 새겨진 그릇은 장군의 기개이나, 세상의 기준에 맞추느라 온순한 양의 탈을 쓰고 버텨온 모습." },
-          { num: "2단계", title: "관상으로 읽어낸 첫인상과 숨겨둔 본모습", locked: "눈썹 뼈와 코끝의 재백궁이 가리키는, 타인에게 드러나는 카리스마와 뒤에 감춘 외로움의 실체." },
-          { num: "3단계", title: "손금으로 추적한 네가 직접 바꾼 운명의 흔적", locked: "운명선과 두뇌선이 갈라지는 지점을 통해, 본래의 팔자를 딛고 스스로 일궈낸 자수성가의 흉터 추적." },
-          { num: "4단계", title: "세 가지가 일치하여 대박이 터지는 운명의 구간", locked: "사주·관상·손금 3대 기운이 하나로 겹쳐 거대한 부와 명예가 쏟아지는 인생 최대 황금기 포착." }
-        ]
-      }
-    ]
+    opener: "사주와 얼굴, 손금을 셋 다 겹쳐봐야 진짜 네 운명의 축이 보여.",
+    productIds: ["cross-report", "face-palm-report"]
   },
   {
     id: "jakmyeong",
     name: "작명신령",
-    domain: "평생 이름 작명",
-    group: "premium",
-    groupName: "2그룹: 삼합 독점",
+    domain: "작명 · 개명 · 호(號)",
+    group: "courtyard",
+    groupName: "2그룹: 마당 중앙 영험 4대장",
     img: "assets/신령들/작명신령.jpeg",
     video: "assets/대면상담/작명신령대면상담.mp4",
-    opener: "이름은 부를 때마다 그 사람 머리 위로 떨어지는 종소리야.",
-    products: [
-      {
-        id: "5-2",
-        title: "아이 이름 짓기 프리미엄",
-        hook: "같은 반에 같은 이름이 세 명이야. 그래도 네 아이 이름은 그냥 '흔하고 예쁜 글자'면 돼?",
-        packaging: "대법원 통계로 흔한 이름을 싹 걸러내고, 마음에 들 때까지 무제한으로 맞춰주는 단 하나의 이름.",
-        priceOriginal: 199000,
-        priceSale: 79600,
-        priceCross: 63600,
-        stages: [
-          { num: "1단계", title: "아이의 사주 원판과 독창적인 품격 설계", preview: "남들과 똑같은 길을 걷지 않고 스스로 한 분야의 최고 지도자가 될 수 있는 유일무이한 기운 설계." },
-          { num: "2단계", title: "대법원 출생신고 빅데이터 기반 상위 100위 배제", locked: "최근 5년간 가장 많이 쓰인 흔한 이름을 철저히 필터링하여 학교나 사회에서 겹치지 않도록 보장." },
-          { num: "3단계", title: "희소성과 4격 수리가 완벽한 맞춤 이름 무제한 제안", locked: "부모님의 마음에 100% 찰 때까지 수정 횟수 제한 없이 품격 높은 고유의 이름을 끝까지 추출." },
-          { num: "4단계", title: "부를수록 아이의 그릇이 커지고 세상에 각인되는 이름", locked: "국내뿐 아니라 글로벌 사회에서도 발음하기 쉽고 영원히 빛날 평생의 보물 이름 완결." }
-        ]
-      }
-    ]
+    opener: "평생 불릴 이름이다. 사주의 빈 곳을 채우는 귀한 글자를 지어주마.",
+    productIds: ["naming-plus-report", "naming-report"]
   },
   {
     id: "samsin",
     name: "삼신할매",
-    domain: "출산 · 잉태 · 택일",
-    group: "premium",
-    groupName: "2그룹: 삼합 독점",
+    domain: "출산택일 · 자녀운 · 생명",
+    group: "courtyard",
+    groupName: "2그룹: 마당 중앙 영험 4대장",
+    freezeAt: 7.0,
     img: "assets/신령들/삼신할매.jpeg",
     video: "assets/대면상담/삼신할매대면상담.mp4",
-    freezeAt: 6.9,
-    opener: "세상에 올 때 첫 숨을 어느 시간에 들이마실지, 내가 지켜보고 있다.",
-    products: [
-      {
-        id: "6-1",
-        title: "제왕절개 택일 리포트",
-        hook: "의사가 '이 날짜들 중에요' 한 그 안에서, 아이 숨이 가장 고르게 열리는 두 시간이 어딘지 알아? 단 2시간으로 아이 팔자가 갈리는데 놓칠 거야?",
-        packaging: "수술 가능한 날짜 안에서, 아이와 산모가 가장 덜 흔들리고 기운이 폭발하는 2시간 최적 일시를 짚어준다.",
-        priceOriginal: 229000,
-        priceSale: 91600,
-        priceCross: 73200,
-        stages: [
-          { num: "1단계", title: "의사 지정 일정 중 흉살이 낀 날짜 원천 배제", preview: "수술 가능 범위 중에서 백호대살이나 일지 충이 걸려 산모와 아이 모두 피를 많이 흘릴 수 있는 날짜를 걸러냅니다." },
-          { num: "2단계", title: "같은 날 안에서도 사주가 갈리는 2시간 단위 최적 시각", locked: "12개 시진 중 아이에게 평생 무병장수와 천을귀인의 복을 안겨줄 2시간 추출." },
-          { num: "3단계", title: "그 시간에 태어난 아이가 쥐게 될 천부적 사주 명식", locked: "부모와의 궁합이 환상적으로 맞아떨어져 집안의 가세를 일으켜 세울 아이의 대운 흐름 풀이." },
-          { num: "4단계", title: "병원 상황을 고려한 안심 수술 1, 2순위 확정표", locked: "의료진의 수술 일정 변경 등에 유연하게 대처할 수 있는 완벽한 대체 시각 포트폴리오 제공." }
-        ]
-      }
-    ]
+    opener: "아가야 어서 오너라. 복되고 귀한 때를 골라 점지해 주마.",
+    productIds: ["pick-report", "child-report"]
   },
   {
     id: "myeonggyeong",
     name: "명경신령",
-    domain: "사주 종합 · 본판 거울",
-    group: "reality",
-    groupName: "3그룹: 현실 4대장",
+    domain: "사주 원판 정밀 판독 · 오행 결핍",
+    group: "courtyard",
+    groupName: "2그룹: 마당 중앙 영험 4대장",
+    freezeAt: 7.0,
     img: "assets/신령들/명경신령.jpeg",
     video: "assets/대면상담/명경신령대면상담.mp4",
-    freezeAt: 7.75,
-    opener: "거울은 거짓말을 안 해. 네가 보기 싫은 구석까지 비추지.",
-    products: [
-      {
-        id: "7-1",
-        title: "사주 원판 정밀 판독",
-        hook: "네 인생의 큰 틀을 한 번이라도 제대로 들여다본 적 있어? 네가 왜 그 자리에서 고생했는지, 거울에 다 비치는데.",
-        packaging: "남들이 말하는 그럴싸한 풀이 말고, 네 사주의 뼈대와 결핍을 가감 없이 비춰주는 진짜 거울.",
-        priceOriginal: 99000,
-        priceSale: 39600,
-        priceCross: 31000,
-        stages: [
-          { num: "1단계", title: "타고난 오행의 불균형과 결핍된 에너지", preview: "사주에 수(水) 기운이 부족하고 화(火)가 치솟아 늘 조급하고 가슴에 열이 차기 쉬운 체질적 특성 분석." },
-          { num: "2단계", title: "평생을 지배하는 용신(用神)과 기신(忌神)", locked: "네 인생의 운을 단숨에 끌어올려 줄 핵심 기운과, 반대로 곁에 두면 운을 깎아먹는 기운." },
-          { num: "3단계", title: "10년 주기로 바뀌는 대운(大運)의 변곡점", locked: "과거 고난의 터널이 끝나고 인생의 판도가 뒤집어지는 가장 중요한 대운 진입 시기." },
-          { num: "4단계", title: "결핍을 채워 평생 평온을 유지하는 개운 처방", locked: "부족한 오행을 일상에서 채워 넣는 색상, 방위, 직업적 보완책." }
-        ]
-      }
-    ]
+    opener: "거울은 속이지 않는다. 타고난 네 사주 원판의 뼈대를 비춰 주마.",
+    productIds: ["saju-report"]
   },
   {
     id: "jae",
     name: "재신령",
-    domain: "돈그릇 · 곳간 · 재물운",
-    group: "reality",
-    groupName: "3그룹: 현실 4대장",
+    domain: "재물창고 · 금전운 · 누수 차단",
+    group: "sanctum",
+    groupName: "3그룹: 안쪽 깊은 처소 3대장",
     img: "assets/신령들/재신령.jpeg",
     video: "assets/대면상담/재신령대면상담.mp4",
-    opener: "밑 빠진 독에 물 붓기였는지, 그릇이 커서 늦게 차는 건지 내가 봐주마.",
-    products: [
-      {
-        id: "8-1",
-        title: "돈그릇 크기 & 누수 진단",
-        hook: "남들처럼 버는데 왜 통장은 늘 비어 있을까? 네 돈그릇에 금이 갔는지, 아니면 아직 뚜껑이 안 열렸는지 알아?",
-        packaging: "네 사주에 들어온 재물이 어디서 새어나가고 있는지, 언제 곳간 문이 활짝 열리는지 낱낱이 밝힌다.",
-        priceOriginal: 89000,
-        priceSale: 35600,
-        priceCross: 28000,
-        stages: [
-          { num: "1단계", title: "타고난 사주 속 재물창고(財庫)의 형태", preview: "돈을 버는 재주는 탁월하나, 겁재의 작용으로 인해 주변 사람이나 가족으로 인해 돈이 흩어지기 쉬운 구조입니다." },
-          { num: "2단계", title: "돈이 줄줄 새어나가는 3대 누수 구멍 포착", locked: "충동적인 투자나 거절하지 못하는 부탁으로 인해 평생 잃어버릴 수 있는 손실의 원천 차단." },
-          { num: "3단계", title: "평생 중 가장 거대한 재물이 쏟아지는 시기", locked: "부동산이나 사업, 문서운을 통해 일생일대의 큰 목돈을 쥐게 될 황금기." },
-          { num: "4단계", title: "새는 돈을 막고 금고를 꽉 채우는 부자 비기", locked: "네 팔자에 맞는 돈 관리 방식과 절대로 동업하면 안 되는 사람의 유형." }
-        ]
-      }
-    ]
+    opener: "돈이 새는 곳간을 막아야 금전이 차오른다. 네 돈줄을 점검해 줄게.",
+    productIds: ["wealth-report"]
   },
   {
     id: "san",
     name: "산신령",
-    domain: "자녀 · 건강 · 가문 노후",
-    group: "reality",
-    groupName: "3그룹: 현실 4대장",
+    domain: "자녀 진로 · 학업 · 성공운",
+    group: "sanctum",
+    groupName: "3그룹: 안쪽 깊은 처소 3대장",
     img: "assets/신령들/산신령.jpeg",
     video: "assets/대면상담/산신령대면상담.mp4",
-    opener: "산처럼 묵직하게 버텨온 네 세월, 그 뿌리와 열매를 내가 굽어보고 있다.",
-    products: [
-      {
-        id: "9-1",
-        title: "우리 아이 진로 & 적성",
-        hook: "학원 열 개 보내면 뭐해? 아이 사주 속 칼자루가 문과인지 이과인지, 예술인지 쥐어줬어?",
-        packaging: "아이 팔자에 새겨진 독보적 무기와, 부모가 밀어줘야 할 진짜 길을 산신의 지혜로 짚어준다.",
-        priceOriginal: 99000,
-        priceSale: 39600,
-        priceCross: 31000,
-        stages: [
-          { num: "1단계", title: "아이의 타고난 천재성과 사주 속 벼슬길", preview: "틀에 박힌 암기식 공부보다는 직관과 창의력이 번뜩여, 남들이 가지 않은 길에서 일찍 두각을 나타낼 기운." },
-          { num: "2단계", title: "아이의 기를 살려주는 학업 환경과 멘토 궁합", locked: "아이를 억압하지 않고 스스로 책상에 앉게 만드는 방위와 부모의 화법 가이드." },
-          { num: "3단계", title: "평생 밥벌이를 책임질 최적의 전공과 직업군", locked: "의약, 법조, IT, 글로벌 비즈니스 중 아이가 최고 지위에 오를 수 있는 핵심 분야." },
-          { num: "4단계", title: "사춘기 방황을 액땜하고 대입 시험에서 대박 나는 비기", locked: "시험 운이 가장 폭발하는 연도와 결정적인 시험 당일 컨디션 관리법." }
-        ]
-      }
-    ]
+    opener: "아이가 벼슬길에 오를지 큰 재목이 될지 그 바탕을 내가 짚어주마.",
+    productIds: ["child-aptitude-report", "exam-report"]
   },
   {
     id: "pung",
     name: "풍신령",
-    domain: "시기 · 타이밍 풍향계",
-    group: "reality",
-    groupName: "3그룹: 현실 4대장",
+    domain: "신년운세 · 연간 흐름 · 액땜",
+    group: "sanctum",
+    groupName: "3그룹: 안쪽 깊은 처소 3대장",
+    freezeAt: 6.8,
     img: "assets/신령들/풍신령.jpeg",
     video: "assets/대면상담/풍신령대면상담.mp4",
-    freezeAt: 7.1,
-    opener: "바람을 등지면 뛰어가고, 바람을 마주 보면 넘어져. 바람의 방향을 알아야지.",
-    products: [
-      {
-        id: "10-2",
-        title: "신년운세 (연간 종합)",
-        hook: "작년에도 '내년엔 다르겠지' 했지? 올해 고생, 진짜 끝일까? 열두 달 바람이 어디서 너를 밀어주고 어디서 꺾으려 하는지 알아?",
-        packaging: "올해 열두 달, 네가 잔뜩 웅크리고 숙여야 할 달과 고개를 번쩍 들고 휘몰아쳐야 할 달을 나눠준다.",
-        priceOriginal: 139000,
-        priceSale: 55600,
-        priceCross: 44400,
-        stages: [
-          { num: "1단계", title: "올 한 해 전체를 관통하는 핵심 테마와 짓누르는 달", preview: "전반기는 오래된 껍질을 벗는 탈피의 고통이 따르나, 후반기로 갈수록 탄탄한 도약대가 마련되는 해입니다." },
-          { num: "2단계", title: "고통이 잦아들고 숨통이 트이며 기운이 도는 환승 구간", locked: "금전적 압박이나 연인과의 갈등이 극적으로 해결되며 웃음을 되찾는 결정적 시기." },
-          { num: "3단계", title: "단 한 번의 기회로 판 전체가 뒤집히는 대박의 달", locked: "투자, 이직, 시험 등 인생의 승부수를 던졌을 때 100전 100승을 거둘 천운의 달." },
-          { num: "4단계", title: "연말에 웃으며 손에 쥐고 있어야 할 결실과 점검표", locked: "열두 달 동안 길흉화복을 피해 가며 최상의 결과만을 수확하는 월별 액땜 가이드북." }
-        ]
-      }
-    ]
+    opener: "올 한 해 불어닥칠 바람의 길목을 미리 알려주마.",
+    productIds: ["newyear-report", "career-report"]
   }
 ];
 
-// ==========================================================================
-// 신령 1:1 상담 질문 흐름 — 10대 신령 전부
-//
-// 한 단계 = { say: 신령 대사, fields: 답하는 칸들 }
-//   칸 종류
-//     - select     : "지금은 [기혼] 이에요." 처럼 문장 안에 들어가는 고르는 칸
-//     - shorttext  : 문장 안에 들어가는 짧게 쓰는 칸 (성씨 등)
-//     - date       : 날짜 고르는 칸
-//     - daterange  : 시작~끝 날짜 고르는 칸 (수술 가능 기간 등)
-//     - birthtime  : 태어난 시간 고르는 칸 (12시진)
-//     - photo      : 사진 올리는 칸 (얼굴·손바닥)
-//     - text       : 자유롭게 쓰는 칸 (글자수 표시)
-//   맨 마지막 단계의 버튼은 자동으로 "결과 받아보기"가 된다.
-// ==========================================================================
 const BIRTH_TIME_OPTIONS = [
   "시간 모름",
   "자시 (23:30~01:29)", "축시 (01:30~03:29)", "인시 (03:30~05:29)",
@@ -592,6 +358,36 @@ const CHAMBER_FLOWS = {
     },
     { say: "마지막으로, 지금 망설이는 게 있다면.", fields: [FREE_TEXT_FIELD] }
   ]
+};
+
+
+// 카탈로그 상품 캐시 (GET /api/products 에서 가져옴. 가격은 packages/commerce/src/catalog.ts 단일 출처)
+let CATALOG_PRODUCTS = {};
+
+function loadCatalogProducts() {
+  if (window.SAJU_CONFIG && Array.isArray(window.SAJU_CONFIG.sellable)) {
+    window.SAJU_CONFIG.sellable.forEach(p => {
+      CATALOG_PRODUCTS[p.id] = p;
+    });
+  }
+  fetch('/api/products')
+    .then(r => r.json())
+    .then(data => {
+      if (Array.isArray(data.products)) {
+        data.products.forEach(p => {
+          CATALOG_PRODUCTS[p.id] = p;
+        });
+      }
+    })
+    .catch(err => console.log('[Catalog] Load failed:', err));
+}
+loadCatalogProducts();
+
+const TIME_MAP = {
+  'ja': '00:30', 'chuk': '02:30', 'in': '04:30', 'myo': '06:30',
+  'jin': '08:30', 'sa': '10:30', 'o': '12:30', 'mi': '14:30',
+  'sin': '16:30', 'yu': '18:30', 'sul': '20:30', 'hae': '22:30',
+  'unknown': '12:00'
 };
 
 let userState = { name: "김늘봄", birthDate: "1996-05-18", birthTime: "묘시" };
@@ -1082,7 +878,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (consultCta) {
-    consultCta.addEventListener('click', () => {
+    consultCta.addEventListener('click', async () => {
       const isLast = consultStepIndex === consultSteps.length - 1;
       if (!isLast) {
         consultStepIndex += 1;
@@ -1090,18 +886,137 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // 여기까지가 이번 작업 범위. 실제 점괘 풀이는 다음 단계에서 붙인다.
-      console.log('[상담 답변]', currentSpirit && currentSpirit.id, consultAnswers);
-      consultSay.textContent = '“별빛을 모으고 있어요…”';
-      consultFields.innerHTML = '<div class="consult-row">여기서부터 점괘 화면이 연결됩니다. (다음 단계 작업)</div>';
-      consultCta.textContent = '점괘 화면 연결 예정';
+      // ── 지시사항 ② & ③: 진짜 미리보기(POST /api/preview) 호출 및 상품 결제 페이지(/products/<id>) 연결 ──
       consultCta.disabled = true;
+      consultSay.textContent = '“명식을 비추어 리포트를 준비하고 있네…”';
+      consultFields.innerHTML = '<div class="consult-row" style="text-align:center;padding:20px;color:#d4af37;">잠시만 기다려 주세요...</div>';
+
+      // 1. 타겟 상품 결정 (질문 답변 또는 신령의 주력 상품)
+      let targetProductId = currentSpirit && currentSpirit.productIds ? currentSpirit.productIds[0] : 'saju-report';
+      if (currentSpirit && currentSpirit.id === 'dohwa') {
+        const want = consultAnswers['want'];
+        if (want === '내 매력이 뭔지') targetProductId = 'charm-report';
+        else if (want === '인연이 언제 오는지') targetProductId = 'single-report';
+        else if (want === '이 사람과 잘 될지') targetProductId = 'marriage-timing-report';
+      }
+
+      // 2. 생년월일 확인
+      const hasBirth = userState && userState.birthDate;
+      if (!hasBirth) {
+        consultSay.textContent = '“생년월일을 넣으시면 리포트 미리보기를 바로 확인하실 수 있습니다.”';
+        consultFields.innerHTML = `
+          <div style="text-align:center;padding:16px 0;">
+            <p style="color:#a0a0b2;font-size:14px;margin-bottom:14px;">정확한 사주 명식을 먼저 입력해 주세요.</p>
+            <button type="button" id="btnGoSajuInput" class="btn-primary" style="padding:10px 20px;font-size:14px;border-radius:6px;background:#d4af37;color:#000;border:none;cursor:pointer;font-weight:700;">생년월일 입력하기</button>
+          </div>
+        `;
+        const btnGoSaju = document.getElementById('btnGoSajuInput');
+        if (btnGoSaju && sajuInputModal) {
+          btnGoSaju.addEventListener('click', () => {
+            sajuInputModal.classList.add('show');
+          });
+        }
+        consultCta.textContent = '상세 안내 보기';
+        consultCta.disabled = false;
+        consultCta.onclick = () => {
+          location.href = `/products/${encodeURIComponent(targetProductId)}`;
+        };
+        return;
+      }
+
+      // 3. 진짜 미리보기 요청 (POST /api/preview)
+      try {
+        const mappedTime = TIME_MAP[userState.birthTime] || (userState.birthTime && userState.birthTime.includes(':') ? userState.birthTime : '12:00');
+        const payload = {
+          productId: targetProductId,
+          birth: {
+            date: userState.birthDate,
+            time: mappedTime,
+            gender: userState.gender === 'female' ? '여' : '남',
+            name: userState.name || '김늘봄'
+          }
+        };
+
+        // 궁합 등 상대 생년월일이 필요한 경우 보완
+        if (targetProductId === 'compat-report' || targetProductId === 'crush-compat-report') {
+          payload.partner = {
+            date: consultAnswers['partnerBirth'] || '1995-01-01',
+            time: TIME_MAP[consultAnswers['partnerTime']] || '12:00'
+          };
+        }
+        // 작명 성씨
+        if (targetProductId === 'naming-report' || targetProductId === 'naming-plus-report') {
+          payload.name = {
+            surname: consultAnswers['surname'] || (userState.name ? userState.name.charAt(0) : '김')
+          };
+        }
+        // 출산택일
+        if (targetProductId === 'pick-report') {
+          payload.pick = {
+            dates: ['2027-04-27', '2027-04-30'],
+            times: ['09:30', '15:30'],
+            place: '인천'
+          };
+        }
+
+        const res = await fetch('/api/preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          throw new Error('미리보기 생성 실패: ' + res.status);
+        }
+
+        const data = await res.json();
+        const pInfo = data.product || CATALOG_PRODUCTS[targetProductId] || { name: '정밀 리포트', priceKrw: 24900 };
+
+        // 신령 대사: 서버에서 계산된 실제 preview.text
+        consultSay.textContent = `“${data.preview.text}”`;
+
+        // 화면 구성: 단일 정가(부가세 포함), 미리보기 내용 목록, 청약철회 고지
+        consultFields.innerHTML = `
+          <div style="background:rgba(18,18,28,0.95);border:1px solid rgba(212,175,55,0.35);border-radius:8px;padding:14px;margin-top:8px;text-align:left;">
+            <div style="font-size:15px;font-weight:700;color:#f3e5ab;margin-bottom:4px;">${pInfo.name}</div>
+            <div style="font-size:14px;color:#d4af37;font-weight:700;margin-bottom:12px;">${Number(pInfo.priceKrw).toLocaleString()}원 (부가세 포함)</div>
+            <div style="font-size:12.5px;color:#ddd;margin-bottom:10px;line-height:1.6;">
+              <strong style="color:#fff;display:block;margin-bottom:4px;">📜 리포트에 담기는 내용:</strong>
+              <ul style="margin:0;padding-left:18px;">
+                ${(data.preview.contents || []).map(c => `<li style="margin-bottom:3px;">${c}</li>`).join('')}
+              </ul>
+            </div>
+            <div style="font-size:11px;color:#888;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;line-height:1.5;">
+              ${data.notice}
+            </div>
+          </div>
+        `;
+
+        consultCta.textContent = `${pInfo.name} 신청하기 (${Number(pInfo.priceKrw).toLocaleString()}원)`;
+        consultCta.disabled = false;
+        consultCta.onclick = () => {
+          location.href = `/products/${encodeURIComponent(targetProductId)}`;
+        };
+
+      } catch (err) {
+        console.log('[Preview Error]', err);
+        const pInfo = CATALOG_PRODUCTS[targetProductId] || { name: '정밀 리포트', priceKrw: 24900 };
+        consultSay.textContent = `“${pInfo.name}의 상세 풀이가 준비되어 있네.”`;
+        consultFields.innerHTML = `
+          <div style="text-align:center;padding:14px 0;">
+            <div style="font-size:15px;color:#f3e5ab;font-weight:700;margin-bottom:6px;">${pInfo.name}</div>
+            <div style="font-size:14px;color:#d4af37;font-weight:700;margin-bottom:10px;">${Number(pInfo.priceKrw).toLocaleString()}원 (부가세 포함)</div>
+          </div>
+        `;
+        consultCta.textContent = `${pInfo.name} 상세 확인`;
+        consultCta.disabled = false;
+        consultCta.onclick = () => {
+          location.href = `/products/${encodeURIComponent(targetProductId)}`;
+        };
+      }
     });
   }
 
-  // 8초 줌인 영상이 끝나면: 마지막 프레임에서 정지 유지 + 그 위로 파티클 시작 (사진은 완전 정지, 파티클만 움직임)
-  // 풍신령·명경신령·삼신할매는 영상 맨 끝(8.00초)이 하필 눈 감는 타이밍이라, freezeAt에 지정된
-  // "눈 뜬 직전 시점"으로 되감아서 그 프레임으로 멈춘다. 나머지 7명은 원래대로 끝에서 멈춘다.
   if (chamberSpiritVideo) {
     chamberSpiritVideo.addEventListener('ended', () => {
       chamberSpiritVideo.pause();
@@ -1117,7 +1032,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function openChamber(spirit) {
     if (!spirit) return;
     currentSpirit = spirit;
-    currentProduct = spirit.products ? spirit.products[0] : null;
+    currentProduct = spirit.productIds ? spirit.productIds[0] : null;
 
     // 새 신령 처소를 열 때는 이전 파티클·상담 대화를 즉시 정리 (새 8초 영상이 끝난 뒤에만 다시 시작)
     stopChamberParticles();
