@@ -9,7 +9,7 @@
  */
 
 import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { readFileSync, createReadStream, statSync } from 'node:fs';
+import { readFileSync, createReadStream, statSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
@@ -745,6 +745,33 @@ export function createApi(deps: ApiDeps) {
     },
 
     /** 첫 화면에 까는 그림. 상품이 아니므로 주소도 따로 둔다 */
+        /** 신령음 배경음악. 브라우저 범위 요청 스트리밍 */
+    'GET /audio/bgm': async (req, res) => {
+      const publicDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'scene');
+      const p1 = join(publicDir, '신령음.mp3');
+      const p2 = join(publicDir, 'bgm.mp3');
+      const targetPath = existsSync(p1) ? p1 : (existsSync(p2) ? p2 : null);
+      if (!targetPath) throw new HttpError(404, '신령음 음원이 없습니다.');
+      const size = statSync(targetPath).size;
+      const head = {
+        'Content-Type': 'audio/mpeg',
+        'Cache-Control': 'public, max-age=86400',
+        'Accept-Ranges': 'bytes',
+      };
+      const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
+      if (!range) {
+        pipeFile(res, targetPath, { ...head, 'Content-Length': size });
+        return;
+      }
+      const start = range[1] ? Number(range[1]) : 0;
+      const end = range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+      pipeFile(res, targetPath, {
+        ...head,
+        'Content-Range': `bytes ${start}-${end}/${size}`,
+        'Content-Length': end - start + 1,
+      }, 206, start, end);
+    },
+
     'GET /img/hero': async (_req, res) => {
       if (!hero) throw new HttpError(404, '첫 화면 그림이 없습니다.');
       sendImage(res, hero);
@@ -1117,6 +1144,8 @@ export function createApi(deps: ApiDeps) {
       } else if (parts[0] === 'img' && parts[1] === 'spirits' && parts[2] && !parts[3]) {
         id = parts[2];
         key = `${req.method} /img/spirits/:id`;
+      } else if (parts[0] === 'audio' && parts[1] === 'bgm' && !parts[2]) {
+        key = 'GET /audio/bgm';
       } else if (parts[0] === 'img' && parts[1] === 'scene' && parts[2] && !parts[3]) {
         id = parts[2];
         key = `${req.method} /img/scene/:id`;

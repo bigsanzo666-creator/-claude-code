@@ -184,14 +184,28 @@ export function renderStage(
 
   return `<div class="stage" id="stage" hidden>
 
+  <!-- 글로벌 신령음 HUD -->
+  <div class="global-audio-badge" id="soundControl" title="신령음 켜기/끄기">
+    <span class="sound-icon" id="soundIcon">🔊</span>
+    <span class="sound-text" id="soundText">신령음 ON</span>
+  </div>
+  <audio id="bgmAudio" loop preload="none">
+    <source src="/audio/bgm" type="audio/mpeg">
+  </audio>
+
   <section class="st st-on" id="stWalk"${path}>${walk}
     <div class="st-veil"></div>
     <div class="st-in">
+      <span class="badge-tag">⛩️ 10대 신령의 성지</span>
       <p class="st-kicker">${esc(info.serviceName || '늘봄사주')}</p>
-      <h1 class="st-h">풍신령이<br><em>문까지 데려다</em> 드립니다</h1>
-      <button type="button" class="st-next" id="stGo">문 앞으로</button>
+      <h1 class="st-h">천 년을 이어온 <span class="gold-text">신령계의 문</span>이<br>당신 앞에서 열립니다</h1>
+      <p class="st-sub">문 너머에는 <span class="gold-highlight">10대 신령</span>이 기다리고 있습니다.<br>지금 문을 두드리면 당신의 명식이 봉인 해제됩니다.</p>
+      <div class="enter-actions">
+        <button type="button" class="st-next pulse-gold" id="stGo">🚪 신령계 문 두드리기</button>
+      </div>
       ${renderStageBiz(info)}
     </div>
+    <img src="/img/scene/seal" alt="늘봄사주" class="watermark-seal-cover" onerror="this.style.display='none'">
   </section>
 
   <section class="st${asker ? ' st-gate-who' : ''}" id="stGate"${gate}>
@@ -317,9 +331,18 @@ function renderWorld(
 
   return `  <section class="st" id="stWorld"${shot}>
     <div class="st-veil st-veil-3"></div>
+    <div class="courtyard-top-hud">
+      <div class="user-pill" id="userInfoDisplay">
+        <span class="user-icon">🏮</span>
+        <span class="user-name-text"><strong id="userNameDisplay">김늘봄</strong> 님의 명식 봉인 해제</span>
+      </div>
+    </div>
     <div class="wd-head">
       <p class="st-kicker" id="stHello">신령계</p>
       <h2 class="st-h wd-h">누구에게 <em>물어보시겠습니까</em></h2>
+    </div>
+    <div class="panorama-drag-guide" id="dragGuide">
+      <span class="guide-msg">👈 👉 좌우로 밀어서 10대 신령의 터를 둘러보세요</span>
     </div>
     <div class="wd-rail" role="list">
 ${cards}
