@@ -147,6 +147,45 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
       for (const axis of cp.axes ?? []) contents.push(`${axis.name}: ${axis.verdict} (${axis.score}점)`);
       if (cp.cautions?.length) contents.push(`주의할 점 ${cp.cautions.length}가지`);
     }
+  } else if (d?.끌림과_결) {
+    // 썸 — 두 축만 본다. 오래갈지는 궁합 리포트가 본다
+    contents.push(d.보는_축);
+    for (const axis of d.끌림과_결.axes ?? []) {
+      contents.push(`${axis.name}: ${axis.verdict} (${axis.score}점)`);
+    }
+    contents.push(`내 매력이 어디서 나오는지 — ${d.A?.매력?.term} ${d.A?.매력?.count}자리`);
+    contents.push(`상대의 매력 자리도 함께 — ${d.B?.매력?.term} ${d.B?.매력?.count}자리`);
+    contents.push('상대의 마음을 읽어 드리지는 않습니다');
+  } else if (d?.다시_닿는_때) {
+    // 재회 — 다섯 축 + 언제 다시 닿는가
+    const cp = d.관계;
+    contents.push(`종합 상성 ${cp.score}점 — ${cp.grade}`);
+    for (const axis of cp.axes ?? []) contents.push(`${axis.name}: ${axis.verdict} (${axis.score}점)`);
+    const 달 = (d.다시_닿는_때.달마다 ?? []) as any[];
+    contents.push(`앞으로 세 해를 **달마다** — 모두 ${달.length}달`);
+    contents.push('두 사람 자리가 다시 묶이는 달을 짚어 드립니다');
+    contents.push('돌아온다고 약속하는 글이 아닙니다');
+  } else if (d?.맞물림) {
+    // 부모 자식 — 배우자 자리는 뺀다. 점수도 앞세우지 않는다
+    contents.push(d.뺀_축);
+    for (const axis of d.맞물림.axes ?? []) contents.push(`${axis.name}: ${axis.verdict}`);
+    contents.push(`부모 명식 ${d.부모?.명식} · 아이 명식 ${d.아이?.명식}`);
+    contents.push('아이 명식에서 부모가 어느 자리로 놓이는지');
+    contents.push('누가 잘못했는지 가리지 않습니다');
+  } else if (d?.만나는_달) {
+    const mm = d.만나는_달;
+    for (const h of mm.how) contents.push(`무엇을 보고 집는지: ${h}`);
+    contents.push(`앞으로 세 해 ${mm.months.length}달을 하나씩 봄`);
+    contents.push(`그중 인연 기운이 몰리는 달 ${mm.picked.length}개를 짚음`);
+    for (const m of mm.picked.slice(0, 2)) {
+      contents.push(`예: ${m.from} ${m.termName}부터 ${m.pillar} — ${m.says[0]}`);
+    }
+  } else if (d?.괜찮아지는_달) {
+    const hm = d.괜찮아지는_달;
+    for (const h of hm.how) contents.push(`무엇을 보고 집는지: ${h}`);
+    contents.push(`앞으로 세 해 ${hm.months.length}달을 하나씩 봄`);
+    contents.push(`마음이 흔들릴 달과 제 힘이 돌아오는 달 ${hm.picked.length}개`);
+    contents.push('다시 만나는지는 보지 않습니다');
   } else if (productId === 'pick-report') {
     // 택일은 사람이 아니라 날을 본다. 뽑아 보일 것도 명식이 아니라 순위다
     const ranked = (d?.순위 ?? []) as any[];
@@ -301,10 +340,29 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
       contents.push(`${y.year}년 ${y.pillar.stem}${y.pillar.branch} — ${y.favor}`
         + (y.interactions?.length ? ` (${y.interactions.join(', ')})` : ''));
     }
-    // 여덟 주제를 다 받는 상품은 그것이 값의 근거다
+    // 한 해를 파는 상품에 달이 없으면 살 이유가 없다
+    const 달수 = (saju.올해_달마다 ?? []).length + (saju.내년_달마다 ?? []).length;
+    if (달수) {
+      contents.push(`올해와 내년을 **달마다** — 모두 ${달수}달, 절기로 끊어서`);
+      const m = saju.올해_달마다[0];
+      contents.push(`예: ${m.from} ${m.termName}부터 ${m.pillar} — ${m.stemGod}/${m.branchGod}, ${m.favor}`);
+    }
+    /*
+     * 여덟 주제를 다 받는 상품은 그것이 값의 근거다.
+     * 「여덟 주제 전부」 한 줄로 끝내면 29,800원을 왜 내는지 안 보인다.
+     */
     const all = (saju.여덟_주제 ?? []) as any[];
     if (all.length) {
-      contents.push(`여덟 주제를 전부 — ${all.map((t) => t.label).join('·')}`);
+      contents.push(`여덟 주제를 전부 봅니다 — ${all.map((t) => t.label).join('·')}`);
+      const 센것 = [...all].sort((x, y) => y.count - x.count).slice(0, 3);
+      const 없는것 = all.filter((t) => t.count === 0);
+      for (const t of 센것) {
+        contents.push(`${t.label}(${t.term}) ${t.count}자리 — ${t.abundance}`);
+      }
+      if (없는것.length) {
+        contents.push(`타고나지 않은 자리: ${없는것.map((t: any) => t.label).join('·')}`);
+      }
+      contents.push('주제마다 여덟 글자 어디에서 나왔는지 함께 적습니다');
     }
   }
 

@@ -12,7 +12,7 @@ import {
   analyze, calculateDaeun, currentDaeun, annualLuck,
   compatibility, sajuToTraits, crossValidate, groupElement, dailyLuck,
   extractTopic, allTopics, type TopicId,
-  marriageTiming, lateLife, monthlyLuck,
+  marriageTiming, lateLife, monthlyLuck, meetingMonths, healingMonths,
 } from '../../../packages/saju-rules/src/index.ts';
 import { pickDays, mergeHours, bestPerDay, slotSpan, slotLabel } from '../../../packages/saju-rules/src/index.ts';
 import { readFace, NEUTRAL_FEATURES } from '../../../packages/physiognomy/src/index.ts';
@@ -154,11 +154,16 @@ const CROSS_AXES: Partial<Record<ProductId, string[]>> = {
 };
 
 const KIND_EXCEPTIONS: Partial<Record<ProductId, ReportKind>> = {
-  // 두 사람의 명식을 대조하는 것은 전부 「궁합」 갈래다
+  /*
+   * 두 사람을 대조하는 것들. 갈래는 저마다 다르다.
+   *
+   * 넷이 전부 「궁합」이었고 자료도 한 글자 안 달랐다. 썸(19,900원)과
+   * 재회(29,800원)와 부모 자식(29,800원)이 같은 글을 받았다.
+   */
   'compat-report': '궁합',
-  'crush-compat-report': '궁합',
-  'reunion-report': '궁합',
-  'parent-child-report': '궁합',
+  'crush-compat-report': '썸',
+  'reunion-report': '재회',
+  'parent-child-report': '부모자식',
   // 세 갈래를 대조하는 것
   'cross-report': '교차검증',
   'charm-report': '교차검증',
@@ -176,6 +181,9 @@ const KIND_EXCEPTIONS: Partial<Record<ProductId, ReportKind>> = {
   'marriage-timing-report': '결혼시기',
   'latelife-report': '말년',
   'child-report': '아이',
+  'single-report': '만남',
+  'letgo-report': '정리',
+  'child-aptitude-report': '적성',
 };
 
 export function kindOf(productId: ProductId): ReportKind {
@@ -421,19 +429,106 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
     };
   }
 
-  if (req.productId === 'compat-report') {
-    if (!req.partner) throw new Error('궁합 리포트에는 상대의 생년월일이 필요합니다.');
+  /*
+   * 두 사람을 대조하는 넷.
+   *
+   * 넷이 전부 같은 자료를 받아 갔다. 묻는 것이 다른데 재료가 같으면
+   * 나오는 글도 같다 — 값만 달랐던 것이다. 상품마다 **보는 축과 시기를**
+   * 갈라 둔다. 없는 축을 지어내지 못하게 자료에서 아예 뺀다.
+   */
+  const PAIR_KINDS = ['궁합', '썸', '재회', '부모자식'] as const;
+  const pairKind = kindOf(req.productId);
+  if ((PAIR_KINDS as readonly string[]).includes(pairKind)) {
+    if (!req.partner) throw new Error('이 리포트에는 상대의 생년월일이 필요합니다.');
     const a = calculate({ date: req.birth.date, time: req.birth.time, longitude: req.birth.longitude });
     const b = calculate({ date: req.partner.date, time: req.partner.time, longitude: req.partner.longitude });
     const nameA = subject;
     const nameB = req.partner.name?.trim() || '상대분';
+    const anA = analyze(a);
+    const anB = analyze(b);
+    const full = compatibility(a, b, nameA, nameB);
+    const 이름 = { A: `${a.year.stem}${a.year.branch} ${a.month.stem}${a.month.branch} ${a.day.stem}${a.day.branch}`,
+      B: `${b.year.stem}${b.year.branch} ${b.month.stem}${b.month.branch} ${b.day.stem}${b.day.branch}` };
+
+    /** 이 상품이 보는 축만 남긴다. 나머지는 자료에서 뺀다 */
+    const only = (names: string[]) => ({
+      ...full,
+      axes: full.axes.filter((x) => names.some((nm) => x.name.includes(nm))),
+    });
+
+    if (pairKind === '썸') {
+      /*
+       * 아직 시작 전이다. **끌림과 얽히는 결** 둘만 본다.
+       * 용신·오행 보완은 「오래갈지」를 보는 축이라 여기서 뺀다 —
+       * 그건 궁합 리포트가 파는 것이다.
+       */
+      return {
+        kind: '썸',
+        subject: `${nameA}·${nameB}`,
+        data: {
+          손님이_묻는_것: '이 사람, 나한테 관심 있을까',
+          A: { 명식: 이름.A, 일간: anA.dayMaster, 매력: extractTopic(anA, 'charm') },
+          B: { 명식: 이름.B, 일간: anB.dayMaster, 매력: extractTopic(anB, 'charm') },
+          보는_축: '일간 상성(첫인상과 끌림)과 일지(얽히는 결) 둘뿐입니다. 오래갈지는 보지 않습니다.',
+          끌림과_결: only(['일간', '일지']),
+        },
+      };
+    }
+
+    if (pairKind === '재회') {
+      /*
+       * 다섯 축을 다 보되, **언제 다시 닿는가**가 이 상품의 값이다.
+       * 그래서 앞으로 세 해의 달마다를 함께 싣는다.
+       */
+      const year = new Date().getFullYear();
+      return {
+        kind: '재회',
+        subject: `${nameA}·${nameB}`,
+        data: {
+          손님이_묻는_것: '다시 만날 수 있을까, 그게 언제일까',
+          A: { 명식: 이름.A, 분석: anA },
+          B: { 명식: 이름.B, 분석: anB },
+          관계: full,
+          다시_닿는_때: {
+            설명: '아래는 이분의 세 해를 달마다 본 것입니다. 두 사람 자리가 묶이는 달을 짚습니다.',
+            달마다: [year, year + 1, year + 2].flatMap((y) => monthlyLuck(a, anA.yongsin, y)),
+          },
+        },
+      };
+    }
+
+    if (pairKind === '부모자식') {
+      /*
+       * 배우자 자리(일지)는 뺀다. 부모와 아이 사이에 쓰는 자리가 아니다.
+       * 점수도 앞세우지 않는다 — 끊을 수 있는 관계가 아닌데 점수부터
+       * 보여 주면 상처만 남는다.
+       */
+      const { score, grade, ...rest } = full;
+      return {
+        kind: '부모자식',
+        subject: `${nameA}·${nameB}`,
+        data: {
+          손님이_묻는_것: '왜 이 아이와는 늘 부딪힐까',
+          부모: { 명식: 이름.A, 분석: anA },
+          아이: { 명식: 이름.B, 분석: anB },
+          뺀_축: '배우자 자리(일지)는 보지 않습니다. 부모와 아이 사이에 쓰는 자리가 아닙니다.',
+          맞물림: { ...rest, axes: rest.axes.filter((x) => !x.name.includes('일지')) },
+          아이가_보는_부모: {
+            설명: '아이 명식에서 부모가 어느 자리로 놓이는지입니다.',
+            인성: extractTopic(anB, 'learning'),
+            관성: extractTopic(anB, 'career'),
+          },
+        },
+      };
+    }
+
     return {
       kind: '궁합',
       subject: `${nameA}·${nameB}`,
       data: {
-        A: { 명식: `${a.year.stem}${a.year.branch} ${a.month.stem}${a.month.branch} ${a.day.stem}${a.day.branch}`, 분석: analyze(a) },
-        B: { 명식: `${b.year.stem}${b.year.branch} ${b.month.stem}${b.month.branch} ${b.day.stem}${b.day.branch}`, 분석: analyze(b) },
-        궁합: compatibility(a, b, nameA, nameB),
+        A: { 명식: 이름.A, 분석: anA },
+        B: { 명식: 이름.B, 분석: anB },
+        궁합: full,
       },
     };
   }
@@ -576,6 +671,76 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
   }
 
   /*
+   * 솔로 탈출 — **언제 만나나.** 가까운 세 해를 달 단위로 본다.
+   *
+   * 결혼 시기는 스무 해를 해 단위로 본다. 같은 재료를 눈금만 바꿔 보는
+   * 것이 아니라, 묻는 것이 다르니 보는 눈금도 다르다.
+   */
+  if (req.productId === 'single-report') {
+    return {
+      kind: '만남',
+      subject,
+      data: {
+        손님이_묻는_것: '나는 언제쯤 만날 수 있을까',
+        명식: base.명식,
+        계산근거: base.계산근거,
+        일간: base.일간,
+        강약: base.강약,
+        용신: base.용신,
+        매력: extractTopic(an, 'charm'),
+        만나는_달: meetingMonths(ms, an, req.birth?.gender ?? '남', year, 3),
+      },
+    };
+  }
+
+  /*
+   * 마음 정리 — **언제쯤 괜찮아지나.**
+   *
+   * 재회의 반대다. 걸린 것이 풀리는 때와 제 힘이 돌아오는 때를 본다.
+   * 돌아온다 안 돌아온다는 자료에 아예 넣지 않는다 — 있으면 모델이 쓴다.
+   */
+  if (req.productId === 'letgo-report') {
+    return {
+      kind: '정리',
+      subject,
+      data: {
+        손님이_묻는_것: '언제쯤 괜찮아질까',
+        명식: base.명식,
+        계산근거: base.계산근거,
+        일간: base.일간,
+        강약: base.강약,
+        용신: base.용신,
+        괜찮아지는_달: healingMonths(ms, an, year, 3),
+      },
+    };
+  }
+
+  /*
+   * 자녀 진로·적성 — **여덟 주제를 전부** 보고 그 안에서 결을 찾는다.
+   *
+   * 진학운(14,900원)은 그중 둘만 본다. 여기는 여덟을 다 보므로 값이 두 배다.
+   */
+  if (req.productId === 'child-aptitude-report') {
+    return {
+      kind: '적성',
+      subject,
+      data: {
+        손님이_묻는_것: '이 아이는 뭘 시켜야 할까',
+        명식: base.명식,
+        계산근거: base.계산근거,
+        일간: base.일간,
+        오행: base.오행,
+        십신_비중: base.십신_비중,
+        없는_십신: base.없는_십신,
+        강약: base.강약,
+        용신: base.용신,
+        여덟_주제: allTopics(an),
+        올해부터_세해: annualLuck(ms, an.yongsin, year, 3),
+      },
+    };
+  }
+
+  /*
    * 신년운세는 **한 해**를 보는 글이다.
    *
    * 평생 명식을 통째로 실으면 모델이 평생 사주를 쓰고, 그러면 34,900원짜리
@@ -595,6 +760,12 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
         용신: base.용신,
         지금_대운: { 방향: daeun.direction, 현재: currentDaeun(daeun, age) },
         올해와_내년: annualLuck(ms, an.yongsin, year, 2),
+        /*
+         * 「달별로 나뉜 흐름」을 상세페이지에 적어 놓고 자료에는 달이
+         * 한 줄도 없었다. 한 해를 파는 상품에 달이 없으면 살 이유가 없다.
+         */
+        올해_달마다: monthlyLuck(ms, an.yongsin, year),
+        내년_달마다: monthlyLuck(ms, an.yongsin, year + 1),
         여덟_주제: allTopics(an),
       },
     };

@@ -280,3 +280,118 @@ export function monthlyLuck(ms: Myeongsik, yongsin: YongsinResult, year: number)
   }
   return out;
 }
+
+/* ────────────────────────────────────────────────────────────
+ * 달 단위로 때를 집는 것 — 솔로 탈출·마음 정리
+ * ──────────────────────────────────────────────────────────── */
+
+export interface MarkedMonth extends MonthLuck {
+  /** 이 달을 집은 까닭. 없으면 안 집은 달이다 */
+  says: string[];
+}
+
+export interface MonthPick {
+  /** 무엇을 보고 달을 집었는지 먼저 밝힌다 */
+  how: string[];
+  /** 살펴본 모든 달 */
+  months: MarkedMonth[];
+  /** 그중 집힌 달 */
+  picked: MarkedMonth[];
+  disclaimer: string;
+}
+
+/** 도화·홍염이 앉은 지지를 뽑는다. 매력과 인연을 보는 자리다 */
+function charmBranchesOf(ms: Myeongsik, an: Analysis): string[] {
+  return an.sinsal
+    .filter((s) => /도화|홍염/.test(s.name))
+    .flatMap((s) => s.positions.map((p) => {
+      const slot = { 연주: ms.year, 월주: ms.month, 일주: ms.day, 시주: ms.hour }[p];
+      return slot?.branch ?? '';
+    }))
+    .filter(Boolean);
+}
+
+/**
+ * 솔로 탈출 — **언제 만나나.**
+ *
+ * 결혼 시기는 스무 해를 해 단위로 본다. 만남은 그렇게 멀리 보는 것이 아니다.
+ * 그래서 여기는 **가까운 세 해를 달 단위로** 본다. 같은 재료를 눈금만 바꿔
+ * 보는 것이 아니라, 묻는 것이 다르니 보는 눈금도 다르다.
+ */
+export function meetingMonths(
+  ms: Myeongsik, an: Analysis, gender: Gender, fromYear: number, years = 3,
+): MonthPick {
+  const spouse = spouseGroup(gender);
+  const charm = charmBranchesOf(ms, an);
+  const how = [
+    `배우자 자리(${spouse})가 그 달에 드는가 — ${gender === '남' ? '남자는 재성을' : '여자는 관성을'} 봅니다`,
+    '그 달이 배우자 자리(일지)와 묶이는가',
+    '도화·홍염이 닿는 달인가',
+    '채워야 할 기운이 드는 달인가',
+  ];
+
+  const months: MarkedMonth[] = [];
+  for (let i = 0; i < years; i++) {
+    for (const m of monthlyLuck(ms, an.yongsin, fromYear + i)) {
+      const says: string[] = [];
+      if (GOD_GROUP[m.stemGod as never] === spouse) says.push(`천간이 ${m.stemGod} — 배우자 자리가 듭니다`);
+      if (GOD_GROUP[m.branchGod as never] === spouse) says.push(`지지가 ${m.branchGod} — 배우자 자리가 듭니다`);
+      for (const note of m.interactions) {
+        if (note.startsWith('일주') && note.includes('합')) says.push(`배우자 자리와 묶입니다 — ${note}`);
+      }
+      if (charm.includes(m.pillar.slice(-1))) says.push('도화·홍염이 닿는 달입니다');
+      if (says.length && m.favor === '유리') says.push('채워야 할 기운이 드는 달입니다');
+      months.push({ ...m, says });
+    }
+  }
+
+  return {
+    how,
+    months,
+    picked: months.filter((m) => m.says.length >= 2),
+    disclaimer: '집힌 달에 반드시 만난다는 뜻이 아닙니다. '
+      + '**그 달에 인연 쪽 기운이 더 몰린다**는 뜻이고, 안 집힌 달에 못 만난다는 뜻도 아닙니다.',
+  };
+}
+
+/**
+ * 마음 정리 — **언제쯤 괜찮아지나.**
+ *
+ * 재회는 「다시 닿는가」를 본다. 여기는 그 반대다 — **걸린 것이 풀리는
+ * 때**와 **제 힘이 돌아오는 때**를 본다.
+ *
+ * 돌아온다 안 돌아온다를 말하지 않는다. 그건 재회 상품이 하는 일이고,
+ * 이 상품을 산 손님이 물은 것도 아니다.
+ */
+export function healingMonths(
+  ms: Myeongsik, an: Analysis, fromYear: number, years = 3,
+): MonthPick {
+  const how = [
+    '배우자 자리(일지)에 걸린 것이 있는 달인가 — 걸리는 달은 마음이 다시 흔들립니다',
+    '제 힘을 세우는 기운(비겁·인성)이 드는 달인가 — 그 달에 기운이 돌아옵니다',
+    '채워야 할 기운이 드는 달인가',
+  ];
+
+  const months: MarkedMonth[] = [];
+  for (let i = 0; i < years; i++) {
+    for (const m of monthlyLuck(ms, an.yongsin, fromYear + i)) {
+      const says: string[] = [];
+      for (const note of m.interactions) {
+        if (note.startsWith('일주')) says.push(`마음자리가 흔들립니다 — ${note}`);
+      }
+      const self = ['비겁', '인성'];
+      if (self.includes(GOD_GROUP[m.stemGod as never])) says.push(`천간이 ${m.stemGod} — 제 힘을 세우는 기운입니다`);
+      if (self.includes(GOD_GROUP[m.branchGod as never])) says.push(`지지가 ${m.branchGod} — 제 힘을 세우는 기운입니다`);
+      if (m.favor === '유리' && says.length) says.push('채워야 할 기운이 드는 달입니다');
+      months.push({ ...m, says });
+    }
+  }
+
+  return {
+    how,
+    months,
+    picked: months.filter((m) => m.says.length >= 2),
+    disclaimer: '이 글은 **정리하는 쪽**을 봅니다. 다시 만나는지는 보지 않습니다. '
+      + '기운이 든다고 저절로 괜찮아지는 것도 아닙니다 — 그 달이 덜 힘든 달이라는 뜻입니다.',
+  };
+}

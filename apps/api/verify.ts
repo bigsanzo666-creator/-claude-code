@@ -876,47 +876,43 @@ section('H1. 값이 다르면 물건도 다르다');
   const BIRTH2 = { date: '1990-09-25', time: '14:40', longitude: 126.978, gender: '남' as const };
   const PARTNER2 = { date: '1992-03-03', time: '09:00', longitude: 126.978, gender: '여' as const };
   const byReport = new Map<string, string[]>();
+  /*
+   * 조용히 건너뛰지 않는다. 전에는 자료를 못 만드는 상품을 `continue` 로
+   * 넘겨서, 택일 하나가 통째로 빠진 채 「다 다르다」고 통과하고 있었다.
+   * 못 만들면 그 자체가 실패다.
+   */
+  const 못만든것: string[] = [];
   for (const p of Object.values(CATALOG)) {
     let built;
     try {
       built = buildPayload({
         productId: p.id, birth: BIRTH2, partner: PARTNER2,
-        name: { surname: '김' }, pick: { dates: ['2027-04-30'], times: ['16~17시'] },
+        name: { surname: '김' }, pick: { dates: ['2027-04-30'], times: ['16:30'] },
       } as never);
-    } catch { continue; }
+    } catch (e) {
+      못만든것.push(`${p.id}: ${(e as Error).message}`);
+      continue;
+    }
     const key = cacheKey({
       input: { kind: built.kind, data: built.data, subject: built.subject },
       model: 'claude-opus-5', effort: 'medium',
     });
     byReport.set(key, [...(byReport.get(key) ?? []), p.id]);
   }
+  check('상품마다 리포트 자료가 만들어진다', 못만든것.length === 0, 못만든것.join(' / ') || '31개 모두');
 
   /*
-   * 아직 못 가른 것. **사장님이 정해 주셔야 하는 자리다** —
-   * 무엇을 더 보고 무엇을 빼서 값 차이를 세울지는 장사의 결정이다.
-   * 하나씩 갈라질 때마다 여기서 지운다.
+   * **상품 하나에 글 하나.** 이제 예외가 없다.
+   *
+   * 한때 서른한 개가 여섯 가지 글만 만들고 있었다. 돈그릇(14,900원)과
+   * 사주 종합(34,900원)이 글자 하나까지 같았다. 여기서 다시는 그렇게
+   * 되지 않게 막는다 — 새 상품을 만들 때 자료를 안 갈라 주면 바로 걸린다.
    */
-  const 아직: string[][] = [
-    ['single-report', 'letgo-report', 'child-aptitude-report'],
-    ['crush-compat-report', 'reunion-report', 'parent-child-report'],
-  ];
-  const 적어둔것 = new Set(아직.map((g) => [...g].sort().join(',')));
-
   const 겹침 = [...byReport.values()].filter((ids) => ids.length > 1);
-  const 새로겹친것 = 겹침.filter((ids) => !적어둔것.has([...ids].sort().join(',')));
-
-  check('적어 두지 않은 상품이 새로 겹치지 않는다', 새로겹친것.length === 0,
-    새로겹친것.map((ids) => ids.join(' = ')).join(' / ') || '없음');
-  check('낱개 주제 상품과 사주 종합이 다른 글이 된다',
-    byReport.size >= 20, `${byReport.size}가지 글`);
-
-  // 값이 제일 싼 것과 제일 비싼 것이 같은 글이면 그건 장사가 아니다
-  for (const ids of 겹침) {
-    const prices = ids.map((id) => CATALOG[id as never].priceKrw);
-    check(`겹치는 무리 안에서 값이 두 배를 넘지 않는다 — ${ids.length}개`,
-      Math.max(...prices) <= Math.min(...prices) * 2,
-      `${Math.min(...prices).toLocaleString()}원 ~ ${Math.max(...prices).toLocaleString()}원`);
-  }
+  check('값이 다른 상품이 같은 글을 내지 않는다', 겹침.length === 0,
+    겹침.map((ids) => ids.join(' = ')).join(' / ') || `${byReport.size}개 모두 다름`);
+  check('상품 수만큼 글이 나온다', byReport.size === Object.keys(CATALOG).length,
+    `상품 ${Object.keys(CATALOG).length}개 · 글 ${byReport.size}가지`);
 
   // 「생년월일 없이 얼굴과 손만으로 봅니다」라고 팔아 놓고 사주를 실으면 거짓말이다
   const fp = buildPayload({ productId: 'face-palm-report', birth: BIRTH2 } as never);

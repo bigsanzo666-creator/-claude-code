@@ -334,6 +334,11 @@ section('9. 신령 — 칸마다 주인이 있는가');
    * 값을 맨 위에 두면 손님이 값부터 재고 나간다. 무엇을 받는지 다 보여 준
    * 다음에 값을 말한다. 그리고 **안 사도 되는 경우를 먼저 적는다.**
    */
+  // 상품마다 담기는 것이 있어야 한다. 값을 보는 화면에 한 줄도 없으면 안 된다
+  const noList = Object.keys(CATALOG).filter((id) => (CONTENTS_FOR(id) ?? []).length < 4);
+  check('상품마다 담기는 것이 네 줄 넘게 적혀 있다', noList.length === 0,
+    noList.join(',') || `${Object.keys(CATALOG).length}개 모두`);
+
   const noFit = Object.keys(CATALOG).filter((id) => !FIT_FOR(id));
   check('상품마다 「이런 분이 보시면」이 있다', noFit.length === 0, noFit.join(','));
   check('상품마다 「안 보셔도 됩니다」도 있다',
