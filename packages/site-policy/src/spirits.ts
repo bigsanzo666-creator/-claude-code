@@ -1,5 +1,5 @@
 /**
- * 신령 여덟.
+ * 신령들.
  *
  * 지금까지 이 집에는 **주인이 없었다.** 상품 스물한 개가 표처럼 늘어서 있고,
  * 설명은 다 맞는 말인데 말을 거는 사람이 아무도 없었다. 그런 가게에서는
@@ -66,10 +66,19 @@ export interface Spirit {
 }
 
 /**
- * 여덟 신령.
+ * 신령들.
  *
  * 순서는 상품 갈래 순서와 같다. 앞이 손님이 많이 들어오는 입구다.
+ *
+ * **몇 명인지를 다른 곳에 적지 않는다.** 화면은 이 배열의 길이를 세어 쓴다 —
+ * 한때 「신령 일곱이 삽니다」가 여덟일 때도 열일 때도 그대로 나갔다.
  */
+/** 하나부터 열둘까지 우리말로. 화면에 숫자를 손으로 적지 않기 위한 것이다 */
+export function countWord(n: number): string {
+  const W = ['', '하나', '둘', '셋', '넷', '다섯', '여섯', '일곱', '여덟', '아홉', '열', '열하나', '열둘'];
+  return W[n] ?? String(n);
+}
+
 export const SPIRITS: Spirit[] = [
   {
     id: 'flower', name: '도화신령', seal: '桃', aka: ['꽃신령'], keeps: '연애', place: '꽃터',
@@ -331,9 +340,17 @@ export function renderSpiritRow(faces: SpiritImages = NO_FACES): string {
     <p class="sp-intro">${esc(s.intro)}</p>
   </li>`).join('\n');
 
+  /*
+   * 숫자를 손으로 적지 않는다.
+   *
+   * 「신령 일곱」이라고 박아 두었더니 여덟이 된 뒤에도 일곱이라고 나갔고,
+   * 열이 된 지금도 일곱이라고 나가고 있었다. **화면이 거짓말을 하는 것**이라,
+   * 신령이 늘 때마다 고치는 것을 잊지 않을 방법은 안 적는 것뿐이다.
+   */
+  const 몇 = countWord(SPIRITS.length);
   return `<section class="lp sp-row-wrap" id="spirits">
-<p class="pr-kicker">신령 일곱</p>
-<h2 class="sp-title">이 집에는 신령 일곱이 삽니다</h2>
+<p class="pr-kicker">신령 ${몇}</p>
+<h2 class="sp-title">이 집에는 신령 ${몇}이 삽니다</h2>
 <p class="sp-sub">칸마다 주인이 다릅니다. 궁금한 것에 맞는 신령을 찾아가시면 됩니다.</p>
 <ul class="sp-row">
 ${cards}

@@ -34,7 +34,9 @@ import { renderWhy } from './why.ts';
 import { type BusinessInfo } from './business.ts';
 import { type SceneImages, NO_SCENES, sceneUrl } from './gate.ts';
 import { PLACES } from './pick-page.ts';
-import { SPIRITS, spiritOf, PITCH, type SpiritImages, NO_FACES_SET, spiritImageUrl } from './spirits.ts';
+import {
+  SPIRITS, spiritOf, PITCH, countWord, type SpiritImages, NO_FACES_SET, spiritImageUrl,
+} from './spirits.ts';
 
 function esc(value: string): string {
   return value.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
@@ -323,7 +325,7 @@ function renderWorld(
 ${cards}
     </div>
     <div class="wd-bottom">
-      <p class="wd-swipe" aria-hidden="true">옆으로 밀어 여덟 신령을 보세요</p>
+      <p class="wd-swipe" aria-hidden="true">옆으로 밀어 ${countWord(SPIRITS.length)} 신령을 보세요</p>
       <button type="button" class="wd-free" id="stFree">
         <span class="wd-free-t">먼저, 무료로 보는 내 사주</span>
         <span class="wd-free-go">공짜로 보기 →</span>

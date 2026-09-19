@@ -367,7 +367,7 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
 
   // 손님이 첫 화면에서 신령을 먼저 만나고, 상품 칸에서 다시 만나야 가게가 된다
   const home = await get('/').then((r) => r.text());
-  check('첫 화면에 신령 일곱이 선다',
+  check('첫 화면에 신령이 다 선다',
     SPIRITS.every((sp) => home.includes(sp.name)));
   check('얼굴이 있는 신령은 첫 화면에서 그림으로 나온다',
     home.includes('/img/spirits/flower'));

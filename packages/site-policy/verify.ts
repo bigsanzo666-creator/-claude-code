@@ -10,6 +10,7 @@ import {
   loadBusinessInfo, missingFields, isComplete, isValidRegistrationNumber,
   renderFooter, renderTerms, renderPrivacy, renderRefund, POLICY_EFFECTIVE_DATE,
   renderProducts, renderProductsPage, renderProductPage, renderHero, renderTryHeading, CONTENTS_FOR, FIT_FOR,
+  countWord,
   LANDING_CSS, PRODUCTS_CSS, FONT_LINK,
   SPIRITS, PITCH, spiritOf, renderSpiritRow, renderSpiritHead, renderSpiritPitch, SPIRITS_CSS,
   renderSocialHead, HOME_TITLE, HOME_DESCRIPTION, FALLBACK_NAME,
@@ -306,8 +307,38 @@ section('9. 신령 — 칸마다 주인이 있는가');
   check('이름이 나쁜 말로 안 들린다',
     SPIRITS.every((s) => !/^(실|사|망|병)신령$/.test(s.name)));
   // 이름을 바꿔도 이미 올려 둔 그림 파일은 옛 이름이다
-  check('옛 이름을 기억해 둔다',
-    SPIRITS.filter((s) => s.aka?.length).length === 8);
+  /*
+   * 옛 이름은 **있어도 되고 없어도 된다** — 이름을 바꾼 적 없는 신령은
+   * 옛 이름도 없다. 세는 검사를 두면 신령이 늘 때마다 숫자를 고쳐야 한다.
+   *
+   * 진짜 위험한 것은 **옛 이름이 겹치는 것**이다. 두 신령이 같은 이름을
+   * 들고 있으면 그림이 엉뚱한 신령에게 붙는다.
+   */
+  const 부르는이름 = SPIRITS.flatMap((s) => [s.id, s.name, ...(s.aka ?? [])]);
+  const 겹친이름 = 부르는이름.filter((x, i) => 부르는이름.indexOf(x) !== i);
+  check('신령을 부르는 이름이 겹치지 않는다', 겹친이름.length === 0,
+    겹친이름.join(',') || `${부르는이름.length}개 모두 다름`);
+
+  /*
+   * 화면이 신령 수를 **손으로 적지 않는다.**
+   *
+   * 「이 집에는 신령 일곱이 삽니다」가 박혀 있었다. 여덟이 된 뒤에도
+   * 일곱이라고 나갔고, 열이 된 지금도 일곱이라고 나가고 있었다.
+   * 화면이 거짓말을 하는 것이라, 숫자를 못 적게 여기서 막는다.
+   */
+  const 셀말 = ['하나', '둘', '셋', '넷', '다섯', '여섯', '일곱', '여덟', '아홉', '열', '열하나', '열둘'];
+  const 맞는말 = countWord(SPIRITS.length);
+  const 신령줄 = renderSpiritRow(new Set());
+  const 틀린말 = 셀말.filter((w) => w !== 맞는말
+    && (신령줄.includes(`신령 ${w}`) || 신령줄.includes(`${w} 신령`)));
+  check('첫 화면이 신령 수를 손으로 적지 않는다', 틀린말.length === 0,
+    틀린말.length ? `${틀린말.join(',')} 이라고 적혀 있다` : `지금은 ${맞는말}`);
+  check('신령 수가 화면에 제대로 나온다',
+    신령줄.includes(`신령 ${맞는말}이 삽니다`), `신령 ${맞는말}`);
+  const stageHtml = renderStage(full, new Set(), new Set());
+  check('메뉴판 안내도 신령 수를 따라간다',
+    !셀말.some((w) => w !== 맞는말 && stageHtml.includes(`밀어 ${w} 신령`)),
+    `밀어 ${맞는말} 신령을 보세요`);
   // 얼굴 그림은 나중에 붙는다. 그동안 빈 네모가 남으면 안 그리느니만 못하다
   check('그림이 없어도 얼굴 자리가 도장으로 찬다',
     SPIRITS.every((s) => s.seal.length === 1));
@@ -379,7 +410,7 @@ section('9. 신령 — 칸마다 주인이 있는가');
     new Set(Object.values(PITCH)).size === Object.keys(PITCH).length);
 
   const row = renderSpiritRow();
-  check('첫 화면에 신령 일곱이 다 선다',
+  check('첫 화면에 신령이 다 선다',
     SPIRITS.every((s) => row.includes(s.name)));
   check('신령 소개에 맡은 칸이 적힌다',
     SPIRITS.every((s) => row.includes(`>${s.keeps}<`)));
