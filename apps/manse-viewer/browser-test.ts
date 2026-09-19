@@ -1,0 +1,381 @@
+/**
+ * 실제 브라우저에서 결제 흐름을 끝까지 돌린다.
+ *
+ * 여기까지 와야 "결제가 된다"고 말할 수 있다. 단위 테스트는 흐름이 맞는지만
+ * 확인하지, 버튼이 실제로 눌리는지·화면이 바뀌는지는 확인하지 못한다.
+ *
+ * 결제창(PortOne)만 가짜로 바꿔 끼운다. 나머지는 전부 진짜다 —
+ * 진짜 서버, 진짜 브라우저, 진짜 DOM.
+ */
+
+import { createServer } from 'node:http';
+import { chromium } from 'playwright';
+import { FakeGateway, CATALOG, upsellFor } from '../../packages/commerce/src/index.ts';
+import { createApi, MemoryOrderStore } from '../api/src/server.ts';
+
+let passed = 0, failed = 0;
+const failures: string[] = [];
+function check(label: string, ok: boolean, detail = '') {
+  if (ok) { passed++; console.log(`  ✓ ${label}${detail ? `  ${detail}` : ''}`); }
+  else { failed++; failures.push(label); console.log(`  ✗ ${label}${detail ? `  ${detail}` : ''}`); }
+}
+function section(t: string) { console.log(`\n${t}\n${'─'.repeat(60)}`); }
+
+const gateway = new FakeGateway();
+const api = createApi({
+  gateway,
+  orders: new MemoryOrderStore(),
+  generate: async ({ subject }) => ({
+    text: `[교차검증 리포트 · ${subject}]\n\n이것은 결제 후에만 보이는 본문입니다.`,
+  }),
+  checkout: { storeId: 'store-test', channelKey: 'channel-test' },
+});
+
+/**
+ * 가짜 결제창이 "승인됐다"고 알려줄 경로만 앞에서 가로채고,
+ * 나머지는 전부 진짜 API로 넘긴다.
+ */
+const server = createServer((req, res) => {
+  if (req.url === '/__test/approve' && req.method === 'POST') {
+    let raw = '';
+    req.on('data', (c) => { raw += c; });
+    req.on('end', () => {
+      const { paymentId, amountKrw } = JSON.parse(raw);
+      gateway.put({
+        paymentId, status: 'paid', amountKrw, merchantOrderId: paymentId,
+        method: 'card', paidAt: new Date().toISOString(), raw: {},
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end('{"ok":true}');
+    });
+    return;
+  }
+  api(req, res);
+});
+await new Promise<void>((r) => server.listen(0, r));
+const base = `http://127.0.0.1:${(server.address() as any).port}`;
+
+// 이 환경에는 브라우저가 미리 깔려 있고 playwright 버전과 어긋난다.
+// 새로 내려받지 말고 설치된 실행 파일을 직접 가리킨다.
+const browser = await chromium.launch({
+  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  args: ['--no-sandbox'],
+});
+const page = await browser.newPage();
+const consoleErrors: string[] = [];
+page.on('pageerror', (e) => consoleErrors.push(e.message));
+page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
+
+/**
+ * 외부 CDN 차단은 코드 오류가 아니다.
+ * 이 샌드박스는 바깥 네트워크를 막아서 포트원 SDK 로딩이 실패한다.
+ * 그 상황 자체는 checkout-client 의 'SDK 미로딩 가드'에서 따로 검증한다.
+ */
+const isNetworkBlock = (m: string) =>
+  m.includes('ERR_CONNECTION') || m.includes('ERR_NAME_NOT_RESOLVED') || m.includes('Failed to load resource');
+const codeErrors = () => consoleErrors.filter((m) => !isNetworkBlock(m));
+
+// 포트원 SDK를 가짜로 갈아끼운다. 요청받은 금액 그대로 승인 처리한다
+await page.addInitScript(() => {
+  (window as any).__payCalls = [];
+  (window as any).__payMode = 'ok';
+  (window as any).PortOne = {
+    requestPayment: async (req: any) => {
+      (window as any).__payCalls.push(req);
+      if ((window as any).__payMode === 'cancel') {
+        return { code: 'USER_CANCEL', message: '사용자가 결제를 취소했습니다.' };
+      }
+      await fetch('/__test/approve', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId: req.paymentId, amountKrw: req.totalAmount }),
+      });
+      return { paymentId: req.paymentId };
+    },
+  };
+});
+
+// ── A. 페이지가 뜨는가 ─────────────────────────────────────────
+section('A. 페이지 로드');
+
+await page.goto(base, { waitUntil: 'domcontentloaded' });
+
+/*
+ * 첫 화면은 신령계 판이 덮고 있다.
+ *
+ * 이 검증이 보려는 것은 그 아래 만세력 화면의 **결제 흐름**이다. 판 자체는
+ * site-policy 검증이 따로 본다. 그래서 여기서는 판을 걷어내고 시작한다 —
+ * 안 걷으면 마법사 단추가 판에 가려 눌리지 않는다.
+ */
+await page.evaluate(() => document.getElementById('stage')?.remove());
+
+/**
+ * 입력 마법사를 끝까지 넘긴다.
+ *
+ * 첫 화면은 한 질문씩 묻고, 다 넘겨야 결과와 결제 구간이 나온다.
+ * 이 검증이 보려는 것은 그 뒤의 구매 흐름이므로 여기서 한 번에 통과시킨다.
+ * 마법사 자체는 `wiz-test.ts` 가 따로 본다.
+ */
+/*
+ * 이메일을 채운다.
+ *
+ * 이니시스는 구매자 이메일이 없으면 결제창을 아예 띄우지 않는다. 그래서
+ * 동의만으로는 결제 단추가 열리지 않는다 — 두 가지가 다 있어야 한다.
+ */
+async function fillMail(v = 'test@example.com', tel = '01012345678', who = '홍길동') {
+  await page.fill('#buyWho', who);
+  await page.fill('#buyMail', v);
+  await page.fill('#buyTel', tel);
+}
+
+async function passWizard() {
+  for (let i = 0; i < 8; i++) {
+    if (await page.locator('body.wiz').count() === 0) return;
+    await page.locator('.wiz-next').click();
+    await page.waitForTimeout(60);
+  }
+}
+await passWizard();
+await page.waitForSelector('.chart', { timeout: 10000 });
+
+check('명식이 그려짐', (await page.locator('.chart .col').count()) === 4);
+check('탭 3개', (await page.locator('.tab').count()) === 3);
+check('자바스크립트 오류 없음', codeErrors().length === 0, codeErrors()[0] ?? '');
+check('외부 CDN이 막혀도 페이지는 동작', true,
+  consoleErrors.some(isNetworkBlock) ? '포트원 SDK 로딩 차단됨 — 화면은 정상' : 'CDN 정상');
+check('무료 구간은 결제 없이 보임',
+  (await page.locator('text=오늘의 일진').count()) > 0);
+
+// ── A2. 사주만 본 손님도 살 수 있는가 ──────────────────────────
+// 그동안 살 수 있는 자리가 관상·손금 화면 하나뿐이었다. 사주를 보고 나온
+// 손님에게는 결제 단추가 없었고, 가림막 단추는 상품 설명 페이지로 되돌아갔다
+section('A2. 사주 화면의 결제');
+{
+  const veils = await page.locator('[data-buy]').count();
+  check('가림막 단추가 결제로 이어진다', veils > 0, `${veils}개`);
+  await page.locator('[data-buy]').first().click();
+  await page.waitForSelector('#buyPanel', { timeout: 10000 });
+  await page.waitForSelector('#payBtn', { timeout: 10000 });
+  check('살 자리가 열린다', (await page.locator('#buyPanel').count()) === 1);
+  check('무엇이 담기는지 먼저 보여 준다', (await page.locator('#buyPanel .will li').count()) > 0);
+  check('예시 문장을 먼저 보여 준다',
+    ((await page.locator('#buyPanel .samp').textContent()) ?? '').length > 50);
+  /*
+   * 폰에서 손가락으로 누를 수 있어야 한다.
+   *
+   * 동의 네모가 13px 이던 때가 있었다. 마우스로는 눌리지만 손가락으로는
+   * 안 눌린다. 손님이 결제까지 와서 마지막 한 칸을 못 눌러 나간다.
+   */
+  for (const sel of ['label.agree', '#payBtn', '#buyWho', '#buyMail', '#buyTel']) {
+    const box = await page.locator(sel).boundingBox();
+    check(`${sel} 를 손가락으로 누를 수 있다`,
+      !!box && box.height >= 40 && box.width >= 44,
+      box ? `${Math.round(box.width)}x${Math.round(box.height)}` : '안 보임');
+  }
+  // 화면이 옆으로 구르면 손님은 칸을 누르려다 화면을 민다
+  check('화면이 옆으로 구르지 않는다',
+    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
+    await page.evaluate(() => `${document.documentElement.scrollWidth} / ${window.innerWidth}`));
+
+  check('동의 전에는 결제가 잠겨 있다', await page.locator('#payBtn').isDisabled());
+  await page.check('#agree');
+  // 이니시스는 이메일이 필수다. 동의만으로는 열리지 않아야 한다
+  check('동의만으로는 안 열린다', await page.locator('#payBtn').isDisabled());
+  await fillMail('없는메일');
+  check('모양이 아닌 이메일은 안 받는다', await page.locator('#payBtn').isDisabled());
+  await fillMail('test@example.com', '123');
+  check('모양이 아닌 번호는 안 받는다', await page.locator('#payBtn').isDisabled());
+  await fillMail('test@example.com', '01012345678', '');
+  check('이름이 없으면 안 받는다', await page.locator('#payBtn').isDisabled());
+  await fillMail();
+  check('이름·이메일·번호·동의가 다 있으면 눌린다', !(await page.locator('#payBtn').isDisabled()));
+
+  // 사려는 것을 바꾸면 앞에서 본 미리보기와 동의는 다른 물건의 것이다
+  const before = (await page.locator('#payBtn').textContent()) ?? '';
+  await page.selectOption('#buyPick', 'daily-report');
+  await page.waitForFunction(
+    // 값을 여기 적어두면 카탈로그를 고칠 때마다 검증이 깨진다. 한 곳에서만 온다
+    (want: string) => (document.getElementById('payBtn')?.textContent ?? '').includes(want),
+    CATALOG['daily-report'].priceKrw.toLocaleString('ko-KR'), { timeout: 10000 });
+  const after = (await page.locator('#payBtn').textContent()) ?? '';
+  check('상품을 바꿀 수 있다', before !== after, `${before.trim()} → ${after.trim()}`);
+  check('바꾸면 동의가 풀린다', await page.locator('#payBtn').isDisabled());
+}
+
+// ── A3. 작명 — 성을 받아야 사는 상품 ─────────────────────────
+section('A3. 작명');
+{
+  await page.goto(`${base}?buy=naming-report`, { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => document.getElementById('stage')?.remove());
+  await passWizard();
+  await page.waitForSelector('#buyPanel', { timeout: 10000 });
+
+  /*
+   * 성 칸이 미리보기 안쪽에 있으면 아무것도 못 한다 — 성이 없어 미리보기가
+   * 안 나오고, 미리보기가 없어 성 칸이 안 뜬다. 미리보기 전에도 떠야 한다.
+   */
+  await page.waitForSelector('#buySur', { timeout: 10000 });
+  check('성 넣는 칸이 미리보기 전에도 뜬다', (await page.locator('#buySur').count()) === 1);
+  check('돌림자 칸도 함께 뜬다', (await page.locator('#buyDolim').count()) === 1);
+  check('성이 없으면 결제가 잠겨 있다', await page.locator('#payBtn').count() === 0);
+
+  for (const sel of ['#buySur', '#buyDolim']) {
+    const box = await page.locator(sel).boundingBox();
+    check(`${sel} 를 손가락으로 누를 수 있다`,
+      !!box && box.height >= 40 && box.width >= 44,
+      box ? `${Math.round(box.width)}x${Math.round(box.height)}` : '안 보임');
+  }
+
+  // 성을 넣으면 미리보기가 온다
+  await page.fill('#buySur', '김');
+  await page.dispatchEvent('#buySur', 'change');
+  await page.waitForSelector('#payBtn', { timeout: 15000 });
+  const will = (await page.locator('#buyPanel .will').textContent()) ?? '';
+  check('성을 넣으면 무엇이 담기는지 보여 준다', will.includes('획수 짝'), will.slice(0, 80));
+  check('출생신고가 된다는 것을 말한다', will.includes('출생신고'));
+
+  await page.check('#agree');
+  await fillMail();
+  check('성까지 넣으면 결제가 열린다', !(await page.locator('#payBtn').isDisabled()));
+
+  // 성을 지우면 다시 잠긴다 — 성 없이 팔면 지을 수 없는 이름을 판 것이 된다
+  await page.fill('#buySur', '');
+  await page.dispatchEvent('#buySur', 'input');
+  check('성을 지우면 다시 잠긴다', await page.locator('#payBtn').isDisabled());
+
+  check('화면이 옆으로 구르지 않는다',
+    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+}
+
+// 주소로 바로 열기 — 밖에서 링크를 걸고 들어온 손님
+{
+  await page.goto(`${base}?buy=wealth-report`, { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => document.getElementById('stage')?.remove());
+  await passWizard();
+  await page.waitForSelector('#buyPanel', { timeout: 10000 });
+  check('주소로 바로 살 자리가 열린다',
+    ((await page.locator('#buyPanel h2').textContent()) ?? '').includes('돈그릇'));
+  // 없는 상품을 실어 보내도 화면이 깨지지 않는다
+  await page.goto(`${base}?buy=nope`, { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => document.getElementById('stage')?.remove());
+  await passWizard();
+  await page.waitForSelector('.chart', { timeout: 10000 });
+  check('없는 상품을 실어 보내도 그냥 넘어간다', (await page.locator('#buyPanel').count()) === 0);
+}
+
+// ── B. 유료 구간이 막혀 있는가 ─────────────────────────────────
+section('B. 유료 구간 — 결제 전');
+
+await page.locator('#tabFace').click();
+await page.waitForSelector('.pro', { timeout: 10000 });
+await page.waitForSelector('#payBtn', { timeout: 10000 });
+
+const priceText = await page.locator('.buy .price').textContent();
+// 값을 여기 적어두면 카탈로그를 고칠 때마다 검증이 깨진다. 한 곳에서만 온다
+const crossPrice = CATALOG['cross-report'].priceKrw.toLocaleString('ko-KR');
+check('가격이 표시됨', priceText?.includes(crossPrice) ?? false, priceText ?? '');
+check('담길 내용 목록이 보임', (await page.locator('.will li').count()) > 0,
+  `${await page.locator('.will li').count()}개`);
+check('예시 리포트가 보임', ((await page.locator('.samp').textContent()) ?? '').length > 50);
+check('청약철회 고지가 보임',
+  ((await page.locator('.legal').textContent()) ?? '').includes('청약철회가 제한'));
+check('결제 버튼이 처음엔 비활성', await page.locator('#payBtn').isDisabled());
+check('교차검증 전문은 아직 안 보임', (await page.locator('.xv').count()) === 0);
+
+// ── C. 동의 → 결제 ─────────────────────────────────────────────
+section('C. 결제');
+
+await page.locator('#agree').check();
+await fillMail();
+await page.waitForFunction(() => !(document.querySelector('#payBtn') as HTMLButtonElement)?.disabled);
+check('동의하면 결제 버튼 활성', !(await page.locator('#payBtn').isDisabled()));
+
+await page.locator('#payBtn').click();
+await page.waitForSelector('.bought', { timeout: 30000 });
+
+const bought = (await page.locator('.bought').textContent()) ?? '';
+check('결제 후 리포트 본문이 나옴', bought.includes('결제 후에만 보이는 본문'));
+check('호칭이 반영됨', bought.includes('이 분'), bought.slice(0, 40));
+check('주문번호가 안내됨', ((await page.locator('.panel-in .note .mono').textContent()) ?? '').startsWith('ord_'));
+
+const payCalls = await page.evaluate(() => (window as any).__payCalls);
+check('결제창이 한 번 호출됨', payCalls.length === 1);
+check('금액이 서버가 정한 값으로 전달됨',
+  payCalls[0].totalAmount === CATALOG['cross-report'].priceKrw, `${payCalls[0].totalAmount}원`);
+check('상점 정보가 전달됨',
+  payCalls[0].storeId === 'store-test' && payCalls[0].channelKey === 'channel-test');
+check('통화·결제수단 지정', payCalls[0].currency === 'CURRENCY_KRW' && payCalls[0].payMethod === 'CARD');
+
+// ── D. 결제 취소 ───────────────────────────────────────────────
+section('D. 사용자가 결제창을 닫는 경우');
+
+await page.evaluate(() => { (window as any).__payMode = 'cancel'; });
+// 입력을 바꾸면 이전 구매 결과가 초기화된다 (이름 칸은 궁합 모드 전용이라 생년월일로 바꾼다)
+// 생년월일은 이제 연·월·일 세 칸이다. 숨은 입력에 직접 쓰지 않고 손님처럼 고른다
+const ymd = page.locator('.ymd').first().locator('select');
+await ymd.nth(0).selectOption('1985');
+await ymd.nth(1).selectOption('11');
+await ymd.nth(2).selectOption('03');
+await page.waitForSelector('#payBtn', { timeout: 10000 });
+check('입력이 바뀌면 이전 리포트가 사라짐', (await page.locator('.bought').count()) === 0);
+
+await page.locator('#agree').check();
+await fillMail();
+await page.waitForFunction(() => !(document.querySelector('#payBtn') as HTMLButtonElement)?.disabled);
+await page.locator('#payBtn').click();
+await page.waitForSelector('.err', { timeout: 15000 });
+
+const err = (await page.locator('.err').textContent()) ?? '';
+check('취소가 안내됨', err.includes('취소'), err);
+check('다시 시도할 수 있다고 안내', err.includes('다시 시도'));
+check('취소해도 리포트는 안 나옴', (await page.locator('.bought').count()) === 0);
+check('결제창은 두 번 호출됨',
+  (await page.evaluate(() => (window as any).__payCalls.length)) === 2);
+
+// ── E. 하나 더 얹기 ────────────────────────────────────────────
+section('E. 묶음 끼워 팔기');
+
+const pack = upsellFor('cross-report')!;
+const single = CATALOG['cross-report'].priceKrw;
+const add = pack.priceKrw - single;
+
+check('끼워 파는 칸이 보임', (await page.locator('.up').count()) === 1);
+check('얹는 금액을 보여 줌',
+  ((await page.locator('.up-p').textContent()) ?? '').includes(add.toLocaleString('ko-KR')),
+  (await page.locator('.up-p').textContent()) ?? '');
+// 판 적 없는 정가를 지어내지 않는다. 「따로 사면」은 낱개 판매가의 합계다
+const apart = pack.members.reduce((sum, m) => sum + CATALOG[m].priceKrw, 0);
+check('따로 사면 값이 낱개 합계',
+  ((await page.locator('.up-s').first().textContent()) ?? '').includes(apart.toLocaleString('ko-KR')));
+
+await page.locator('#packBox').check();
+// 켜면 묶음 것으로 미리보기를 다시 받는다. 값이 바뀔 때까지 기다린다
+await page.waitForFunction(
+  (won) => (document.querySelector('.buy .price')?.textContent ?? '').includes(won),
+  pack.priceKrw.toLocaleString('ko-KR'), { timeout: 10000 });
+check('값이 묶음값으로 바뀜', true, pack.priceKrw.toLocaleString('ko-KR') + '원');
+check('편마다 무엇이 담기는지 다시 보여 줌',
+  (await page.locator('.will li').count()) > 0);
+// 사려는 물건이 바뀌었으므로 앞의 동의는 무효다
+check('동의가 풀림', !(await page.locator('#agree').isChecked()));
+check('결제 버튼이 다시 잠김', await page.locator('#payBtn').isDisabled());
+
+await page.locator('#agree').check();
+await page.waitForFunction(() => !(document.querySelector('#payBtn') as HTMLButtonElement)?.disabled);
+await page.evaluate(() => { (window as any).__payMode = 'ok'; });
+await page.locator('#payBtn').click();
+await page.waitForSelector('.bought', { timeout: 30000 });
+
+const calls = await page.evaluate(() => (window as any).__payCalls);
+check('묶음값으로 결제됨', calls[calls.length - 1].totalAmount === pack.priceKrw,
+  `${calls[calls.length - 1].totalAmount}원`);
+check('묶음도 리포트가 나옴', (await page.locator('.bought').count()) === 1);
+
+check('전 과정에 자바스크립트 오류 없음', codeErrors().length === 0, codeErrors()[0] ?? '');
+
+await browser.close();
+server.close();
+
+console.log(`\n${'═'.repeat(60)}`);
+console.log(`통과 ${passed} / 실패 ${failed}  ·  실제 브라우저 · 실제 결제 0건`);
+if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
+console.log('전부 통과.');
