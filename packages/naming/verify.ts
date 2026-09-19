@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 
 import {
   EIGHTY_ONE, number81, fourFrames, readFrames, middleStrokeCandidates, frameRows, FRAME_PLAIN,
+  popularYears, popularList, popularitySource, popularityOf,
 } from './src/index.ts';
 
 let passed = 0, failed = 0;
@@ -282,6 +283,46 @@ check('줄 순서는 초년부터 전체까지',
   try { nameField({ surname: '쀍' }); } catch { threw2 = true; }
   check('모르는 성은 막는다', threw2);
 }
+
+// ── 요즘 많이 쓰는 이름 ────────────────────────────────────────
+/*
+ * 「안 겹치게」를 149,000원에 팔면서 **인기 이름 자료가 한 줄도 없었다.**
+ * 상세페이지에는 「요즘 많이 쓰는 이름과 겹치는지 알려 드립니다」라고
+ * 적혀 있었다. 못 주는 것을 팔고 있었던 것이다.
+ */
+section('요즘 많이 쓰는 이름');
+
+const years = popularYears();
+check('자료에 온전한 해가 들어 있다', years.length >= 2, years.join('·'));
+for (const y of years) {
+  for (const g of ['남', '여'] as const) {
+    const list = popularList(y, g);
+    check(`${y}년 ${g} 100위가 다 있다`, list.length >= 100, `${list.length}개`);
+    // 반쪽짜리 목록을 넣으면 50위인 이름을 「순위에 없다」고 말하게 된다
+    check(`${y}년 ${g} 순위에 빠진 자리가 없다`,
+      new Set(list.map((e) => e.rank)).size >= 90 && list[0].rank === 1);
+  }
+}
+
+const src = popularitySource();
+check('어디서 언제 받은 자료인지 적어 둔다',
+  src.출처.startsWith('http') && src.받은날.length === 10 && src.설명.length > 30);
+
+const common = popularityOf('도윤', '남');
+check('흔한 이름을 흔하다고 말한다', common.band === '아주 흔합니다', common.say);
+check('몇 년에 몇 위인지 함께 낸다',
+  common.byYear.some((y) => y.rank === 1) && common.bestRank === 1);
+
+const rare = popularityOf('늘봄', '여');
+check('없는 이름은 없다고 말한다', rare.bestRank === null && rare.band === '순위에 없습니다',
+  rare.say);
+check('없다고 「좋은 이름」이라고 말하지 않는다',
+  !rare.say.includes('좋') && !rare.say.includes('추천'));
+
+// 자료는 부르는 이름만 센다. 한자까지 같은지는 모른다 — 그렇게 말하면 거짓이다
+check('한자까지 안다고 하지 않는다',
+  !common.say.includes('한자') && !rare.say.includes('한자'));
+
 
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} / 실패 ${failed}`);

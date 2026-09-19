@@ -17,7 +17,9 @@ import {
 import { pickDays, mergeHours, bestPerDay, slotSpan, slotLabel } from '../../../packages/saju-rules/src/index.ts';
 import { readFace, NEUTRAL_FEATURES } from '../../../packages/physiognomy/src/index.ts';
 import { readPalm, NEUTRAL_PALM_FEATURES } from '../../../packages/palmistry/src/index.ts';
-import { nameField, type NameWish } from '../../../packages/naming/src/index.ts';
+import {
+  nameField, popularList, popularitySource, popularYears, type NameWish,
+} from '../../../packages/naming/src/index.ts';
 import { CATALOG, type ProductId } from '../../../packages/commerce/src/index.ts';
 import { cleanQuestion, type ReportKind } from '../../../packages/report/src/prompt.ts';
 
@@ -346,16 +348,21 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
      * 그것을 다 실으면 리포트 한 편에 십구만 토큰이 들어간다 — 이름 다섯 개를
      * 짓는 데 그만한 돈을 쓸 수 없다.
      *
-     * 열두 짝에 자리마다 열두 자면 조합이 천칠백 가지가 넘는다. 다섯을 고르는
+     * 열두 짝에 자리마다 열두 자면 조합이 천칠백 가지가 넘는다. 셋을 고르는
      * 데 모자라지 않는다.
+     *
+     * **「안 겹치게」는 밭을 세 배로 연다.** 흔한 이름을 피하면서도 사주에
+     * 맞는 것을 찾으려면 고를 것이 그만큼 많아야 한다. 값이 6만원 더 비싼
+     * 까닭이 여기 있고, 손님도 「글자 몇 자 중에서 고르는지」를 숫자로 본다.
      */
+    const plus = req.productId === 'naming-plus-report';
     const field = nameField({
       surname: wish.surname,
       elements: want,
       fixed: wish.fixed,
       avoid: wish.avoid,
-      pairLimit: 12,
-      charLimit: 12,
+      pairLimit: plus ? 36 : 12,
+      charLimit: plus ? 36 : 12,
     });
     return {
       kind: '작명',
@@ -382,6 +389,34 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
           없는_십신: an.missingGroups,
         },
         이름밭: slimField(field),
+        /*
+         * 「안 겹치게」에만 싣는다.
+         *
+         * 여기 실리는 것은 **대법원 출생신고 이름 통계**다. 어디서 언제
+         * 가져온 자료인지도 같이 싣는다 — 근거 없는 숫자를 리포트에 쓰지
+         * 않는다는 원칙이 여기서도 그대로다.
+         *
+         * 자료는 **부르는 이름(한글)** 기준이다. 한자까지 같은지는 이 자료로
+         * 알 수 없고, 그래서 그렇게 말하지 않는다.
+         */
+        ...(plus
+          ? {
+            요즘_흔한_이름: {
+              설명: '아래 이름들은 최근 출생신고에서 많이 쓰인 것입니다. 이 이름들은 피해서 지어야 합니다.',
+              자료: popularitySource(),
+              // 아이 성별 것만 싣는다. 딸 이름을 짓는데 남자 이름 100개를
+              // 같이 보내면 값만 오르고 쓸모는 없다
+              성별: req.birth?.gender ?? '남',
+              해마다: popularYears().map((y) => ({
+                해: y,
+                순위: popularList(y, (req.birth?.gender ?? '남') as '남' | '여')
+                  .map((e) => `${e.rank}위 ${e.name}`),
+              })),
+              한자까지는_모름: '이 자료는 부르는 이름(한글)만 셉니다. '
+                + '한자까지 같은지는 알 수 없으므로 그렇게 말하지 마십시오.',
+            },
+          }
+          : {}),
       },
     };
   }

@@ -899,7 +899,6 @@ section('H1. 값이 다르면 물건도 다르다');
   const 아직: string[][] = [
     ['single-report', 'letgo-report', 'child-aptitude-report'],
     ['crush-compat-report', 'reunion-report', 'parent-child-report'],
-    ['naming-report', 'naming-plus-report'],
   ];
   const 적어둔것 = new Set(아직.map((g) => [...g].sort().join(',')));
 

@@ -188,6 +188,18 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
       contents.push('지어 드린 이름마다 한자 뜻·소리·네 격 획수를 함께 적음');
       contents.push('고른 글자는 모두 대법원 인명용 한자 — 출생신고가 됩니다');
     }
+    /*
+     * 「안 겹치게」가 값을 더 받는 까닭이 여기 있다.
+     * 결제 직전 화면에 이게 안 보이면 손님은 왜 6만원을 더 내는지 모른다.
+     */
+    const pop = d?.요즘_흔한_이름;
+    if (pop) {
+      const 해 = (pop.해마다 ?? []).map((y: any) => y.해).join('·');
+      contents.push(`대법원 출생신고 이름 통계와 대조 — ${해}년 각 100위`);
+      contents.push('지어 드린 이름마다 최근 100위 안에 드는지 한 줄로 밝힘');
+      contents.push('100위 안에 드는 이름은 피해서 지음');
+      contents.push('자료는 부르는 이름(한글) 기준 — 한자까지 같은지는 알 수 없습니다');
+    }
   } else if (d?.결혼시기) {
     const m = d.결혼시기;
     contents.push(m.spouseStar);

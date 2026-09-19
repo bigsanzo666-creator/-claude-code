@@ -3,3 +3,4 @@ export * from './hanja.ts';
 export * from './surname.ts';
 export * from './fit.ts';
 export * from './name.ts';
+export * from './popular.ts';
