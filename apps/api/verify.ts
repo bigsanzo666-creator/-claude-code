@@ -15,6 +15,7 @@ import { loadBusinessInfo, SPIRITS, CONTENTS_FOR } from '../../packages/site-pol
 import { findSpiritVideos } from './src/images.ts';
 import { createApi, MemoryOrderStore } from './src/server.ts';
 import { buildPayload } from './src/payload.ts';
+import { buildPreview } from './src/preview.ts';
 import { cacheKey } from '../../packages/report/src/cache.ts';
 import { StandbyGateway, standbyGenerate } from './src/standby.ts';
 
@@ -946,6 +947,28 @@ section('H1. 값이 다르면 물건도 다르다');
     check(`${CATALOG[id as never].name} — 적어 둔 해수와 자료가 맞는다`,
       d.세운.length === want && said, `${d.세운.length}해`);
   }
+
+  /*
+   * 결제 직전에 **무엇을 받는지** 한 줄도 안 보여 주는 상품이 있으면 안 된다.
+   *
+   * 자료를 주제별로 자르고 나서 미리보기를 안 고쳤더니 주제 상품이 세 줄로
+   * 쪼그라들었고, 매력 삼합과 「얼굴과 손」은 **아예 0줄**이었다.
+   * 오늘의 운세도 0줄이었다 — 제일 많은 사람이 처음 사 보는 자리다.
+   */
+  const 얇은것: string[] = [];
+  for (const p of Object.values(CATALOG)) {
+    let pl;
+    try {
+      pl = buildPayload({
+        productId: p.id, birth: BIRTH2, partner: PARTNER2,
+        name: { surname: '김' }, pick: { dates: ['2027-04-30'], times: ['16:30'] },
+      } as never);
+    } catch { continue; }
+    const n = buildPreview(p.id as never, pl.data, p.previewRatio).contents.length;
+    if (n < 4) 얇은것.push(`${p.name} ${n}줄`);
+  }
+  check('상품마다 담기는 것을 네 줄 넘게 보여 준다', 얇은것.length === 0,
+    얇은것.join(', ') || `${Object.keys(CATALOG).length}개 모두`);
 
   // 주제 상품은 그 주제만 받는다. 자료에 다 들어 있으면 모델은 결국 쓴다
   const w = buildPayload({ productId: 'wealth-report', birth: BIRTH2 } as never);

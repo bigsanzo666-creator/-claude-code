@@ -188,12 +188,60 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
       contents.push('지어 드린 이름마다 한자 뜻·소리·네 격 획수를 함께 적음');
       contents.push('고른 글자는 모두 대법원 인명용 한자 — 출생신고가 됩니다');
     }
-  } else if (productId === 'cross-report') {
-    const xv = d?.교차검증;
-    if (xv) {
-      contents.push(`${xv.sourceCount}가지를 대조 — 일치 ${xv.agreed.length}개, 엇갈림 ${xv.conflicted.length}개`);
-      for (const c of xv.conflicted ?? []) contents.push(`엇갈림: ${c.axis}`);
-      for (const c of xv.agreed ?? []) contents.push(`일치: ${c.axis}`);
+  } else if (d?.오늘의간지) {
+    /*
+     * 오늘의 운세. 1,900원이라고 미리보기를 비워 두면 안 된다 —
+     * 제일 많은 사람이 처음 사 보는 자리라 여기서 이 집의 인상이 정해진다.
+     */
+    contents.push(`${d.오늘날짜}의 간지 ${d.오늘의간지}`);
+    contents.push(`오늘의 오행: 천간 ${d.오늘의오행?.천간} · 지지 ${d.오늘의오행?.지지}`);
+    if (d.내일간) contents.push(`내 일간 ${d.내일간.stem}(${d.내일간.element}) 에서 본 오늘`);
+    if (d.오늘의십신) contents.push(`오늘의 십신: 천간 ${d.오늘의십신.천간} · 지지 ${d.오늘의십신.지지}`);
+    if (d.오늘의기운_유불리) contents.push(`오늘 기운은 나에게 — ${d.오늘의기운_유불리}`);
+    for (const x of (d.사주와의_충합_관계 ?? []).slice(0, 2)) contents.push(`내 명식과: ${x}`);
+    const 처방 = d.오늘의_처방전;
+    if (처방) {
+      contents.push(`행운의 색 ${(처방.행운의_색상 ?? []).join('·')} · 방향 ${(처방.행운의_방향 ?? []).join('·')} · 숫자 ${(처방.행운의_숫자 ?? []).join('·')}`);
+    }
+  } else if (d?.교차검증) {
+    /*
+     * 갈래를 대조하는 상품 전부.
+     *
+     * 전에는 `cross-report` 하나만 여기로 들어왔다. 그래서 매력 삼합과
+     * 「얼굴과 손」은 **결제 직전 화면에 담기는 것이 한 줄도 안 나왔다.**
+     * 무엇을 받는지 안 보여 주고 돈을 받는 것이라 그냥 둘 수 없다.
+     */
+    const xv = d.교차검증;
+    const sources = (d.보는_갈래 ?? []) as string[];
+    if (sources.length) contents.push(`대조하는 갈래: ${sources.join(' × ')}`);
+    contents.push(`${xv.sourceCount}가지를 ${(xv.comparisons ?? []).length}개 축으로 대조`);
+    for (const c of xv.conflicted ?? []) contents.push(`엇갈림: ${c.axis}`);
+    for (const c of xv.agreed ?? []) contents.push(`일치: ${c.axis}`);
+    for (const c of xv.soloOnly ?? []) contents.push(`한쪽만 말하는 것: ${c.axis}`);
+  } else if (Array.isArray(d?.주제)) {
+    /*
+     * 주제 하나(또는 둘)를 보는 상품.
+     *
+     * 자료를 주제별로 자르고 나서 여기를 안 고쳤더니, 담기는 것이 명식·강약·
+     * 용신 **세 줄**로 쪼그라들었다. 손님이 값을 내기 전에 보는 화면이
+     * 세 줄이면 안 사고 나간다. 주제에서 뽑을 수 있는 것을 그대로 뽑는다.
+     */
+    if (d.명식) contents.push(`명식 ${d.명식.연주} ${d.명식.월주} ${d.명식.일주} ${d.명식.시주 ?? '—'}`);
+    if (d.강약) contents.push(`일간 강약: ${d.강약.verdict} (${d.강약.supportRatio}%)`);
+    for (const t of d.주제 as any[]) {
+      const 겉 = (t.evidence ?? []).filter((e: any) => e.depth !== '지장간').length;
+      contents.push(`${t.label}(${t.term}) ${t.abundance} — 겉으로 ${겉}개, 지지 속에 ${t.hiddenCount}개`);
+      for (const e of (t.evidence ?? []).slice(0, 2)) contents.push(`${t.label} 자리: ${e.where} — ${e.what}`);
+      if (t.favorable === true) contents.push(`${t.label}은 이 명식이 **써야 하는** 기운`);
+      else if (t.favorable === false) contents.push(`${t.label}은 이 명식이 **덜어내야 하는** 쪽`);
+    }
+    if (d.지금_대운?.현재) {
+      const cur = d.지금_대운.현재;
+      contents.push(`현재 대운 ${cur.pillar.stem}${cur.pillar.branch} (${cur.startAge}~${cur.endAge}세)`);
+    }
+    const years = (d.세운 ?? []) as any[];
+    if (years.length) {
+      contents.push(`${years[0].year}년부터 ${years.length}해의 유불리 — ${years.map((y) => `${y.year} ${y.favor}`).join(', ')}`);
     }
   } else {
     const saju = d ?? {};
@@ -203,9 +251,20 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
     if (saju.강약) contents.push(`일간 강약: ${saju.강약.verdict} (${saju.강약.supportRatio}%)`);
     if (saju.용신) contents.push(`용신: ${(saju.용신.primary ?? []).join('·')}`);
     for (const h of (saju.두드러진_특징 ?? []).slice(0, 3)) contents.push(String(h));
-    if (saju.대운?.현재) {
-      const cur = saju.대운.현재;
+    if (saju.대운?.현재 || saju.지금_대운?.현재) {
+      const cur = saju.대운?.현재 ?? saju.지금_대운.현재;
       contents.push(`현재 대운 ${cur.pillar.stem}${cur.pillar.branch} (${cur.startAge}~${cur.endAge}세)`);
+    }
+    // 신년운세는 한 해를 보는 상품이라 그 해의 유불리가 곧 상품이다
+    const nextYears = (saju.올해와_내년 ?? []) as any[];
+    for (const y of nextYears) {
+      contents.push(`${y.year}년 ${y.pillar.stem}${y.pillar.branch} — ${y.favor}`
+        + (y.interactions?.length ? ` (${y.interactions.join(', ')})` : ''));
+    }
+    // 여덟 주제를 다 받는 상품은 그것이 값의 근거다
+    const all = (saju.여덟_주제 ?? []) as any[];
+    if (all.length) {
+      contents.push(`여덟 주제를 전부 — ${all.map((t) => t.label).join('·')}`);
     }
   }
 

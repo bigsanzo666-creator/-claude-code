@@ -518,8 +518,20 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
    */
   const axes = CROSS_AXES[req.productId];
   const cross = crossValidate(...profiles);
+  /*
+   * 축을 좁힐 때는 **갈래별 모음까지 같이** 좁힌다.
+   * 비교표만 자르고 일치·엇갈림 목록을 그대로 두면, 「두 축을 봅니다」라고
+   * 해 놓고 여덟 축의 결과를 늘어놓게 된다.
+   */
+  const keep = <T extends { axis: string }>(xs: T[]) => (axes ? xs.filter((x) => axes.includes(x.axis)) : xs);
   const 교차검증 = axes
-    ? { ...cross, comparisons: cross.comparisons.filter((c) => axes.includes(c.axis)) }
+    ? {
+      ...cross,
+      comparisons: keep(cross.comparisons),
+      agreed: keep(cross.agreed),
+      conflicted: keep(cross.conflicted),
+      soloOnly: keep(cross.soloOnly),
+    }
     : cross;
 
   return {
