@@ -60,7 +60,7 @@ export type ProductId =
  *
  * 순서가 곧 화면의 탭 순서다. 앞이 입구, 뒤가 차별점.
  */
-export type Category = '연애' | '재회' | '궁합' | '가족' | '나' | '삼합' | '돈과 일' | '시기';
+export type Category = '연애' | '재회' | '궁합' | '가족' | '작명' | '출산' | '나' | '삼합' | '돈과 일' | '시기';
 
 export interface Product {
   id: ProductId;
@@ -249,7 +249,7 @@ export const CATALOG: Record<ProductId, Product> = {
     priceKrw: 59000,
     description: '의사에게 받은 후보 날짜와 수술이 가능한 시각을 넣으면, 그 안에서만 재서 순위와 까닭을 씁니다. 날마다 제일 좋은 시각까지 냅니다.',
     previewRatio: 0.2,
-    category: '가족',
+    category: '출산',
     hook: '언제 낳는 게 이 아이에게 좋을까?',
     needsPick: true,
   },
@@ -273,7 +273,7 @@ export const CATALOG: Record<ProductId, Product> = {
     priceKrw: 89900,
     description: '아이의 사주를 보고 그 흐름에 맞는 이름을 **세 개** 지어 드립니다. 셋 다 마음에 들지 않으시면 **두 개를 더** 지어 드립니다. 넣고 싶은 글자가 있으면 그 글자로 짓습니다. 대법원 인명용 한자 8,050자 안에서만 고르므로 출생신고가 안 되는 이름이 나오지 않습니다.',
     previewRatio: 0.2,
-    category: '가족',
+    category: '작명',
     hook: '우리 아이 이름, 뭐로 지을까?',
     needsName: true,
   },
@@ -283,7 +283,7 @@ export const CATALOG: Record<ProductId, Product> = {
     priceKrw: 149000,
     description: '**마음에 드실 때까지** 지어 드립니다. 개수를 정해 두지 않습니다. 하루 한두 번씩 새 이름과 풀이 리포트를 받아 보실 수 있습니다. 고르는 밭이 **세 배로 넓고**, 대법원 출생신고 이름 통계를 대조해 **최근 100위 안에 드는 이름은 피해서** 지어 드립니다. 대법원 인명용 한자 8,050자 안에서만 고릅니다.',
     previewRatio: 0.2,
-    category: '가족',
+    category: '작명',
     hook: '반에 같은 이름 없게 지을 수 없을까?',
     needsName: true,
   },
@@ -439,6 +439,8 @@ export const CATEGORIES: { key: Category; question: string }[] = [
   { key: '재회', question: '다시 만날 수 있을까?' },
   { key: '궁합', question: '우리, 잘 맞을까?' },
   { key: '가족', question: '우리 아이는 어떤 아이일까?' },
+  { key: '작명', question: '우리 아이 이름, 뭐로 지을까?' },
+  { key: '출산', question: '언제 낳는 게 좋을까?' },
   { key: '나', question: '나는 어떤 사람일까?' },
   { key: '삼합', question: '셋이 같은 말을 할까?' },
   { key: '돈과 일', question: '먹고사는 일은 풀릴까?' },

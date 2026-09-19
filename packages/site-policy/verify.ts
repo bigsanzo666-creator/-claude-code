@@ -307,7 +307,7 @@ section('9. 신령 — 칸마다 주인이 있는가');
     SPIRITS.every((s) => !/^(실|사|망|병)신령$/.test(s.name)));
   // 이름을 바꿔도 이미 올려 둔 그림 파일은 옛 이름이다
   check('옛 이름을 기억해 둔다',
-    SPIRITS.filter((s) => s.aka?.length).length === 6);
+    SPIRITS.filter((s) => s.aka?.length).length === 8);
   // 얼굴 그림은 나중에 붙는다. 그동안 빈 네모가 남으면 안 그리느니만 못하다
   check('그림이 없어도 얼굴 자리가 도장으로 찬다',
     SPIRITS.every((s) => s.seal.length === 1));
