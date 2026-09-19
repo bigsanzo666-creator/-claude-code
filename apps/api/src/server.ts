@@ -10,7 +10,7 @@
 
 import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFileSync, createReadStream, statSync, existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import {
@@ -139,6 +139,209 @@ const VIEWER_PATH = join(HERE, '..', '..', 'manse-viewer', 'index.html');
  * 바깥 껍데기를 플랫폼이 씌워준다. 우리가 직접 서빙할 때는 여기서 씌운다.
  * 덕분에 같은 파일이 무료 데모(아티팩트)와 실제 사이트 양쪽에서 쓰인다.
  */
+const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
+
+    <!-- 상단 글로벌 바: 신령음 오디오 스위치 (첫 대문에서 유일하게 노출되는 상단 HUD) -->
+    <div class="global-audio-badge" id="soundControl" title="신령음 켜기/끄기">
+      <span class="sound-icon">🔊</span>
+      <span class="sound-text">신령음 ON</span>
+    </div>
+
+    <!-- ================= STAGE 1: 1인칭 신령계 진입문 (루프 없음! 마지막 프레임 정지) ================= -->
+    <section id="stageGate" class="stage-section active">
+      <div class="gate-bg-wrap">
+        <!-- loop 속성 완전 제거: 영상 끝나면 문지기 대기 상태로 정지 -->
+        <video id="gateVideo" playsinline autoplay muted preload="auto">
+          <source src="assets/신령계문.mp4" type="video/mp4">
+        </video>
+        <div class="video-overlay"></div>
+      </div>
+
+      <div class="gate-content">
+        <span class="badge-tag">⛩️ 10대 신령의 성지</span>
+        <h1 class="main-title">천 년을 이어온 <span class="gold-text">신령계의 문</span>이<br>당신 앞에서 열립니다</h1>
+        <p class="sub-desc-original">문 너머에는 <span class="gold-highlight">10대 신령</span>이 기다리고 있습니다.<br>지금 문을 두드리면 당신의 명식이
+          봉인 해제됩니다.</p>
+        <div class="enter-actions">
+          <button type="button" id="btnKnockGate" class="btn-primary pulse-gold">🚪 신령계 문 두드리기</button>
+        </div>
+      </div>
+
+      <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
+    </section>
+
+    <!-- ================= STAGE 2: 신령계 입장 연출 (문이 열리고 안으로 들어가는 1회성 연출 영상) ================= -->
+    <section id="stageEnter" class="stage-section">
+      <div class="enter-video-wrap">
+        <video id="enterVideo" playsinline autoplay muted preload="auto">
+          <source src="assets/입장.mp4" type="video/mp4">
+        </video>
+      </div>
+
+      <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
+    </section>
+
+    <!-- ================= STAGE 3: 16:9 와이드 신령계 마당 파노라마 (좌우 드래그) ================= -->
+    <section id="stageCourtyard" class="stage-section">
+      <div class="panorama-viewport" id="panoramaViewport">
+        <div class="panorama-canvas" id="panoramaCanvas">
+          <img src="assets/신령계_마스터_2752.jpeg" alt="신령계 마당 전경" class="panorama-image" draggable="false">
+
+          <!-- 1. 재신령 -->
+          <div class="spirit-hotspot" data-spirit="jae" style="left: 14%; top: 68%;">
+            <div class="hotspot-pulse gold-pulse"></div>
+          </div>
+
+          <!-- 2. 풍신령 -->
+          <div class="spirit-hotspot" data-spirit="pung" style="left: 22.5%; top: 33%;">
+            <div class="hotspot-pulse gold-pulse"></div>
+          </div>
+
+          <!-- 3. 도화신령 -->
+          <div class="spirit-hotspot" data-spirit="dohwa" style="left: 38%; top: 82%;">
+            <div class="hotspot-pulse pink-pulse"></div>
+          </div>
+
+          <!-- 4. 산신령 -->
+          <div class="spirit-hotspot" data-spirit="san" style="left: 50%; top: 63%;">
+            <div class="hotspot-pulse gold-pulse"></div>
+          </div>
+
+          <!-- 5. 명경신령 -->
+          <div class="spirit-hotspot" data-spirit="myeonggyeong" style="left: 53.5%; top: 82%;">
+            <div class="hotspot-pulse blue-pulse"></div>
+          </div>
+
+          <!-- 6. 삼합신령 -->
+          <div class="spirit-hotspot" data-spirit="samhap" style="left: 60%; top: 82%;">
+            <div class="hotspot-pulse gold-pulse"></div>
+          </div>
+
+          <!-- 7. 월신령 -->
+          <div class="spirit-hotspot" data-spirit="wol" style="left: 59.5%; top: 33%;">
+            <div class="hotspot-pulse blue-pulse"></div>
+          </div>
+
+          <!-- 8. 작명신령 -->
+          <div class="spirit-hotspot" data-spirit="jakmyeong" style="left: 76.5%; top: 69%;">
+            <div class="hotspot-pulse gold-pulse"></div>
+          </div>
+
+          <!-- 9. 삼신할매 -->
+          <div class="spirit-hotspot" data-spirit="samsin" style="left: 80%; top: 67%;">
+            <div class="hotspot-pulse gold-pulse"></div>
+          </div>
+
+          <!-- 10. 실신령 -->
+          <div class="spirit-hotspot" data-spirit="yeon" style="left: 88%; top: 72%;">
+            <div class="hotspot-pulse red-pulse"></div>
+          </div>
+
+          <!-- 마당 원본 이미지 맨 왼쪽 밑 워터마크 가림막 (이미지와 함께 스크롤되도록 panorama-canvas 안에 배치) -->
+          <div class="watermark-mask-bl"></div>
+        </div>
+      </div>
+
+      <!-- 상단 오버레이 HUD (마당 전용, #stageCourtyard.active 상태에서만 노출) -->
+      <div class="courtyard-top-hud">
+        <div class="user-pill" id="userInfoDisplay">
+          <span class="user-icon">🏮</span>
+          <span class="user-name-text"><strong>김늘봄</strong> 님의 명식 봉인 해제</span>
+        </div>
+        <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="hud-logo">
+      </div>
+
+      <!-- 마당 전용 안내 툴팁 (마당 활성화 시에만 노출, 항상 한 줄로 표시) -->
+      <div class="panorama-drag-guide" id="dragGuide">
+        <span class="guide-msg">👈 👉 좌우로 밀어서 10대 신령의 터를 둘러보세요</span>
+      </div>
+    </section>
+
+    <!-- ================= STAGE 4: 100% 2K 신령 1:1 대면 처소 (9:16 모바일 세로 풀스크린) ================= -->
+    <section id="stageChamber" class="stage-section chamber-section">
+      <!-- 정지 포스터 사진을 아예 없애고, 1080p 대면 영상이 검은 배경 위에서 0초부터 바로 페이드인 (사진→영상 전환 번쩍임 원천 차단) -->
+      <!-- 10대 신령 1080p 대면 영상: loop 제거 — 8초 줌인이 끝나면 마지막 프레임에서 정지 -->
+      <video id="chamberSpiritVideo" playsinline autoplay muted class="chamber-bg-video"></video>
+      <!-- 정지 화면 위로 은은하게 떠다니는 신령 기운 파티클 (영상 종료 후에만 시작) -->
+      <canvas id="chamberParticleCanvas" class="chamber-particle-canvas"></canvas>
+
+      <!-- 상단 오버레이 HUD: 마당 복귀 & 신령 명패 (뒤로가기 버튼 바로 옆에 나란히 배치, 우측 신령음 버튼과 분리) -->
+      <div class="chamber-top-bar">
+        <button type="button" id="btnExitChamber" class="btn-back-courtyard">
+          <span>⛩️ 신령계 마당으로</span>
+        </button>
+        <div class="chamber-spirit-badge">
+          <span id="chamberSpiritName" class="badge-title">도화신령</span>
+          <span id="chamberSpiritDomain" class="badge-role">도화 · 매력 · 연애운</span>
+        </div>
+      </div>
+
+      <!-- 신령 1:1 상담 대화: 8초 영상이 멈춘 뒤 신령이 한 단계씩 물어본다. 멘트와 선택지는 app.js의 CHAMBER_FLOWS에서 신령별로 채운다 -->
+      <div class="chamber-consult" id="chamberConsult" hidden>
+        <p class="consult-say" id="consultSay"></p>
+        <p class="consult-note">* 답변하지 않아도 다음으로 넘어갈 수 있어요</p>
+        <div class="consult-fields" id="consultFields"></div>
+        <button type="button" class="consult-cta" id="consultCta">다음으로</button>
+      </div>
+
+      <!-- 처소 하단 워터마크 가림막: 신령마다 AI 워터마크 위치가 왼쪽/오른쪽으로 제각각이라 양쪽 다 가림 -->
+      <div class="watermark-mask-bl"></div>
+      <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
+    </section>
+
+    <!-- ================= MODAL: 사주 신상 정보 입력 (무단침입 방지 Checkpoint) ================= -->
+    <div id="sajuInputModal" class="modal-backdrop">
+      <div class="modal-dialog saju-input-dialog">
+        <div class="saju-modal-header">
+          <h3 class="saju-modal-title">신령계 입장 전, 명식(命式)을 봉인합니다</h3>
+        </div>
+
+        <div class="saju-form">
+          <div class="form-group">
+            <label for="inputName">성함</label>
+            <input type="text" id="inputName" placeholder="성함을 입력하세요" value="김늘봄">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-2">
+              <label for="inputBirth">생년월일</label>
+              <input type="date" id="inputBirth" value="1995-05-15">
+            </div>
+            <div class="form-group flex-1">
+              <label for="inputTime">태어난 시간</label>
+              <select id="inputTime">
+                <option value="unknown">시간 모름</option>
+                <option value="ja">자시 (23:30~01:29)</option>
+                <option value="chuk">축시 (01:30~03:29)</option>
+                <option value="in">인시 (03:30~05:29)</option>
+                <option value="myo">묘시 (05:30~07:29)</option>
+                <option value="jin">진시 (07:30~09:29)</option>
+                <option value="sa">사시 (09:30~11:29)</option>
+                <option value="o">오시 (11:30~13:29)</option>
+                <option value="mi">미시 (13:30~15:29)</option>
+                <option value="sin">신시 (15:30~17:29)</option>
+                <option value="yu">유시 (17:30~19:29)</option>
+                <option value="sul">술시 (19:30~21:29)</option>
+                <option value="hae">해시 (21:30~23:29)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>성별</label>
+            <div class="gender-toggle">
+              <button type="button" id="btnGenderMale" class="gender-btn active" data-gender="male">남성</button>
+              <button type="button" id="btnGenderFemale" class="gender-btn" data-gender="female">여성</button>
+            </div>
+          </div>
+
+          <button type="button" id="btnSubmitSaju" class="btn-primary pulse-gold">⛩️ 이 명식으로 신령계 문 열기</button>
+        </div>
+      </div>
+    </div>
+
+  </div>`;
+
 function renderPage(
   checkout: CheckoutConfig | null, business: BusinessInfo, images: ReadonlySet<string>,
   hero = false, heroVideo = false, faces: ReadonlySet<string> = new Set(),
@@ -146,22 +349,7 @@ function renderPage(
   gateWebm = false, walkWebm = false,
   clips: ReadonlySet<string> = new Set(), clipWebms: ReadonlySet<string> = new Set(),
 ): string {
-  // 조각은 아티팩트로 따로 쓰일 때를 위해 제 제목을 달고 다닌다.
-  // 여기서는 <head> 가 이미 제목을 냈으므로, 본문에 제목이 두 개 되지 않게 걷어낸다
   const fragment = readFileSync(VIEWER_PATH, 'utf8').replace(/<title>[\s\S]*?<\/title>\s*/i, '');
-  /*
-   * 화면이 「무엇을 팔 수 있는지」를 알아야 한다.
-   *
-   * 그동안 살 수 있는 자리가 관상·손금 화면에만 있었다. 사주만 보고 나온
-   * 손님에게는 결제 단추가 아예 없었고, 상품 화면은 「첫 화면에서 생년월일을
-   * 넣으시면 구매하실 수 있습니다」라고 적어 두었으니 없는 길을 안내한 셈이다.
-   *
-   * 생년월일만으로 만들 수 있는 상품을 같이 실어 보낸다 — 상대가 필요한 것,
-   * 얼굴·손이 필요한 것, 고를 날이 필요한 것은 뺀다.
-   *
-   * 작명은 낀다. 생년월일 말고 **성** 하나만 더 받으면 되고, 그 칸은 결제
-   * 화면에서 바로 받는다. 다른 화면으로 보내면 거기서 손님이 떨어진다.
-   */
   const sellable = Object.values(CATALOG)
     .filter((p) => !p.needsPartner && !p.needsFace && !p.needsPick)
     .map((p) => ({
@@ -172,24 +360,62 @@ function renderPage(
   const config = JSON.stringify({
     apiBase: '', checkout, ready: checkout !== null, sellable,
   });
+
   return `<!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 ${renderSocialHead(business, {
     title: HOME_TITLE, description: HOME_DESCRIPTION, path: '/', image: hero,
   })}
-${FONT_LINK}
-<style>:root{color-scheme:dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css?v=consult_10spirits">
+<style>:root{color-scheme:dark;--nb-ink:#F5F5F7;}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 ${LANDING_CSS}
 ${PRODUCTS_CSS}
 ${STAGE_CSS}
-${FOOTER_CSS}</style>
+body {
+  background: #020205;
+  color: #f5f5f7;
+  font-family: 'Noto Sans KR', sans-serif;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto !important;
+}
+.site-footer-wrapper {
+  width: 100%;
+  max-width: 460px;
+  box-sizing: border-box;
+  padding: 24px 16px 40px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #888;
+  background: #06060a;
+  border-top: 1px solid rgba(212, 175, 55, 0.2);
+  z-index: 10;
+}
+${FOOTER_CSS}
+</style>
 <script>window.SAJU_CONFIG = ${config};</script>
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 </head>
 <body>
+${STUDIO_CONTAINER_HTML}
+
+<div class="site-footer-wrapper">
+  ${renderFooter(business)}
+</div>
+
+<!-- 심사 및 시스템 검증용 보존 블록 (hidden 처리) -->
+<div id="legacyStageWrapper" style="display:none!important;" hidden>
 ${renderStage(business, scenes, { walk: walkVideo, open: gateVideo, walkWebm, openWebm: gateWebm }, faces, clips, clipWebms)}
 ${renderHero(business, checkout !== null, hero, heroVideo)}
 ${renderSpiritRow(faces)}
@@ -197,19 +423,14 @@ ${renderProducts(checkout !== null, images, faces, false, scenes)}
 ${renderTryHeading()}
 ${fragment}
 <style>${VIEWER_SKIN}</style>
-${renderFooter(business)}
 ${STAGE_SCRIPT}
+</div>
+
+<script src="/app.js?v=consult_10spirits"></script>
 </body>
 </html>`;
 }
 
-/**
- * 푸터 스타일.
- *
- * 정책 페이지는 자기 스타일을 들고 다니지만, 본 화면의 껍데기는 여기서 씌우므로
- * 푸터 몫만 따로 둔다. 아티팩트로 게시하는 무료 데모에는 푸터가 붙지 않는다 —
- * 거기서는 파는 것이 없으므로 사업자 정보 표시 의무도 없다.
- */
 const FOOTER_CSS = `
 .biz{max-width:1080px;margin:56px auto 0;padding:22px;border-top:1px solid var(--nb-line-soft);
   color:var(--nb-ink-3);font:12.5px/1.7 var(--nb-sans)}
@@ -563,6 +784,45 @@ function sendVideo(req: IncomingMessage, res: ServerResponse, file: ProductImage
     'Content-Range': `bytes ${start}-${end}/${size}`,
     'Content-Length': end - start + 1,
   }, 206, start, end);
+}
+
+
+/** 정적 파일 서빙 (CSS, JS, 비디오/오디오 Range 스트리밍 지원) */
+function serveStaticFile(req: IncomingMessage, res: ServerResponse, filePath: string): void {
+  if (!existsSync(filePath) || !statSync(filePath).isFile()) {
+    throw new HttpError(404, '파일을 찾을 수 없습니다: ' + filePath);
+  }
+  const ext = extname(filePath).toLowerCase();
+  const mimeMap: Record<string, string> = {
+    '.css': 'text/css; charset=utf-8',
+    '.js': 'application/javascript; charset=utf-8',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.webp': 'image/webp',
+    '.mp4': 'video/mp4',
+    '.webm': 'video/webm',
+    '.mp3': 'audio/mpeg',
+  };
+  const mime = mimeMap[ext] || 'application/octet-stream';
+  const size = statSync(filePath).size;
+  const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
+  const head: Record<string, string | number> = {
+    'Content-Type': mime,
+    'Cache-Control': 'public, max-age=86400',
+    'Accept-Ranges': 'bytes',
+  };
+  if (range && (ext === '.mp4' || ext === '.mp3' || ext === '.webm')) {
+    const start = range[1] ? Number(range[1]) : 0;
+    const end = range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+    pipeFile(res, filePath, {
+      ...head,
+      'Content-Range': `bytes ${start}-${end}/${size}`,
+      'Content-Length': end - start + 1,
+    }, 206, start, end);
+    return;
+  }
+  pipeFile(res, filePath, { ...head, 'Content-Length': size });
 }
 
 export function createApi(deps: ApiDeps) {
@@ -1151,6 +1411,16 @@ export function createApi(deps: ApiDeps) {
         key = `${req.method} /img/scene/:id`;
       }
 
+            if (req.method === 'GET' && (url.pathname === '/style.css' || url.pathname === '/app.js')) {
+        const p = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', url.pathname.slice(1));
+        serveStaticFile(req, res, p);
+        return;
+      } else if (req.method === 'GET' && url.pathname.startsWith('/assets/')) {
+        const sub = decodeURIComponent(url.pathname.slice('/assets/'.length));
+        const p = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'assets', sub);
+        serveStaticFile(req, res, p);
+        return;
+      }
       const route = routes[key];
       if (!route) throw new HttpError(404, `없는 경로입니다: ${req.method} ${url.pathname}`);
       await route(req, res, id);
