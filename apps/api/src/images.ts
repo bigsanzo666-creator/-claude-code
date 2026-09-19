@@ -26,6 +26,25 @@ const TYPES: Record<string, string> = {
   '.avif': 'image/avif',
 };
 
+/*
+ * 같은 그림이 확장자만 다르게 두 벌 올라오면 어느 쪽이 화면에 나가는가.
+ *
+ * 예전에는 **폴더를 읽은 순서**가 정했다. 그래서 `산신령.jpg` 와
+ * `산신령.jpeg` 가 같이 있으면 운에 따라 다른 그림이 나갔고, 실제로 신령
+ * 열 중 넷만 새 그림으로 바뀌어 **그림체가 섞인 채 배포됐다.**
+ *
+ * 순서가 아니라 **규칙**이 정한다. 앞에 적힌 확장자가 이긴다.
+ */
+const EXT_RANK: readonly string[] = ['.jpg', '.jpeg', '.png', '.webp', '.avif'];
+
+/** 이미 잡아 둔 파일보다 이 파일이 우선인가 */
+function beats(candidate: string, incumbent: string | undefined): boolean {
+  if (!incumbent) return true;
+  const a = EXT_RANK.indexOf(extname(candidate).toLowerCase());
+  const b = EXT_RANK.indexOf(extname(incumbent).toLowerCase());
+  return (a < 0 ? EXT_RANK.length : a) < (b < 0 ? EXT_RANK.length : b);
+}
+
 export interface ProductImage {
   /** 디스크상의 절대 경로 */
   path: string;
@@ -135,7 +154,7 @@ export function findProductImages(dir: string = IMAGE_DIR): Map<string, ProductI
     if (!type) continue;
     const id = toProductId(name.slice(0, -ext.length));
     if (!id) continue;           // 이름을 못 알아들은 파일은 조용히 무시한다
-    if (found.has(id)) continue; // 같은 상품에 둘이면 먼저 것을 쓴다
+    if (!beats(name, found.get(id)?.path)) continue; // 둘이면 확장자 순위가 정한다
     found.set(id, { path: join(dir, name), type });
   }
   return found;
@@ -225,7 +244,7 @@ export function findSpiritImages(dir: string = SPIRIT_DIR): Map<string, ProductI
     const type = TYPES[ext];
     if (!type) continue;
     const id = SPIRIT_BY_NAME.get(squash(name.slice(0, -ext.length)));
-    if (!id || found.has(id)) continue;
+    if (!id || !beats(name, found.get(id)?.path)) continue;
     found.set(id, { path: join(dir, name), type });
   }
   return found;
@@ -324,7 +343,7 @@ export function findSceneImages(dir: string = SCENE_DIR): Map<string, ProductIma
     const type = TYPES[ext];
     if (!type) continue;
     const id = SCENE_BY_NAME.get(squash(name.slice(0, -ext.length)));
-    if (!id || found.has(id)) continue;
+    if (!id || !beats(name, found.get(id)?.path)) continue;
     found.set(id, { path: join(dir, name), type });
   }
   return found;

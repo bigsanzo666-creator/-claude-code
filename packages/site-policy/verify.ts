@@ -481,6 +481,18 @@ section('10. 들어가는 길 — 전체 화면');
   // 숫자를 박아 두면 신령이 늘 때마다 여기부터 깨진다. 신령 수를 따라간다
   check('신령마다 저마다 판을 갖는다', (st.match(/id="stSp-/g) ?? []).length === SPIRITS.length);
   /*
+   * 한 번에 한 판만 보여야 한다.
+   *
+   * 판은 `.st{display:none}` 으로 숨고 `.st-on` 이 붙은 것만 나온다. 그런데
+   * **아이디로 고른 규칙이 display 를 덮어쓰면** 그 판은 언제나 켜진 상태가 된다.
+   * 실제로 `#stWorld{display:grid}` 때문에 신령계가 첫 화면 위에 겹쳐 그려진 채
+   * 배포됐고, 손님은 문을 여는 장면을 아예 보지 못했다.
+   */
+  for (const m of STAGE_CSS.matchAll(/#(st[A-Za-z-]+)(?![\w-])([^{]*)\{([^}]*)\}/g)) {
+    if (!/display\s*:\s*(grid|block|flex|inline)/.test(m[3])) continue;
+    check(`${m[1]} 은 켜졌을 때만 보인다`, /\.st-on/.test(m[2]));
+  }
+  /*
    * 메뉴판. 배경 그림 위에 얼굴을 흩어 놓던 것을 옆으로 미는 카드로 바꿨다.
    * 작은 화면에서 얼굴이 손톱만 했고, 무엇을 봐 주는지 읽으려면 눈을 굴려야 했다.
    */

@@ -184,28 +184,14 @@ export function renderStage(
 
   return `<div class="stage" id="stage" hidden>
 
-  <!-- 글로벌 신령음 HUD -->
-  <div class="global-audio-badge" id="soundControl" title="신령음 켜기/끄기">
-    <span class="sound-icon" id="soundIcon">🔊</span>
-    <span class="sound-text" id="soundText">신령음 ON</span>
-  </div>
-  <audio id="bgmAudio" loop preload="none">
-    <source src="/audio/bgm" type="audio/mpeg">
-  </audio>
-
   <section class="st st-on" id="stWalk"${path}>${walk}
     <div class="st-veil"></div>
     <div class="st-in">
-      <span class="badge-tag">⛩️ 10대 신령의 성지</span>
       <p class="st-kicker">${esc(info.serviceName || '늘봄사주')}</p>
-      <h1 class="st-h">천 년을 이어온 <span class="gold-text">신령계의 문</span>이<br>당신 앞에서 열립니다</h1>
-      <p class="st-sub">문 너머에는 <span class="gold-highlight">10대 신령</span>이 기다리고 있습니다.<br>지금 문을 두드리면 당신의 명식이 봉인 해제됩니다.</p>
-      <div class="enter-actions">
-        <button type="button" class="st-next pulse-gold" id="stGo">🚪 신령계 문 두드리기</button>
-      </div>
+      <h1 class="st-h">풍신령이<br><em>문까지 데려다</em> 드립니다</h1>
+      <button type="button" class="st-next" id="stGo">문 앞으로</button>
       ${renderStageBiz(info)}
     </div>
-    <img src="/img/scene/seal" alt="늘봄사주" class="watermark-seal-cover" onerror="this.style.display='none'">
   </section>
 
   <section class="st${asker ? ' st-gate-who' : ''}" id="stGate"${gate}>
@@ -331,18 +317,9 @@ function renderWorld(
 
   return `  <section class="st" id="stWorld"${shot}>
     <div class="st-veil st-veil-3"></div>
-    <div class="courtyard-top-hud">
-      <div class="user-pill" id="userInfoDisplay">
-        <span class="user-icon">🏮</span>
-        <span class="user-name-text"><strong id="userNameDisplay">김늘봄</strong> 님의 명식 봉인 해제</span>
-      </div>
-    </div>
     <div class="wd-head">
       <p class="st-kicker" id="stHello">신령계</p>
       <h2 class="st-h wd-h">누구에게 <em>물어보시겠습니까</em></h2>
-    </div>
-    <div class="panorama-drag-guide" id="dragGuide">
-      <span class="guide-msg">👈 👉 좌우로 밀어서 10대 신령의 터를 둘러보세요</span>
     </div>
     <div class="wd-rail" role="list">
 ${cards}
@@ -710,8 +687,11 @@ body.st-locked{overflow:hidden}
    배경 그림은 남기되 뒤로 물린다. 주인공은 카드다 */
 /* 세 칸(제목·카드·무료사주)을 한 덩어리로 세로 가운데에 둔다.
    가운데 칸을 1fr 로 두면 카드 밑에 빈 바닥이 길게 남는다 */
+/* 아이디로 고르면 .st 의 display:none 을 이겨 버린다 — 켜졌을 때만 격자가 되게 한다.
+   이걸 놓치면 신령계가 첫 화면 위에 겹쳐 그려진다. 실제로 그렇게 나갔다 */
 #stWorld{background-position:center;background-size:cover;
-  display:grid;grid-template-rows:auto auto auto;align-content:center}
+  grid-template-rows:auto auto auto;align-content:center}
+#stWorld.st-on{display:grid}
 #stWorld .st-veil-3{background:linear-gradient(to bottom,
   rgba(6,6,10,.82),rgba(6,6,10,.62) 40%,rgba(6,6,10,.9))}
 
