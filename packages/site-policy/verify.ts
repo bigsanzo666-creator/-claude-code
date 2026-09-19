@@ -9,7 +9,7 @@
 import {
   loadBusinessInfo, missingFields, isComplete, isValidRegistrationNumber,
   renderFooter, renderTerms, renderPrivacy, renderRefund, POLICY_EFFECTIVE_DATE,
-  renderProducts, renderProductsPage, renderProductPage, renderHero, renderTryHeading, CONTENTS_FOR,
+  renderProducts, renderProductsPage, renderProductPage, renderHero, renderTryHeading, CONTENTS_FOR, FIT_FOR,
   LANDING_CSS, PRODUCTS_CSS, FONT_LINK,
   SPIRITS, PITCH, spiritOf, renderSpiritRow, renderSpiritHead, renderSpiritPitch, SPIRITS_CSS,
   renderSocialHead, HOME_TITLE, HOME_DESCRIPTION, FALLBACK_NAME,
@@ -327,6 +327,39 @@ section('9. 신령 — 칸마다 주인이 있는가');
     .filter(({ t }) => /[<>]/.test(t));
   check('담기는 것에 태그를 직접 적지 않는다', tagged.length === 0,
     tagged.map(({ id, t }) => `${id}: ${t.slice(0, 28)}`).join(' / ') || '**굵게** 만 씁니다');
+
+  /*
+   * 상세페이지.
+   *
+   * 값을 맨 위에 두면 손님이 값부터 재고 나간다. 무엇을 받는지 다 보여 준
+   * 다음에 값을 말한다. 그리고 **안 사도 되는 경우를 먼저 적는다.**
+   */
+  const noFit = Object.keys(CATALOG).filter((id) => !FIT_FOR(id));
+  check('상품마다 「이런 분이 보시면」이 있다', noFit.length === 0, noFit.join(','));
+  check('상품마다 「안 보셔도 됩니다」도 있다',
+    Object.keys(CATALOG).every((id) => (FIT_FOR(id)?.no ?? '').length > 10));
+
+  const pd = renderProductPage(CATALOG['wealth-report'], full, true, '',
+    new Set(), new Set(), { text: '예시 문장입니다.', notice: '다른 분의 명식입니다.' });
+  check('고르기 전 칸이 값보다 위에 온다',
+    pd.indexOf('이런 분이 보시면 좋습니다') < pd.indexOf(`class="pd-price"`));
+  check('담기는 것이 값보다 위에 온다',
+    pd.indexOf('이 리포트에 담기는 것') < pd.indexOf(`class="pd-price"`));
+  check('맛보기가 값보다 위에 온다', pd.indexOf('어떤 문장으로 나오는지') < pd.indexOf(`class="pd-price"`));
+  check('「이 집 계산을 믿어도 되는가」가 붙는다', pd.includes('그래서 믿어도 되는가'));
+  check('맛보기가 누구 것인지 밝힌다', pd.includes('다른 분의 명식입니다.'));
+  check('맛보기가 없으면 그 칸을 아예 안 만든다',
+    !renderProductPage(CATALOG['wealth-report'], full, true, '').includes('어떤 문장으로 나오는지'));
+
+  /*
+   * 따라 하지 않기로 한 것들. 2024년 개정 전자상거래법이 다크패턴으로
+   * 이름 붙여 둔 것과, 없는 숫자를 지어내는 것.
+   */
+  const 금지 = ['적중률', '남은 시간', '마감 임박', '지금만', '단 하루', '선착순',
+    '후기', '만족도 9', '명이 선택', '정가', '할인율'];
+  const 걸린것 = 금지.filter((w) => pd.includes(w));
+  check('상세페이지에 겁주거나 재촉하는 말이 없다', 걸린것.length === 0, 걸린것.join(', ') || '없음');
+  check('취소선 그은 값이 없다', !/<(s|del|strike)[ >]/.test(pd) && !pd.includes('text-decoration:line-through'));
 
   // 적어 둔 것이 실제로 화면에 굵게 나오는지
   const oneList = CONTENTS_FOR('wealth-report') ?? [];

@@ -16,7 +16,7 @@ import { randomUUID } from 'node:crypto';
 import {
   CATALOG, getProduct, createOrder, markPending, markFulfilled, markViewed,
   hasEntitlement, assessRefund, refundNotice, confirmPayment, refundOrder, failOrder,
-  orderable, isOrderable, upsellFor, packagesContaining,
+  orderable, isOrderable, upsellFor, packagesContaining, makePreview,
   WITHDRAWAL_NOTICE, type Order, type PaymentGateway, type ProductId,
 } from '../../../packages/commerce/src/index.ts';
 import { cacheKey } from '../../../packages/report/src/cache.ts';
@@ -44,7 +44,7 @@ import {
 } from '../../../packages/talk/src/index.ts';
 import { buildPayload, buildPayloads, KIND_OF, type ReadingRequest } from './payload.ts';
 import { pickDays, bestPerDay, mergeHours } from '../../../packages/saju-rules/src/index.ts';
-import { buildPreview } from './preview.ts';
+import { buildPreview, sampleFor, sampleNoticeFor } from './preview.ts';
 
 /** 주문 저장소. 배포 전에 Postgres 구현체로 갈아끼운다. */
 export interface OrderStore {
@@ -659,8 +659,18 @@ export function createApi(deps: ApiDeps) {
     'GET /products/:id': async (_req, res, id) => {
       const product = CATALOG[id as ProductId];
       if (!product) throw new HttpError(404, `없는 상품입니다: ${id}`);
+      /*
+       * 실제로 나가는 글의 앞부분을 상세페이지에 그대로 싣는다.
+       *
+       * 그림으로 결과지를 보여 주고 각주에 「실제로는 글로 드립니다」라고
+       * 적는 집이 있다. 그건 화면에 보여 준 것을 안 주는 것이다.
+       */
       sendHtml(res, renderProductPage(
         product, business, checkout !== null, renderFooter(business), haveImage, haveFace,
+        {
+          text: makePreview(sampleFor(product.id), Math.max(product.previewRatio, 0.4)),
+          notice: sampleNoticeFor(product.id),
+        },
       ));
     },
 

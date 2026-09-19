@@ -101,6 +101,160 @@ function topicContents(term: string, gloss: string, years: number, extra?: strin
   ];
 }
 
+
+/**
+ * 이런 분이 보시면 좋습니다 / 이건 안 보셔도 됩니다.
+ *
+ * ## 안 보셔도 된다고 말하는 이유
+ *
+ * 경쟁사 상세페이지는 「이런 분들이라면 꼭 보세요」만 있다. 읽는 사람은
+ * 전부 자기 얘기 같아서 결국 아무 얘기도 아니게 된다.
+ *
+ * 우리는 **안 사도 되는 경우를 먼저 적는다.** 손님 하나를 놓치지만,
+ * 사는 사람은 「이 집은 아무한테나 팔지는 않는구나」로 받는다. 그리고
+ * 무엇보다 — 기대와 다른 것을 받은 손님은 환불하고 다시는 안 온다.
+ *
+ * 적는 것은 전부 **이 리포트가 실제로 하고 안 하는 일**이다.
+ */
+interface Fit {
+  /** 보시면 좋은 경우 */
+  yes: string[];
+  /** 이건 이 상품이 아니라고 말해 주는 한 줄 */
+  no: string;
+}
+
+const FIT: Record<string, Fit> = {
+  'charm-report': {
+    yes: ['같은 사람만 반복해서 만나는 것 같을 때', '내가 어떤 사람에게 끌리는지 나도 모를 때', '연애가 늘 비슷한 이유로 끝날 때'],
+    no: '지금 만나는 그 사람과 잘 맞는지를 묻는 거라면 **궁합 리포트**가 맞습니다. 이건 상대가 아니라 **나**를 보는 글입니다.',
+  },
+  'single-report': {
+    yes: ['혼자인 기간이 길어져 조급할 때', '소개를 받아야 할지 기다려야 할지 모를 때', '언제쯤이라는 대략의 때를 알고 싶을 때'],
+    no: '정확한 날짜를 집어 드리지는 않습니다. **어느 해 어느 철이 열리는 때인지**까지 봅니다.',
+  },
+  'marriage-timing-report': {
+    yes: ['결혼 이야기가 오가는데 때를 못 정할 때', '미루는 게 나은지 당기는 게 나은지 궁금할 때', '양가 일정 때문에 기준이 필요할 때'],
+    no: '상대와 잘 맞는지는 이 글이 아닙니다. 그건 **궁합 리포트**입니다. 여기서는 **나의 때**만 봅니다.',
+  },
+  'reunion-report': {
+    yes: ['헤어지고 나서 계속 생각날 때', '연락해도 되는 때인지 모를 때', '붙잡을지 놓을지 결정을 못 할 때'],
+    no: '돌아온다고 약속하는 글이 아닙니다. **두 사람의 자리가 아직 이어져 있는지**를 봅니다.',
+  },
+  'letgo-report': {
+    yes: ['끝난 걸 아는데 마음이 안 따라올 때', '언제쯤 괜찮아질지 가늠이 안 될 때', '다음으로 넘어가야 하는데 못 넘어갈 때'],
+    no: '다시 만날 가능성을 보는 글이 아닙니다. 그건 **재회 가능성**입니다. 여기는 **정리하는 쪽**을 봅니다.',
+  },
+  'compat-report': {
+    yes: ['오래 만났는데 확신이 안 설 때', '싸우는 지점이 늘 똑같을 때', '결혼까지 갈 사이인지 보고 싶을 때'],
+    no: '상대의 생년월일이 있어야 합니다. 없으면 **매력 삼합**처럼 나만 보는 글을 보세요.',
+  },
+  'crush-compat-report': {
+    yes: ['아직 사귀기 전, 티를 내야 할지 고민될 때', '상대 마음이 어느 쪽인지 모를 때', '고백 시점을 재고 있을 때'],
+    no: '상대의 마음을 읽어 드리는 글이 아닙니다. **두 사람 기운이 어떻게 맞물리는지**까지 봅니다.',
+  },
+  'child-report': {
+    yes: ['아이가 왜 저러는지 모르겠을 때', '형제인데 성격이 너무 다를 때', '어떻게 키워야 할지 기준이 필요할 때'],
+    no: '아이의 성적이나 앞날을 정해 드리는 글이 아닙니다. **타고난 결**을 봅니다.',
+  },
+  'child-aptitude-report': {
+    yes: ['학원을 뭘 시킬지 정해야 할 때', '아이가 뭘 좋아하는지 모를 때', '문과 이과를 정해야 할 때'],
+    no: '직업을 찍어 드리지 않습니다. **어느 쪽이 덜 힘든 결인지**를 봅니다.',
+  },
+  'parent-child-report': {
+    yes: ['같은 말도 이 아이에게만 안 통할 때', '사춘기가 유난히 힘들 때', '부모인 내 문제인지 궁금할 때'],
+    no: '누가 잘못했는지 가려 주는 글이 아닙니다. **두 사람 기운이 어디서 부딪히는지**를 봅니다.',
+  },
+  'pick-report': {
+    yes: ['병원에서 후보 날짜를 여럿 받았을 때', '그중 어느 날이 나은지 기준이 필요할 때', '같은 날이라도 시간이 갈리는지 궁금할 때'],
+    no: '의사가 주지 않은 날은 다루지 않습니다. **주신 후보 안에서만** 견줍니다. 몸이 먼저입니다.',
+  },
+  'naming-report': {
+    yes: ['이름 후보가 너무 많아 못 고를 때', '돌림자를 넣어야 할 때', '출생신고가 되는 한자인지 걱정될 때'],
+    no: '이름이 아이의 앞날을 정한다고 말하지 않습니다. 이름은 **부르는 것**입니다.',
+  },
+  'naming-plus-report': {
+    yes: ['반에 같은 이름이 없었으면 할 때', '마음에 들 때까지 계속 받아 보고 싶을 때', '한자까지 겹치지 않게 짓고 싶을 때'],
+    no: '세 개만 받아 보고 정하실 거라면 **아이 이름 짓기**로 충분합니다. 값이 많이 다릅니다.',
+  },
+  'latelife-report': {
+    yes: ['은퇴 이후가 막막할 때', '지금 준비를 해야 하나 싶을 때', '자식에게 기댈 수 있을지 궁금할 때'],
+    no: '수명이나 병을 말하지 않습니다. **말년의 기운이 어느 쪽으로 도는지**만 봅니다.',
+  },
+  'saju-report': {
+    yes: ['나에 대해 한 번은 제대로 정리하고 싶을 때', '이것저것 보기 전에 뼈대부터 잡고 싶을 때', '지금이 내 인생의 어느 구간인지 궁금할 때'],
+    no: '한 가지만 급하게 궁금하시면 그 **낱개 리포트**가 값도 싸고 답도 빠릅니다.',
+  },
+  'expression-report': {
+    yes: ['잘하는 걸로 먹고살 수 있을지 궁금할 때', '취미를 일로 바꿔 볼까 싶을 때', '남들이 칭찬하는 게 뭔지 모를 때'],
+    no: '적성 검사가 아닙니다. **타고난 결**을 여덟 글자에서 봅니다.',
+  },
+  'peers-report': {
+    yes: ['사람 때문에 지치는 일이 반복될 때', '조직 생활이 유난히 안 맞을 때', '혼자 하는 게 나은지 궁금할 때'],
+    no: '특정한 누구를 가려내 드리지 않습니다. **내가 사람과 맺는 결**을 봅니다.',
+  },
+  'helper-report': {
+    yes: ['도움을 청할 데가 없다고 느낄 때', '인맥이 늘 겉도는 것 같을 때', '누구를 붙잡아야 할지 모를 때'],
+    no: '귀인의 이름이나 얼굴을 알려 드리지 않습니다. **어느 자리에서 오는지**를 봅니다.',
+  },
+  'cross-report': {
+    yes: ['사주만으로는 미심쩍을 때', '세 갈래가 같은 말을 하는지 보고 싶을 때', '엇갈리는 지점이 궁금할 때'],
+    no: '얼굴과 손 사진이 있어야 합니다. 생년월일만 있으면 **사주 종합 리포트**입니다.',
+  },
+  'face-palm-report': {
+    yes: ['태어난 시간을 모를 때', '생년월일을 밝히고 싶지 않을 때', '얼굴과 손만으로 한번 보고 싶을 때'],
+    no: '사주는 보지 않습니다. 생년월일을 넣으실 수 있으면 **삼합 리포트**가 훨씬 깊습니다.',
+  },
+  'saju-palm-report': {
+    yes: ['타고난 것과 지금이 다른 것 같을 때', '손금이 바뀐 것 같을 때', '사주와 손금만 맞춰 보고 싶을 때'],
+    no: '얼굴은 보지 않습니다. 셋을 다 겹치려면 **삼합 리포트**입니다.',
+  },
+  'saju-face-report': {
+    yes: ['남들이 보는 나와 내가 아는 내가 다를 때', '첫인상이 늘 오해를 살 때', '사주와 관상만 맞춰 보고 싶을 때'],
+    no: '손금은 보지 않습니다. 셋을 다 겹치려면 **삼합 리포트**입니다.',
+  },
+  'wealth-report': {
+    yes: ['벌어도 남지 않는 것 같을 때', '목돈을 만들 때가 언제인지 궁금할 때', '돈 때문에 사람과 부딪힐 때'],
+    no: '얼마를 벌게 된다고 말하지 않습니다. **그릇의 크기와 모양**을 봅니다. 투자 조언도 하지 않습니다.',
+  },
+  'career-report': {
+    yes: ['지금 일을 계속할지 고민될 때', '승진이나 이직 시기를 재고 있을 때', '조직에서 내 자리가 흔들릴 때'],
+    no: '어느 회사로 가라고 말하지 않습니다. **자리의 기운이 언제 열리는지**를 봅니다.',
+  },
+  'learning-report': {
+    yes: ['시험·계약·서류가 몰려 있을 때', '공부가 유난히 안 붙을 때', '도장을 찍어야 할 때가 궁금할 때'],
+    no: '합격 여부를 맞히는 글이 아닙니다. 이번 시험만 급하시면 **시험 합격운**이 그 해를 더 길게 봅니다.',
+  },
+  'exam-report': {
+    yes: ['수능·공시·자격증이 코앞일 때', '올해가 아니면 언제인지 알고 싶을 때', '한 해 더 할지 말지 정해야 할 때'],
+    no: '붙는다 떨어진다를 말하지 않습니다. **문서의 기운과 자리의 기운이 어느 해에 겹치는지**를 봅니다.',
+  },
+  'admission-report': {
+    yes: ['아이 진학 방향을 정해야 할 때', '전공을 두고 집안이 갈릴 때', '아이가 하고 싶은 게 없다고 할 때'],
+    no: '학교나 학과를 찍어 드리지 않습니다. **어느 결이 덜 힘든지**를 봅니다.',
+  },
+  'job-report': {
+    yes: ['취업이 길어져 지칠 때', '직무를 바꿔야 하나 싶을 때', '언제쯤 자리가 잡힐지 궁금할 때'],
+    no: '합격을 보장하지 않습니다. **자리가 열리는 해**를 다섯 해 안에서 봅니다.',
+  },
+  'daily-report': {
+    yes: ['오늘 중요한 일이 있을 때', '가볍게 매일 보고 싶을 때', '사주가 처음이라 한번 맛보고 싶을 때'],
+    no: '하루치입니다. 타고난 그릇과 십 년 흐름은 **사주 종합 리포트**에서 봅니다.',
+  },
+  'newyear-report': {
+    yes: ['새해 계획을 세울 때', '올해가 버틸 해인지 밀 해인지 궁금할 때', '달마다의 흐름을 알고 싶을 때'],
+    no: '평생 사주를 푸는 글이 아닙니다. **올해와 내년**만 봅니다.',
+  },
+  'travel-report': {
+    yes: ['이사·이직·유학을 두고 고민될 때', '떠나고 싶은 마음이 계속될 때', '해외에 나갈 때가 궁금할 때'],
+    no: '어느 나라로 가라고 말하지 않습니다. **움직이는 기운이 언제 도는지**를 봅니다.',
+  },
+};
+
+/** 검증이 상품마다 다 적혔는지 볼 수 있게 밖으로 낸다 */
+export function FIT_FOR(productId: string): Fit | undefined {
+  return FIT[productId];
+}
+
 /** 상세페이지가 적는 「담기는 것」. 검증이 자료와 대조할 수 있게 밖으로 낸다 */
 export function CONTENTS_FOR(productId: string): string[] | undefined {
   return CONTENTS[productId];
@@ -426,6 +580,30 @@ html,body{overflow-x:clip;max-width:100%}
   color:#120D04;font:700 16px var(--nb-sans);
   box-shadow:0 8px 30px rgba(212,175,55,.34)}
 .pd-go:hover{filter:brightness(1.12)}
+
+/* ── 상세페이지의 칸들 ────────────────────────────────────
+   값은 맨 아래다. 무엇을 받는지 다 보여 준 다음에 값을 말한다 */
+.pd-sec{margin:34px 0 0;padding:24px 22px;border:1px solid var(--nb-line-soft);
+  background:var(--nb-paper-2);border-radius:12px}
+.pd-l{margin:0 0 6px;font-size:11.5px;letter-spacing:.22em;color:var(--nb-gold)}
+.pd-h{margin:0 0 16px;font-size:19px;line-height:1.45;word-break:keep-all}
+
+/* 안 사도 되는 경우를 먼저 적는다. 손님 하나를 놓치고 믿음을 얻는다 */
+.pd-fit{border-color:var(--nb-line)}
+.pd-yes{margin:0;padding-left:19px;display:grid;gap:7px}
+.pd-yes li{font-size:15px;line-height:1.7;word-break:keep-all}
+.pd-no{margin:18px 0 0;padding:14px 16px;font-size:14px;line-height:1.8;
+  color:var(--nb-ink-2);background:var(--nb-paper-3);
+  border-left:2px solid var(--nb-ink-3);border-radius:0 8px 8px 0;word-break:keep-all}
+.pd-no b{color:var(--nb-ink)}
+
+/* 실제로 나가는 글의 앞부분. 그림으로 보여 주고 글로 주지 않는 짓은 안 한다 */
+.pd-samp{white-space:pre-wrap;font-size:14.5px;line-height:1.9;color:var(--nb-ink-2);
+  padding:18px 18px;background:var(--nb-paper-3);border-radius:8px;word-break:keep-all}
+.pd-samp-n{margin:12px 0 0;font-size:12.5px;line-height:1.7;color:var(--nb-ink-3);word-break:keep-all}
+
+/* 「왜 늘봄인가」는 상품 화면 안에서는 한 칸으로 들어간다 */
+.pd-why .why{margin:0;padding:0;border:0;background:none}
 ${SPIRITS_CSS}
 ${WHY_CSS}
 ${FOOTER_CSS}`;
@@ -573,9 +751,27 @@ function buyLink(product: Product): string {
     + '<p class="pd-also">결제 전에 무엇이 담기는지와 예시 문장을 먼저 보여 드립니다.</p>';
 }
 
+/**
+ * 상세페이지.
+ *
+ * ## 순서가 곧 장사다
+ *
+ * 값을 맨 위에 두면 손님이 값부터 재고 나간다. **무엇을 받는지 다 보여 준
+ * 다음**에 값을 말한다. 경쟁사도 아홉 칸 중 여덟 번째에 값을 둔다.
+ *
+ * 순서: 누가 봐 주는가 → 이런 분이 보시면 / 안 보셔도 → 담기는 것 →
+ *       어떤 문장으로 나오는지 → 이 집 계산을 믿어도 되는가 → 값 → 묶음 → 약속
+ *
+ * ## 따라 하지 않는 것
+ *
+ * 남은 시간 세는 시계, 안 사면 벌어질 일의 연표, 적중률 숫자, 후기,
+ * 판 적 없는 정가에 그은 줄. 하나도 쓰지 않는다. 2024년 개정 전자상거래법이
+ * 다크패턴으로 이름 붙여 둔 것들이고, 없는 숫자를 지어내는 것은 그냥 거짓말이다.
+ */
 export function renderProductPage(
   product: Product, info: BusinessInfo, ready: boolean, footer: string,
   images: ProductImages = NO_IMAGES, faces: SpiritImages = NO_FACES,
+  sample: { text: string; notice: string } | null = null,
 ): string {
   const site = show(info, 'serviceName', '서비스 이름');
   // 이 상품을 파는 신령. 목록에서 이 상품을 누른 손님은 같은 얼굴을 다시 만난다
@@ -616,7 +812,22 @@ ${PRODUCTS_CSS}
   ${spirit ? renderSpiritPitch(spirit, product.id, faces) : ''}
   ${product.topic ? `<p class="pd-term">명리에서는 <b>${esc(TERM_OF[product.topic] ?? '')}</b>이라 부르는 자리입니다.</p>` : ''}
   <p class="pr-desc">${esc(product.description)}</p>
-  ${items ? `<h3 style="font-size:15.5px;margin:18px 0 6px">이 리포트에 담기는 것</h3><ul class="pr-list">${items}</ul>` : ''}
+
+${renderFit(product.id)}
+
+  ${items ? `<section class="pd-sec">
+    <p class="pd-l">차례</p>
+    <h3 class="pd-h">이 리포트에 담기는 것</h3>
+    <ul class="pr-list">${items}</ul>
+  </section>` : ''}
+
+${renderSample(sample)}
+
+  <section class="pd-sec pd-why">
+    <p class="pd-l">이 집 계산</p>
+    <h3 class="pd-h">그래서 믿어도 되는가</h3>
+${renderWhy()}
+  </section>
 
   <div class="pd-buy">
     <span class="pd-price">${won(product.priceKrw)}</span><span class="pr-vat"> (부가세 포함)</span>
@@ -653,6 +864,36 @@ ${PRODUCTS_CSS}
 ${footer}
 </body>
 </html>`;
+}
+
+/** 이런 분이 보시면 좋습니다 / 이건 안 보셔도 됩니다 */
+function renderFit(productId: string): string {
+  const fit = FIT[productId];
+  if (!fit) return '';
+  const ys = fit.yes.map((y) => `<li>${bold(y)}</li>`).join('');
+  return `  <section class="pd-sec pd-fit">
+    <p class="pd-l">고르기 전에</p>
+    <h3 class="pd-h">이런 분이 보시면 좋습니다</h3>
+    <ul class="pd-yes">${ys}</ul>
+    <p class="pd-no"><b>이건 안 보셔도 됩니다 —</b> ${bold(fit.no)}</p>
+  </section>`;
+}
+
+/**
+ * 어떤 문장으로 나오는지.
+ *
+ * 그림으로 보여 주고 각주에 「실제로는 글로 드립니다」라고 적는 집이 있다.
+ * 그건 화면에 보여 준 것을 안 주는 것이다. 우리는 **실제로 나가는 글**의
+ * 앞부분을 그대로 보여 주고, 누구 것인지도 밝힌다.
+ */
+function renderSample(sample: { text: string; notice: string } | null): string {
+  if (!sample?.text?.trim()) return '';
+  return `  <section class="pd-sec">
+    <p class="pd-l">맛보기</p>
+    <h3 class="pd-h">어떤 문장으로 나오는지</h3>
+    <div class="pd-samp">${esc(sample.text)}</div>
+    <p class="pd-samp-n">${esc(sample.notice)}</p>
+  </section>`;
 }
 
 /** 주제별 상품에 붙일 명리 용어. `packages/saju-rules` 의 이름표와 같은 값이다 */

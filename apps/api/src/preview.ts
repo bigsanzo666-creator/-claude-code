@@ -126,7 +126,7 @@ export const SAMPLE_REPORTS = new Proxy({} as Record<ProductId, string>, {
 });
 
 /** 예시가 누구 것인지 밝힌다. 갈래마다 「누구」가 다르다 */
-function sampleNoticeFor(productId: ProductId): string {
+export function sampleNoticeFor(productId: ProductId): string {
   if (productId === 'pick-report') {
     return '위 예시는 다른 분이 받은 후보 날짜로 만든 것입니다. 실제 리포트는 위에 나열된 내용으로 작성됩니다.';
   }
