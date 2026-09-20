@@ -520,7 +520,200 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ================= 5. 신령 열 분 메뉴판 진입 =================
+  // ================= 5. 신령 열 분 메뉴판 (갈래 탭 10개 + 청월당 스타일 상품 카드 캐러셀) =================
+  const CATEGORIES = [
+    { name: '연애',    spirit: { id: 'flower',   name: '도화신령', question: '이 사람, 어떨까?' } },
+    { name: '재회',    spirit: { id: 'moon',     name: '월신령',   question: '다시 만날 수 있을까?' } },
+    { name: '궁합',    spirit: { id: 'thread',   name: '연신령',   question: '우리, 잘 맞을까?' } },
+    { name: '가족',    spirit: { id: 'mountain', name: '산신령',   question: '우리 아이는 어떤 아이일까?' } },
+    { name: '작명',    spirit: { id: 'name',     name: '작명신령', question: '우리 아이 이름, 뭐로 지을까?' } },
+    { name: '출산',    spirit: { id: 'birth',    name: '삼신할매', question: '언제 낳는 게 좋을까?' } },
+    { name: '나',      spirit: { id: 'mirror',   name: '명경신령', question: '나는 어떤 사람일까?' } },
+    { name: '삼합',    spirit: { id: 'cross',    name: '삼합신령', question: '셋이 같은 말을 할까?' } },
+    { name: '돈과 일', spirit: { id: 'jar',      name: '재신령',   question: '먹고사는 일은 풀릴까?' } },
+    { name: '시기',    spirit: { id: 'wind',     name: '풍신령',   question: '지금이 그때일까?' } },
+  ];
+
+  let currentCategory = '연애';
+  let catalogProducts = (Array.isArray(window.__CATALOG_PRODUCTS__) && window.__CATALOG_PRODUCTS__.length > 0) ? window.__CATALOG_PRODUCTS__ : [];
+  let isProductsLoading = false;
+
+  async function fetchCatalogProducts() {
+    if (Array.isArray(window.__CATALOG_PRODUCTS__) && window.__CATALOG_PRODUCTS__.length > 0) {
+      catalogProducts = window.__CATALOG_PRODUCTS__;
+      return catalogProducts;
+    }
+    if (catalogProducts.length > 0) return catalogProducts;
+    if (isProductsLoading) return [];
+    isProductsLoading = true;
+    try {
+      const res = await fetch('/api/products');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.products)) {
+          catalogProducts = data.products;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch products:', err);
+    } finally {
+      isProductsLoading = false;
+    }
+    return catalogProducts;
+  }
+
+  const categoryTabsContainer = document.getElementById('spiritsCategoryTabs');
+  const stripSpiritFace = document.getElementById('stripSpiritFace');
+  const stripSpiritQuestion = document.getElementById('stripSpiritQuestion');
+  const productCarouselTrack = document.getElementById('productCarouselTrack');
+  const carouselDots = document.getElementById('carouselDots');
+
+  // 트랙에 클릭 이벤트 위임 (카드 클릭 시 상세페이지 이동)
+  if (productCarouselTrack && !productCarouselTrack._hasClickBound) {
+    productCarouselTrack._hasClickBound = true;
+    productCarouselTrack.addEventListener('click', (e) => {
+      const card = e.target.closest('.product-card');
+      if (!card) return;
+      const productId = card.getAttribute('data-product-id');
+      if (productId) {
+        location.href = '/products/' + encodeURIComponent(productId);
+      }
+    });
+
+    // 트랙 가로 스크롤 시 인디케이터 점 동기화
+    let scrollTimeout = null;
+    productCarouselTrack.addEventListener('scroll', () => {
+      if (scrollTimeout) cancelAnimationFrame(scrollTimeout);
+      scrollTimeout = requestAnimationFrame(() => {
+        updateCarouselDotsOnScroll();
+      });
+    }, { passive: true });
+  }
+
+  function updateCarouselDotsOnScroll() {
+    if (!productCarouselTrack || !carouselDots) return;
+    const cards = productCarouselTrack.querySelectorAll('.product-card');
+    if (cards.length === 0) return;
+
+    const trackCenter = productCarouselTrack.scrollLeft + productCarouselTrack.clientWidth / 2;
+    let closestIndex = 0;
+    let minDiff = Infinity;
+
+    cards.forEach((card, index) => {
+      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+      const diff = Math.abs(trackCenter - cardCenter);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIndex = index;
+      }
+    });
+
+    const dots = carouselDots.querySelectorAll('.dot');
+    dots.forEach((dot, index) => {
+      if (index === closestIndex) {
+        dot.classList.add('active');
+      } else {
+        dot.classList.remove('active');
+      }
+    });
+  }
+
+  async function renderCategory(categoryName) {
+    currentCategory = categoryName;
+    const catConfig = CATEGORIES.find(c => c.name === categoryName) || CATEGORIES[0];
+
+    // 1) 탭 버튼 활성화 및 중앙 정렬 스크롤
+    if (categoryTabsContainer) {
+      const tabs = categoryTabsContainer.querySelectorAll('.category-tab');
+      tabs.forEach(tab => {
+        if (tab.getAttribute('data-category') === categoryName) {
+          tab.classList.add('active');
+          tab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        } else {
+          tab.classList.remove('active');
+        }
+      });
+    }
+
+    // 2) 신령 한 줄 헤더 갱신
+    if (stripSpiritFace) {
+      stripSpiritFace.src = '/img/spirits/' + catConfig.spirit.id;
+      stripSpiritFace.alt = catConfig.spirit.name;
+    }
+    if (stripSpiritQuestion) {
+      stripSpiritQuestion.textContent = catConfig.spirit.question;
+    }
+
+    // 3) 상품 데이터 가져오기
+    const products = (Array.isArray(window.__CATALOG_PRODUCTS__) && window.__CATALOG_PRODUCTS__.length > 0)
+      ? window.__CATALOG_PRODUCTS__
+      : await fetchCatalogProducts();
+    const catProducts = products.filter(p => p.category === categoryName);
+
+    // 4) 카드 렌더링 (값은 일절 넣지 않음)
+    if (productCarouselTrack) {
+      if (catProducts.length === 0) {
+        productCarouselTrack.innerHTML = '<div class="carousel-empty">준비된 상품이 없습니다</div>';
+      } else {
+        productCarouselTrack.innerHTML = catProducts.map(p => {
+          const rawHook = p.hook || '';
+          const hookText = rawHook.replace(/^[\"'\s]+|[\"'\s]+$/g, '');
+          return [
+            '<article class="product-card" data-product-id="' + p.id + '" tabindex="0" role="button" aria-label="' + p.name + '">',
+            '  <img src="/img/products/' + p.id + '" alt="' + p.name + '" class="product-card-bg" loading="lazy">',
+            '  <div class="product-card-scrim"></div>',
+            '  <div class="product-card-info">',
+            '    <div class="product-card-spirit">' + catConfig.spirit.name + '</div>',
+            '    <h3 class="product-card-title">' + p.name + '</h3>',
+            '    <p class="product-card-hook">"' + hookText + '"</p>',
+            '  </div>',
+            '</article>'
+          ].join('\n');
+        }).join('\n');
+      }
+
+      // 캐러셀 위치를 첫 장으로 리셋
+      productCarouselTrack.scrollLeft = 0;
+    }
+
+    // 5) 점 인디케이터 렌더링
+    if (carouselDots) {
+      if (catProducts.length > 1) {
+        carouselDots.innerHTML = catProducts.map((_, i) =>
+          '<span class="dot ' + (i === 0 ? 'active' : '') + '" data-index="' + i + '"></span>'
+        ).join('');
+        carouselDots.style.display = 'flex';
+      } else {
+        carouselDots.innerHTML = '';
+        carouselDots.style.display = 'none';
+      }
+    }
+  }
+
+  function setupSpiritsMenu() {
+    if (categoryTabsContainer && !categoryTabsContainer._hasBound) {
+      categoryTabsContainer._hasBound = true;
+      categoryTabsContainer.addEventListener('click', (e) => {
+        const tab = e.target.closest('.category-tab');
+        if (!tab) return;
+        const cat = tab.getAttribute('data-category');
+        if (cat && cat !== currentCategory) {
+          renderCategory(cat);
+        }
+      });
+    }
+
+    // 최초 진입 시 연애 탭 렌더링
+    renderCategory('연애');
+  }
+
+  // DOMContentLoaded 시점에 미리 연애 탭 초기화
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupSpiritsMenu);
+  } else {
+    setupSpiritsMenu();
+  }
+
   function enterSpiritsMenu() {
     if (stageEnter) stageEnter.classList.remove('active');
     if (stageSpirits) stageSpirits.classList.add('active');
@@ -529,20 +722,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function enterCourtyardPanorama() {
     enterSpiritsMenu();
-  }
-
-  // ================= 6. 신령 열 분 카드 선택 상호작용 =================
-  function setupSpiritsMenu() {
-    document.querySelectorAll('.spirit-card').forEach(card => {
-      if (card._boundClick) return;
-      card._boundClick = true;
-      card.addEventListener('click', (e) => {
-        e.preventDefault();
-        const spiritId = card.getAttribute('data-spirit');
-        const found = SPIRITS_DATA.find(s => s.id === spiritId);
-        if (found) openChamber(found);
-      });
-    });
   }
 
   // ================= 7. 10대 신령 1:1 대면 처소 (1080p 영상 원샷) =================

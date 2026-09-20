@@ -18,7 +18,7 @@ import { PACKAGES, bundleMath, type BundlePackage } from '../../commerce/src/pac
 import { WITHDRAWAL_WINDOW_DAYS, DELIVERY_DUE_DAYS } from '../../commerce/src/refund.ts';
 import { type BusinessInfo, show } from './business.ts';
 import {
-  spiritOf, renderSpiritHead, renderSpiritPitch, SPIRITS_CSS,
+  spiritOf, renderSpiritHead, renderSpiritPitch, SPIRITS_CSS, SPIRITS,
   type SpiritImages,
 } from './spirits.ts';
 import { renderWhy, WHY_CSS } from './why.ts';
@@ -538,9 +538,11 @@ function packageCard(pack: BundlePackage, ready: boolean): string {
  * 세 군데에 모두 실리는 유일한 조각이기 때문이다. 첫 화면 스타일은 여기의
  * `--ink` 를 가져다 쓴다.
  */
-export const FONT_LINK = `<link rel="preconnect" href="https://fonts.googleapis.com">
+export const FONT_LINK = `<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/font-iropke-batang/1.2/font-iropke-batang.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap">`;
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">`;
 
 export const PRODUCTS_CSS = `
 /*
@@ -693,6 +695,481 @@ html,body{overflow-x:clip;max-width:100%}
 
 /* 「왜 늘봄인가」는 상품 화면 안에서는 한 칸으로 들어간다 */
 .pd-why .why{margin:0;padding:0;border:0;background:none}
+
+/* ══════ 상세페이지 전면 개편 스타일 (청월당 스타일) ══════ */
+:root {
+  --font-serif: 'Iropke Batang', 'Noto Serif KR', serif;
+  --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
+  --gold-primary: #d4af37;
+  --gold-light: #f5d77f;
+  --bg-card: #121018;
+  --border-gold: rgba(212, 175, 55, 0.28);
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+.pr {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 16px 36px 16px;
+  box-sizing: border-box;
+}
+
+.pd-top-nav {
+  padding: 14px 0 12px 0;
+}
+
+.pd-back {
+  display: inline-block;
+  color: rgba(245, 245, 247, 0.65);
+  text-decoration: none;
+  font-size: 0.86rem;
+  transition: color 0.2s;
+}
+
+.pd-back:hover {
+  color: var(--gold-light);
+}
+
+/* 1. 맨 위: 세로 3:4 그림과 이름만 */
+.pd-hero-box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  max-height: 540px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border-gold);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7), 0 0 20px rgba(212, 175, 55, 0.15);
+  background: #0d0c14;
+  margin-bottom: 28px;
+}
+
+.pd-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pd-hero-scrim {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 65%;
+  background: linear-gradient(to top, rgba(0,0,0,.88) 0%, rgba(0,0,0,.55) 45%, transparent 100%);
+  pointer-events: none;
+}
+
+.pd-hero-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px 20px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.pd-hero-spirit {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--gold-light);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+}
+
+.pd-hero-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 2.15rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(180deg, #ffffff 20%, #f5d77f 70%, #d4af37 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.95));
+  word-break: keep-all;
+}
+
+.pd-hero-hook {
+  margin: 2px 0 0 0;
+  font-family: var(--font-sans);
+  font-size: 0.92rem;
+  color: rgba(245, 245, 247, 0.9);
+  line-height: 1.4;
+  word-break: keep-all;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.95);
+}
+
+/* 신령 소개 한마디 (pitch) */
+.pd-pitch-box {
+  background: rgba(26, 22, 34, 0.65);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 24px;
+}
+
+.pr-desc {
+  font-size: 0.95rem;
+  color: rgba(245, 245, 247, 0.85);
+  line-height: 1.7;
+  margin: 0 0 24px 0;
+  word-break: keep-all;
+}
+
+.pd-term {
+  font-size: 0.88rem;
+  color: var(--gold-light);
+  margin: 0 0 16px 0;
+}
+
+/* 3. 덩어리마다 다르게 생기게 (여백 확대 + 뚜렷한 제목) */
+.pd-sec {
+  margin: 36px 0;
+}
+
+.pd-l {
+  font-size: 0.78rem;
+  color: var(--gold-light);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0 0 4px 0;
+}
+
+.pd-h {
+  font-family: var(--font-serif);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 16px 0;
+  letter-spacing: -0.01em;
+}
+
+/* 3-a. 이런 분이 보시면 좋습니다 (체크 목록, 배경 없음) */
+.pd-fit {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.pd-yes {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pd-yes li {
+  position: relative;
+  padding-left: 24px;
+  font-size: 0.93rem;
+  line-height: 1.55;
+  color: rgba(245, 245, 247, 0.92);
+}
+
+.pd-yes li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--gold-primary);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.pd-no {
+  background: rgba(24, 18, 22, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.86rem;
+  color: rgba(245, 245, 247, 0.75);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.pd-no b {
+  color: var(--gold-light);
+}
+
+/* 3-b. 이 리포트에 담기는 것 (번호 목록 + 금색 세로선) */
+.pd-contents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-left: 2.5px solid var(--gold-primary);
+  padding-left: 16px;
+  margin-top: 10px;
+}
+
+.pd-content-item {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 0.93rem;
+  color: rgba(245, 245, 247, 0.92);
+  line-height: 1.55;
+}
+
+.pd-content-num {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  color: var(--gold-light);
+  font-size: 0.84rem;
+  flex-shrink: 0;
+}
+
+/* 2. 가운데: 맛보기를 크게 (꼭지별 카드 분할 + 페이드) */
+.pd-sample-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pd-sample-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-gold);
+  border-radius: 12px;
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.pd-sample-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.pd-sample-card-idx {
+  color: var(--gold-light);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.pd-sample-card-title {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.pd-sample-body {
+  position: relative;
+  font-family: var(--font-serif);
+  font-size: 0.94rem;
+  color: rgba(245, 245, 247, 0.85);
+  line-height: 1.65;
+  word-break: keep-all;
+  max-height: 120px;
+  overflow: hidden;
+}
+
+.pd-sample-fade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: linear-gradient(to top, var(--bg-card) 20%, transparent 100%);
+  pointer-events: none;
+}
+
+.pd-samp-n {
+  font-size: 0.78rem;
+  color: rgba(245, 245, 247, 0.5);
+  margin-top: 8px;
+}
+
+/* 3-c. 그래서 믿어도 되는가 (2칸 비교표) */
+.pd-why table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-card);
+  border: 1px solid var(--border-gold);
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 0.86rem;
+}
+
+.pd-why th, .pd-why td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+}
+
+.pd-why th {
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--gold-light);
+  font-weight: 700;
+}
+
+/* 4. 맨 아래: 값과 결제 */
+.pd-buy {
+  background: linear-gradient(135deg, rgba(28, 22, 38, 0.95) 0%, rgba(14, 11, 20, 0.98) 100%);
+  border: 1px solid var(--border-gold);
+  border-radius: 16px;
+  padding: 24px 20px;
+  text-align: center;
+  margin: 40px 0 28px 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.pd-price {
+  font-family: var(--font-serif);
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--gold-light);
+  letter-spacing: -0.02em;
+}
+
+.pr-vat {
+  font-size: 0.84rem;
+  color: rgba(245, 245, 247, 0.6);
+  margin-left: 4px;
+}
+
+.pd-also {
+  font-size: 0.85rem;
+  color: rgba(245, 245, 247, 0.7);
+  line-height: 1.55;
+  margin: 10px 0 0 0;
+}
+
+.pd-also a {
+  color: var(--gold-light);
+  text-decoration: underline;
+}
+
+/* 5. 다른 상품으로 넘기기 (같은 갈래/연계 상품) */
+.pd-cross-box {
+  background: rgba(18, 14, 24, 0.7);
+  border: 1px solid var(--border-gold);
+  border-radius: 14px;
+  padding: 18px;
+  margin: 32px 0;
+}
+
+.pd-cross-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.pd-cross-spirit-img {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid var(--gold-primary);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.pd-cross-speech {
+  font-family: var(--font-serif);
+  font-size: 0.88rem;
+  color: var(--gold-light);
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+.pd-cross-items {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.pd-cross-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(8, 6, 12, 0.8);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+  text-decoration: none;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.pd-cross-card:hover {
+  border-color: var(--gold-primary);
+  transform: translateY(-2px);
+}
+
+.pd-cross-thumb {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  display: block;
+}
+
+.pd-cross-info {
+  padding: 8px 10px;
+}
+
+.pd-cross-title {
+  font-family: var(--font-serif);
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* 4-b. 이용 안내 및 약관 세 줄 */
+.pd-terms {
+  margin: 28px 0 16px 0;
+  padding: 0;
+  font-size: 0.82rem;
+  color: rgba(245, 245, 247, 0.65);
+  line-height: 1.6;
+}
+
+.pd-terms dt {
+  color: rgba(245, 245, 247, 0.88);
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+.pd-terms dd {
+  margin: 2px 0 0 0;
+}
+
+.pd-terms a {
+  color: var(--gold-light);
+  text-decoration: underline;
+}
+
+.pr-note {
+  font-size: 0.76rem;
+  color: rgba(245, 245, 247, 0.45);
+  line-height: 1.5;
+  margin: 20px 0 24px 0;
+}
+
+.pr-note a {
+  color: rgba(212, 175, 55, 0.75);
+}
+
 ${SPIRITS_CSS}
 ${WHY_CSS}
 ${FOOTER_CSS}`;
@@ -863,15 +1340,60 @@ export function renderProductPage(
   sample: { text: string; notice: string } | null = null,
 ): string {
   const site = show(info, 'serviceName', '서비스 이름');
-  // 이 상품을 파는 신령. 목록에서 이 상품을 누른 손님은 같은 얼굴을 다시 만난다
   const spirit = spiritOf(product.category);
-  const items = (CONTENTS[product.id] ?? []).map((t) => `<li>${bold(t)}</li>`).join('');
+
+  // 이 리포트에 담기는 것 (번호 목록 + 금색 세로선)
+  const rawContents = CONTENTS[product.id] ?? [];
+  const contentsItems = rawContents.map((t, idx) => {
+    return `<div class="pd-content-item">
+      <span class="pd-content-num">${idx + 1}.</span>
+      <span>${bold(t)}</span>
+    </div>`;
+  }).join('\n');
+
   const packs = Object.values(PACKAGES)
     .filter((p) => p.members.includes(product.id))
     .sort((a, b) => a.priceKrw - b.priceKrw);
   const alsoIn = packs.length
     ? `<p class="pd-also">이 리포트는 ${packs.map((p) => `<b>${esc(p.name)}</b>(${won(bundleMath(p.id).bundleKrw)})`).join(', ')} 묶음에도 들어 있습니다.</p>`
     : '';
+
+  // 5. 다른 상품으로 넘기기 (같은 갈래 다른 상품 둘셋)
+  const otherProducts = Object.values(CATALOG)
+    .filter((p) => p.category === product.category && p.id !== product.id)
+    .slice(0, 2);
+
+  let crossSection = '';
+  if (spirit && otherProducts.length > 0) {
+    const speech = spirit.greet || '함께 살펴보면 좋은 리포트입니다.';
+    const spiritFaceTag = faces.has(spirit.id)
+      ? `<img src="/img/spirits/${spirit.id}" alt="${spirit.name}" class="pd-cross-spirit-img" loading="lazy" width="38" height="38">`
+      : `<span class="sp-seal pd-cross-spirit-img" style="display:inline-flex;align-items:center;justify-content:center;">${spirit.seal}</span>`;
+
+    crossSection = `
+  <div class="pd-cross-box">
+    <div class="pd-cross-header">
+      ${spiritFaceTag}
+      <div class="pd-cross-speech">"${esc(speech)}"</div>
+    </div>
+    <div class="pd-cross-items">
+      ${otherProducts.map((op) => {
+        const opThumb = images.has(op.id)
+          ? `<img src="/img/products/${op.id}" alt="" class="pd-cross-thumb" loading="lazy" width="160" height="106">`
+          : '';
+        return `
+        <a href="/products/${encodeURIComponent(op.id)}" class="pd-cross-card">
+          ${opThumb}
+          <div class="pd-cross-info">
+            <h4 class="pd-cross-title">${esc(op.name)}</h4>
+          </div>
+        </a>`;
+      }).join('')}
+    </div>
+  </div>`;
+  }
+
+  const cleanHook = (product.hook || '').replace(/^[\"\'\s]+|[\"\'\s]+$/g, '');
 
   return `<!doctype html>
 <html lang="ko">
@@ -892,25 +1414,40 @@ ${PRODUCTS_CSS}
 </head>
 <body>
 <section class="pr">
-  <a class="pd-back" href="/products">← 판매 상품 전체 보기</a>
+  <div class="pd-top-nav">
+    <a class="pd-back" href="/products">← 판매 상품 전체 보기</a>
+  </div>
+
   ${images.has(product.id)
-    ? `<img class="pd-hero" src="${imageUrl(product.id)}" alt="" width="280" height="373" decoding="async">`
-    : ''}
-  <p class="pr-hook">${esc(product.hook)}</p>
-  <h2>${esc(product.name)}</h2>
-  ${spirit ? renderSpiritPitch(spirit, product.id, faces) : ''}
+    ? `<div class="pd-hero-box">
+        <img class="pd-hero" src="${imageUrl(product.id)}" alt="" width="390" height="520" loading="eager" decoding="async">
+        <div class="pd-hero-scrim"></div>
+        <div class="pd-hero-overlay">
+          ${spirit ? `<div class="pd-hero-spirit">${esc(spirit.name)}</div>` : ''}
+          <h1 class="pd-hero-title">${esc(product.name)}</h1>
+          <p class="pd-hero-hook">"${esc(cleanHook)}"</p>
+        </div>
+      </div>`
+    : `<div style="margin-bottom: 24px;">
+        <p class="pr-hook">${esc(product.hook)}</p>
+        <h2>${esc(product.name)}</h2>
+      </div>`}
+
+  ${spirit ? `<div class="pd-pitch-box">${renderSpiritPitch(spirit, product.id, faces)}</div>` : ''}
   ${product.topic ? `<p class="pd-term">명리에서는 <b>${esc(TERM_OF[product.topic] ?? '')}</b>이라 부르는 자리입니다.</p>` : ''}
   <p class="pr-desc">${esc(product.description)}</p>
 
 ${renderFit(product.id)}
 
-  ${items ? `<section class="pd-sec">
+  ${rawContents.length > 0 ? `<section class="pd-sec">
     <p class="pd-l">차례</p>
     <h3 class="pd-h">이 리포트에 담기는 것</h3>
-    <ul class="pr-list">${items}</ul>
+    <div class="pd-contents-list">
+      ${contentsItems}
+    </div>
   </section>` : ''}
 
-${renderSample(sample)}
+${renderSample(sample, product.id)}
 
   <section class="pd-sec pd-why">
     <p class="pd-l">이 집 계산</p>
@@ -922,7 +1459,6 @@ ${renderWhy()}
     <span class="pd-price">${won(product.priceKrw)}</span><span class="pr-vat"> (부가세 포함)</span>
     ${product.needsPartner ? '<p class="pd-also">두 사람의 생년월일이 필요합니다.</p>' : ''}
     ${product.needsPick
-      // 택일은 태어난 날이 아직 없다. 첫 화면이 아니라 택일 화면으로 보낸다
       ? `<p class="pd-also">아직 태어나지 않았으므로 생년월일은 필요 없습니다.
         <a href="/pick">택일 화면</a>에서 <b>의사에게 받은 후보 날짜</b>를 넣으시면
         점수를 <b>공짜로</b> 먼저 보실 수 있고, 그 뒤에 이 리포트를 고르시면 됩니다.</p>`
@@ -930,6 +1466,8 @@ ${renderWhy()}
     ${ready ? buyLink(product) : '<p class="pd-also"><b>결제 준비 중입니다.</b> 사주 명식·궁합·관상·손금 풀이는 지금도 결제 없이 이용하실 수 있습니다.</p>'}
     ${alsoIn}
   </div>
+
+  ${crossSection}
 
   <dl class="pd-terms">
     <dt>언제 받나요</dt>
@@ -954,7 +1492,6 @@ ${footer}
 </body>
 </html>`;
 }
-
 /** 이런 분이 보시면 좋습니다 / 이건 안 보셔도 됩니다 */
 function renderFit(productId: string): string {
   const fit = FIT[productId];
@@ -975,16 +1512,47 @@ function renderFit(productId: string): string {
  * 그건 화면에 보여 준 것을 안 주는 것이다. 우리는 **실제로 나가는 글**의
  * 앞부분을 그대로 보여 주고, 누구 것인지도 밝힌다.
  */
-function renderSample(sample: { text: string; notice: string } | null): string {
+function renderSample(
+  sample: { text: string; notice: string } | null,
+  productId?: string,
+): string {
   if (!sample?.text?.trim()) return '';
+
+  const chapters = (productId && CONTENTS[productId]) ? CONTENTS[productId] : [];
+  const numKorean = ['하나', '둘', '셋', '넷', '다섯', '여섯', '일곱', '여덟'];
+
+  let cardsHtml = '';
+  if (chapters && chapters.length > 0) {
+    const rawParagraphs = sample.text.split(/\n\n+/).filter((p) => p.trim().length > 0);
+    cardsHtml = chapters.map((ch, idx) => {
+      const numText = numKorean[idx] || String(idx + 1);
+      const cleanTitle = ch.replace(/\*\*/g, '');
+      const bodySnippet = rawParagraphs[idx % rawParagraphs.length] || sample.text.slice(0, 140);
+      return `
+      <div class="pd-sample-card">
+        <div class="pd-sample-card-header">
+          <span class="pd-sample-card-idx">${numText}</span>
+          <span class="pd-sample-card-title">${esc(cleanTitle)}</span>
+        </div>
+        <div class="pd-sample-body">
+          ${esc(bodySnippet)}
+          <div class="pd-sample-fade"></div>
+        </div>
+      </div>`;
+    }).join('\n');
+  } else {
+    cardsHtml = `<div class="pd-samp">${esc(sample.text)}<div class="pd-sample-fade"></div></div>`;
+  }
+
   return `  <section class="pd-sec">
     <p class="pd-l">맛보기</p>
     <h3 class="pd-h">어떤 문장으로 나오는지</h3>
-    <div class="pd-samp">${esc(sample.text)}</div>
+    <div class="pd-sample-wrap">
+      ${cardsHtml}
+    </div>
     <p class="pd-samp-n">${esc(sample.notice)}</p>
   </section>`;
 }
-
 /** 주제별 상품에 붙일 명리 용어. `packages/saju-rules` 의 이름표와 같은 값이다 */
 const TERM_OF: Record<string, string> = {
   wealth: '재성(財星)', career: '관성(官星)', expression: '식상(食傷)',

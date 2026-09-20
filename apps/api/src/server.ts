@@ -192,117 +192,35 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
         <p class="spirits-menu-desc">마음이 닿는 신령을 선택하면 1:1 대면 처소로 모십니다</p>
       </div>
 
-      <div class="spirits-grid" id="spiritsGrid">
-        <!-- 1. 도화신령 -->
-        <button type="button" class="spirit-card" data-spirit="dohwa" aria-label="도화신령: 이 사람, 어떨까?">
-          <div class="spirit-card-img-wrap">
-            <img src="/img/spirits/flower" alt="도화신령" class="spirit-card-img" loading="eager">
-          </div>
-          <div class="spirit-card-body">
-            <div class="spirit-card-name">도화신령</div>
-            <div class="spirit-card-question">이 사람, 어떨까?</div>
-          </div>
-        </button>
+      <!-- 갈래 탭 10개 (가로 스크롤) -->
+      <nav class="spirits-category-tabs" id="spiritsCategoryTabs" aria-label="사주 갈래 선택">
+        <button type="button" class="category-tab active" data-category="연애">연애</button>
+        <button type="button" class="category-tab" data-category="재회">재회</button>
+        <button type="button" class="category-tab" data-category="궁합">궁합</button>
+        <button type="button" class="category-tab" data-category="가족">가족</button>
+        <button type="button" class="category-tab" data-category="작명">작명</button>
+        <button type="button" class="category-tab" data-category="출산">출산</button>
+        <button type="button" class="category-tab" data-category="나">나</button>
+        <button type="button" class="category-tab" data-category="삼합">삼합</button>
+        <button type="button" class="category-tab" data-category="돈과 일">돈과 일</button>
+        <button type="button" class="category-tab" data-category="시기">시기</button>
+      </nav>
 
-        <!-- 2. 월신령 -->
-        <button type="button" class="spirit-card" data-spirit="wol" aria-label="월신령: 다시 만날 수 있을까?">
-          <div class="spirit-card-img-wrap">
-            <img src="/img/spirits/moon" alt="월신령" class="spirit-card-img" loading="eager">
-          </div>
-          <div class="spirit-card-body">
-            <div class="spirit-card-name">월신령</div>
-            <div class="spirit-card-question">다시 만날 수 있을까?</div>
-          </div>
-        </button>
-
-        <!-- 3. 연신령 -->
-        <button type="button" class="spirit-card" data-spirit="yeon" aria-label="연신령: 우리, 잘 맞을까?">
-          <div class="spirit-card-img-wrap">
-            <img src="/img/spirits/thread" alt="연신령" class="spirit-card-img" loading="eager">
-          </div>
-          <div class="spirit-card-body">
-            <div class="spirit-card-name">연신령</div>
-            <div class="spirit-card-question">우리, 잘 맞을까?</div>
-          </div>
-        </button>
-
-        <!-- 4. 산신령 -->
-        <button type="button" class="spirit-card" data-spirit="san" aria-label="산신령: 우리 아이는 어떤 아이일까?">
-          <div class="spirit-card-img-wrap">
-            <img src="/img/spirits/mountain" alt="산신령" class="spirit-card-img" loading="eager">
-          </div>
-          <div class="spirit-card-body">
-            <div class="spirit-card-name">산신령</div>
-            <div class="spirit-card-question">우리 아이는 어떤 아이일까?</div>
-          </div>
-        </button>
-
-        <!-- 5. 작명신령 -->
-        <button type="button" class="spirit-card" data-spirit="jakmyeong" aria-label="작명신령: 우리 아이 이름, 뭐로 지을까?">
-          <div class="spirit-card-img-wrap">
-            <img src="/img/spirits/name" alt="작명신령" class="spirit-card-img" loading="eager">
-          </div>
-          <div class="spirit-card-body">
-            <div class="spirit-card-name">작명신령</div>
-            <div class="spirit-card-question">우리 아이 이름, 뭐로 지을까?</div>
-          </div>
-        </button>
-
-        <!-- 6. 삼신할매 -->
-        <button type="button" class="spirit-card" data-spirit="samsin" aria-label="삼신할매: 언제 낳는 게 좋을까?">
-          <div class="spirit-card-img-wrap">
-            <img src="/img/spirits/birth" alt="삼신할매" class="spirit-card-img" loading="eager">
-          </div>
-          <div class="spirit-card-body">
-            <div class="spirit-card-name">삼신할매</div>
-            <div class="spirit-card-question">언제 낳는 게 좋을까?</div>
-          </div>
-        </button>
-
-        <!-- 7. 명경신령 -->
-        <button type="button" class="spirit-card" data-spirit="myeonggyeong" aria-label="명경신령: 나는 어떤 사람일까?">
-          <div class="spirit-card-img-wrap">
-            <img src="/img/spirits/mirror" alt="명경신령" class="spirit-card-img" loading="eager">
-          </div>
-          <div class="spirit-card-body">
-            <div class="spirit-card-name">명경신령</div>
-            <div class="spirit-card-question">나는 어떤 사람일까?</div>
-          </div>
-        </button>
-
-        <!-- 8. 삼합신령 -->
-        <button type="button" class="spirit-card" data-spirit="samhap" aria-label="삼합신령: 셋이 같은 말을 할까?">
-          <div class="spirit-card-img-wrap">
-            <img src="/img/spirits/cross" alt="삼합신령" class="spirit-card-img" loading="eager">
-          </div>
-          <div class="spirit-card-body">
-            <div class="spirit-card-name">삼합신령</div>
-            <div class="spirit-card-question">셋이 같은 말을 할까?</div>
-          </div>
-        </button>
-
-        <!-- 9. 재신령 -->
-        <button type="button" class="spirit-card" data-spirit="jae" aria-label="재신령: 먹고사는 일은 풀릴까?">
-          <div class="spirit-card-img-wrap">
-            <img src="/img/spirits/jar" alt="재신령" class="spirit-card-img" loading="eager">
-          </div>
-          <div class="spirit-card-body">
-            <div class="spirit-card-name">재신령</div>
-            <div class="spirit-card-question">먹고사는 일은 풀릴까?</div>
-          </div>
-        </button>
-
-        <!-- 10. 풍신령 -->
-        <button type="button" class="spirit-card" data-spirit="pung" aria-label="풍신령: 지금 움직여도 될까?">
-          <div class="spirit-card-img-wrap">
-            <img src="/img/spirits/wind" alt="풍신령" class="spirit-card-img" loading="eager">
-          </div>
-          <div class="spirit-card-body">
-            <div class="spirit-card-name">풍신령</div>
-            <div class="spirit-card-question">지금 움직여도 될까?</div>
-          </div>
-        </button>
+      <!-- 그 갈래 신령 한 줄 헤더 (작은 얼굴 + 물음) -->
+      <div class="active-spirit-strip" id="activeSpiritStrip">
+        <img src="/img/spirits/flower" alt="도화신령" class="strip-spirit-face" id="stripSpiritFace">
+        <span class="strip-spirit-question" id="stripSpiritQuestion">이 사람, 어떨까?</span>
       </div>
+
+      <!-- 상품 카드 캐러셀 (화면 폭 82%, 다음 장 살짝 걸침) -->
+      <div class="product-carousel-container" id="productCarouselContainer">
+        <div class="product-carousel-track" id="productCarouselTrack">
+          <!-- JS가 동적으로 렌더링 -->
+        </div>
+      </div>
+
+      <!-- 몇 장인지 나타내는 점 인디케이터 -->
+      <div class="carousel-dots" id="carouselDots" aria-hidden="true"></div>
 
       <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
     </section>
@@ -421,7 +339,9 @@ ${renderSocialHead(business, {
   })}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/font-iropke-batang/1.2/font-iropke-batang.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css?v=consult_10spirits">
 <style>:root{color-scheme:dark;--nb-ink:#F5F5F7;}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 ${LANDING_CSS}
@@ -454,7 +374,10 @@ body {
 }
 ${FOOTER_CSS}
 </style>
-<script>window.SAJU_CONFIG = ${config};</script>
+<script>
+window.SAJU_CONFIG = ${config};
+window.__CATALOG_PRODUCTS__ = ${JSON.stringify(Object.values(CATALOG).map(p => ({ id: p.id, name: p.name, hook: p.hook, category: p.category })))};
+</script>
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 </head>
 <body>
