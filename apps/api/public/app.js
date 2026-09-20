@@ -915,7 +915,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const btnGoSaju = document.getElementById('btnGoSajuInput');
         if (btnGoSaju && sajuInputModal) {
           btnGoSaju.addEventListener('click', () => {
-            sajuInputModal.classList.add('show');
+            sajuInputModal.classList.add('active');
           });
         }
         consultCta.textContent = '상세 안내 보기';
