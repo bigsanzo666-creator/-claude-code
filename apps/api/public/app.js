@@ -390,7 +390,7 @@ const TIME_MAP = {
   'unknown': '12:00'
 };
 
-let userState = { name: "김늘봄", birthDate: "1996-05-18", birthTime: "묘시" };
+let userState = { name: "", birthDate: "", birthTime: "" };
 let currentSpirit = null;
 let currentProduct = null;
 let isAudioActive = false;
@@ -512,13 +512,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // ================= 4. 사주 정보 제출 ➡️ 명식 봉인 해제 후 입장 =================
   if (btnSubmitSaju) {
     btnSubmitSaju.addEventListener('click', () => {
-      userState.name = (inputName && inputName.value.trim()) || "김늘봄";
+      userState.name = (inputName && inputName.value.trim()) || "";
       userState.birthDate = inputBirth ? inputBirth.value : userState.birthDate;
       userState.birthTime = inputTime ? inputTime.value : userState.birthTime;
       userState.gender = selectedGender;
 
       if (userInfoDisplay) {
-        userInfoDisplay.innerHTML = `<span class="user-icon">🏮</span><span class="user-name-text"><strong>${userState.name}</strong> 님의 명식 봉인 해제</span>`;
+        userInfoDisplay.innerHTML = userState.name
+          ? `<span class="user-icon">🏮</span><span class="user-name-text"><strong>${userState.name}</strong> 님의 명식 봉인 해제</span>`
+          : `<span class="user-icon">🏮</span><span class="user-name-text">명식 봉인 해제</span>`;
       }
 
       if (sajuInputModal) sajuInputModal.classList.remove('active');
@@ -886,7 +888,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // ── 지시사항 ② & ③: 진짜 미리보기(POST /api/preview) 호출 및 상품 결제 페이지(/products/<id>) 연결 ──
+      // ── 지시사항 ② & ③ & ④: 가짜 값 배제, 진짜 미리보기(/api/preview) 호출 및 정식 경로(/products/<id>) 연결 ──
       consultCta.disabled = true;
       consultSay.textContent = '“명식을 비추어 리포트를 준비하고 있네…”';
       consultFields.innerHTML = '<div class="consult-row" style="text-align:center;padding:20px;color:#d4af37;">잠시만 기다려 주세요...</div>';
@@ -900,8 +902,8 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (want === '이 사람과 잘 될지') targetProductId = 'marriage-timing-report';
       }
 
-      // 2. 생년월일 확인
-      const hasBirth = userState && userState.birthDate;
+      // 2. 손님 본인 생년월일 확인 (비어 있으면 가짜 값으로 호출하지 않고 입력 안내)
+      const hasBirth = userState && userState.birthDate && userState.birthDate.trim();
       if (!hasBirth) {
         consultSay.textContent = '“생년월일을 넣으시면 리포트 미리보기를 바로 확인하실 수 있습니다.”';
         consultFields.innerHTML = `
@@ -924,7 +926,35 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // 3. 진짜 미리보기 요청 (POST /api/preview)
+      // 3. 상품별 필수 조건 검사 (가짜 날짜로 자리를 채우지 않음)
+      // 3-1. 택일 상품: 후보 날짜가 없으면 /api/preview 를 부르지 않고 안내 후 /pick 화면으로 이동
+      if (targetProductId === 'pick-report') {
+        consultSay.textContent = '“의사 선생님께 받은 날짜를 넣으시면 점수를 내어 드릴게.”';
+        consultFields.innerHTML = '<div style="text-align:center;padding:16px;color:#a0a0b2;font-size:13.5px;line-height:1.6;">출산택일은 의사 선생님과 상의된 수술 가능 일시가 필요합니다.</div>';
+        consultCta.textContent = '택일 화면으로 이동';
+        consultCta.disabled = false;
+        consultCta.onclick = () => {
+          location.href = '/pick';
+        };
+        return;
+      }
+
+      // 3-2. 궁합 상품: 상대 생년월일이 없으면 /api/preview 를 부르지 않고 안내
+      if (targetProductId === 'compat-report' || targetProductId === 'crush-compat-report') {
+        const partnerDate = consultAnswers['partnerBirth'] && consultAnswers['partnerBirth'].trim();
+        if (!partnerDate) {
+          consultSay.textContent = '“상대 생년월일을 알려 주면 맞물려 볼게.”';
+          consultFields.innerHTML = '<div style="text-align:center;padding:16px;color:#a0a0b2;font-size:13.5px;line-height:1.6;">상대방의 생년월일을 먼저 알려주세요.</div>';
+          consultCta.textContent = '상세 안내 보기';
+          consultCta.disabled = false;
+          consultCta.onclick = () => {
+            location.href = `/products/${encodeURIComponent(targetProductId)}`;
+          };
+          return;
+        }
+      }
+
+      // 4. 진짜 미리보기 요청 (POST /api/preview)
       try {
         const mappedTime = TIME_MAP[userState.birthTime] || (userState.birthTime && userState.birthTime.includes(':') ? userState.birthTime : '12:00');
         const payload = {
@@ -933,30 +963,23 @@ document.addEventListener('DOMContentLoaded', () => {
             date: userState.birthDate,
             time: mappedTime,
             gender: userState.gender === 'female' ? '여' : '남',
-            name: userState.name || '김늘봄'
+            name: userState.name
           }
         };
 
-        // 궁합 등 상대 생년월일이 필요한 경우 보완
+        // 궁합 상대 정보 (검증을 통과한 실제 입력값만 전달)
         if (targetProductId === 'compat-report' || targetProductId === 'crush-compat-report') {
           payload.partner = {
-            date: consultAnswers['partnerBirth'] || '1995-01-01',
+            date: consultAnswers['partnerBirth'].trim(),
             time: TIME_MAP[consultAnswers['partnerTime']] || '12:00'
           };
         }
-        // 작명 성씨
+        // 작명 성씨 (입력된 성씨가 있을 때만 전달)
         if (targetProductId === 'naming-report' || targetProductId === 'naming-plus-report') {
-          payload.name = {
-            surname: consultAnswers['surname'] || (userState.name ? userState.name.charAt(0) : '김')
-          };
-        }
-        // 출산택일
-        if (targetProductId === 'pick-report') {
-          payload.pick = {
-            dates: ['2027-04-27', '2027-04-30'],
-            times: ['09:30', '15:30'],
-            place: '인천'
-          };
+          const surname = (consultAnswers['surname'] || (userState.name ? userState.name.charAt(0) : '')).trim();
+          if (surname) {
+            payload.name = { surname };
+          }
         }
 
         const res = await fetch('/api/preview', {
@@ -970,7 +993,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const data = await res.json();
-        const pInfo = data.product || CATALOG_PRODUCTS[targetProductId] || { name: '정밀 리포트', priceKrw: 24900 };
+        const pInfo = data.product || CATALOG_PRODUCTS[targetProductId] || null;
+        if (!pInfo) {
+          consultSay.textContent = '잠시 뒤에 다시 눌러 주시겠니.';
+          consultFields.innerHTML = '';
+          consultCta.textContent = '상세 보기';
+          consultCta.disabled = false;
+          consultCta.onclick = () => {
+            location.href = `/products/${encodeURIComponent(targetProductId)}`;
+          };
+          return;
+        }
 
         // 신령 대사: 서버에서 계산된 실제 preview.text
         consultSay.textContent = `“${data.preview.text}”`;
@@ -1000,7 +1033,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
       } catch (err) {
         console.log('[Preview Error]', err);
-        const pInfo = CATALOG_PRODUCTS[targetProductId] || { name: '정밀 리포트', priceKrw: 24900 };
+        const pInfo = CATALOG_PRODUCTS[targetProductId] || null;
+        if (!pInfo) {
+          consultSay.textContent = '잠시 뒤에 다시 눌러 주시겠니.';
+          consultFields.innerHTML = '';
+          consultCta.textContent = '상세 보기';
+          consultCta.disabled = false;
+          consultCta.onclick = () => {
+            location.href = `/products/${encodeURIComponent(targetProductId)}`;
+          };
+          return;
+        }
+
         consultSay.textContent = `“${pInfo.name}의 상세 풀이가 준비되어 있네.”`;
         consultFields.innerHTML = `
           <div style="text-align:center;padding:14px 0;">

@@ -246,7 +246,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
       <div class="courtyard-top-hud">
         <div class="user-pill" id="userInfoDisplay">
           <span class="user-icon">🏮</span>
-          <span class="user-name-text"><strong>김늘봄</strong> 님의 명식 봉인 해제</span>
+          <span class="user-name-text">명식 봉인 해제</span>
         </div>
         <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="hud-logo">
       </div>
@@ -299,13 +299,13 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
         <div class="saju-form">
           <div class="form-group">
             <label for="inputName">성함</label>
-            <input type="text" id="inputName" placeholder="성함을 입력하세요" value="김늘봄">
+            <input type="text" id="inputName" placeholder="성함을 입력하세요">
           </div>
 
           <div class="form-row">
             <div class="form-group flex-2">
               <label for="inputBirth">생년월일</label>
-              <input type="date" id="inputBirth" value="1995-05-15">
+              <input type="date" id="inputBirth">
             </div>
             <div class="form-group flex-1">
               <label for="inputTime">태어난 시간</label>
