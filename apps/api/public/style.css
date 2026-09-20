@@ -258,7 +258,9 @@ body {
   display: none;
   flex-direction: column;
   box-sizing: border-box;
-  padding: 22px 14px 24px 14px;
+  /* 위쪽 여백은 소리 버튼(.global-audio-badge, top 16 + 높이 35) 아래로 내려오게 잡는다.
+     22px 로 두면 손님 이름이 세 글자만 넘어도 이름 띠가 소리 버튼을 파고든다 */
+  padding: 60px 14px 24px 14px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
