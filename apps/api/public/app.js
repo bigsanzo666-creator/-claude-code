@@ -6,10 +6,9 @@ const SPIRITS_DATA = [
   {
     id: "dohwa",
     name: "도화신령",
+    question: "이 사람, 어떨까?",
     domain: "연애 · 매력 · 이성운",
-    group: "entrance",
-    groupName: "1그룹: 입구 3대장",
-    img: "assets/신령들/도화신령.jpeg",
+    img: "/img/spirits/flower",
     video: "assets/대면상담/도화신령대면상담.mp4",
     opener: "누구한테 마음이 가는지, 내가 연못 위 연꽃잎으로 짚어 줄게.",
     productIds: ["charm-report", "single-report", "marriage-timing-report"]
@@ -17,10 +16,9 @@ const SPIRITS_DATA = [
   {
     id: "wol",
     name: "월신령",
+    question: "다시 만날 수 있을까?",
     domain: "재회 · 이별 치유 · 그리움",
-    group: "entrance",
-    groupName: "1그룹: 입구 3대장",
-    img: "assets/신령들/월신령.jpeg",
+    img: "/img/spirits/moon",
     video: "assets/대면상담/월신령대면상담.mp4",
     opener: "떠나간 사람 때문에 밤잠 설치고 있지? 그 마음 이리 내봐.",
     productIds: ["reunion-report", "letgo-report"]
@@ -28,32 +26,29 @@ const SPIRITS_DATA = [
   {
     id: "yeon",
     name: "실신령",
+    question: "우리, 잘 맞을까?",
     domain: "궁합 · 인연의 끈 · 결혼",
-    group: "entrance",
-    groupName: "1그룹: 입구 3대장",
-    img: "assets/신령들/연신령.jpeg",
+    img: "/img/spirits/thread",
     video: "assets/대면상담/실신령대면상담.mp4",
     opener: "너와 그 사람 사이에 붉은 실이 닿아 있는지 짚어 줄게.",
     productIds: ["compat-report", "crush-compat-report"]
   },
   {
-    id: "samhap",
-    name: "삼합신령",
-    domain: "사주 × 관상 × 손금 삼합 종합",
-    group: "courtyard",
-    groupName: "2그룹: 마당 중앙 영험 4대장",
-    img: "assets/신령들/삼합신령.jpeg",
-    video: "assets/대면상담/삼합신령대면상담.mp4",
-    opener: "사주와 얼굴, 손금을 셋 다 겹쳐봐야 진짜 네 운명의 축이 보여.",
-    productIds: ["cross-report", "face-palm-report"]
+    id: "san",
+    name: "산신령",
+    question: "우리 아이는 어떤 아이일까?",
+    domain: "자녀 진로 · 학업 · 성공운",
+    img: "/img/spirits/mountain",
+    video: "assets/대면상담/산신령대면상담.mp4",
+    opener: "아이가 벼슬길에 오를지 큰 재목이 될지 그 바탕을 내가 짚어주마.",
+    productIds: ["child-aptitude-report", "exam-report"]
   },
   {
     id: "jakmyeong",
     name: "작명신령",
+    question: "우리 아이 이름, 뭐로 지을까?",
     domain: "작명 · 개명 · 호(號)",
-    group: "courtyard",
-    groupName: "2그룹: 마당 중앙 영험 4대장",
-    img: "assets/신령들/작명신령.jpeg",
+    img: "/img/spirits/name",
     video: "assets/대면상담/작명신령대면상담.mp4",
     opener: "평생 불릴 이름이다. 사주의 빈 곳을 채우는 귀한 글자를 지어주마.",
     productIds: ["naming-plus-report", "naming-report"]
@@ -61,11 +56,10 @@ const SPIRITS_DATA = [
   {
     id: "samsin",
     name: "삼신할매",
+    question: "언제 낳는 게 좋을까?",
     domain: "출산택일 · 자녀운 · 생명",
-    group: "courtyard",
-    groupName: "2그룹: 마당 중앙 영험 4대장",
     freezeAt: 7.0,
-    img: "assets/신령들/삼신할매.jpeg",
+    img: "/img/spirits/birth",
     video: "assets/대면상담/삼신할매대면상담.mp4",
     opener: "아가야 어서 오너라. 복되고 귀한 때를 골라 점지해 주마.",
     productIds: ["pick-report", "child-report"]
@@ -73,45 +67,41 @@ const SPIRITS_DATA = [
   {
     id: "myeonggyeong",
     name: "명경신령",
+    question: "나는 어떤 사람일까?",
     domain: "사주 원판 정밀 판독 · 오행 결핍",
-    group: "courtyard",
-    groupName: "2그룹: 마당 중앙 영험 4대장",
     freezeAt: 7.0,
-    img: "assets/신령들/명경신령.jpeg",
+    img: "/img/spirits/mirror",
     video: "assets/대면상담/명경신령대면상담.mp4",
     opener: "거울은 속이지 않는다. 타고난 네 사주 원판의 뼈대를 비춰 주마.",
     productIds: ["saju-report"]
   },
   {
+    id: "samhap",
+    name: "삼합신령",
+    question: "셋이 같은 말을 할까?",
+    domain: "사주 × 관상 × 손금 삼합 종합",
+    img: "/img/spirits/cross",
+    video: "assets/대면상담/삼합신령대면상담.mp4",
+    opener: "사주와 얼굴, 손금을 셋 다 겹쳐봐야 진짜 네 운명의 축이 보여.",
+    productIds: ["cross-report", "face-palm-report"]
+  },
+  {
     id: "jae",
     name: "재신령",
+    question: "먹고사는 일은 풀릴까?",
     domain: "재물창고 · 금전운 · 누수 차단",
-    group: "sanctum",
-    groupName: "3그룹: 안쪽 깊은 처소 3대장",
-    img: "assets/신령들/재신령.jpeg",
+    img: "/img/spirits/jar",
     video: "assets/대면상담/재신령대면상담.mp4",
     opener: "돈이 새는 곳간을 막아야 금전이 차오른다. 네 돈줄을 점검해 줄게.",
     productIds: ["wealth-report"]
   },
   {
-    id: "san",
-    name: "산신령",
-    domain: "자녀 진로 · 학업 · 성공운",
-    group: "sanctum",
-    groupName: "3그룹: 안쪽 깊은 처소 3대장",
-    img: "assets/신령들/산신령.jpeg",
-    video: "assets/대면상담/산신령대면상담.mp4",
-    opener: "아이가 벼슬길에 오를지 큰 재목이 될지 그 바탕을 내가 짚어주마.",
-    productIds: ["child-aptitude-report", "exam-report"]
-  },
-  {
     id: "pung",
     name: "풍신령",
+    question: "지금 움직여도 될까?",
     domain: "신년운세 · 연간 흐름 · 액땜",
-    group: "sanctum",
-    groupName: "3그룹: 안쪽 깊은 처소 3대장",
     freezeAt: 6.8,
-    img: "assets/신령들/풍신령.jpeg",
+    img: "/img/spirits/wind",
     video: "assets/대면상담/풍신령대면상담.mp4",
     opener: "올 한 해 불어닥칠 바람의 길목을 미리 알려주마.",
     productIds: ["newyear-report", "career-report"]
@@ -404,7 +394,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const stageGate = document.getElementById('stageGate');
   const stageEnter = document.getElementById('stageEnter');
-  const stageCourtyard = document.getElementById('stageCourtyard');
+  const stageSpirits = document.getElementById('stageSpirits') || document.getElementById('stageCourtyard');
+  const stageCourtyard = stageSpirits;
   const btnKnockGate = document.getElementById('btnKnockGate');
   const userInfoDisplay = document.getElementById('userInfoDisplay');
 
@@ -492,7 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const onEnterEnd = () => {
         enterVideo.removeEventListener('ended', onEnterEnd);
         stageEnter.classList.remove('active');
-        enterCourtyardPanorama();
+        enterSpiritsMenu();
       };
 
       enterVideo.addEventListener('ended', onEnterEnd);
@@ -505,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 5500);
     } else {
       stageEnter.classList.remove('active');
-      enterCourtyardPanorama();
+      enterSpiritsMenu();
     }
   }
 
@@ -529,51 +520,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ================= 5. 16:9 와이드 파노라마 마당 진입 =================
-  function enterCourtyardPanorama() {
-    stageCourtyard.classList.add('active');
-
-    // 파노라마 뷰포트를 정중앙(본당, 보름달, 월신령)으로 자동 스크롤
-    requestAnimationFrame(() => {
-      if (panoramaViewport) {
-        const scrollMax = panoramaViewport.scrollWidth - panoramaViewport.clientWidth;
-        panoramaViewport.scrollLeft = scrollMax * 0.52; // 중앙 본당/달 중심으로 포커스
-      }
-    });
-
-    // 마우스 드래그 지원 (PC 브라우저에서도 모바일처럼 드래그 가능)
-    setupPanoramaDrag();
+  // ================= 5. 신령 열 분 메뉴판 진입 =================
+  function enterSpiritsMenu() {
+    if (stageEnter) stageEnter.classList.remove('active');
+    if (stageSpirits) stageSpirits.classList.add('active');
+    setupSpiritsMenu();
   }
 
-  // ================= 6. 파노라마 터치 및 마우스 드래그 상호작용 =================
-  function setupPanoramaDrag() {
-    let isDown = false;
-    let startX = 0;
-    let scrollLeft = 0;
+  function enterCourtyardPanorama() {
+    enterSpiritsMenu();
+  }
 
-    panoramaViewport.addEventListener('mousedown', (e) => {
-      isDown = true;
-      startX = e.pageX - panoramaViewport.offsetLeft;
-      scrollLeft = panoramaViewport.scrollLeft;
-    });
-
-    window.addEventListener('mouseup', () => {
-      isDown = false;
-    });
-
-    panoramaViewport.addEventListener('mousemove', (e) => {
-      if (!isDown) return;
-      e.preventDefault();
-      const x = e.pageX - panoramaViewport.offsetLeft;
-      const walk = (x - startX) * 1.5; // 드래그 감도
-      panoramaViewport.scrollLeft = scrollLeft - walk;
-    });
-
-    // 핫스팟 클릭 연결
-    document.querySelectorAll('.spirit-hotspot').forEach(spot => {
-      spot.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const spiritId = spot.getAttribute('data-spirit');
+  // ================= 6. 신령 열 분 카드 선택 상호작용 =================
+  function setupSpiritsMenu() {
+    document.querySelectorAll('.spirit-card').forEach(card => {
+      if (card._boundClick) return;
+      card._boundClick = true;
+      card.addEventListener('click', (e) => {
+        e.preventDefault();
+        const spiritId = card.getAttribute('data-spirit');
         const found = SPIRITS_DATA.find(s => s.id === spiritId);
         if (found) openChamber(found);
       });
@@ -1108,16 +1073,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 3) 9:16 모바일 마당 전환 (깜빡임 없이 즉시 활성화)
+    // 3) 처소 스테이지 활성화 (메뉴판 비활성화)
+    if (stageSpirits) stageSpirits.classList.remove('active');
     if (stageCourtyard) stageCourtyard.classList.remove('active');
     if (stageChamber) stageChamber.classList.add('active');
   }
 
-  // 마당으로 복귀
+  // 신령 메뉴판으로 복귀
   if (btnExitChamber) {
     btnExitChamber.addEventListener('click', () => {
       if (stageChamber) stageChamber.classList.remove('active');
-      if (stageCourtyard) stageCourtyard.classList.add('active');
+      if (stageSpirits) stageSpirits.classList.add('active');
       if (chamberSpiritVideo) chamberSpiritVideo.pause();
       stopChamberParticles();
       hideConsult();

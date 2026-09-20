@@ -247,56 +247,190 @@ body {
   width: 100%;
 }
 
-/* ================= STAGE 3: 16:9 와이드 신령계 마당 파노라마 ================= */
-#stageCourtyard {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  overflow: hidden;
-}
-
-/* 16:9 가로 파노라마 드래그 뷰포트 */
-.panorama-viewport {
+/* ================= STAGE 3: 10대 신령 메뉴판 ================= */
+.spirits-menu-section {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  overflow-x: scroll;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-  cursor: grab;
-  user-select: none;
-  scrollbar-width: none;
-  /* Firefox */
-}
-
-.panorama-viewport::-webkit-scrollbar {
+  background: radial-gradient(circle at 50% 12%, rgba(28, 22, 38, 0.98) 0%, rgba(10, 8, 14, 0.99) 65%, #050408 100%);
   display: none;
-  /* Chrome/Safari */
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 22px 14px 24px 14px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  z-index: 10;
 }
 
-.panorama-viewport:active {
-  cursor: grabbing;
+.spirits-menu-section::-webkit-scrollbar {
+  display: none;
 }
 
-/* 16:9 원본 비율 유지 캔버스: 세로 100%에 맞춰 가로 확장 */
-.panorama-canvas {
+.spirits-menu-section.active {
+  display: flex !important;
+}
+
+/* 메뉴판 상단 헤더 */
+.spirits-menu-header {
+  text-align: center;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.spirits-menu-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(22, 19, 28, 0.88);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 20px;
+  padding: 3px 12px;
+  margin-bottom: 7px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.user-seal-mark {
+  background: #a92020;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 900;
+  padding: 1px 5px;
+  border-radius: 4px;
+  letter-spacing: -0.02em;
+}
+
+.user-name-text {
+  font-size: 0.76rem;
+  color: var(--gold-light, #f5d77f);
+  font-weight: 600;
+}
+
+.spirits-menu-title {
+  font-family: var(--font-myeongjo, serif);
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 3px 0;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.spirits-menu-desc {
+  font-size: 0.73rem;
+  color: rgba(212, 175, 55, 0.75);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+/* 카드 10장 2열 그리드 (모바일 390px 폭에서 한눈에 들어오는 2x5 그리드) */
+.spirits-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* 개별 신령 카드 */
+.spirit-card {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: linear-gradient(135deg, rgba(26, 22, 34, 0.9) 0%, rgba(13, 11, 18, 0.96) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 12px;
+  padding: 7px 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
   position: relative;
-  height: 100%;
-  width: calc(100vh * (16 / 9));
-  min-width: 1000px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  -webkit-tap-highlight-color: transparent;
+  min-height: 74px;
+  box-sizing: border-box;
 }
 
-.panorama-image {
+.spirit-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  display: block;
+  background: radial-gradient(circle at 15% 50%, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
   pointer-events: none;
 }
 
-/* AI 생성 워터마크 가림막 (마당 원본 이미지 왼쪽 밑 / 대면 처소 양쪽 밑). 딱딱한 박스 대신 배경에 자연스럽게 녹아드는 어두운 번짐 */
+.spirit-card:hover {
+  border-color: rgba(212, 175, 55, 0.7);
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.2);
+  transform: translateY(-2px);
+}
+
+.spirit-card:active {
+  transform: scale(0.97);
+  border-color: rgba(212, 175, 55, 0.9);
+  background: linear-gradient(135deg, rgba(38, 30, 52, 0.95) 0%, rgba(20, 16, 28, 0.98) 100%);
+}
+
+/* 신령 얼굴 3:4 프레임 */
+.spirit-card-img-wrap {
+  width: 48px;
+  height: 64px; /* 3:4 비율 */
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: #0d0c14;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.spirit-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%; /* 얼굴이 위쪽 1/3에 위치하여 크롭 */
+  display: block;
+  transition: transform 0.25s ease;
+}
+
+.spirit-card:hover .spirit-card-img {
+  transform: scale(1.05);
+}
+
+/* 카드 본문 (이름 + 물음) */
+.spirit-card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.spirit-card-name {
+  font-family: var(--font-myeongjo, serif);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.spirit-card-question {
+  font-size: 0.72rem;
+  color: var(--gold-light, #f5d77f);
+  line-height: 1.3;
+  margin-top: 3px;
+  word-break: keep-all;
+  font-weight: 500;
+}
+
+/* AI 생성 워터마크 가림막 */
 .watermark-mask-bl {
   position: absolute;
   left: 0;
@@ -308,261 +442,42 @@ body {
   background: radial-gradient(ellipse at bottom left, rgba(4, 3, 8, 0.92) 0%, rgba(4, 3, 8, 0.6) 50%, rgba(4, 3, 8, 0) 100%);
 }
 
-/* 신령 핫스팟 (파노라마 위 핀) */
-.spirit-hotspot {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  cursor: pointer;
-  z-index: 15;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transition: transform 0.2s ease;
-}
 
-.spirit-hotspot:hover,
-.spirit-hotspot:active {
-  transform: translate(-50%, -50%) scale(1.1);
-}
-
-.hotspot-pulse {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(212, 175, 55, 0.35);
-  border: 2px solid var(--gold-light);
-  box-shadow: 0 0 20px var(--gold-primary), inset 0 0 10px var(--gold-primary);
-  animation: hotspotRipple 2.2s infinite;
-}
-
-.pink-pulse {
-  background: rgba(255, 150, 180, 0.4);
-  border-color: #ffb6c1;
-  box-shadow: 0 0 16px #ff69b4;
-}
-
-.blue-pulse {
-  background: rgba(100, 180, 255, 0.4);
-  border-color: #b0e0e6;
-  box-shadow: 0 0 16px #00bfff;
-}
-
-.red-pulse {
-  background: rgba(220, 20, 60, 0.4);
-  border-color: #ff6b81;
-  box-shadow: 0 0 16px #ff4757;
-}
-
-@keyframes hotspotRipple {
-  0% {
-    transform: scale(0.9);
-    opacity: 0.9;
-  }
-
-  50% {
-    transform: scale(1.25);
-    opacity: 0.4;
-  }
-
-  100% {
-    transform: scale(0.9);
-    opacity: 0.9;
-  }
-}
-
-.hotspot-tag {
-  margin-top: 4px;
-  background: rgba(8, 8, 14, 0.88);
-  border: 1px solid var(--border-gold);
-  border-radius: 12px;
-  padding: 3px 8px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #fff;
-  white-space: nowrap;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
-}
-
-.hotspot-tag span {
-  color: var(--gold-light);
-  font-size: 0.65rem;
-  margin-left: 3px;
-}
-
-.hotspot-tag.highlight {
-  border-color: #ffdf78;
-  background: rgba(26, 20, 8, 0.9);
-}
-
-/* 상단 HUD: #stageCourtyard.active 상태일 때만 노출 (첫 대문 등 다른 스테이지로 누출 차단) */
-.courtyard-top-hud {
-  display: none !important;
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  z-index: 20;
-  padding: 0;
-  align-items: center;
-  gap: 10px;
-  pointer-events: none;
-  max-width: calc(100% - 130px);
-}
-
-#stageCourtyard.active .courtyard-top-hud {
-  display: flex !important;
-}
-
-.user-pill {
-  pointer-events: auto;
-  background: rgba(10, 10, 18, 0.8);
-  border: 1px solid var(--border-gold);
-  border-radius: 20px;
-  padding: 6px 12px;
-  font-size: 0.8rem;
-  color: var(--gold-light);
-  backdrop-filter: blur(10px);
-}
-
-.hud-logo {
-  height: 34px;
-  border-radius: 6px;
-}
-
-/* 좌우 스와이프 안내 툴팁: #stageCourtyard.active 상태일 때만 노출 (다른 스테이지로 누출 차단) */
-#dragGuide {
-  display: none !important;
-  position: absolute;
-  top: 70px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 20;
-  background: rgba(6, 6, 12, 0.75);
-  border: 1px solid rgba(212, 175, 55, 0.5);
-  border-radius: 20px;
-  padding: 6px 14px;
-  font-size: 0.75rem;
-  color: #fff;
-  align-items: center;
-  gap: 6px;
-  backdrop-filter: blur(8px);
-  pointer-events: none;
-  animation: guideFade 5s forwards;
-  white-space: nowrap;
-  max-width: calc(100% - 32px);
-}
-
-#stageCourtyard.active #dragGuide {
-  display: flex !important;
-}
-
-.swipe-hand {
-  font-size: 0.9rem;
-}
-
-@keyframes guideFade {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -10px);
-  }
-
-  15% {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-
-  75% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -10px);
-  }
-}
-
-/* 하단 신령 인장 트레이 */
-.courtyard-spirits-tray {
-  position: relative;
-  z-index: 20;
-  padding: 12px 14px 24px 14px;
-  background: linear-gradient(180deg, rgba(10, 10, 16, 0) 0%, rgba(8, 8, 14, 0.92) 40%, rgba(6, 6, 10, 0.98) 100%);
-  border-top: 1px solid rgba(212, 175, 55, 0.3);
-  backdrop-filter: blur(8px);
-}
-
-.spirits-scroll-strip {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding: 4px 2px;
-}
-
-.spirits-scroll-strip::-webkit-scrollbar {
-  display: none;
-}
-
-.spirit-orb-item {
-  flex: 0 0 68px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.spirit-orb-item:active {
-  transform: scale(0.92);
-}
-
-.spirit-orb-ring {
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  padding: 2px;
-  background: linear-gradient(135deg, var(--gold-primary), #5a4510);
-  position: relative;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.8);
-}
-
-.spirit-orb-ring img {
+/* ================= SAJU INPUT MODAL (사주 신상 정보 입력 창) ================= */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.spirit-orb-badge {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  background: var(--crimson);
-  color: #fff;
-  font-size: 0.65rem;
-  font-weight: 900;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  z-index: 200;
+  display: none;
   justify-content: center;
-  border: 1px solid #fff;
+  align-items: flex-end;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-.spirit-orb-name {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #fff;
-  margin-top: 4px;
+.modal-backdrop.active {
+  display: flex !important;
+  opacity: 1;
 }
 
-.spirit-orb-domain {
-  font-size: 0.62rem;
-  color: var(--gold-light);
+.modal-dialog {
+  width: 100%;
+  max-width: 460px;
+  max-height: 88vh;
+  background: rgba(16, 16, 26, 0.98);
+  border-top: 2px solid var(--border-gold, rgba(212, 175, 55, 0.4));
+  border-radius: 28px 28px 0 0;
+  padding: 24px 20px 36px 20px;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.9);
 }
 
-/* ================= SAJU INPUT MODAL (무단침입 방지 Checkpoint) ================= */
 .saju-modal-header {
   text-align: center;
   margin-bottom: 20px;
@@ -571,9 +486,9 @@ body {
 .saju-modal-title {
   font-size: 1.15rem;
   font-weight: 900;
-  color: var(--gold-light);
+  color: var(--gold-light, #f5d77f);
   line-height: 1.45;
-  font-family: var(--font-serif);
+  font-family: var(--font-serif, serif);
 }
 
 .saju-form {
@@ -598,7 +513,7 @@ body {
 .form-group label {
   display: block;
   font-size: 0.8rem;
-  color: var(--gold-light);
+  color: var(--gold-light, #f5d77f);
   margin-bottom: 6px;
   font-weight: 600;
 }
@@ -608,12 +523,13 @@ body {
   width: 100%;
   padding: 12px 14px;
   background: rgba(8, 8, 14, 0.85);
-  border: 1px solid var(--border-glass);
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.15));
   border-radius: 10px;
   color: #fff;
-  font-family: var(--font-main);
+  font-family: var(--font-main, sans-serif);
   font-size: 0.9rem;
   outline: none;
+  box-sizing: border-box;
 }
 
 .gender-toggle {
@@ -626,433 +542,19 @@ body {
   padding: 12px;
   text-align: center;
   background: rgba(8, 8, 14, 0.85);
-  border: 1px solid var(--border-glass);
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.15));
   border-radius: 10px;
-  color: var(--text-muted);
+  color: var(--text-muted, #999);
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.2s ease;
 }
 
 .gender-btn.active {
   background: rgba(212, 175, 55, 0.25);
-  border-color: var(--gold-primary);
-  color: var(--gold-light);
-}
-
-/* ================= MODAL & DETAILS ================= */
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(12px);
-  z-index: 200;
-  display: none;
-  justify-content: center;
-  align-items: flex-end;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.modal-backdrop.active {
-  display: flex;
-  opacity: 1;
-}
-
-.modal-dialog {
-  width: 100%;
-  max-width: 460px;
-  max-height: 88vh;
-  background: rgba(16, 16, 26, 0.98);
-  border-top: 2px solid var(--border-gold);
-  border-radius: 28px 28px 0 0;
-  padding: 24px 20px 36px 20px;
-  overflow-y: auto;
-  position: relative;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.9);
-}
-
-.modal-spirit-profile {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  margin-bottom: 18px;
-}
-
-.modal-avatar {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  border: 2px solid var(--gold-primary);
-  object-fit: cover;
-}
-
-.modal-spirit-info {
-  flex: 1;
-}
-
-.modal-title {
-  font-size: 1.25rem;
-  font-weight: 900;
-  color: #fff;
-}
-
-.spirit-tag {
-  font-size: 0.75rem;
-  color: var(--gold-light);
-  margin: 2px 0 6px 0;
-}
-
-.modal-opener {
-  font-size: 0.82rem;
-  color: #e0e0ee;
-  line-height: 1.4;
-}
-
-.modal-product-tabs {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  margin-bottom: 16px;
-}
-
-.modal-product-tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.p-tab-btn {
-  flex: 0 0 auto;
-  padding: 8px 14px;
-  background: rgba(8, 8, 14, 0.8);
-  border: 1px solid var(--border-glass);
-  border-radius: 12px;
-  color: var(--text-muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.p-tab-btn.active {
-  background: rgba(212, 175, 55, 0.25);
-  border-color: var(--gold-primary);
-  color: #fff;
-  font-weight: 700;
-}
-
-.product-detail-card {
-  background: rgba(10, 10, 18, 0.85);
-  border: 1px solid var(--border-glass);
-  border-radius: 18px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.hook-question-box {
-  background: rgba(158, 27, 50, 0.15);
-  border-left: 4px solid var(--crimson);
-  border-radius: 10px;
-  padding: 12px 14px;
-}
-
-.hook-label {
-  display: inline-block;
-  font-size: 0.72rem;
-  font-weight: 900;
-  color: #ff6b81;
-  margin-bottom: 4px;
-}
-
-.hook-content {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1.45;
-}
-
-.packaging-box {
-  background: rgba(212, 175, 55, 0.1);
-  border-left: 4px solid var(--gold-primary);
-  border-radius: 10px;
-  padding: 10px 14px;
-}
-
-.packaging-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--gold-light);
-  margin-bottom: 2px;
-}
-
-.packaging-content {
-  font-size: 0.88rem;
-  color: #f0f0fa;
-  line-height: 1.4;
-}
-
-.scan-experience-box {
-  background: rgba(8, 8, 14, 0.95);
-  border: 1px solid var(--border-gold);
-  border-radius: 14px;
-  padding: 14px;
-  text-align: center;
-}
-
-.scan-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.scan-badge {
-  font-size: 0.7rem;
-  background: var(--crimson);
-  color: #fff;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-weight: 700;
-}
-
-.scan-title {
-  font-size: 0.82rem;
-  color: var(--gold-light);
-  font-weight: 700;
-}
-
-.scan-guide {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-}
-
-.scan-progress-bar {
-  width: 100%;
-  height: 8px;
-  background: #1a1a24;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 6px;
-}
-
-.scan-progress-fill {
-  width: 0%;
-  height: 100%;
-  background: linear-gradient(90deg, var(--gold-primary), #ff6b81);
-  transition: width 0.3s;
-}
-
-.scan-progress-text {
-  font-size: 0.72rem;
-  color: var(--gold-light);
-  display: block;
-  margin-bottom: 10px;
-}
-
-.btn-scan {
-  padding: 8px 18px;
-  background: rgba(212, 175, 55, 0.25);
-  border: 1px solid var(--gold-primary);
-  border-radius: 10px;
-  color: #fff;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.scan-result {
-  margin-top: 10px;
-  padding: 8px;
-  background: rgba(212, 175, 55, 0.15);
-  border-radius: 8px;
-  font-size: 0.78rem;
-  color: var(--gold-light);
-  font-weight: 700;
-}
-
-.stages-timeline {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 6px;
-}
-
-.timeline-item {
-  background: rgba(14, 14, 22, 0.85);
-  border: 1px solid var(--border-glass);
-  border-radius: 12px;
-  padding: 12px 14px;
-}
-
-.timeline-item.opened {
-  border-color: rgba(212, 175, 55, 0.4);
-}
-
-.t-badge {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--gold-light);
-  margin-bottom: 4px;
-}
-
-.t-badge.locked-badge {
-  color: var(--text-muted);
-}
-
-.t-title {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 4px;
-}
-
-.t-desc {
-  font-size: 0.8rem;
-  color: #d0d0e0;
-  line-height: 1.45;
-}
-
-.locked-overlay {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  background: rgba(0, 0, 0, 0.5);
-  padding: 8px;
-  border-radius: 8px;
-  margin-top: 4px;
-}
-
-.curtain-divider {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0;
-}
-
-.curtain-line {
-  flex: 1;
-  height: 1px;
-  background: var(--border-gold);
-}
-
-.curtain-tag {
-  font-size: 0.72rem;
-  color: var(--gold-light);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.curtain-unlock-cta {
-  background: linear-gradient(180deg, rgba(24, 16, 20, 0.95), rgba(16, 12, 16, 0.98));
-  border: 1.5px solid var(--gold-primary);
-  border-radius: 16px;
-  padding: 16px;
-  text-align: center;
-  margin-top: 6px;
-}
-
-.curtain-front h4 {
-  font-size: 1.05rem;
-  font-weight: 900;
-  color: #fff;
-  margin-bottom: 4px;
-}
-
-.curtain-front p {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-bottom: 12px;
-}
-
-.btn-unlock {
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, var(--crimson), #781222);
-  border: 1px solid #ff4757;
-  border-radius: 12px;
-  color: #fff;
-  font-weight: 900;
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
-.price-anchor-banner {
-  margin-bottom: 12px;
-}
-
-.badge-chuseok {
-  display: inline-block;
-  background: var(--crimson);
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 900;
-  padding: 2px 8px;
-  border-radius: 8px;
-  margin-bottom: 6px;
-}
-
-.price-row {
-  display: flex;
-  justify-content: center;
-  align-items: baseline;
-  gap: 10px;
-}
-
-.price-original {
-  text-decoration: line-through;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-.price-sale {
-  color: var(--gold-primary);
-  font-size: 1.45rem;
-  font-weight: 900;
-}
-
-.cross-sell-box {
-  background: rgba(8, 8, 14, 0.85);
-  border: 1px solid var(--border-gold);
-  border-radius: 10px;
-  padding: 10px 12px;
-  margin-bottom: 14px;
-  text-align: left;
-}
-
-.cross-sell-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  font-size: 0.8rem;
-}
-
-.cross-text {
-  flex: 1;
-  line-height: 1.35;
-  color: #eaeaf0;
-}
-
-.cross-price {
-  font-weight: 700;
-  color: var(--gold-light);
-}
-
-/* 하단 바 완전 제거 */
-.courtyard-spirits-tray {
-  display: none !important;
-}
-
-.hotspot-tag {
-  display: none !important;
+  border-color: var(--gold-primary, #d4af37);
+  color: var(--gold-light, #f5d77f);
 }
 
 /* ================= STAGE 4: 100% 2K 신령 1:1 대면 처소 (9:16 세로 풀스크린) ================= */

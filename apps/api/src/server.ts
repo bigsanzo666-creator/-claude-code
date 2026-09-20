@@ -181,80 +181,130 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
       <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
     </section>
 
-    <!-- ================= STAGE 3: 16:9 와이드 신령계 마당 파노라마 (좌우 드래그) ================= -->
-    <section id="stageCourtyard" class="stage-section">
-      <div class="panorama-viewport" id="panoramaViewport">
-        <div class="panorama-canvas" id="panoramaCanvas">
-          <img src="assets/신령계_마스터_2752.jpeg" alt="신령계 마당 전경" class="panorama-image" draggable="false">
-
-          <!-- 1. 재신령 -->
-          <div class="spirit-hotspot" data-spirit="jae" style="left: 14%; top: 68%;">
-            <div class="hotspot-pulse gold-pulse"></div>
-          </div>
-
-          <!-- 2. 풍신령 -->
-          <div class="spirit-hotspot" data-spirit="pung" style="left: 22.5%; top: 33%;">
-            <div class="hotspot-pulse gold-pulse"></div>
-          </div>
-
-          <!-- 3. 도화신령 -->
-          <div class="spirit-hotspot" data-spirit="dohwa" style="left: 38%; top: 82%;">
-            <div class="hotspot-pulse pink-pulse"></div>
-          </div>
-
-          <!-- 4. 산신령 -->
-          <div class="spirit-hotspot" data-spirit="san" style="left: 50%; top: 63%;">
-            <div class="hotspot-pulse gold-pulse"></div>
-          </div>
-
-          <!-- 5. 명경신령 -->
-          <div class="spirit-hotspot" data-spirit="myeonggyeong" style="left: 53.5%; top: 82%;">
-            <div class="hotspot-pulse blue-pulse"></div>
-          </div>
-
-          <!-- 6. 삼합신령 -->
-          <div class="spirit-hotspot" data-spirit="samhap" style="left: 60%; top: 82%;">
-            <div class="hotspot-pulse gold-pulse"></div>
-          </div>
-
-          <!-- 7. 월신령 -->
-          <div class="spirit-hotspot" data-spirit="wol" style="left: 59.5%; top: 33%;">
-            <div class="hotspot-pulse blue-pulse"></div>
-          </div>
-
-          <!-- 8. 작명신령 -->
-          <div class="spirit-hotspot" data-spirit="jakmyeong" style="left: 76.5%; top: 69%;">
-            <div class="hotspot-pulse gold-pulse"></div>
-          </div>
-
-          <!-- 9. 삼신할매 -->
-          <div class="spirit-hotspot" data-spirit="samsin" style="left: 80%; top: 67%;">
-            <div class="hotspot-pulse gold-pulse"></div>
-          </div>
-
-          <!-- 10. 실신령 -->
-          <div class="spirit-hotspot" data-spirit="yeon" style="left: 88%; top: 72%;">
-            <div class="hotspot-pulse red-pulse"></div>
-          </div>
-
-          <!-- 마당 원본 이미지 맨 왼쪽 밑 워터마크 가림막 (이미지와 함께 스크롤되도록 panorama-canvas 안에 배치) -->
-          <div class="watermark-mask-bl"></div>
-        </div>
-      </div>
-
-      <!-- 상단 오버레이 HUD (마당 전용, #stageCourtyard.active 상태에서만 노출) -->
-      <div class="courtyard-top-hud">
-        <div class="user-pill" id="userInfoDisplay">
-          <span class="user-icon">🏮</span>
+    <!-- ================= STAGE 3: 10대 신령 메뉴판 ================= -->
+    <section id="stageSpirits" class="stage-section spirits-menu-section">
+      <div class="spirits-menu-header">
+        <div class="spirits-menu-user" id="userInfoDisplay">
+          <span class="user-seal-mark">늘봄</span>
           <span class="user-name-text">명식 봉인 해제</span>
         </div>
-        <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="hud-logo">
+        <h2 class="spirits-menu-title">어떤 물음을 품고 오셨습니까</h2>
+        <p class="spirits-menu-desc">마음이 닿는 신령을 선택하면 1:1 대면 처소로 모십니다</p>
       </div>
 
-      <!-- 마당 전용 안내 툴팁 (마당 활성화 시에만 노출, 항상 한 줄로 표시) -->
-      <div class="panorama-drag-guide" id="dragGuide">
-        <span class="guide-msg">👈 👉 좌우로 밀어서 10대 신령의 터를 둘러보세요</span>
+      <div class="spirits-grid" id="spiritsGrid">
+        <!-- 1. 도화신령 -->
+        <button type="button" class="spirit-card" data-spirit="dohwa" aria-label="도화신령: 이 사람, 어떨까?">
+          <div class="spirit-card-img-wrap">
+            <img src="/img/spirits/flower" alt="도화신령" class="spirit-card-img" loading="eager">
+          </div>
+          <div class="spirit-card-body">
+            <div class="spirit-card-name">도화신령</div>
+            <div class="spirit-card-question">이 사람, 어떨까?</div>
+          </div>
+        </button>
+
+        <!-- 2. 월신령 -->
+        <button type="button" class="spirit-card" data-spirit="wol" aria-label="월신령: 다시 만날 수 있을까?">
+          <div class="spirit-card-img-wrap">
+            <img src="/img/spirits/moon" alt="월신령" class="spirit-card-img" loading="eager">
+          </div>
+          <div class="spirit-card-body">
+            <div class="spirit-card-name">월신령</div>
+            <div class="spirit-card-question">다시 만날 수 있을까?</div>
+          </div>
+        </button>
+
+        <!-- 3. 연신령 -->
+        <button type="button" class="spirit-card" data-spirit="yeon" aria-label="연신령: 우리, 잘 맞을까?">
+          <div class="spirit-card-img-wrap">
+            <img src="/img/spirits/thread" alt="연신령" class="spirit-card-img" loading="eager">
+          </div>
+          <div class="spirit-card-body">
+            <div class="spirit-card-name">연신령</div>
+            <div class="spirit-card-question">우리, 잘 맞을까?</div>
+          </div>
+        </button>
+
+        <!-- 4. 산신령 -->
+        <button type="button" class="spirit-card" data-spirit="san" aria-label="산신령: 우리 아이는 어떤 아이일까?">
+          <div class="spirit-card-img-wrap">
+            <img src="/img/spirits/mountain" alt="산신령" class="spirit-card-img" loading="eager">
+          </div>
+          <div class="spirit-card-body">
+            <div class="spirit-card-name">산신령</div>
+            <div class="spirit-card-question">우리 아이는 어떤 아이일까?</div>
+          </div>
+        </button>
+
+        <!-- 5. 작명신령 -->
+        <button type="button" class="spirit-card" data-spirit="jakmyeong" aria-label="작명신령: 우리 아이 이름, 뭐로 지을까?">
+          <div class="spirit-card-img-wrap">
+            <img src="/img/spirits/name" alt="작명신령" class="spirit-card-img" loading="eager">
+          </div>
+          <div class="spirit-card-body">
+            <div class="spirit-card-name">작명신령</div>
+            <div class="spirit-card-question">우리 아이 이름, 뭐로 지을까?</div>
+          </div>
+        </button>
+
+        <!-- 6. 삼신할매 -->
+        <button type="button" class="spirit-card" data-spirit="samsin" aria-label="삼신할매: 언제 낳는 게 좋을까?">
+          <div class="spirit-card-img-wrap">
+            <img src="/img/spirits/birth" alt="삼신할매" class="spirit-card-img" loading="eager">
+          </div>
+          <div class="spirit-card-body">
+            <div class="spirit-card-name">삼신할매</div>
+            <div class="spirit-card-question">언제 낳는 게 좋을까?</div>
+          </div>
+        </button>
+
+        <!-- 7. 명경신령 -->
+        <button type="button" class="spirit-card" data-spirit="myeonggyeong" aria-label="명경신령: 나는 어떤 사람일까?">
+          <div class="spirit-card-img-wrap">
+            <img src="/img/spirits/mirror" alt="명경신령" class="spirit-card-img" loading="eager">
+          </div>
+          <div class="spirit-card-body">
+            <div class="spirit-card-name">명경신령</div>
+            <div class="spirit-card-question">나는 어떤 사람일까?</div>
+          </div>
+        </button>
+
+        <!-- 8. 삼합신령 -->
+        <button type="button" class="spirit-card" data-spirit="samhap" aria-label="삼합신령: 셋이 같은 말을 할까?">
+          <div class="spirit-card-img-wrap">
+            <img src="/img/spirits/cross" alt="삼합신령" class="spirit-card-img" loading="eager">
+          </div>
+          <div class="spirit-card-body">
+            <div class="spirit-card-name">삼합신령</div>
+            <div class="spirit-card-question">셋이 같은 말을 할까?</div>
+          </div>
+        </button>
+
+        <!-- 9. 재신령 -->
+        <button type="button" class="spirit-card" data-spirit="jae" aria-label="재신령: 먹고사는 일은 풀릴까?">
+          <div class="spirit-card-img-wrap">
+            <img src="/img/spirits/jar" alt="재신령" class="spirit-card-img" loading="eager">
+          </div>
+          <div class="spirit-card-body">
+            <div class="spirit-card-name">재신령</div>
+            <div class="spirit-card-question">먹고사는 일은 풀릴까?</div>
+          </div>
+        </button>
+
+        <!-- 10. 풍신령 -->
+        <button type="button" class="spirit-card" data-spirit="pung" aria-label="풍신령: 지금 움직여도 될까?">
+          <div class="spirit-card-img-wrap">
+            <img src="/img/spirits/wind" alt="풍신령" class="spirit-card-img" loading="eager">
+          </div>
+          <div class="spirit-card-body">
+            <div class="spirit-card-name">풍신령</div>
+            <div class="spirit-card-question">지금 움직여도 될까?</div>
+          </div>
+        </button>
       </div>
+
+      <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
     </section>
 
     <!-- ================= STAGE 4: 100% 2K 신령 1:1 대면 처소 (9:16 모바일 세로 풀스크린) ================= -->
