@@ -439,7 +439,9 @@ body {
   bottom: 0;
   width: 150px;
   height: 60px;
-  z-index: 30;
+  /* 영상(1)·티끌(2) 위, 상담칸(18) 아래. 30 으로 두면 「다음으로」 버튼
+     왼쪽 아래를 검게 덮는다 — 실제로 그렇게 나갔다 */
+  z-index: 3;
   pointer-events: none;
   background: radial-gradient(ellipse at bottom left, rgba(4, 3, 8, 0.92) 0%, rgba(4, 3, 8, 0.6) 50%, rgba(4, 3, 8, 0) 100%);
 }
@@ -872,7 +874,7 @@ body {
   position: absolute;
   bottom: 14px;
   right: 14px;
-  z-index: 30;
+  z-index: 3;
   height: 30px;
   width: auto;
   opacity: 0.92;
