@@ -386,13 +386,19 @@ export const SPIRITS_CSS = `
 .sp-veil{display:none}
 .sp-here .sp-veil{display:block;position:absolute;inset:0;background:
   linear-gradient(to bottom,var(--nb-veil-0),var(--nb-veil-1) 52%,var(--nb-paper) 98%)}
-.sp-said{position:relative;display:flex;align-items:flex-start;gap:14px;min-width:0}
+/* 이름 줄과 대사는 위아래로 쌓인다. row 로 두면 좁은 칸에서 대사가
+   두 단어씩 끊겨 내려간다 — 상품 화면에서 실제로 그렇게 나갔다 */
+.sp-said{position:relative;display:flex;flex-direction:column;align-items:flex-start;
+  gap:2px;min-width:0;flex:1 1 auto}
 .sp-words{min-width:0}
 .sp-here .sp-said{padding-top:96px}
 .sp-head .sp-face{width:60px;height:60px}
 .sp-head .pr-q{margin:2px 0 6px}
 .sp-place{color:var(--nb-ink-3);letter-spacing:.06em}
-.sp-who{margin:0 0 2px;font-size:12px;letter-spacing:.2em;color:var(--nb-gold)}
+/* 한글에 자간 .2em 을 주면 「도 화 / 신 령」 으로 쪼개져 내려간다.
+   이름은 한 덩어리로 붙여 두고, 줄도 바꾸지 않는다 */
+.sp-who{margin:0 0 2px;font-size:12px;letter-spacing:.04em;color:var(--nb-gold);
+  white-space:nowrap}
 .sp-keeps{color:var(--nb-ink-3);letter-spacing:0}
 .sp-line{margin:0;font-size:14.5px;line-height:1.75;color:var(--nb-ink-2);word-break:keep-all}
 

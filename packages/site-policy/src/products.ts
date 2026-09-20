@@ -689,7 +689,7 @@ html,body{overflow-x:clip;max-width:100%}
 .pd-no b{color:var(--nb-ink)}
 
 /* 실제로 나가는 글의 앞부분. 그림으로 보여 주고 글로 주지 않는 짓은 안 한다 */
-.pd-samp{white-space:pre-wrap;font-size:14.5px;line-height:1.9;color:var(--nb-ink-2);
+.pd-samp{white-space:pre-wrap;font-size:14.5px;line-height:1.75;color:var(--nb-ink-2);
   padding:18px 18px;background:var(--nb-paper-3);border-radius:8px;word-break:keep-all}
 .pd-samp-n{margin:12px 0 0;font-size:12.5px;line-height:1.7;color:var(--nb-ink-3);word-break:keep-all}
 
@@ -783,8 +783,9 @@ body {
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--gold-light);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  /* 한글은 자간을 벌리면 글자가 따로 논다 — 0.18em 이면 「도 화 신 령」 으로 읽힌다.
+     uppercase 는 한글에 아무 일도 하지 않으므로 뺀다 */
+  letter-spacing: 0.06em;
   text-shadow: 0 2px 4px rgba(0,0,0,0.9);
 }
 
@@ -963,6 +964,9 @@ body {
   color: var(--gold-light);
   font-size: 0.82rem;
   font-weight: 700;
+  /* 「하나」가 좁은 칸에서 「하 / 나」로 쪼개져 내려갔다. 줄을 안 바꾸게 못 박는다 */
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .pd-sample-card-title {
@@ -1117,8 +1121,10 @@ body {
 
 .pd-cross-thumb {
   width: 100%;
-  aspect-ratio: 3 / 2;
+  /* 상품 그림은 세로 3:4 다. 3:2 로 눌러 담으면 인물 얼굴이 잘려 나간다 */
+  aspect-ratio: 3 / 4;
   object-fit: cover;
+  object-position: center 22%;
   display: block;
 }
 
@@ -1379,7 +1385,7 @@ export function renderProductPage(
     <div class="pd-cross-items">
       ${otherProducts.map((op) => {
         const opThumb = images.has(op.id)
-          ? `<img src="/img/products/${op.id}" alt="" class="pd-cross-thumb" loading="lazy" width="160" height="106">`
+          ? `<img src="/img/products/${op.id}" alt="" class="pd-cross-thumb" loading="lazy" width="160" height="213">`
           : '';
         return `
         <a href="/products/${encodeURIComponent(op.id)}" class="pd-cross-card">
