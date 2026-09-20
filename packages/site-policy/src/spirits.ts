@@ -93,7 +93,7 @@ export const SPIRITS: Spirit[] = [
     greet: '떠난 사람은 물에 비친 달 같아. 그래도 하늘에 달은 남아 있지.',
     intro: '지나간 사람이 돌아올 자리가 있는지 봅니다.',
     // 정사각형에 얼굴이 작게 들어온 그림. 얼굴부터 달 윗부분까지만 당겨 쓴다
-    crop: { zoom: 2.5, down: '66%' },
+    crop: { zoom: 4.2, down: '40%' },
   },
   {
     id: 'thread', name: '연신령', seal: '緣', aka: ['실신령'], keeps: '궁합', place: '실터',
@@ -149,7 +149,7 @@ export const SPIRITS: Spirit[] = [
     greet: '사주는 타고난 것, 얼굴은 드러난 것, 손금은 살아온 것이야. 셋을 겹쳐야 네가 보여.',
     intro: '사주·관상·손금 셋을 겹쳐서 봅니다.',
     // 그림에서 얼굴이 작게 들어왔다. 다른 신령들과 얼굴 크기를 맞춘다
-    crop: { zoom: 1.95, down: '30%' },
+    crop: { zoom: 2.4, down: '24%' },
   },
   {
     id: 'jar', name: '재신령', seal: '財', aka: ['곳간신령'], keeps: '돈과 일', place: '곳간터',
@@ -163,7 +163,7 @@ export const SPIRITS: Spirit[] = [
     holds: '처마 끝 풍경(風磬)',
     greet: '바람이 불면 종이 울려. 지금 울리는지 같이 들어 보자.',
     intro: '지금이 움직일 때인지 봅니다.',
-    crop: { zoom: 1.5, down: '24%' },
+    crop: { zoom: 3.0, down: '30%' },
   },
 ];
 
