@@ -393,8 +393,9 @@ body {
 }
 
 .strip-spirit-face {
-  width: 32px !important;
-  height: 32px !important;
+  /* 32px 은 손톱만 해서 누구인지 알아볼 수가 없다. 좋은 그림을 안 쓰는 셈 */
+  width: 56px !important;
+  height: 56px !important;
   border-radius: 50% !important;
   border: 1.5px solid rgba(212, 175, 55, 0.75) !important;
   object-fit: cover !important;
@@ -499,7 +500,8 @@ body {
   font-size: 0.8rem !important;
   font-weight: 600 !important;
   color: var(--gold-light, #f5d77f) !important;
-  letter-spacing: 0.18em !important;
+  /* 한글은 자간을 벌리면 「도 화 신 령」 으로 글자가 따로 논다 */
+  letter-spacing: 0.04em !important;
   text-transform: uppercase !important;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9) !important;
 }
