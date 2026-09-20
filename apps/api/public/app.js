@@ -652,6 +652,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const step = consultSteps[consultStepIndex];
     if (!step) return;
 
+    /*
+     * 버튼에 지난번 걸어 둔 일을 지운다.
+     *
+     * 미리보기를 한 번 보고 나면 이 버튼에 「그 상품으로 가기」가 박힌다.
+     * 그런데 그것을 지우지 않아서, 다른 신령에게 가서 첫 물음에 답만 해도
+     * 지난번 상품 화면이 튀어나왔다 — 작명신령에게 이름을 묻는 도중에
+     * 매력 삼합 페이지가 뜨는 식이다.
+     *
+     * 단계를 그릴 때마다 비운다. 다음 단계로 넘기는 일은 addEventListener
+     * 쪽이 맡고 있으니, 여기서 비워도 흐름은 그대로 간다.
+     */
+    consultCta.onclick = null;
+    consultCta.disabled = false;
+
     consultSay.textContent = `“${step.say}”`;
     consultFields.innerHTML = '';
 
@@ -833,6 +847,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     chamberConsult.hidden = false;
+    consultCta.onclick = null;   // 신령을 바꿔도 지난 신령의 상품이 따라오지 않게
+    consultCta.disabled = false;
     renderConsultStep();
   }
 
