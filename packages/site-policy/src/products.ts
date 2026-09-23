@@ -161,8 +161,13 @@ const FIT: Record<string, Fit> = {
     no: '직업을 찍어 드리지 않습니다. **어느 쪽이 덜 힘든 결인지**를 봅니다.',
   },
   'family-holiday-report': {
-    yes: ['명절만 되면 마음이 무거울 때', '누구와 어느 날에 부딪힐지 미리 알고 싶을 때', '올해는 조용히 넘기고 싶을 때'],
-    no: '평생 사주를 푸는 글이 아닙니다. **연휴 나흘과 한 상에 앉는 사람들**만 봅니다. 두 사람만 깊게 보시려면 **부모·자식 궁합**입니다.',
+    yes: [
+      '부모님 질문에 자꾸 말이 짧아지는 분',
+      '시부모님 앞에서 할 말을 삼키는 분',
+      '형제와 비교하는 말에 속상해지는 분',
+      '가족 모임 뒤 배우자와 다투는 분',
+    ],
+    no: '평생 사주를 푸는 글이 아닙니다. **연휴 나흘과 한 상에 앉는 사람들**만 봅니다. 두 사람만 더 깊게 보시려면 **부모·자식 궁합**입니다.',
   },
   'parent-child-report': {
     yes: ['같은 말도 이 아이에게만 안 통할 때', '사춘기가 유난히 힘들 때', '부모인 내 문제인지 궁금할 때'],
@@ -1039,6 +1044,22 @@ body {
   font-weight: 700;
 }
 
+/* 화면 아래에 붙어 따라다니는 사는 자리 */
+.pd-sticky{position:fixed;left:0;right:0;bottom:0;z-index:40;
+  display:flex;align-items:center;gap:12px;
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+  background:rgba(10,8,16,.96);border-top:1px solid rgba(212,175,55,.35);
+  backdrop-filter:blur(8px)}
+.pd-sticky-price{flex:1 1 auto;font-family:var(--nb-serif);font-size:20px;color:#f3e5ab;
+  display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+.pd-sticky-price small{font-size:11px;color:#9a93a6;font-family:inherit}
+.pd-sticky-go{flex:0 0 auto;padding:12px 26px;border-radius:8px;text-decoration:none;
+  font-size:16px;font-weight:800;color:#1a1208;
+  background:linear-gradient(135deg,#d4af37,#f0d478)}
+/* 띠가 맨 아래 글을 가리지 않게 자리를 비워 둔다 */
+body{padding-bottom:72px}
+@media (min-width:760px){.pd-sticky{max-width:720px;margin:0 auto;border-radius:12px 12px 0 0}}
+
 /* 4. 맨 아래: 값과 결제 */
 .pd-buy {
   background: linear-gradient(135deg, rgba(28, 22, 38, 0.95) 0%, rgba(14, 11, 20, 0.98) 100%);
@@ -1508,8 +1529,30 @@ ${renderWhy()}
 </section>
 <div style="height:24px"></div>
 ${footer}
+${stickyBuy(product, ready)}
 </body>
 </html>`;
+}
+
+/**
+ * 화면 아래에 붙어 따라다니는 사는 자리.
+ *
+ * 상세페이지는 휴대폰 화면으로 일곱 장이 넘는다. 값과 사는 단추는 **맨 아래에만**
+ * 있어서, 중간에서 마음이 선 손님이 사려면 끝까지 내려가야 했다. 그 사이에
+ * 마음이 식는다.
+ *
+ * 값을 위로 올리지는 않는다 — 사장님이 값은 맨 아래에만 두기로 정했다.
+ * 대신 **아래에 붙은 띠**로 언제든 살 자리로 갈 수 있게 한다. 값은 그 띠에도
+ * 적는다. 값을 숨긴 채 단추만 내미는 것은 손님을 속이는 것이다.
+ *
+ * 거짓 급함("오늘 마감")을 쓰지 않는다. 띠는 늘 같은 말을 한다.
+ */
+function stickyBuy(product: Product, ready: boolean): string {
+  if (!ready || product.needsPick) return '';
+  return `<div class="pd-sticky">
+    <span class="pd-sticky-price">${won(product.priceKrw)}<small>부가세 포함</small></span>
+    <a class="pd-sticky-go" href="/checkout?product=${encodeURIComponent(product.id)}">받기</a>
+  </div>`;
 }
 /** 이런 분이 보시면 좋습니다 / 이건 안 보셔도 됩니다 */
 function renderFit(productId: string): string {

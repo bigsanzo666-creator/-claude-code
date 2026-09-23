@@ -294,10 +294,10 @@ export const CATALOG: Record<ProductId, Product> = {
     id: 'family-holiday-report',
     name: '명절 가족운세',
     priceKrw: 25900,
-    description: '연휴 나흘의 날마다 기운과, 한 상에 앉는 사람들끼리 맞물리는 자리를 함께 봅니다. 넷까지 같은 값입니다.',
+    description: '9월 24일부터 27일까지 날마다의 기운과, 한 상에 앉는 사람들끼리 어디서 부딪히는지를 함께 봅니다. 본인 포함 넷까지 같은 값입니다.',
     previewRatio: 0.2,
     category: '가족',
-    hook: '이번 명절, 저 사람과 또 부딪힐까?',
+    hook: '가족인데, 왜 말이 엇갈릴까?',
     needsFamily: true,
   },
   'parent-child-report': {
