@@ -1312,14 +1312,15 @@ ${footer}
  */
 function buyLink(product: Product): string {
   if (product.needsPick) return '';
+  const go = `/checkout?product=${encodeURIComponent(product.id)}`;
   if (product.needsPartner) {
-    return `<a class="pd-go" href="/?buy=${encodeURIComponent(product.id)}">두 사람 생년월일 넣고 받기</a>`;
+    return `<a class="pd-go" href="${go}">두 사람 생년월일 넣고 받기</a>`;
   }
   if (product.needsFace) {
-    return `<a class="pd-go" href="/?buy=${encodeURIComponent(product.id)}">얼굴·손까지 넣고 받기</a>`
+    return `<a class="pd-go" href="${go}">얼굴·손까지 넣고 받기</a>`
       + '<p class="pd-also">사진은 기기 밖으로 나가지 않습니다. 화면에서 특징만 고르시면 됩니다.</p>';
   }
-  return `<a class="pd-go" href="/?buy=${encodeURIComponent(product.id)}">생년월일 넣고 받기</a>`
+  return `<a class="pd-go" href="${go}">생년월일 넣고 받기</a>`
     + '<p class="pd-also">결제 전에 무엇이 담기는지와 예시 문장을 먼저 보여 드립니다.</p>';
 }
 

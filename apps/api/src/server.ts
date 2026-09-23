@@ -28,6 +28,7 @@ import {
   renderSpiritRow, renderSocialHead, HOME_TITLE, HOME_DESCRIPTION,
   renderStage, STAGE_CSS, STAGE_SCRIPT,
   renderPickPage, PLACES, TIMES, DATE_SLOTS, type PickForm,
+  renderCheckoutPage,
   renderDreamPage, readDream,
   renderRobots, renderSitemap,
   handoffBetween, spiritOfCategory, type Handoff,
@@ -1074,6 +1075,29 @@ export function createApi(deps: ApiDeps) {
      * 값을 받지 않는다. 아무도 자동으로 안 해 주는 일이라 이것만 보고 들어오는
      * 손님이 있고, 그 손님이 아기 이름과 사주까지 보게 된다.
      */
+    /*
+     * 살 자리.
+     *
+     * 상세페이지의 「받기」가 첫 화면으로 돌아가던 것을 여기로 돌렸다.
+     * 사겠다고 누른 손님을 대문 앞에 다시 세우면 살 방법이 없다 —
+     * 실제로 그래서 아무도 살 수 없었다 (2026-09-23).
+     *
+     * 결제가 아직 안 켜졌으면 열쇠 대신 `null` 을 넘긴다. 화면은 그대로 뜨고
+     * 「결제 준비 중」이라고만 적힌다. 심사자가 값과 고지를 볼 수 있어야 한다.
+     */
+    'GET /checkout': async (req, res) => {
+      const want = new URL(req.url ?? '/', 'http://x').searchParams.get('product') ?? '';
+      if (!isOrderable(want)) throw new HttpError(404, `없는 상품입니다: ${want}`);
+      const product = CATALOG[want as keyof typeof CATALOG];
+      // 택일은 태어난 날이 없어 여기서 못 판다. 후보 날짜를 받는 화면으로 보낸다
+      if (product.needsPick) {
+        res.writeHead(302, { Location: '/pick' });
+        res.end();
+        return;
+      }
+      sendHtml(res, renderCheckoutPage(business, renderFooter(business), product, checkout));
+    },
+
     'GET /pick': async (_req, res) => sendHtml(res, renderPickPage(
       business, renderFooter(business),
       { dates: [], times: ['09:00', '10:00', '11:00'], place: '서울' },

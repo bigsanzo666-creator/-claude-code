@@ -10,6 +10,7 @@ import {
   loadBusinessInfo, missingFields, isComplete, isValidRegistrationNumber,
   renderFooter, renderTerms, renderPrivacy, renderRefund, POLICY_EFFECTIVE_DATE,
   renderProducts, renderProductsPage, renderProductPage, renderHero, renderTryHeading, CONTENTS_FOR, FIT_FOR,
+  renderCheckoutPage,
   countWord,
   LANDING_CSS, PRODUCTS_CSS, FONT_LINK,
   SPIRITS, PITCH, spiritOf, renderSpiritRow, renderSpiritHead, renderSpiritPitch, SPIRITS_CSS,
@@ -166,6 +167,58 @@ check('상세 페이지도 그림이 있을 때만 크게 건다',
   !renderProductPage(CATALOG['wealth-report'], full, false, '').includes('<img')
   && renderProductPage(CATALOG['wealth-report'], full, false, '', new Set(['wealth-report']))
        .includes('class="pd-hero"'));
+
+/*
+ * 사겠다고 누른 손님을 첫 화면으로 돌려보내지 않는다.
+ *
+ * 상세페이지의 받기 단추가 「/?buy=...」 로 첫 화면(신령계 대문)을 가리켰다.
+ * 손님은 사겠다고 누른 뒤에 대문 앞에 다시 서서 이름과 생년월일을 처음부터
+ * 또 적어야 했고, 그러고도 살 자리는 열리지 않았다. 아무도 살 수 없었다
+ * (2026-09-23, 사장님이 「오늘의 운세」에서 직접 갇혔다).
+ */
+{
+  const withPay = renderProductPage(CATALOG['wealth-report'], full, true, '');
+  check('받기 단추가 살 자리를 가리킨다',
+    withPay.includes('href="/checkout?product=wealth-report"'));
+  check('받기 단추가 첫 화면으로 되돌리지 않는다', !withPay.includes('href="/?buy='));
+
+  // 궁합·작명처럼 더 받을 것이 있는 상품도 같은 자리로 간다
+  for (const id of ['compat-report', 'naming-report', 'face-palm-report'] as const) {
+    const page = renderProductPage(CATALOG[id], full, true, '');
+    check(`${CATALOG[id].name} 도 살 자리로 간다`,
+      page.includes(`href="/checkout?product=${id}"`) && !page.includes('href="/?buy='));
+  }
+
+  // 택일은 태어난 날이 없어 여기서 못 판다. 단추를 걸지 않는다
+  check('택일에는 받기 단추를 걸지 않는다',
+    !renderProductPage(CATALOG['pick-report'], full, true, '').includes('class="pd-go"'));
+}
+
+/*
+ * 살 자리에서 지켜야 하는 것.
+ *
+ * 값은 표 한 곳에서만 오고, 광고 수신 동의를 슬쩍 끼워 넣지 않으며(정보통신망법
+ * 제50조), 거짓 급함을 쓰지 않는다(2024년 개정 전자상거래법).
+ */
+{
+  const pay = renderCheckoutPage({} as any, '', CATALOG['daily-report'], { storeId: 's', channelKey: 'c' });
+  check('살 자리에 표의 값이 그대로 나온다',
+    pay.includes(`${CATALOG['daily-report'].priceKrw.toLocaleString('ko-KR')}원`));
+  check('살 자리에 청약철회 고지가 있다',
+    pay.includes('청약철회가 제한됩니다'));
+  check('확인 표를 하기 전에는 결제 단추가 안 눌린다',
+    /id="coPay"[^>]*disabled/.test(pay));
+  check('미리 켜 둔 표가 하나도 없다', !/type="checkbox"[^>]*checked/.test(pay));
+  check('광고 수신 동의를 결제 자리에서 받지 않는다',
+    !pay.includes('광고') && !pay.includes('마케팅'));
+  check('거짓 급함을 쓰지 않는다',
+    !/지금만|오늘만|마감 임박|선착순/.test(pay));
+
+  const notReady = renderCheckoutPage({} as any, '', CATALOG['daily-report'], null);
+  check('결제가 꺼져 있어도 값은 보인다',
+    notReady.includes(`${CATALOG['daily-report'].priceKrw.toLocaleString('ko-KR')}원`));
+  check('결제가 꺼져 있으면 결제 단추를 걸지 않는다', !notReady.includes('id="coPay"'));
+}
 
 // 갈래 제목이 질문이어야 눌린다. 「연애」로는 안 눌린다
 for (const c of CATEGORIES) {
@@ -791,7 +844,7 @@ section('11. 문 — 신령계 들어가는 곳');
     const buyPage = (id: string) =>
       renderProductPage(CATALOG[id], full, true, '<footer>ft</footer>');
     check('상품 화면에 사러 가는 단추가 있다',
-      buyPage('saju-report').includes('href="/?buy=saju-report"'));
+      buyPage('saju-report').includes('href="/checkout?product=saju-report"'));
     check('상대가 필요하면 그렇게 적는다',
       buyPage('compat-report').includes('두 사람 생년월일 넣고 받기'));
     check('얼굴·손이 필요하면 그렇게 적는다',

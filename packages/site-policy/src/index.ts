@@ -8,5 +8,6 @@ export * from './gate.ts';
 export * from './stage.ts';
 export * from './why.ts';
 export * from './pick-page.ts';
+export * from './checkout-page.ts';
 export * from './dream-page.ts';
 export * from './sitemap.ts';

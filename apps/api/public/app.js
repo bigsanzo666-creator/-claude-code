@@ -515,6 +515,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  /*
+   * 신령에게 적어 준 것을 결제 자리로 넘긴다.
+   *
+   * 전에는 「신청하기」가 상세페이지로 갔고, 상세페이지의 받기 단추는 첫 화면으로
+   * 돌아갔다. 손님은 사겠다고 누른 뒤에 대문 앞에 다시 서서, 이름과 생년월일을
+   * 처음부터 또 적어야 했다. 그러고도 살 자리는 열리지 않았다.
+   *
+   * 브라우저를 닫으면 지워지는 자리에만 둔다. 이 창에서 결제까지 가는 동안만 쓴다.
+   */
+  function rememberReading(productId, payload) {
+    try {
+      sessionStorage.setItem('nb_reading', JSON.stringify({ ...payload, productId }));
+    } catch (err) { /* 저장이 막혀 있어도 결제 자리에서 다시 받으면 된다 */ }
+  }
+
   // ================= 3. 입장 연출 영상 1회 재생 후 마당 파노라마 고정! =================
   function enterSpiritWorld() {
     setSound(true);
@@ -1364,7 +1379,9 @@ document.addEventListener('DOMContentLoaded', () => {
         consultCta.textContent = `${pInfo.name} 신청하기 (${Number(pInfo.priceKrw).toLocaleString()}원)`;
         consultCta.disabled = false;
         consultCta.onclick = () => {
-          location.href = `/products/${encodeURIComponent(targetProductId)}`;
+          // 신령에게 적어 준 것을 그대로 들고 간다. 결제 자리에서 같은 것을 두 번 묻지 않는다
+          rememberReading(targetProductId, payload);
+          location.href = `/checkout?product=${encodeURIComponent(targetProductId)}`;
         };
 
       } catch (err) {
