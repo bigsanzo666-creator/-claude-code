@@ -542,7 +542,7 @@ export const FONT_LINK = `<link rel="stylesheet" as="style" crossorigin href="ht
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/font-iropke-batang/1.2/font-iropke-batang.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">`;
+<link href="https://fonts.googleapis.com/css2?family=Song+Myung&family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">`;
 
 export const PRODUCTS_CSS = `
 /*
@@ -698,7 +698,7 @@ html,body{overflow-x:clip;max-width:100%}
 
 /* ══════ 상세페이지 전면 개편 스타일 (청월당 스타일) ══════ */
 :root {
-  --font-serif: 'Iropke Batang', 'Noto Serif KR', serif;
+  --font-serif: 'Song Myung', 'Iropke Batang', 'Noto Serif KR', serif;
   --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
   --gold-primary: #d4af37;
   --gold-light: #f5d77f;

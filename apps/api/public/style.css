@@ -405,7 +405,8 @@ body {
 }
 
 .strip-spirit-question {
-  font-family: 'Iropke Batang', 'Noto Serif KR', serif !important;
+  /* 붓으로 눌러쓴 옛 활자. 획 끝이 살아 있으면서도 또박또박 읽힌다 */
+  font-family: 'Song Myung', 'Iropke Batang', 'Noto Serif KR', serif !important;
   font-size: 0.94rem !important;
   color: rgba(245, 245, 247, 0.92) !important;
   letter-spacing: -0.01em !important;
@@ -508,7 +509,8 @@ body {
 
 .product-card-title {
   margin: 0 !important;
-  font-family: 'Iropke Batang', 'Noto Serif KR', serif !important;
+  /* 붓으로 눌러쓴 옛 활자. 획 끝이 살아 있으면서도 또박또박 읽힌다 */
+  font-family: 'Song Myung', 'Iropke Batang', 'Noto Serif KR', serif !important;
   font-size: 1.95rem !important;
   line-height: 1.22 !important;
   font-weight: 700 !important;
