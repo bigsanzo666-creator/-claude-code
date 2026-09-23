@@ -212,6 +212,23 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
     check('맛보기 문장이 상세페이지에 두 번 이상 나오지 않고 딱 한 번만 나온다', dupList.length === 0,
       dupList.length === 0 ? '31개 상품 모두 중복 없음' : dupList.join(', '));
   }
+
+  // 명절 가족운세 상세페이지 검증
+  {
+    const fhr = await page('/products/family-holiday-report');
+    check('명절 가족운세에 「망설여지는 점」이 나온다', fhr.html.includes('망설여지는 점'));
+    check('명절 가족운세 「그래서 믿어도 되는가」에 전용 문구 3문단이 나온다',
+      fhr.html.includes('풀이의 출발점은 짐작이 아니라 계산입니다') &&
+      fhr.html.includes('결론마다 그 말이 나온 글자를 밝힙니다') &&
+      fhr.html.includes('큰 글씨는 일상에서 쓰는 말로 적습니다'));
+    let otherHasHesitation = false;
+    for (const p of Object.values(CAT)) {
+      if (p.id === 'family-holiday-report') continue;
+      const res = await page(`/products/${p.id}`);
+      if (res.html.includes('망설여지는 점')) otherHasHesitation = true;
+    }
+    check('「망설여지는 점」이 다른 상품에는 나오지 않는다', !otherHasHesitation);
+  }
   const one = await page('/products/wealth-report');
   // 값을 여기 적어 두면 값을 고칠 때마다 검증이 깨진다. 카탈로그에서 가져온다
   check('상세페이지에 가격이 실판매가로 나온다',

@@ -1060,6 +1060,91 @@ body {
   font-weight: 700;
 }
 
+/* 명절 가족운세 전용: 이 집 계산 (3문단) */
+.pd-why-custom {
+  background: var(--bg-card);
+  border: 1px solid var(--border-gold);
+  border-radius: 12px;
+  padding: 20px 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.pd-why-custom p {
+  margin: 0 0 16px 0;
+  font-size: 0.94rem;
+  line-height: 1.8;
+  color: rgba(245, 245, 247, 0.88);
+  word-break: keep-all;
+}
+
+.pd-why-custom p:last-child {
+  margin-bottom: 0;
+}
+
+/* 명절 가족운세 전용: FAQ Q&A */
+.pd-faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pd-faq-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-gold);
+  border-radius: 12px;
+  padding: 18px 18px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.pd-faq-q {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.pd-faq-badge {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--gold-light);
+  flex-shrink: 0;
+}
+
+.pd-faq-q h4 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+.pd-faq-a {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  border-top: 1px solid rgba(212, 175, 55, 0.12);
+  padding-top: 10px;
+}
+
+.pd-faq-badge-a {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 0.98rem;
+  color: rgba(245, 245, 247, 0.45);
+  flex-shrink: 0;
+}
+
+.pd-faq-a p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.68;
+  color: rgba(245, 245, 247, 0.88);
+  word-break: keep-all;
+}
+
 /* 화면 아래에 붙어 따라다니는 사는 자리 */
 .pd-sticky{position:fixed;left:0;right:0;bottom:0;z-index:40;
   display:flex;align-items:center;gap:12px;
@@ -1508,8 +1593,10 @@ ${renderSample(sample, product.id)}
   <section class="pd-sec pd-why">
     <p class="pd-l">이 집 계산</p>
     <h3 class="pd-h">그래서 믿어도 되는가</h3>
-${renderWhy()}
+${product.id === 'family-holiday-report' ? renderFamilyWhy() : renderWhy()}
   </section>
+
+  ${product.id === 'family-holiday-report' ? renderHesitations() : ''}
 
   <div class="pd-buy">
     <span class="pd-price">${won(product.priceKrw)}</span><span class="pr-vat"> (부가세 포함)</span>
@@ -1590,6 +1677,53 @@ function renderFit(productId: string): string {
  * 그건 화면에 보여 준 것을 안 주는 것이다. 우리는 **실제로 나가는 글**의
  * 앞부분을 그대로 보여 주고, 누구 것인지도 밝힌다.
  */
+function renderFamilyWhy(): string {
+  return `<div class="pd-why-custom">
+    <p>풀이의 출발점은 짐작이 아니라 계산입니다. 본인과 함께 볼 가족들의 생년월일을 바탕으로, 만세력과 절기 기준에 따라 사주 글자를 계산합니다. 부모·시부모·형제·배우자 중에서 본인 포함 넷까지 같은 값으로 함께 봅니다.</p>
+    <p>결론마다 그 말이 나온 글자를 밝힙니다. 그날의 기운이 왜 나에게 순하거나 거칠다고 보는지, 두 사람은 어느 지점에서 부딪힌다고 읽는지. 계산으로 얻은 글자와 풀이의 근거를 함께 보여드립니다.</p>
+    <p>큰 글씨는 일상에서 쓰는 말로 적습니다. 그 옆 작은 글씨에는 명리 용어와 한 줄 뜻을 붙입니다. 계산한 사주를 바탕으로 읽는 해석이며, 실제 가족의 말과 행동을 확정하는 답은 아닙니다.</p>
+  </div>`;
+}
+
+function renderHesitations(): string {
+  return `  <section class="pd-sec pd-faq">
+    <p class="pd-l">자주 묻는 질문</p>
+    <h3 class="pd-h">망설여지는 점</h3>
+    <div class="pd-faq-list">
+      <div class="pd-faq-item">
+        <div class="pd-faq-q">
+          <span class="pd-faq-badge">Q.</span>
+          <h4>가족 모두의 생년월일이 필요한가요?</h4>
+        </div>
+        <div class="pd-faq-a">
+          <span class="pd-faq-badge-a">A.</span>
+          <p>내 생년월일과, 함께 볼 가족의 생년월일이 필요합니다.<br>본인 포함 넷까지 같은 값이고, 다섯째부터 한 분당 1만원이 더 붙습니다.<br>최대 여섯 명까지 넣으실 수 있습니다.</p>
+        </div>
+      </div>
+      <div class="pd-faq-item">
+        <div class="pd-faq-q">
+          <span class="pd-faq-badge">Q.</span>
+          <h4>사주를 몰라도 읽을 수 있나요?</h4>
+        </div>
+        <div class="pd-faq-a">
+          <span class="pd-faq-badge-a">A.</span>
+          <p>쉬운 말로 풀고, 명리 용어 옆에는 한 줄 뜻을 붙입니다.</p>
+        </div>
+      </div>
+      <div class="pd-faq-item">
+        <div class="pd-faq-q">
+          <span class="pd-faq-badge">Q.</span>
+          <h4>안 좋은 말만 듣고 더 신경 쓰이지 않을까요?</h4>
+        </div>
+        <div class="pd-faq-a">
+          <span class="pd-faq-badge-a">A.</span>
+          <p>불안하게 단정하지 않습니다. 부딪히는 이유와, 피할 말·꺼내도 되는 말을 근거와 함께 알려드립니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>`;
+}
+
 function renderSample(
   sample: { text: string; notice: string } | null,
   productId?: string,

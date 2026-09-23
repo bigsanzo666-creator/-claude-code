@@ -458,6 +458,23 @@ section('9. 신령 — 칸마다 주인이 있는가');
     check('맛보기 아래에 목차가 제목만 나열된다', pd.includes('class="pd-sample-toc"'));
   }
 
+  // 명절 가족운세 전용 섹션 검증
+  {
+    const fhrPage = renderProductPage(CATALOG['family-holiday-report'], full, true, '');
+    check('명절 가족운세의 「그래서 믿어도 되는가」가 전용 문구로 나온다',
+      fhrPage.includes('풀이의 출발점은 짐작이 아니라 계산입니다') &&
+      fhrPage.includes('결론마다 그 말이 나온 글자를 밝힙니다') &&
+      fhrPage.includes('큰 글씨는 일상에서 쓰는 말로 적습니다'));
+    check('명절 가족운세에 「망설여지는 점」이 나온다', fhrPage.includes('망설여지는 점'));
+    check('「망설여지는 점」이 다른 상품에는 나오지 않는다',
+      Object.values(CATALOG).filter((p) => p.id !== 'family-holiday-report')
+        .every((p) => !renderProductPage(p, full, true, '').includes('망설여지는 점')));
+    check('「망설여지는 점」이 값보다 위에 온다',
+      fhrPage.indexOf('망설여지는 점') < fhrPage.indexOf('class="pd-price"'));
+    check('「망설여지는 점」이 「그래서 믿어도 되는가」 아래에 온다',
+      fhrPage.indexOf('그래서 믿어도 되는가') < fhrPage.indexOf('망설여지는 점'));
+  }
+
   /*
    * 따라 하지 않기로 한 것들. 2024년 개정 전자상거래법이 다크패턴으로
    * 이름 붙여 둔 것과, 없는 숫자를 지어내는 것.
