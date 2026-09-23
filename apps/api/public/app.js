@@ -477,13 +477,34 @@ document.addEventListener('DOMContentLoaded', () => {
   // ================= 2. 신령계 문 두드리기 ➡️ 사주 신상 정보 입력 모달(Checkpoint) 오픈 =================
   btnKnockGate.addEventListener('click', () => {
     if (sajuInputModal) sajuInputModal.classList.add('active');
-    // 명식을 적는 동안 입장 영상을 미리 받아 둔다. 첫 화면에서는 건드리지 않는다
-    if (enterVideo && !enterVideo.getAttribute('src') && enterVideo.dataset.src) {
-      enterVideo.preload = 'auto';
-      enterVideo.setAttribute('src', enterVideo.dataset.src);
-      enterVideo.load();
-    }
+    primeEnterVideo();
   });
+
+  /*
+   * 입장 영상을 미리 받아 둔다.
+   *
+   * 문을 두드린 뒤에 받기 시작하면, 명식을 빨리 적는 손님은 영상이 다 오기 전에
+   * 들어가 버린다. 그러면 받으면서 틀게 되어 뚝뚝 끊긴다 — 사장님 휴대폰에서
+   * 실제로 그랬다 (2026-09-23).
+   *
+   * 그렇다고 첫 화면부터 받으면 대문 영상과 통신선을 나눠 쓴다. 그래서
+   * **대문 영상을 다 받은 그때** 시작한다. 손님이 대문을 보고 있는 동안
+   * 조용히 받아 두는 것이다. 대문이 늦으면 4초 뒤에 그냥 시작한다.
+   */
+  let enterPrimed = false;
+  function primeEnterVideo() {
+    if (enterPrimed || !enterVideo) return;
+    if (enterVideo.getAttribute('src') || !enterVideo.dataset.src) return;
+    enterPrimed = true;
+    enterVideo.preload = 'auto';
+    enterVideo.setAttribute('src', enterVideo.dataset.src);
+    enterVideo.load();
+  }
+  if (gateVideo) {
+    gateVideo.addEventListener('canplaythrough', primeEnterVideo, { once: true });
+    gateVideo.addEventListener('ended', primeEnterVideo, { once: true });
+  }
+  setTimeout(primeEnterVideo, 4000);
 
   // 성별 선택 토글
   genderButtons.forEach(btn => {
@@ -506,16 +527,7 @@ document.addEventListener('DOMContentLoaded', () => {
     stageEnter.classList.add('active');
 
     if (enterVideo) {
-      // 문 두드릴 때 미리 받아 두지 못했으면 지금이라도 붙인다
-      if (!enterVideo.getAttribute('src') && enterVideo.dataset.src) {
-        enterVideo.preload = 'auto';
-        enterVideo.setAttribute('src', enterVideo.dataset.src);
-      }
-      enterVideo.currentTime = 0;
-      enterVideo.muted = !isAudioActive;
-      if (isAudioActive) enterVideo.volume = 1.0;
-
-      enterVideo.play().catch((err) => console.log("Video play:", err));
+      primeEnterVideo();
 
       // 비디오가 끝나면(ended) 다시 재생되지 않고, 즉시 16:9 와이드 파노라마 마당으로 전환!
       const onEnterEnd = () => {
@@ -523,15 +535,35 @@ document.addEventListener('DOMContentLoaded', () => {
         stageEnter.classList.remove('active');
         enterSpiritsMenu();
       };
-
       enterVideo.addEventListener('ended', onEnterEnd);
 
-      // 영상이 너무 길거나 에러 날 때를 대비한 안전 타임아웃
-      setTimeout(() => {
-        if (stageEnter.classList.contains('active')) {
-          onEnterEnd();
-        }
-      }, 5500);
+      /*
+       * 받아지기를 조금 기다렸다가 튼다.
+       *
+       * 받으면서 틀면 뚝뚝 끊긴다. 그래서 끊기지 않고 끝까지 갈 만큼 받아졌는지
+       * 보고 시작한다. 안전 시계도 **튼 다음부터** 센다 — 기다린 시간까지
+       * 같이 세면 영상이 채 돌기도 전에 잘린다.
+       */
+      let started = false;
+      const begin = () => {
+        if (started) return;
+        started = true;
+        enterVideo.currentTime = 0;
+        enterVideo.muted = !isAudioActive;
+        if (isAudioActive) enterVideo.volume = 1.0;
+        enterVideo.play().catch((err) => console.log("Video play:", err));
+        setTimeout(() => {
+          if (stageEnter.classList.contains('active')) onEnterEnd();
+        }, 5500);
+      };
+
+      if (enterVideo.readyState >= 4) {
+        begin();
+      } else {
+        enterVideo.addEventListener('canplaythrough', begin, { once: true });
+        // 아무리 늦어도 1.8초 뒤에는 시작한다. 손님을 까만 화면에 세워 두지 않는다
+        setTimeout(begin, 1800);
+      }
     } else {
       stageEnter.classList.remove('active');
       enterSpiritsMenu();
