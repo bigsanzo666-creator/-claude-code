@@ -197,6 +197,21 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
     if (res.status === 200 && res.html.includes(p.name) && res.html.includes(p.hook)) ok++;
   }
   check('상품 21개가 각각 제 페이지를 가진다', ok === Object.keys(CAT).length, `${ok}/${Object.keys(CAT).length}`);
+
+  // 맛보기가 한 번만 나오는지를 보는 검증 (같은 문장이 두 번 이상 나오면 실패)
+  {
+    const { sampleFor } = await import('./src/preview.ts');
+    const dupList: string[] = [];
+    for (const p of Object.values(CAT)) {
+      const res = await page(`/products/${p.id}`);
+      const sampleRaw = sampleFor(p.id);
+      const firstSentence = sampleRaw.split(/\n\n+/)[0].slice(0, 30);
+      const count = res.html.split(firstSentence).length - 1;
+      if (count !== 1) dupList.push(`${p.id}(${count}회)`);
+    }
+    check('맛보기 문장이 상세페이지에 두 번 이상 나오지 않고 딱 한 번만 나온다', dupList.length === 0,
+      dupList.length === 0 ? '31개 상품 모두 중복 없음' : dupList.join(', '));
+  }
   const one = await page('/products/wealth-report');
   // 값을 여기 적어 두면 값을 고칠 때마다 검증이 깨진다. 카탈로그에서 가져온다
   check('상세페이지에 가격이 실판매가로 나온다',

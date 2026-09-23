@@ -440,6 +440,24 @@ section('9. 신령 — 칸마다 주인이 있는가');
   check('맛보기가 없으면 그 칸을 아예 안 만든다',
     !renderProductPage(CATALOG['wealth-report'], full, true, '').includes('어떤 문장으로 나오는지'));
 
+  // 맛보기가 한 번만 나오는지를 보는 검증 (같은 문장이 두 번 이상 나오면 실패)
+  {
+    const sampleSentence = '일간이 己(흙)이고, 이 뿌리가 강한 편입니다.';
+    let dupCount = 0;
+    for (const p of Object.values(CATALOG)) {
+      const pageHtml = renderProductPage(p, full, true, '', new Set(), new Set(), {
+        text: sampleSentence,
+        notice: '다른 분의 명식입니다.',
+      });
+      const matches = pageHtml.split(sampleSentence).length - 1;
+      if (matches !== 1) dupCount++;
+    }
+    check('맛보기 문장이 두 번 이상 나오지 않고 딱 한 번만 나온다', dupCount === 0,
+      dupCount === 0 ? '31개 상품 모두 1번만 출력' : dupCount + '개 상품에서 중복 출력');
+    check('맛보기 위에 안내 한 줄이 붙는다', pd.includes('이런 문장으로 나옵니다'));
+    check('맛보기 아래에 목차가 제목만 나열된다', pd.includes('class="pd-sample-toc"'));
+  }
+
   /*
    * 따라 하지 않기로 한 것들. 2024년 개정 전자상거래법이 다크패턴으로
    * 이름 붙여 둔 것과, 없는 숫자를 지어내는 것.
