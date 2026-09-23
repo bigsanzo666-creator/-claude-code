@@ -442,8 +442,35 @@ document.addEventListener('DOMContentLoaded', () => {
   // ================= 1. 비디오 루프 금지 & 마지막 프레임 정지 =================
   if (gateVideo) {
     // 끝났을 때 다시 처음으로 돌아가지 않고 마지막 프레임에서 정지
+    let gateDone = false;
     gateVideo.addEventListener('ended', () => {
+      gateDone = true;
       gateVideo.pause();
+    });
+
+    /*
+     * 저절로 안 돌 때가 있다. 몇 번 더 눌러 본다.
+     *
+     * 휴대폰 브라우저가 첫 화면 영상을 제 마음대로 안 틀어 주는 경우가 있다.
+     * 그러면 첫 장면 그림만 덩그러니 남아 신령이 가만히 서 있는 것처럼 보인다.
+     * 사장님 휴대폰에서 실제로 그랬다 (2026-09-23).
+     *
+     * 끝까지 다 돈 영상은 건드리지 않는다 — 다시 틀면 처음으로 되감겨
+     * 같은 장면을 무한히 반복한다.
+     */
+    const kickGate = () => {
+      if (gateDone || gateVideo.ended) return;
+      if (!gateVideo.paused) return;
+      if (!stageGate.classList.contains('active')) return;
+      gateVideo.play().catch(() => { });
+    };
+    kickGate();
+    setTimeout(kickGate, 400);
+    setTimeout(kickGate, 1500);
+    addEventListener('pointerdown', kickGate, { once: true });
+    addEventListener('touchstart', kickGate, { once: true });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) kickGate();
     });
   }
 
@@ -577,8 +604,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let justDragged = false;
 
   const categoryTabsContainer = document.getElementById('spiritsCategoryTabs');
-  const stripSpiritFace = document.getElementById('stripSpiritFace');
-  const stripSpiritQuestion = document.getElementById('stripSpiritQuestion');
   const productCarouselTrack = document.getElementById('productCarouselTrack');
   const carouselDots = document.getElementById('carouselDots');
 
@@ -651,13 +676,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 2) 신령 한 줄 헤더 갱신
-    if (stripSpiritFace) {
-      stripSpiritFace.src = '/img/spirits/' + catConfig.spirit.id;
-      stripSpiritFace.alt = catConfig.spirit.name;
-    }
-    if (stripSpiritQuestion) {
-      stripSpiritQuestion.textContent = catConfig.spirit.question;
-    }
 
     // 3) 상품 데이터 가져오기
     const products = (Array.isArray(window.__CATALOG_PRODUCTS__) && window.__CATALOG_PRODUCTS__.length > 0)

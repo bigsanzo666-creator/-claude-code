@@ -250,11 +250,9 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
         <button type="button" class="category-tab" data-category="시기">시기</button>
       </nav>
 
-      <!-- 그 갈래 신령 한 줄 헤더 (작은 얼굴 + 물음) -->
-      <div class="active-spirit-strip" id="activeSpiritStrip">
-        <img src="/img/spirits/flower" alt="도화신령" class="strip-spirit-face" id="stripSpiritFace">
-        <span class="strip-spirit-question" id="stripSpiritQuestion">이 사람, 어떨까?</span>
-      </div>
+      <!-- 신령 얼굴 한 줄 헤더는 걷어냈다.
+           카드가 큼직하게 나오면서 그 안에 신령 이름과 물음이 이미 얹힌다.
+           위에 한 줄을 더 두면 그만큼 카드 아래가 잘려 나갔다 -->
 
       <!-- 상품 카드 캐러셀 (화면 폭 82%, 다음 장 살짝 걸침) -->
       <div class="product-carousel-container" id="productCarouselContainer">
