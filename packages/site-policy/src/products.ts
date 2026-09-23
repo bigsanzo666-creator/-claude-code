@@ -953,55 +953,35 @@ body {
   flex-shrink: 0;
 }
 
-/* 2. 가운데: 맛보기를 크게 (꼭지별 카드 분할 + 페이드) */
-.pd-sample-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+/* 2. 가운데: 맛보기 (문장 한 번 + 목차) */
+.pd-sample-lead {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--gold-light);
+  margin: 0 0 12px;
+  line-height: 1.5;
 }
 
 .pd-sample-card {
   background: var(--bg-card);
   border: 1px solid var(--border-gold);
   border-radius: 12px;
-  padding: 16px 18px;
+  padding: 18px 20px;
   position: relative;
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-}
-
-.pd-sample-card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.pd-sample-card-idx {
-  color: var(--gold-light);
-  font-size: 0.82rem;
-  font-weight: 700;
-  /* 「하나」가 좁은 칸에서 「하 / 나」로 쪼개져 내려갔다. 줄을 안 바꾸게 못 박는다 */
-  white-space: nowrap;
-  flex: 0 0 auto;
-}
-
-.pd-sample-card-title {
-  font-family: var(--font-serif);
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: -0.01em;
 }
 
 .pd-sample-body {
   position: relative;
   font-family: var(--font-serif);
   font-size: 0.94rem;
-  color: rgba(245, 245, 247, 0.85);
-  line-height: 1.65;
+  color: rgba(245, 245, 247, 0.88);
+  line-height: 1.75;
   word-break: keep-all;
-  max-height: 120px;
+  white-space: pre-wrap;
+  max-height: 140px;
   overflow: hidden;
 }
 
@@ -1015,10 +995,46 @@ body {
   pointer-events: none;
 }
 
+.pd-sample-toc {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(212, 175, 55, 0.16);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pd-sample-toc-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.pd-sample-toc-num {
+  font-family: var(--font-serif);
+  color: var(--gold-light);
+  font-weight: 700;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.pd-sample-toc-title {
+  font-family: var(--font-serif);
+  color: rgba(245, 245, 247, 0.92);
+  word-break: keep-all;
+}
+
 .pd-samp-n {
   font-size: 0.78rem;
   color: rgba(245, 245, 247, 0.5);
-  margin-top: 8px;
+  margin-top: 10px;
+  word-break: keep-all;
 }
 
 /* 3-c. 그래서 믿어도 되는가 (2칸 비교표) */
@@ -1581,37 +1597,41 @@ function renderSample(
   if (!sample?.text?.trim()) return '';
 
   const chapters = (productId && CONTENTS[productId]) ? CONTENTS[productId] : [];
-  const numKorean = ['하나', '둘', '셋', '넷', '다섯', '여섯', '일곱', '여덟'];
+  const numKoreanCount = ['', '한', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉', '열'];
+  const numKorean = ['하나', '둘', '셋', '넷', '다섯', '여섯', '일곱', '여덟', '아홉', '열'];
 
-  let cardsHtml = '';
-  if (chapters && chapters.length > 0) {
-    const rawParagraphs = sample.text.split(/\n\n+/).filter((p) => p.trim().length > 0);
-    cardsHtml = chapters.map((ch, idx) => {
+  let leadLine = '';
+  let tocHtml = '';
+
+  if (chapters.length > 0) {
+    const countWord = numKoreanCount[chapters.length]
+      ? `${numKoreanCount[chapters.length]} 가지`
+      : `${chapters.length}가지`;
+    leadLine = `<p class="pd-sample-lead">아래 ${countWord}가 이런 문장으로 나옵니다</p>`;
+
+    const tocItems = chapters.map((ch, idx) => {
       const numText = numKorean[idx] || String(idx + 1);
       const cleanTitle = ch.replace(/\*\*/g, '');
-      const bodySnippet = rawParagraphs[idx % rawParagraphs.length] || sample.text.slice(0, 140);
-      return `
-      <div class="pd-sample-card">
-        <div class="pd-sample-card-header">
-          <span class="pd-sample-card-idx">${numText}</span>
-          <span class="pd-sample-card-title">${esc(cleanTitle)}</span>
-        </div>
-        <div class="pd-sample-body">
-          ${esc(bodySnippet)}
-          <div class="pd-sample-fade"></div>
-        </div>
-      </div>`;
+      return `      <li class="pd-sample-toc-item">
+        <span class="pd-sample-toc-num">${numText}.</span>
+        <span class="pd-sample-toc-title">${esc(cleanTitle)}</span>
+      </li>`;
     }).join('\n');
-  } else {
-    cardsHtml = `<div class="pd-samp">${esc(sample.text)}<div class="pd-sample-fade"></div></div>`;
+
+    tocHtml = `    <ul class="pd-sample-toc">\n${tocItems}\n    </ul>`;
   }
 
   return `  <section class="pd-sec">
     <p class="pd-l">맛보기</p>
     <h3 class="pd-h">어떤 문장으로 나오는지</h3>
-    <div class="pd-sample-wrap">
-      ${cardsHtml}
+    ${leadLine}
+    <div class="pd-sample-card">
+      <div class="pd-sample-body">
+        ${esc(sample.text)}
+        <div class="pd-sample-fade"></div>
+      </div>
     </div>
+    ${tocHtml}
     <p class="pd-samp-n">${esc(sample.notice)}</p>
   </section>`;
 }
