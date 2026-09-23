@@ -448,6 +448,19 @@ const home = await page('/');
     (home.html.match(/class="st-vid"/g) ?? []).every(() => true)
     && (home.html.match(/preload="none"/g) ?? []).length >= 2);
 
+  /*
+   * 화면 글의 꼬리표는 손으로 적지 않는다.
+   *
+   * 손으로 적어 두었더니 글은 고쳤는데 꼬리표가 그대로였다. 하루짜리로
+   * 저장돼 있던 손님 휴대폰은 **새 뼈대에 옛 글**을 얹어 돌렸고, 입장 영상이
+   * 통째로 안 나왔다. 실제로 그렇게 나갔다 (2026-09-23).
+   * 파일 내용에서 뽑은 꼬리표는 한 글자만 고쳐도 저절로 바뀐다.
+   */
+  const stamps = [...home.html.matchAll(/\/(?:app\.js|style\.css)\?v=([^"']+)/g)].map((m) => m[1]);
+  check('화면 글과 꾸밈에 꼬리표가 붙는다', stamps.length === 2);
+  check('꼬리표는 파일 내용에서 뽑는다', stamps.every((v) => /^[0-9a-f]{10}$/.test(v)));
+  check('화면 글과 꾸밈의 꼬리표는 서로 다르다', stamps.length === 2 && stamps[0] !== stamps[1]);
+
   // 앞은 보여 주고 뒤는 가린다. 아무것도 안 보여 주면 뭘 사는지 모르고,
   // 다 보여 주면 살 이유가 없다
   check('가림막을 세울 줄 안다', home.html.includes('veil-ask') && home.html.includes('veiled('));

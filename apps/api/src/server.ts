@@ -12,7 +12,7 @@ import { createServer as createHttpServer, type IncomingMessage, type ServerResp
 import { readFileSync, createReadStream, statSync, existsSync } from 'node:fs';
 import { dirname, join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import {
   CATALOG, getProduct, createOrder, markPending, markFulfilled, markViewed,
   hasEntitlement, assessRefund, refundNotice, confirmPayment, refundOrder, failOrder,
@@ -158,6 +158,29 @@ function idleVideos(html: string): string {
         .replace(/\spreload="[^"]*"/g, '');
       return `<video${quiet} preload="none">`;
     });
+}
+
+/**
+ * 손님 휴대폰에 남아 있는 옛 화면 글을 확실히 갈아 끼우는 꼬리표.
+ *
+ * `app.js` 와 `style.css` 는 하루짜리로 저장된다. 그런데 주소 뒤에 붙이는
+ * 꼬리표를 손으로 적어 두었더니, 글은 고쳤는데 꼬리표는 그대로였다.
+ * 그래서 어제 다녀간 손님 휴대폰은 **새 화면 뼈대에 옛 글**을 얹어 돌렸고,
+ * 입장 영상이 통째로 안 나왔다. 실제로 그렇게 나갔다.
+ *
+ * 이제 꼬리표를 파일 내용에서 뽑는다. 한 글자라도 고치면 저절로 바뀌므로
+ * 손으로 적을 일이 없다.
+ */
+function assetStamp(...names: string[]): string {
+  const h = createHash('sha1');
+  for (const n of names) {
+    try {
+      h.update(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'public', n)));
+    } catch {
+      h.update(n);
+    }
+  }
+  return h.digest('hex').slice(0, 10);
 }
 
 const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
@@ -363,7 +386,7 @@ ${renderSocialHead(business, {
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/font-iropke-batang/1.2/font-iropke-batang.css">
   <link href="https://fonts.googleapis.com/css2?family=Song+Myung&family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/style.css?v=consult_10spirits">
+<link rel="stylesheet" href="/style.css?v=${assetStamp('style.css')}">
 <style>:root{color-scheme:dark;--nb-ink:#F5F5F7;}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 ${LANDING_CSS}
 ${PRODUCTS_CSS}
@@ -420,7 +443,7 @@ ${fragment}
 ${STAGE_SCRIPT}
 </div>
 
-<script src="/app.js?v=consult_10spirits"></script>
+<script src="/app.js?v=${assetStamp('app.js')}"></script>
 </body>
 </html>`;
 }
