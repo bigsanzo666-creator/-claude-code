@@ -764,9 +764,14 @@ body {
   margin-bottom: 28px;
 }
 
+.pd-hero-box .pd-hero,
 .pd-hero-img {
   width: 100%;
   height: 100%;
+  max-width: none;
+  aspect-ratio: auto;
+  margin: 0;
+  border: none;
   object-fit: cover;
   display: block;
 }
