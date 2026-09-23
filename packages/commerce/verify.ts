@@ -15,6 +15,7 @@ import {
   FakeGateway, confirmPayment, refundOrder, PaymentVerificationError,
   type Order,
   orderable, isOrderable, upsellFor, upgradeCostKrw,
+  priceOf, HOLIDAY_EXTRA_MEMBER_KRW, HOLIDAY_MAX_MEMBERS,
 } from './src/index.ts';
 
 let passed = 0, failed = 0;
@@ -317,6 +318,37 @@ check('어느 묶음에도 없으면 안 내민다',
     const has = Object.values(PACKAGES).some((k) => (k.members as string[]).includes(p.id));
     return has === (upsellFor(p.id) !== null);
   }));
+
+/*
+ * 인원에 따라 값이 붙는 상품.
+ *
+ * 값이 입력에 따라 달라지는 상품은 이것 하나뿐이다. **화면이 보낸 금액을
+ * 쓰지 않는다**는 규칙이 여기서 깨지면 손님이 값을 깎아 보낼 수 있다.
+ */
+{
+  const 명절 = 'family-holiday-report' as const;
+  check('넷까지는 값이 같다',
+    [1, 2, 3, 4].every((n) => priceOf(명절, n) === CATALOG[명절].priceKrw));
+  check('다섯째부터 한 명당 더 붙는다',
+    priceOf(명절, 5) === CATALOG[명절].priceKrw + HOLIDAY_EXTRA_MEMBER_KRW
+    && priceOf(명절, 6) === CATALOG[명절].priceKrw + 2 * HOLIDAY_EXTRA_MEMBER_KRW);
+  check('상한을 넘겨도 더 받지 않는다',
+    priceOf(명절, 99) === priceOf(명절, HOLIDAY_MAX_MEMBERS));
+  check('인원을 안 적으면 한 명으로 본다', priceOf(명절) === CATALOG[명절].priceKrw);
+  check('다른 상품은 인원이 값을 바꾸지 않는다',
+    Object.keys(CATALOG).filter((id) => id !== 명절)
+      .every((id) => [1, 5, 99].every((n) => priceOf(id as never, n) === CATALOG[id as never].priceKrw)));
+
+  // 주문 금액도 같은 규칙을 따라야 한다. 여기가 실제로 카드에 긁히는 값이다
+  const 주문 = (n: number) => createOrder({
+    id: 'ord_x', productId: 명절, inputHash: 'h', noticeGiven: true, previewProvided: true, memberCount: n,
+  }).amountKrw;
+  check('주문 금액이 표의 규칙과 같다',
+    [1, 4, 5, 6, 99].every((n) => 주문(n) === priceOf(명절, n)));
+  check('인원을 안 넘기면 기본값으로 만든다',
+    createOrder({ id: 'o', productId: 명절, inputHash: 'h', noticeGiven: true, previewProvided: true })
+      .amountKrw === CATALOG[명절].priceKrw);
+}
 
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} / 실패 ${failed}`);

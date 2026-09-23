@@ -25,6 +25,9 @@ import { renderSocialHead } from './social.ts';
 import { FONT_LINK, PRODUCTS_CSS } from './products.ts';
 import type { Product } from '../../commerce/src/catalog.ts';
 import { WITHDRAWAL_WINDOW_DAYS, DELIVERY_DUE_DAYS } from '../../commerce/src/refund.ts';
+import {
+  HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, HOLIDAY_MAX_MEMBERS,
+} from '../../commerce/src/catalog.ts';
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -71,6 +74,8 @@ export const CHECKOUT_CSS = `
   border-top:1px solid rgba(255,255,255,.1);padding-top:12px}
 .co-price b{font-size:22px;color:#d4af37;font-weight:800}
 .co-price span{font-size:12px;color:#9a93a6}
+.co-pricenote{margin:10px 0 0;font-size:12.5px;color:#c9a34a;line-height:1.55}
+.co-pricenote b{color:#e8c86a}
 .co-sec{margin:0 0 10px;font-size:14px;font-weight:700;color:#efe9f5}
 .co-f{display:block;margin-bottom:12px}
 .co-f label{display:block;font-size:13px;color:#c8c2d4;margin-bottom:5px}
@@ -80,6 +85,14 @@ export const CHECKOUT_CSS = `
 .co-f input:focus,.co-f select:focus{outline:none;border-color:rgba(212,175,55,.7)}
 .co-two{display:flex;gap:10px}
 .co-two>*{flex:1 1 0;min-width:0}
+.co-addkin{display:block;width:100%;padding:11px;margin:0 0 14px;font-size:14px;
+  border-radius:8px;border:1px dashed rgba(212,175,55,.5);background:transparent;
+  color:#d4af37;cursor:pointer;font-family:inherit}
+.co-addkin:disabled{opacity:.4;cursor:not-allowed}
+.co-kin{border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px;margin-bottom:10px}
+.co-kin-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.co-kin-top b{font-size:13px;color:#e4dfea}
+.co-kin-del{background:none;border:none;color:#9a93a6;font-size:13px;cursor:pointer;font-family:inherit}
 .co-note{background:rgba(12,10,18,.6);border:1px solid rgba(255,255,255,.1);
   border-radius:10px;padding:13px 14px;margin:18px 0 14px}
 .co-note p{margin:0 0 7px;font-size:12.5px;color:#bdb6c8;line-height:1.65}
@@ -99,6 +112,30 @@ export const CHECKOUT_CSS = `
   border-radius:10px;padding:16px;margin-top:16px;font-size:14px;line-height:1.85;color:#efeaf4}
 `;
 
+/**
+ * 값 밑에 붙는 한 줄.
+ *
+ * ## 취소선 정가를 쓰지 않는 이유
+ *
+ * 「39,900원 ~~25,900원~~ 35% 할인」은 **직전에 그 값으로 판 적이 있어야**
+ * 쓸 수 있다. 새로 낸 상품은 판 적이 없으므로 그건 지어낸 정가이고,
+ * 표시광고법상 거짓·과장광고다.
+ *
+ * 대신 **앞으로 올릴 값을 미리 밝힌다.** 이건 지어낸 과거가 아니라 약속한
+ * 미래라 적어도 된다. 다만 약속이므로 **연휴가 끝나면 실제로 올려야 한다.**
+ * 안 올리면 그 순간 거짓말이 된다.
+ */
+function priceNote(product: Product): string {
+  if (product.id !== 'family-holiday-report') return '';
+  return `<p class="co-pricenote">오픈 기념 · 추석 한정가입니다.
+    <b>${HOLIDAY_REGULAR_KRW.toLocaleString('ko-KR')}원</b>으로 올라갑니다 — ${HOLIDAY_RAISE_ON}부터</p>`;
+}
+
+/** 연휴가 끝나면 올릴 값. 실제로 이 값으로 올려야 한다 */
+export const HOLIDAY_REGULAR_KRW = 39900;
+/** 값을 올리는 날 */
+export const HOLIDAY_RAISE_ON = '9월 28일';
+
 export interface CheckoutKeys { storeId: string; channelKey: string }
 
 /**
@@ -117,6 +154,20 @@ export function renderCheckoutPage(
       <input type="date" name="partnerDate" id="partnerDate" required></div>
     <div class="co-f"><label for="partnerTime">상대가 태어난 시간</label>
       ${hourOptions('partnerTime')}</div>` : '';
+
+  /*
+   * 한 상에 앉는 사람들.
+   *
+   * 넷까지는 값이 같다. 다섯째부터 한 명당 더 붙는다 — 그 말을 **칸 바로 위에**
+   * 적는다. 다 적고 나서 값이 올라 있으면 손님은 속았다고 느낀다.
+   */
+  const family = product.needsFamily ? `
+    <p class="co-sec">한 상에 앉는 사람</p>
+    <div class="co-note"><p>본인을 포함해 <b>${HOLIDAY_INCLUDED_MEMBERS}명까지 같은 값</b>입니다.
+    ${HOLIDAY_INCLUDED_MEMBERS + 1}번째 분부터 한 분당 ${HOLIDAY_EXTRA_MEMBER_KRW.toLocaleString('ko-KR')}원이 더 붙습니다.
+    최대 ${HOLIDAY_MAX_MEMBERS}명까지 넣으실 수 있습니다.</p></div>
+    <div id="coFamily"></div>
+    <button type="button" class="co-addkin" id="coAddKin">+ 한 분 더 넣기</button>` : '';
 
   const surname = product.needsName ? `
     <div class="co-f"><label for="surname">아이의 성 (예: 김)</label>
@@ -144,6 +195,7 @@ export function renderCheckoutPage(
       <div class="co-f"><label for="birthTime">태어난 시간</label>${hourOptions('birthTime')}</div>
       ${surname}
       ${partner}
+      ${family}
       ${faceNote}
 
       <p class="co-sec">받으실 곳</p>
@@ -175,6 +227,12 @@ export function renderCheckoutPage(
 <script>
 (function(){
   var PRODUCT = ${JSON.stringify(product.id)};
+  var BASE_KRW = ${product.priceKrw};
+  var FREE_UPTO = ${HOLIDAY_INCLUDED_MEMBERS};
+  var EXTRA_KRW = ${HOLIDAY_EXTRA_MEMBER_KRW};
+  var MAX_MEMBERS = ${HOLIDAY_MAX_MEMBERS};
+  var NEEDS_FAMILY = ${product.needsFamily === true};
+  var HOUR_OPTIONS = ${JSON.stringify(HOURS)};
   var KEYS = ${JSON.stringify(keys)};
   var f = document.getElementById('coForm');
   var pay = document.getElementById('coPay');
@@ -204,6 +262,75 @@ export function renderCheckoutPage(
     }
   }catch(e){}
 
+  /*
+   * 한 상에 앉는 사람을 넣고 빼는 자리.
+   *
+   * 사람이 늘 때마다 **결제 단추의 값이 그 자리에서 바뀐다.** 다 적고 나서
+   * 값이 올라 있으면 손님은 속았다고 느낀다. 화면이 계산한 값은 보여 주기만
+   * 하고, 실제로 받는 값은 서버가 사람 수를 직접 세어 다시 정한다.
+   */
+  var kinBox = document.getElementById('coFamily');
+  var addKin = document.getElementById('coAddKin');
+  var won = function(n){ return n.toLocaleString('ko-KR'); };
+
+  function kinCount(){ return kinBox ? kinBox.querySelectorAll('.co-kin').length : 0; }
+  function priceNow(){
+    var people = Math.min(1 + kinCount(), MAX_MEMBERS);
+    return BASE_KRW + Math.max(0, people - FREE_UPTO) * EXTRA_KRW;
+  }
+  function refreshPrice(){
+    if(!NEEDS_FAMILY) return;
+    var p = priceNow();
+    pay.textContent = won(p) + '원 결제하기';
+    var tag = document.querySelector('.co-price b');
+    if(tag) tag.textContent = won(p) + '원';
+    if(addKin) addKin.disabled = (1 + kinCount()) >= MAX_MEMBERS;
+  }
+  function hourSelect(){
+    return '<select class="kin-time">' + HOUR_OPTIONS.map(function(h){
+      return '<option value="'+h[0]+'">'+h[1]+'</option>';
+    }).join('') + '</select>';
+  }
+  function addRow(pre){
+    if(!kinBox || (1 + kinCount()) >= MAX_MEMBERS) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'co-kin';
+    wrap.innerHTML =
+      '<div class="co-kin-top"><b>' + (kinCount() + 2) + '번째 분</b>' +
+      '<button type="button" class="co-kin-del">빼기</button></div>' +
+      '<div class="co-f"><label>관계 (예: 어머니, 시아버지, 형)</label>' +
+      '<input type="text" class="kin-rel" maxlength="12"></div>' +
+      '<div class="co-f"><label>생년월일</label><input type="date" class="kin-date"></div>' +
+      '<div class="co-f"><label>태어난 시간</label>' + hourSelect() + '</div>';
+    wrap.querySelector('.co-kin-del').addEventListener('click', function(){
+      wrap.remove(); renumber(); refreshPrice();
+    });
+    kinBox.appendChild(wrap);
+    if(pre){
+      wrap.querySelector('.kin-rel').value = pre.relation || '';
+      wrap.querySelector('.kin-date').value = pre.date || '';
+      if(pre.time) wrap.querySelector('.kin-time').value = pre.time;
+    }
+    refreshPrice();
+  }
+  function renumber(){
+    if(!kinBox) return;
+    var rows = kinBox.querySelectorAll('.co-kin');
+    for(var i=0;i<rows.length;i++) rows[i].querySelector('b').textContent = (i+2) + '번째 분';
+  }
+  function readFamily(){
+    if(!kinBox) return [];
+    return [].map.call(kinBox.querySelectorAll('.co-kin'), function(r){
+      return {
+        relation: r.querySelector('.kin-rel').value.trim() || '가족',
+        date: r.querySelector('.kin-date').value,
+        time: r.querySelector('.kin-time').value || '12:00'
+      };
+    }).filter(function(f){ return !!f.date; });
+  }
+  if(addKin) addKin.addEventListener('click', function(){ addRow(null); });
+  if(NEEDS_FAMILY && kinBox && !kinCount()) addRow(null);
+
   var say=function(t,ok){ msg.textContent=t; msg.className='co-msg'+(ok?' ok':''); };
   var val=function(id){ var el=document.getElementById(id); return el ? el.value.trim() : ''; };
 
@@ -226,6 +353,11 @@ export function renderCheckoutPage(
     };
     ${product.needsName ? "reading.name = { surname: val('surname') };" : ''}
     ${product.needsPartner ? "reading.partner = { date: val('partnerDate'), time: val('partnerTime') || '12:00' };" : ''}
+    if(NEEDS_FAMILY){
+      var kin = readFamily();
+      if(!kin.length) return say('같이 보실 분을 한 분 이상 넣어 주십시오.');
+      reading.family = kin;
+    }
     if(window.__nbFace) reading.face = window.__nbFace;
     if(window.__nbPalm) reading.palm = window.__nbPalm;
 
@@ -330,6 +462,7 @@ ${CHECKOUT_CSS}
     <h1 class="co-name">${esc(product.name)}</h1>
     <p class="co-hook">${esc(product.description)}</p>
     <div class="co-price"><b>${price}원</b><span>부가세 포함</span></div>
+    ${priceNote(product)}
   </section>
 
   ${form}

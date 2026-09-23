@@ -53,7 +53,14 @@ export type ProductId =
    */
   | 'exam-report' | 'admission-report' | 'job-report'
   // 시기
-  | 'daily-report' | 'newyear-report' | 'travel-report';
+  | 'daily-report' | 'newyear-report' | 'travel-report'
+  /*
+   * 명절 한 철 상품.
+   *
+   * 추석·설은 **검색이 몰리는 나흘**이 장사의 전부다. 연휴가 끝나면 아무도
+   * 찾지 않는다. 그래서 값도 그 나흘에만 매기고, 지나면 제값으로 올린다.
+   */
+  | 'family-holiday-report';
 
 /**
  * 화면에서 상품을 묶는 갈래.
@@ -93,6 +100,13 @@ export interface Product {
    */
   needsFace?: boolean;
   /**
+   * 한 상에 앉는 **가족들의 생년월일**이 필요한가.
+   *
+   * 이것이 서 있으면 화면이 가족을 여러 명 받고, 값도 인원수에 따라 달라진다.
+   * 상대 하나만 받는 `needsPartner` 와는 다르다.
+   */
+  needsFamily?: boolean;
+  /**
    * 아이의 **성(姓)** 이 필요한가.
    *
    * 작명은 아이의 사주만으로는 못 짓는다. 성의 획수가 있어야 네 격이 서고,
@@ -121,6 +135,49 @@ function topic(
     id, name, priceKrw: TOPIC_PRICE, description, previewRatio: 0.25,
     category, hook, topic: topicId,
   };
+}
+
+/**
+ * 명절 가족운세에 **값 없이 들어가는 인원** (본인 포함).
+ *
+ * 넷까지는 더 받지 않는다. 셋이 와도 값은 같다 — 손님에게 유리한 쪽이므로
+ * 따로 깎지 않는다.
+ */
+export const HOLIDAY_INCLUDED_MEMBERS = 4;
+
+/** 다섯 번째 사람부터 한 명당 더 받는 값 */
+export const HOLIDAY_EXTRA_MEMBER_KRW = 10_000;
+
+/**
+ * 한 리포트에 넣을 수 있는 **최대 인원** (본인 포함).
+ *
+ * 사람이 하나 늘 때마다 맞물려 볼 짝은 제곱으로 는다 — 넷이면 여섯 짝,
+ * 여섯이면 열다섯 짝이다. 여기서 더 늘리면 한 편에 담기지 않는다.
+ */
+export const HOLIDAY_MAX_MEMBERS = 6;
+
+/**
+ * 이 주문의 실제 값.
+ *
+ * **화면이 보낸 금액은 절대 쓰지 않는다.** 값은 표(카탈로그)와 인원수만으로
+ * 정해진다. 인원수도 손님이 적어 넣은 가족 수에서 서버가 직접 센다.
+ *
+ * @param memberCount 본인을 포함한 인원. 적지 않으면 한 명으로 본다
+ */
+export function priceOf(productId: ProductId, memberCount = 1): number {
+  return CATALOG[productId].priceKrw + extraMemberKrw(productId, memberCount);
+}
+
+/**
+ * 인원이 넘쳐서 **더 붙는 값**. 그 밖의 상품은 늘 0원이다.
+ *
+ * 묶음 상품은 값이 카탈로그가 아니라 묶음 계산에서 오므로, 더 붙는 값만
+ * 따로 내주어야 묶음 값을 덮어쓰지 않는다.
+ */
+export function extraMemberKrw(productId: string, memberCount = 1): number {
+  if (productId !== 'family-holiday-report') return 0;
+  const capped = Math.min(Math.max(memberCount, 1), HOLIDAY_MAX_MEMBERS);
+  return Math.max(0, capped - HOLIDAY_INCLUDED_MEMBERS) * HOLIDAY_EXTRA_MEMBER_KRW;
 }
 
 export const CATALOG: Record<ProductId, Product> = {
@@ -222,6 +279,26 @@ export const CATALOG: Record<ProductId, Product> = {
     previewRatio: 0.2,
     category: '가족',
     hook: '이 아이는 뭘 시켜야 할까?',
+  },
+  /*
+   * 명절 가족운세.
+   *
+   * 명절에 손님이 진짜로 겪는 것은 「올해 내 운이 어떤가」가 아니라
+   * **저 사람과 한 상에 앉는 나흘**이다. 그래서 연휴 나흘의 날마다 기운과,
+   * 상에 같이 앉는 사람들끼리 맞물리는 자리를 함께 본다.
+   *
+   * 넷까지는 값이 같다. 다섯째부터 한 명당 더 받는다 — 사람이 하나 늘면
+   * 맞물려 볼 짝이 제곱으로 늘기 때문이다. `priceOf()` 가 그걸 계산한다.
+   */
+  'family-holiday-report': {
+    id: 'family-holiday-report',
+    name: '명절 가족운세',
+    priceKrw: 25900,
+    description: '연휴 나흘의 날마다 기운과, 한 상에 앉는 사람들끼리 맞물리는 자리를 함께 봅니다. 넷까지 같은 값입니다.',
+    previewRatio: 0.2,
+    category: '가족',
+    hook: '이번 명절, 저 사람과 또 부딪힐까?',
+    needsFamily: true,
   },
   'parent-child-report': {
     id: 'parent-child-report',

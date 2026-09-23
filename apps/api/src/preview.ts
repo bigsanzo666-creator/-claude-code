@@ -165,6 +165,23 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
     contents.push(`앞으로 세 해를 **달마다** — 모두 ${달.length}달`);
     contents.push('두 사람 자리가 다시 묶이는 달을 짚어 드립니다');
     contents.push('돌아온다고 약속하는 글이 아닙니다');
+  } else if (d?.맞물리는_짝) {
+    /*
+     * 명절 가족운세 — 결제 전에 **무엇을 세었는지**를 보여 준다.
+     *
+     * 짝의 점수는 여기서 까지 않는다. 그건 사고 나서 볼 것이다.
+     * 대신 몇 사람을 몇 짝으로 셌는지, 어느 축으로 봤는지를 밝혀 둔다.
+     */
+    const 짝 = (d.맞물리는_짝 ?? []) as any[];
+    const 사람 = (d.한_상에_앉는_사람 ?? []) as string[];
+    contents.push(`${d.연휴?.이름} 연휴 ${(d.연휴?.날들 ?? []).length}일을 **날마다** 봄`);
+    for (const 날 of (d.연휴_날마다 ?? []) as any[]) {
+      contents.push(`${날.date} — ${날.pillar?.stem}${날.pillar?.branch} 일진, 내 기운과 ${날.favor}`);
+    }
+    contents.push(`한 상에 앉는 ${사람.length}명: ${사람.join(' · ')}`);
+    contents.push(`맞물리는 짝 ${짝.length}쌍을 **하나씩** — 나를 사이에 두지 않는 짝까지`);
+    contents.push('짝마다 일간·일지·용신·오행·전체 다섯 축으로 재고 근거를 붙임');
+    contents.push('누가 잘못했는지 가리지 않습니다');
   } else if (d?.맞물림) {
     // 부모 자식 — 배우자 자리는 뺀다. 점수도 앞세우지 않는다
     contents.push(d.뺀_축);

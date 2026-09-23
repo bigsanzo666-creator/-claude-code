@@ -17,6 +17,7 @@ import {
   CATALOG, getProduct, createOrder, markPending, markFulfilled, markViewed,
   hasEntitlement, assessRefund, refundNotice, confirmPayment, refundOrder, failOrder,
   orderable, isOrderable, upsellFor, packagesContaining, makePreview,
+  HOLIDAY_MAX_MEMBERS, HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, extraMemberKrw,
   WITHDRAWAL_NOTICE, type Order, type PaymentGateway, type ProductId,
 } from '../../../packages/commerce/src/index.ts';
 import { cacheKey } from '../../../packages/report/src/cache.ts';
@@ -704,6 +705,29 @@ function validateReading(body: any): ReadingRequest {
     }
   }
   /*
+   * 한 상에 앉는 사람들.
+   *
+   * 여기 적힌 사람 수가 **값을 정한다.** 그래서 화면이 보낸 인원수나 금액은
+   * 쓰지 않고, 실제로 생년월일이 들어온 사람만 서버가 직접 센다.
+   * 상한을 넘겨 보내면 잘라 낸다 — 짝이 제곱으로 늘어 한 편에 담기지 않는다.
+   */
+  if (item.needsFamily) {
+    const raw = Array.isArray(body.family) ? body.family : [];
+    const family = raw
+      .filter((f: any) => f && typeof f.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(f.date))
+      .slice(0, HOLIDAY_MAX_MEMBERS - 1)
+      .map((f: any) => ({
+        relation: String(f.relation ?? '가족').trim().slice(0, 12) || '가족',
+        date: f.date,
+        time: typeof f.time === 'string' && /^\d{2}:\d{2}$/.test(f.time) ? f.time : '12:00',
+      }));
+    if (!family.length) {
+      throw new HttpError(400, '같이 보실 가족을 한 분 이상 적어 주셔야 합니다.');
+    }
+    body.family = family;
+  }
+
+  /*
    * 신령이 약속한 「원하는 것 하나」.
    *
    * 안 적어도 된다. 적었으면 한 줄로 다듬어 싣는다 — 줄바꿈이 잔뜩 든 글을
@@ -1242,6 +1266,8 @@ export function createApi(deps: ApiDeps) {
         inputHash,
         noticeGiven: true,
         previewProvided: body.previewShown === true,
+        // 값은 **서버가 센 인원**으로만 정해진다. 화면이 보낸 금액은 쓰지 않는다
+        memberCount: 1 + (reading.family?.length ?? 0),
       });
       await deps.orders.save({ ...order, ...({ reading } as any) });
       send(res, 201, {

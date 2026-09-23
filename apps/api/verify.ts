@@ -901,6 +901,12 @@ section('H1. 값이 다르면 물건도 다르다');
       built = buildPayload({
         productId: p.id, birth: BIRTH2, partner: PARTNER2,
         name: { surname: '김' }, pick: { dates: ['2027-04-30'], times: ['16:30'] },
+        // 명절 가족운세는 한 상에 앉는 사람이 있어야 짝이 선다
+        family: [
+          { relation: '어머니', date: '1962-03-11', time: '08:30' },
+          { relation: '아버지', date: '1958-11-02', time: '20:30' },
+          { relation: '형', date: '1987-06-19', time: '12:00' },
+        ],
       } as never);
     } catch (e) {
       못만든것.push(`${p.id}: ${(e as Error).message}`);
@@ -969,6 +975,12 @@ section('H1. 값이 다르면 물건도 다르다');
       pl = buildPayload({
         productId: p.id, birth: BIRTH2, partner: PARTNER2,
         name: { surname: '김' }, pick: { dates: ['2027-04-30'], times: ['16:30'] },
+        // 명절 가족운세는 한 상에 앉는 사람이 있어야 짝이 선다
+        family: [
+          { relation: '어머니', date: '1962-03-11', time: '08:30' },
+          { relation: '아버지', date: '1958-11-02', time: '20:30' },
+          { relation: '형', date: '1987-06-19', time: '12:00' },
+        ],
       } as never);
     } catch { continue; }
     const n = buildPreview(p.id as never, pl.data, p.previewRatio).contents.length;

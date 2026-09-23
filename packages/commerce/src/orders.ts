@@ -6,7 +6,7 @@
  * 필드를 직접 고치는 대신 전이 함수만 두면 그 두 가지를 구조적으로 막을 수 있다.
  */
 
-import { type ProductId } from './catalog.ts';
+import { type ProductId, extraMemberKrw } from './catalog.ts';
 import { orderable } from './orderable.ts';
 
 export type OrderStatus =
@@ -53,6 +53,13 @@ export interface CreateOrderInput {
   inputHash: string;
   noticeGiven: boolean;
   previewProvided: boolean;
+  /**
+   * 본인을 포함한 인원. 인원에 따라 값이 달라지는 상품에만 쓴다.
+   *
+   * **서버가 손님이 적어 넣은 가족 수에서 직접 센 값**이라야 한다.
+   * 화면이 보낸 금액이나 인원을 그대로 믿으면 값을 깎아 보낼 수 있다.
+   */
+  memberCount?: number;
   now?: Date;
 }
 
@@ -66,7 +73,7 @@ export function createOrder(input: CreateOrderInput): Order {
   return {
     id: input.id,
     productId: product.id,
-    amountKrw: product.priceKrw,
+    amountKrw: product.priceKrw + extraMemberKrw(product.id, input.memberCount ?? 1),
     status: 'created',
     inputHash: input.inputHash,
     paymentId: null,

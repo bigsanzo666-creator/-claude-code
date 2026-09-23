@@ -10,7 +10,7 @@ import { orderable } from '../../../packages/commerce/src/orderable.ts';
 import { calculate } from '../../../packages/manseryeok/src/index.ts';
 import {
   analyze, calculateDaeun, currentDaeun, annualLuck,
-  compatibility, sajuToTraits, crossValidate, groupElement, dailyLuck,
+  compatibility, sajuToTraits, crossValidate, groupElement, dailyLuck, dailyLuckRange,
   extractTopic, allTopics, type TopicId,
   marriageTiming, lateLife, monthlyLuck, meetingMonths, healingMonths,
 } from '../../../packages/saju-rules/src/index.ts';
@@ -20,7 +20,19 @@ import { readPalm, NEUTRAL_PALM_FEATURES } from '../../../packages/palmistry/src
 import {
   nameField, popularList, popularitySource, popularYears, type NameWish,
 } from '../../../packages/naming/src/index.ts';
-import { CATALOG, type ProductId } from '../../../packages/commerce/src/index.ts';
+import { CATALOG, type ProductId, HOLIDAY_MAX_MEMBERS } from '../../../packages/commerce/src/index.ts';
+
+/**
+ * 이번 명절의 연휴 날들.
+ *
+ * 2026년 추석은 9월 25일(금)이고 연휴는 24일(목)~26일(토)이다. 27일(일)까지
+ * 집에 머무는 사람이 많아 나흘을 본다.
+ *
+ * **설이 오면 여기를 고친다.** 상세페이지와 리포트가 같은 날을 봐야 하므로
+ * 날짜는 이 한 곳에서만 온다.
+ */
+export const HOLIDAY_NAME = '2026년 추석';
+export const HOLIDAY_DAYS = ['2026-09-24', '2026-09-25', '2026-09-26', '2026-09-27'];
 import { cleanQuestion, type ReportKind } from '../../../packages/report/src/prompt.ts';
 
 export interface BirthInput {
@@ -62,6 +74,13 @@ export interface ReadingRequest {
   name?: NameInput;
   /** 궁합용 상대 */
   partner?: BirthInput;
+  /**
+   * 명절에 **한 상에 같이 앉는 사람들.**
+   *
+   * 상대 하나를 받는 `partner` 와 다르다. 여기 적힌 사람 수가 값을 정하므로
+   * 서버가 직접 세고, 화면이 보낸 숫자는 쓰지 않는다.
+   */
+  family?: { relation: string; date: string; time?: string; longitude?: number }[];
   /** 교차검증용 관상·손금 특징 */
   face?: Parameters<typeof readFace>[0];
   palm?: Parameters<typeof readPalm>[0];
@@ -556,6 +575,75 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
     대운: { 방향: daeun.direction, 근거: daeun.basis, 현재: currentDaeun(daeun, age), 전체: daeun.periods },
     세운: annualLuck(ms, an.yongsin, year, 5),
   };
+
+  /*
+   * 명절 가족운세.
+   *
+   * 명절에 손님이 진짜로 겪는 것은 「올해 내 운이 어떤가」가 아니라
+   * **저 사람과 한 상에 앉는 나흘**이다. 그래서 두 가지를 겹쳐 싣는다.
+   *
+   * 1. 연휴 나흘의 **날마다 일진** — 어느 날이 나한테 순하고 어느 날이 거친지
+   * 2. 상에 앉는 사람들끼리 **맞물리는 짝 전부** — 나와 어머니, 나와 형,
+   *    어머니와 형까지. 명절에 부딪히는 자리는 나를 사이에 두지 않는 데에도
+   *    있기 때문이다
+   *
+   * 짝은 사람 수의 제곱으로 는다. 넷이면 여섯, 여섯이면 열다섯이다.
+   * `HOLIDAY_MAX_MEMBERS` 에서 막는다 — 더 넣으면 한 편에 담기지 않는다.
+   */
+  if (req.productId === 'family-holiday-report') {
+    const kin = (req.family ?? []).slice(0, HOLIDAY_MAX_MEMBERS - 1);
+
+    // 한 상에 앉는 사람들. 맨 앞이 손님 자신이다
+    const seats = [
+      { 이름: subject, ms, an },
+      ...kin.map((f) => {
+        const m = calculate({ date: f.date, time: f.time ?? '12:00', longitude: f.longitude });
+        return { 이름: f.relation.trim() || '가족', ms: m, an: analyze(m) };
+      }),
+    ];
+
+    /*
+     * 맞물리는 짝을 모두 센다.
+     *
+     * 점수만 싣지 않고 **어느 축에서 그렇게 나왔는지**까지 싣는다.
+     * 근거 없이 「이 둘은 안 맞습니다」라고 쓰면 겁주는 글이 된다.
+     */
+    const 짝 = [];
+    for (let i = 0; i < seats.length; i++) {
+      for (let j = i + 1; j < seats.length; j++) {
+        const c = compatibility(seats[i].ms, seats[j].ms, seats[i].이름, seats[j].이름);
+        짝.push({
+          누구와_누구: `${seats[i].이름} ↔ ${seats[j].이름}`,
+          점수: c.score,
+          등급: c.grade,
+          축별: c.axes.map((x) => ({ 축: x.name, 판정: x.verdict, 근거: x.reasoning })),
+          맞는_자리: c.strengths,
+          부딪히는_자리: c.cautions,
+        });
+      }
+    }
+
+    return {
+      kind: '사주',
+      subject,
+      data: {
+        손님이_묻는_것: '이번 명절, 저 사람과 또 부딪힐까',
+        연휴: { 이름: HOLIDAY_NAME, 날들: HOLIDAY_DAYS },
+        나의_명식: base.명식,
+        나의_계산근거: base.계산근거,
+        나의_일간: base.일간,
+        나의_강약: base.강약,
+        나의_용신: base.용신,
+        // 연휴 날마다 — 어느 날이 순하고 어느 날이 거친지
+        연휴_날마다: dailyLuckRange(ms, an.yongsin, HOLIDAY_DAYS[0], HOLIDAY_DAYS.length),
+        // 명절 자리에서 내가 어떻게 반응하는 사람인지
+        나의_사람자리: extractTopic(an, 'peers'),
+        나의_말자리: extractTopic(an, 'expression'),
+        한_상에_앉는_사람: seats.map((x) => x.이름),
+        맞물리는_짝: 짝,
+      },
+    };
+  }
 
   /*
    * 주제 하나만 보는 상품.
