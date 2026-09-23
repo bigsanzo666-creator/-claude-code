@@ -139,6 +139,27 @@ const VIEWER_PATH = join(HERE, '..', '..', 'manse-viewer', 'index.html');
  * 바깥 껍데기를 플랫폼이 씌워준다. 우리가 직접 서빙할 때는 여기서 씌운다.
  * 덕분에 같은 파일이 무료 데모(아티팩트)와 실제 사이트 양쪽에서 쓰인다.
  */
+/**
+ * 숨겨 둔 보존 블록 안의 영상을 재우는 손질.
+ *
+ * `display:none` 은 그리기를 막을 뿐 **내려받기를 막지 못한다.** 보존 블록에는
+ * 신령 영상이 여덟 벌씩 두 갈래(mp4·webm)로 들어 있어서, 손님이 첫 화면을 보는
+ * 동안 브라우저가 50MB 를 통신선에 밀어 넣었다. 그동안 정작 보여야 할 메뉴판
+ * 그림은 뒤로 밀려 1분 넘게 까맣게 남았다 — 사장님 휴대폰에서 실제로 그랬다.
+ *
+ * 태그는 그대로 둔다(심사·검증이 `<source src=...>` 를 본다). 눈에 보이지 않는
+ * 동안 저 혼자 받아 오지만 않게 `autoplay` 를 떼고 `preload` 를 `none` 으로 돌린다.
+ */
+function idleVideos(html: string): string {
+  return html
+    .replace(/<video(\s[^>]*)>/g, (_m, attrs: string) => {
+      const quiet = attrs
+        .replace(/\sautoplay(?==|\b)/g, '')
+        .replace(/\spreload="[^"]*"/g, '');
+      return `<video${quiet} preload="none">`;
+    });
+}
+
 const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
 
     <!-- 상단 글로벌 바: 신령음 오디오 스위치 (첫 대문에서 유일하게 노출되는 상단 HUD) -->
@@ -151,7 +172,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
     <section id="stageGate" class="stage-section active">
       <div class="gate-bg-wrap">
         <!-- loop 속성 완전 제거: 영상 끝나면 문지기 대기 상태로 정지 -->
-        <video id="gateVideo" playsinline autoplay muted preload="auto">
+        <video id="gateVideo" playsinline autoplay muted preload="auto" poster="assets/신령계문_첫장면.jpg">
           <source src="assets/신령계문.mp4" type="video/mp4">
         </video>
         <div class="video-overlay"></div>
@@ -173,9 +194,9 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
     <!-- ================= STAGE 2: 신령계 입장 연출 (문이 열리고 안으로 들어가는 1회성 연출 영상) ================= -->
     <section id="stageEnter" class="stage-section">
       <div class="enter-video-wrap">
-        <video id="enterVideo" playsinline autoplay muted preload="auto">
-          <source src="assets/입장.mp4" type="video/mp4">
-        </video>
+        <!-- 첫 화면에서는 한 조각도 내려받지 않는다. 문을 두드린 뒤에야 받아 온다 —
+             그래야 대문 영상과 메뉴판 그림이 통신선을 나눠 쓰지 않는다 -->
+        <video id="enterVideo" playsinline muted preload="none" data-src="assets/입장.mp4"></video>
       </div>
 
       <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
@@ -389,7 +410,7 @@ ${STUDIO_CONTAINER_HTML}
 
 <!-- 심사 및 시스템 검증용 보존 블록 (hidden 처리) -->
 <div id="legacyStageWrapper" style="display:none!important;" hidden>
-${renderStage(business, scenes, { walk: walkVideo, open: gateVideo, walkWebm, openWebm: gateWebm }, faces, clips, clipWebms)}
+${idleVideos(renderStage(business, scenes, { walk: walkVideo, open: gateVideo, walkWebm, openWebm: gateWebm }, faces, clips, clipWebms))}
 ${renderHero(business, checkout !== null, hero, heroVideo)}
 ${renderSpiritRow(faces)}
 ${renderProducts(checkout !== null, images, faces, false, scenes)}

@@ -954,6 +954,15 @@ body.st-locked{overflow:hidden}
 export const STAGE_SCRIPT = `<script>(function(){
   var stage=document.getElementById('stage');
   if(!stage)return;
+  /*
+   * 화면에 없는 무대는 손대지 않는다.
+   *
+   * 새 신령계 화면이 앞에 서고부터, 이 무대는 심사·검증용으로만 남아
+   * \`display:none\` 안에 접혀 있다. 그런데도 이 글이 그대로 돌아서
+   * \`play()\` 를 불렀고, 보이지도 않는 영상 두 벌(10MB)을 손님 통신선으로
+   * 끌어왔다. 그동안 정작 보여야 할 메뉴판 그림이 뒤로 밀렸다.
+   */
+  if(!stage.getClientRects().length)return;
   var $=function(id){return document.getElementById(id);};
   var c=navigator.connection;
   /*

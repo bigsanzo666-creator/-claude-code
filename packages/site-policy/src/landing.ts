@@ -168,6 +168,7 @@ const HERO_VIDEO = `<video class="lp-vid" muted loop playsinline preload="none" 
   var c=navigator.connection;
   if(c&&(c.saveData||/2g/.test(c.effectiveType||'')))return;
   var go=function(){
+    if(!v.getClientRects().length)return; // 화면에 없으면 받지 않는다
     v.src='/video/hero';
     v.addEventListener('canplaythrough',function(){v.classList.add('on');v.play().catch(function(){});},{once:true});
     v.load();

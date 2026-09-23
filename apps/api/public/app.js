@@ -450,6 +450,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // ================= 2. 신령계 문 두드리기 ➡️ 사주 신상 정보 입력 모달(Checkpoint) 오픈 =================
   btnKnockGate.addEventListener('click', () => {
     if (sajuInputModal) sajuInputModal.classList.add('active');
+    // 명식을 적는 동안 입장 영상을 미리 받아 둔다. 첫 화면에서는 건드리지 않는다
+    if (enterVideo && !enterVideo.getAttribute('src') && enterVideo.dataset.src) {
+      enterVideo.preload = 'auto';
+      enterVideo.setAttribute('src', enterVideo.dataset.src);
+      enterVideo.load();
+    }
   });
 
   // 성별 선택 토글
@@ -473,6 +479,11 @@ document.addEventListener('DOMContentLoaded', () => {
     stageEnter.classList.add('active');
 
     if (enterVideo) {
+      // 문 두드릴 때 미리 받아 두지 못했으면 지금이라도 붙인다
+      if (!enterVideo.getAttribute('src') && enterVideo.dataset.src) {
+        enterVideo.preload = 'auto';
+        enterVideo.setAttribute('src', enterVideo.dataset.src);
+      }
       enterVideo.currentTime = 0;
       enterVideo.muted = !isAudioActive;
       if (isAudioActive) enterVideo.volume = 1.0;
@@ -659,12 +670,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (catProducts.length === 0) {
         productCarouselTrack.innerHTML = '<div class="carousel-empty">준비된 상품이 없습니다</div>';
       } else {
-        productCarouselTrack.innerHTML = catProducts.map(p => {
+        productCarouselTrack.innerHTML = catProducts.map((p, i) => {
           const rawHook = p.hook || '';
           const hookText = rawHook.replace(/^[\"'\s]+|[\"'\s]+$/g, '');
           return [
             '<article class="product-card" data-product-id="' + p.id + '" tabindex="0" role="button" aria-label="' + p.name + '">',
-            '  <img src="/img/products/' + p.id + '" alt="' + p.name + '" class="product-card-bg" loading="lazy">',
+            // 첫 장은 바로 보여야 한다. 미루면 손님은 까만 카드를 먼저 본다
+            '  <img src="/img/products/' + p.id + '" alt="' + p.name + '" class="product-card-bg" decoding="async"'
+              + (i === 0 ? ' fetchpriority="high">' : ' loading="lazy">'),
             '  <div class="product-card-scrim"></div>',
             '  <div class="product-card-info">',
             '    <div class="product-card-spirit">' + catConfig.spirit.name + '</div>',
