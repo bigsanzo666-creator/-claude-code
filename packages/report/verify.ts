@@ -223,4 +223,44 @@ check('약속한 이름 개수와 프롬프트가 맞는다',
   naming.includes('이름 셋') && !naming.includes('이름 다섯'));
 }
 
+
+  // ─── 프롬프트 숫자 및 사실 규칙 검증 ─────────────────────────
+  const sajuSys = buildSystemPrompt('사주');
+  check('숫자는 자료에 적힌 것을 한 글자도 바꾸지 않고 그대로 옮기라고 못박는다',
+    sajuSys.includes('숫자는 자료에 적힌 것을 한 글자도 바꾸지 않고 그대로 옮깁니다'));
+  check('자료에 없는 숫자는 한 개도 쓰지 말라고 못박는다',
+    sajuSys.includes('자료에 없는 숫자는 한 개도 쓰지 않습니다'));
+  check('비중이 있는데 0%라고 쓰면 거짓말이라고 명시한다',
+    sajuSys.includes('비중이 있는데 0% 라고 쓰면 거짓말'));
+  check('보정 시각은 자료의 correctedTime을 그대로 적으라고 시킨다',
+    sajuSys.includes('보정 시각은 자료의 `correctedTime` 을 그대로 적습니다'));
+  check('열두 시진 표 위 추천 이유 한 줄이 지시되어 있다',
+    buildSystemPrompt('오늘운세').includes('유리하면서 부딪힘까지 없는 시간을 골랐습니다'));
+
+  // ─── 수치 및 사실 검증기(validateReportFacts) 단위 검증 ──────
+  const { validateReportFacts } = await import('./src/validate.ts');
+  const sampleFactData = {
+    계산근거: { correctedTime: '14:14' },
+    강약: { scores: { 비겁: 11.7, 식상: 10.7, 재성: 17.5, 관성: 19.9, 인성: 40.3 }, supportRatio: 52 },
+    오행: [{ element: '금', weight: 45.6 }, { element: '토', weight: 22.5 }, { element: '수', weight: 0 }],
+  };
+
+  const badPercent = validateReportFacts('행운 확률이 99.9%로 높습니다.', sampleFactData);
+  check('리포트 수치 검증기가 자료에 없는 백분율을 잡아낸다',
+    !badPercent.valid && badPercent.errors.some((e) => e.includes('99.9%')));
+
+  const badTime = validateReportFacts('인천 기준 진태양시 14시 16분 보정 명식입니다.', sampleFactData);
+  check('리포트 수치 검증기가 잘못된 보정 시각을 잡아낸다',
+    !badTime.valid && badTime.errors.some((e) => e.includes('14시 16분')));
+
+  const badZeroGod = validateReportFacts('자기 목소리를 내는 힘(비겁 0%)이 약합니다.', sampleFactData);
+  check('리포트 수치 검증기가 비중 있는 십신의 0% 기술을 잡아낸다',
+    !badZeroGod.valid && badZeroGod.errors.some((e) => e.includes('비겁')));
+
+  const goodReport = validateReportFacts(
+    '인천 기준 진태양시 14시 14분 보정입니다. 금 45.6%로 강하고, 비겁 11.7%는 작은 편입니다. 일간을 돕는 힘은 52%입니다.',
+    sampleFactData
+  );
+  check('자료와 일치하는 올바른 수치 글은 검증을 통과한다', goodReport.valid && goodReport.errors.length === 0);
+
 console.log('전부 통과. (모델 호출 없음 — 이 검증은 비용이 들지 않는다)');

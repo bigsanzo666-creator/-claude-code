@@ -1306,6 +1306,34 @@ console.log(`\n${'═'.repeat(60)}`);
     dailyCorrected === ms.meta.correctedTime && dailyCorrected === '14:14');
   check('오늘운세에 추천 안내 한 줄이 포함되어 있다',
     (dailyPayload.data as any).고른넷?.안내 === '유리하면서 부딪힘까지 없는 시간을 골랐습니다.');
+
+  // 명절 가족운세 데이터와 글 검증 테스트
+  const { validateReportFacts } = await import('../../packages/report/src/validate.ts');
+  const familyReq = {
+    productId: 'family-holiday-report' as const,
+    birth: birthIncheon,
+    family: [
+      { relation: '어머니', date: '1962-03-11', time: '12:00' },
+      { relation: '아버지', date: '1958-11-02', time: '12:00' },
+      { relation: '형', date: '1987-06-19', time: '12:00' },
+    ],
+  };
+  const familyPayload = buildPayload(familyReq);
+  const famData = familyPayload.data as any;
+  check('명절 가족운세 손님 보정 시각이 만세력 값 14:14와 일치한다',
+    famData.나의_계산근거?.correctedTime === '14:14');
+
+  // 틀린 수치(14시 16분, 비겁 0%)가 들어간 글을 검증기가 차단하는지 확인
+  const badFamText = '진태양시 14시 16분 보정이며 비겁 0%입니다.';
+  const badResult = validateReportFacts(badFamText, famData);
+  check('가짜 모델이 낸 틀린 수치(14시 16분, 비겁 0%)를 검증기가 적발한다',
+    !badResult.valid && badResult.errors.length >= 2);
+
+  // 올바른 수치(14시 14분, 비겁 11.7%, 어머니 화·토 42.3%)가 들어간 글은 통과하는지 확인
+  const goodFamText = '진태양시 14시 14분 보정이며, 비겁 11.7%이고 어머니는 화·토 42.3%입니다.';
+  const goodResult = validateReportFacts(goodFamText, famData);
+  check('올바른 계산 수치가 들어간 글은 사실 검증을 통과한다', goodResult.valid);
+
 }
 
 console.log(`통과 ${passed} / 실패 ${failed}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
