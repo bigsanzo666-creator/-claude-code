@@ -16,6 +16,7 @@ import {
   marriageTiming, lateLife, monthlyLuck, meetingMonths, healingMonths,
 } from '../../../packages/saju-rules/src/index.ts';
 import { pickDays, mergeHours, bestPerDay, slotSpan, slotLabel } from '../../../packages/saju-rules/src/index.ts';
+import { PLACES } from '../../../packages/site-policy/src/pick-page.ts';
 import { readFace, NEUTRAL_FEATURES } from '../../../packages/physiognomy/src/index.ts';
 import { readPalm, NEUTRAL_PALM_FEATURES } from '../../../packages/palmistry/src/index.ts';
 import {
@@ -30,6 +31,7 @@ export interface BirthInput {
   date: string;
   time: string | null;
   longitude?: number;
+  place?: string;
   gender?: '남' | '여';
   name?: string;
 }
@@ -212,8 +214,18 @@ export const KIND_OF = new Proxy({} as Record<ProductId, ReportKind>, {
   get: (_t, key: string) => kindOf(key as ProductId),
 });
 
+
+export function resolveLongitude(input?: { longitude?: number; place?: string }): number | undefined {
+  if (input?.longitude !== undefined) return input.longitude;
+  if (input?.place) {
+    const found = PLACES.find((p) => p.name === input.place);
+    if (found) return found.longitude;
+  }
+  return undefined;
+}
 function sajuBundle(birth: BirthInput) {
-  const ms = calculate({ date: birth.date, time: birth.time, longitude: birth.longitude });
+  const longitude = resolveLongitude(birth);
+  const ms = calculate({ date: birth.date, time: birth.time, longitude });
   const an = analyze(ms);
   const daeun = calculateDaeun(ms, birth.gender ?? '남', an.yongsin);
   const year = new Date().getFullYear();
@@ -374,6 +386,7 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
       kind: '오늘운세',
       subject,
       data: {
+        계산근거: ms.meta,
         오늘날짜: today,
         오늘의간지: `${luck.pillar.stem}${luck.pillar.branch} (${luck.pillar.stemHanja}${luck.pillar.branchHanja})`,
         오늘의오행: { 천간: luck.pillar.element.stem, 지지: luck.pillar.element.branch },
@@ -390,12 +403,14 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
         사주와의_충합_관계: luck.interactions.length ? luck.interactions : ['특이 충돌이나 강한 묶임 없이 평온하게 흘러가는 기운입니다.'],
         열두시진: slots,
         고른넷: {
+          안내: '유리하면서 부딪힘까지 없는 시간을 골랐습니다.',
           좋은둘: goodTwo,
           나쁜둘: badTwo,
         },
         시간대별_흐름: {
           열두시진: slots,
           고른넷: {
+          안내: '유리하면서 부딪힘까지 없는 시간을 골랐습니다.',
             좋은둘: goodTwo,
             나쁜둘: badTwo,
           },
@@ -558,8 +573,8 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
   const pairKind = kindOf(req.productId);
   if ((PAIR_KINDS as readonly string[]).includes(pairKind)) {
     if (!req.partner) throw new Error('이 리포트에는 상대의 생년월일이 필요합니다.');
-    const a = calculate({ date: req.birth.date, time: req.birth.time, longitude: req.birth.longitude });
-    const b = calculate({ date: req.partner.date, time: req.partner.time, longitude: req.partner.longitude });
+    const a = calculate({ date: req.birth.date, time: req.birth.time, longitude: resolveLongitude(req.birth) });
+    const b = calculate({ date: req.partner.date, time: req.partner.time, longitude: resolveLongitude(req.partner) });
     const nameA = subject;
     const nameB = req.partner.name?.trim() || '상대분';
     const anA = analyze(a);
@@ -702,7 +717,7 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
     const seats = [
       { 이름: subject, ms, an },
       ...kin.map((f) => {
-        const m = calculate({ date: f.date, time: f.time ?? '12:00', longitude: f.longitude });
+        const m = calculate({ date: f.date, time: f.time ?? '12:00', longitude: resolveLongitude(f) });
         return { 이름: f.relation.trim() || '가족', ms: m, an: analyze(m) };
       }),
     ];

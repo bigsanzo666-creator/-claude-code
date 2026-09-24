@@ -1286,6 +1286,28 @@ console.log(`\n${'═'.repeat(60)}`);
     !dailyReportChunk.includes('pickScore') && !calcDailyHoursChunk.includes('pickScore'));
 }
 
+
+// ─── 진태양시 보정 시각 검증 ────────────────────────────────────
+{
+  const { buildPayload } = await import('./src/payload.ts');
+  const { calculate } = await import('../../packages/manseryeok/src/index.ts');
+  const birthIncheon = { date: '1990-09-25', time: '14:40', place: '인천', gender: '남' as const };
+  const payload = buildPayload({ productId: 'saju-report', birth: birthIncheon });
+  const ms = calculate({ date: '1990-09-25', time: '14:40', longitude: 126.705 });
+  const reportCorrected = (payload.data as any).계산근거?.correctedTime;
+  check('리포트에 적힌 보정 시각이 만세력이 낸 값과 한 글자도 다르지 않다',
+    reportCorrected === ms.meta.correctedTime && reportCorrected === '14:14',
+    `리포트 ${reportCorrected} === 만세력 ${ms.meta.correctedTime}`);
+
+  // 오늘운세 리포트에도 계산근거가 들어가고 보정 시각이 일치하는지 확인
+  const dailyPayload = buildPayload({ productId: 'daily-report', birth: birthIncheon });
+  const dailyCorrected = (dailyPayload.data as any).계산근거?.correctedTime;
+  check('오늘운세 리포트 보정 시각도 만세력 값과 정확히 일치한다',
+    dailyCorrected === ms.meta.correctedTime && dailyCorrected === '14:14');
+  check('오늘운세에 추천 안내 한 줄이 포함되어 있다',
+    (dailyPayload.data as any).고른넷?.안내 === '유리하면서 부딪힘까지 없는 시간을 골랐습니다.');
+}
+
 console.log(`통과 ${passed} / 실패 ${failed}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
 console.log('전부 통과.');
