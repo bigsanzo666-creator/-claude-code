@@ -1638,6 +1638,16 @@ ${product.id === 'family-holiday-report' ? renderFamilyWhy() : renderWhy()}
 <div style="height:24px"></div>
 ${footer}
 ${stickyBuy(product, ready)}
+<script>
+(function(){
+  try{
+    var m = location.search.match(/[?&]ref=([a-zA-Z0-9_-]+)/);
+    if(m && m[1] && !sessionStorage.getItem('nb_ref')){
+      sessionStorage.setItem('nb_ref', m[1].toLowerCase().slice(0, 20));
+    }
+  }catch(e){}
+})();
+</script>
 </body>
 </html>`;
 }

@@ -9,6 +9,34 @@
 import { type ProductId, extraMemberKrw } from './catalog.ts';
 import { orderable } from './orderable.ts';
 
+export const ALLOWED_REFS = [
+  'sidaek',
+  'jansori',
+  'bigyo',
+  'don',
+  'gyeolhon',
+  'ai',
+  'bumo',
+  'silta',
+] as const;
+export type AdRef = (typeof ALLOWED_REFS)[number];
+
+/**
+ * 광고 식별자 정제.
+ *
+ * 영문 소문자와 숫자, 붙임표만 받고 20자에서 자른다.
+ * 허용된 여덟 개가 아니면 빈 값(null)으로 둔다.
+ * 이 값은 값을 정하는 데 일절 쓰이지 않는다.
+ */
+export function cleanRef(ref?: unknown): string | null {
+  if (typeof ref !== 'string') return null;
+  const trimmed = ref.trim().toLowerCase().slice(0, 20);
+  if (!/^[a-z0-9-]+$/.test(trimmed)) return null;
+  if (!ALLOWED_REFS.includes(trimmed as AdRef)) return null;
+  return trimmed;
+}
+
+
 export type OrderStatus =
   /** 주문서 생성. 아직 결제창도 안 띄웠다 */
   | 'created'
@@ -40,6 +68,8 @@ export interface Order {
   noticeGiven: boolean;
   /** 결제 전에 미리보기를 제공했는가 */
   previewProvided: boolean;
+  /** 어느 광고를 보고 들어왔는지. 값을 정하거나 권한을 주는 데는 쓰지 않는다 */
+  ref?: string | null;
   createdAt: string;
   paidAt: string | null;
   viewedAt: string | null;
@@ -53,6 +83,7 @@ export interface CreateOrderInput {
   inputHash: string;
   noticeGiven: boolean;
   previewProvided: boolean;
+  ref?: string | null;
   /**
    * 본인을 포함한 인원. 인원에 따라 값이 달라지는 상품에만 쓴다.
    *
@@ -79,6 +110,7 @@ export function createOrder(input: CreateOrderInput): Order {
     paymentId: null,
     noticeGiven: input.noticeGiven,
     previewProvided: input.previewProvided,
+    ref: cleanRef(input.ref),
     createdAt: now,
     paidAt: null,
     viewedAt: null,

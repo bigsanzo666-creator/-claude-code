@@ -117,6 +117,25 @@ check('inputHash가 붙음', /^[0-9a-f]{64}$/.test(created.body.order.inputHash)
 const badProduct = await api('POST', '/api/orders', { ...reading, productId: 'free-lunch', acknowledgedNotice: true });
 check('없는 상품 거부', badProduct.status === 400);
 
+// 광고 유입 식별자 (ref)
+const withRef = await api('POST', '/api/orders', {
+  ...reading, acknowledgedNotice: true, previewShown: true, ref: 'sidaek',
+});
+check('ref 가 주문에 기록된다', withRef.status === 201 && withRef.body.order.ref === 'sidaek');
+
+const withBadRef = await api('POST', '/api/orders', {
+  ...reading, acknowledgedNotice: true, previewShown: true, ref: 'not-in-allowed-refs',
+});
+check('아는 여덟 개가 아닌 ref 는 빈 값이 된다',
+  withBadRef.status === 201 && withBadRef.body.order.ref === null);
+
+check('ref 가 값을 바꾸지 않는다 (같은 주문이면 ref 가 달라도 금액이 같다)',
+  created.body.order.amountKrw === withRef.body.order.amountKrw
+  && created.body.order.amountKrw === withBadRef.body.order.amountKrw);
+
+check('ref 가 없어도 주문이 만들어진다',
+  created.status === 201 && created.body.order.ref === null);
+
 // ── C. 결제 검증 ───────────────────────────────────────────────
 section('C. 결제 확인 — 위조 차단');
 

@@ -9,7 +9,7 @@
 import {
   CATALOG, getProduct, makePreview, CATEGORIES, productsIn,
   PACKAGES, bundleMath, packagesContaining, assertPackagesValid, needsPartner,
-  createOrder, markPending, markPaid, markFulfilled, markViewed, markRefunded,
+  ALLOWED_REFS, cleanRef, createOrder, markPending, markPaid, markFulfilled, markViewed, markRefunded,
   hasEntitlement, OrderTransitionError,
   assessRefund, addBusinessDays, WITHDRAWAL_NOTICE, WITHDRAWAL_WINDOW_DAYS, refundNotice,
   FakeGateway, confirmPayment, refundOrder, PaymentVerificationError,
@@ -348,6 +348,42 @@ check('어느 묶음에도 없으면 안 내민다',
   check('인원을 안 넘기면 기본값으로 만든다',
     createOrder({ id: 'o', productId: 명절, inputHash: 'h', noticeGiven: true, previewProvided: true })
       .amountKrw === CATALOG[명절].priceKrw);
+}
+
+
+// 광고 유입 식별자 (ref)
+{
+  check('아는 여덟 개가 아닌 ref 는 빈 값이 된다',
+    cleanRef('unknown') === null
+    && cleanRef('hack<script>') === null
+    && cleanRef('sidaek!') === null
+    && cleanRef('a'.repeat(25)) === null
+    && cleanRef('') === null
+    && cleanRef(undefined) === null
+    && cleanRef(null) === null
+    && ALLOWED_REFS.length === 8
+    && ALLOWED_REFS.every((r) => cleanRef(r) === r && cleanRef(r.toUpperCase()) === r));
+
+  const baseInput = {
+    id: 'ord_ref_test',
+    productId: 'family-holiday-report' as const,
+    inputHash: 'hash123',
+    noticeGiven: true,
+    previewProvided: true,
+  };
+
+  const oNoRef = createOrder({ ...baseInput });
+  const oWithRef = createOrder({ ...baseInput, ref: 'sidaek' });
+  const oBadRef = createOrder({ ...baseInput, ref: 'invalid_ad' });
+
+  check('ref 가 없어도 주문이 만들어진다',
+    oNoRef.id === 'ord_ref_test' && oNoRef.ref === null);
+
+  check('ref 가 값을 바꾸지 않는다 (같은 주문이면 ref 가 달라도 금액이 같다)',
+    oNoRef.amountKrw === oWithRef.amountKrw
+    && oNoRef.amountKrw === oBadRef.amountKrw
+    && oWithRef.ref === 'sidaek'
+    && oBadRef.ref === null);
 }
 
 console.log(`\n${'═'.repeat(60)}`);

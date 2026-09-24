@@ -243,6 +243,15 @@ export function renderCheckoutPage(
 
   agree.addEventListener('change', function(){ pay.disabled = !agree.checked; });
 
+  /* ref tracking */
+  try{
+    var m = location.search.match(/[?&]ref=([a-zA-Z0-9_-]+)/);
+    if(m && m[1] && !sessionStorage.getItem('nb_ref')){
+      sessionStorage.setItem('nb_ref', m[1].toLowerCase().slice(0, 20));
+    }
+  }catch(e){}
+
+
   /*
    * 신령 처소에서 이미 적은 것이 있으면 그대로 채운다.
    * 사겠다고 누른 손님에게 같은 것을 두 번 묻지 않는다.
@@ -376,8 +385,11 @@ export function renderCheckoutPage(
 
     var orderId = '';
     try{
+      var adRef = (function(){
+        try { return sessionStorage.getItem('nb_ref') || undefined; } catch(e){ return undefined; }
+      })();
       var created = await post('/api/orders',
-        Object.assign({}, reading, { acknowledgedNotice:true, previewShown:true }));
+        Object.assign({}, reading, { acknowledgedNotice:true, previewShown:true, ref: adRef }));
       orderId = created.order.id;
 
       await post('/api/orders/' + orderId + '/pending').catch(function(){});
@@ -469,6 +481,16 @@ ${CHECKOUT_CSS}
 </main>
 ${footer}
 ${script}
+<script>
+(function(){
+  try{
+    var m = location.search.match(/[?&]ref=([a-zA-Z0-9_-]+)/);
+    if(m && m[1] && !sessionStorage.getItem('nb_ref')){
+      sessionStorage.setItem('nb_ref', m[1].toLowerCase().slice(0, 20));
+    }
+  }catch(e){}
+})();
+</script>
 </body>
 </html>`;
 }

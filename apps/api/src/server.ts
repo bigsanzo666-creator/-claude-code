@@ -1268,8 +1268,10 @@ export function createApi(deps: ApiDeps) {
         previewProvided: body.previewShown === true,
         // 값은 **서버가 센 인원**으로만 정해진다. 화면이 보낸 금액은 쓰지 않는다
         memberCount: 1 + (reading.family?.length ?? 0),
+        ref: body.ref,
       });
       await deps.orders.save({ ...order, ...({ reading } as any) });
+      console.log(`[주문] ${order.productId} ${order.amountKrw}원${order.ref ? ` ref=${order.ref}` : ''}`);
       send(res, 201, {
         order,
         // 포트원은 결제 식별자를 우리가 정한다. 주문 id를 그대로 쓴다
