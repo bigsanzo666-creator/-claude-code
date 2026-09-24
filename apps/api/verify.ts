@@ -1247,6 +1247,7 @@ console.log(`\n${'═'.repeat(60)}`);
 // ─── 오늘의 운세 ──────────────────────────────────────────────
 {
   const { buildPayload, kindOf } = await import('./src/payload.ts');
+  const { readFileSync } = await import('node:fs');
   check('오늘의 운세는 오늘운세 갈래로 나간다', kindOf('daily-report') === '오늘운세');
   const birth = { date: '1990-05-20', time: '14:30', gender: '남' as const };
   const built = buildPayload({ productId: 'daily-report', birth });
@@ -1255,6 +1256,34 @@ console.log(`\n${'═'.repeat(60)}`);
   check('오늘의 날짜와 간지가 들어간다', !!d.오늘날짜 && !!d.오늘의간지);
   check('오늘의 십신과 유불리가 계산된다', !!d.오늘의십신 && !!d.오늘의기운_유불리);
   check('오늘의 행운 비책이 들어간다', Array.isArray(d.오늘의_처방전?.행운의_색상) && d.오늘의_처방전?.행운의_색상.length > 0);
+
+  // 시간대 계산 및 고른 넷 검증
+  check('오늘의 운세 자료에 시진이 열두 개 들어 있다',
+    Array.isArray(d.열두시진) && d.열두시진.length === 12);
+  check('고른 넷이 따로 들어 있고, 좋은 둘·나쁜 둘이 서로 겹치지 않는다',
+    d.고른넷 && Array.isArray(d.고른넷.좋은둘) && d.고른넷.좋은둘.length === 2 &&
+    Array.isArray(d.고른넷.나쁜둘) && d.고른넷.나쁜둘.length === 2 &&
+    d.고른넷.좋은둘.every((g: any) => !d.고른넷.나쁜둘.some((b: any) => b.시진 === g.시진)));
+
+  const birthB = { date: '1992-04-03', time: '08:00', gender: '여' as const };
+  const builtB = buildPayload({ productId: 'daily-report', birth: birthB });
+  const dB = builtB.data as any;
+  const sameGood = JSON.stringify(d.고른넷.좋은둘) === JSON.stringify(dB.고른넷.좋은둘);
+  const sameBad = JSON.stringify(d.고른넷.나쁜둘) === JSON.stringify(dB.고른넷.나쁜둘);
+  check('같은 날이어도 명식이 다르면 고른 넷이 달라진다', !sameGood || !sameBad);
+
+  const builtAgain = buildPayload({ productId: 'daily-report', birth });
+  const dAgain = builtAgain.data as any;
+  check('같은 입력을 두 번 돌리면 고른 넷이 똑같다',
+    JSON.stringify(d.고른넷) === JSON.stringify(dAgain.고른넷));
+
+  const payloadSource = readFileSync(new URL('./src/payload.ts', import.meta.url), 'utf-8');
+  const dailyReportSourceIdx = payloadSource.indexOf("req.productId === 'daily-report'");
+  const dailyReportChunk = payloadSource.slice(dailyReportSourceIdx, dailyReportSourceIdx + 1500);
+  const calcDailyHoursIdx = payloadSource.indexOf("function calculateDailyHours");
+  const calcDailyHoursChunk = payloadSource.slice(calcDailyHoursIdx, calcDailyHoursIdx + 2500);
+  check('pickScore 가 오늘의 운세 자료를 만드는 데 쓰이지 않는다',
+    !dailyReportChunk.includes('pickScore') && !calcDailyHoursChunk.includes('pickScore'));
 }
 
 console.log(`통과 ${passed} / 실패 ${failed}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);

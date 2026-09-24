@@ -7,10 +7,11 @@ import { orderable } from '../../../packages/commerce/src/orderable.ts';
  * 결과는 스스로 계산한다 — 어차피 결정론이라 결과가 같다.
  */
 
-import { calculate } from '../../../packages/manseryeok/src/index.ts';
+import { calculate, type Myeongsik } from '../../../packages/manseryeok/src/index.ts';
 import {
   analyze, calculateDaeun, currentDaeun, annualLuck,
   compatibility, sajuToTraits, crossValidate, groupElement, dailyLuck, dailyLuckRange,
+  luckOf, type YongsinResult,
   extractTopic, allTopics, type TopicId,
   marriageTiming, lateLife, monthlyLuck, meetingMonths, healingMonths,
 } from '../../../packages/saju-rules/src/index.ts';
@@ -225,6 +226,93 @@ function sajuBundle(birth: BirthInput) {
  * 묶음도 리포트를 새로 쓰는 것이 아니라 **구성 상품을 그대로 여러 편 만든다.**
  * 그래야 낱개로 산 사람과 묶음으로 산 사람이 같은 글을 받는다.
  */
+
+export interface DailyHourSlot {
+  시진: string;
+  시각: string;
+  간지: string;
+  천간십신: string;
+  지지십신: string;
+  유불리: string;
+  부딪힘: string[];
+}
+
+export function calculateDailyHours(
+  ms: Myeongsik,
+  yongsin: YongsinResult,
+  today: string,
+): {
+  slots: DailyHourSlot[];
+  goodTwo: DailyHourSlot[];
+  badTwo: DailyHourSlot[];
+} {
+  const TIME_SLOTS = [
+    { time: '23:30', 시진: '자시', 시각: '밤 11:30 ~ 1:30' },
+    { time: '01:30', 시진: '축시', 시각: '새벽 1:30 ~ 3:30' },
+    { time: '03:30', 시진: '인시', 시각: '새벽 3:30 ~ 5:30' },
+    { time: '05:30', 시진: '묘시', 시각: '아침 5:30 ~ 7:30' },
+    { time: '07:30', 시진: '진시', 시각: '아침 7:30 ~ 9:30' },
+    { time: '09:30', 시진: '사시', 시각: '오전 9:30 ~ 11:30' },
+    { time: '11:30', 시진: '오시', 시각: '낮 11:30 ~ 1:30' },
+    { time: '13:30', 시진: '미시', 시각: '낮 1:30 ~ 3:30' },
+    { time: '15:30', 시진: '신시', 시각: '오후 3:30 ~ 5:30' },
+    { time: '17:30', 시진: '유시', 시각: '저녁 5:30 ~ 7:30' },
+    { time: '19:30', 시진: '술시', 시각: '저녁 7:30 ~ 9:30' },
+    { time: '21:30', 시진: '해시', 시각: '밤 9:30 ~ 11:30' },
+  ];
+
+  const scored = TIME_SLOTS.map((slot, idx) => {
+    const hourPillar = calculate({ date: today, time: slot.time }).hour;
+    const l = luckOf(ms, hourPillar, yongsin);
+
+    // 충 무게: 부딪힘 중 「충」이 든 것만 셈. 합(合)은 세지 않음. 일주 충이면 3, 그 밖의 충이면 1
+    let clashWeight = 0;
+    for (const inter of l.interactions) {
+      if (inter.includes('충')) {
+        if (inter.includes('일주') || inter.includes('가장 크게 본다')) {
+          clashWeight += 3;
+        } else {
+          clashWeight += 1;
+        }
+      }
+    }
+
+    // 유불리 점수: 유리 +2 / 중립 0 / 불리 -2
+    const favorScore = l.favor === '유리' ? 2 : l.favor === '불리' ? -2 : 0;
+    const finalScore = favorScore - clashWeight;
+
+    return {
+      idx,
+      slot: {
+        시진: slot.시진,
+        시각: slot.시각,
+        간지: `${hourPillar.stem}${hourPillar.branch}`,
+        천간십신: l.stemGod,
+        지지십신: l.branchGod,
+        유불리: l.favor,
+        부딪힘: l.interactions,
+      },
+      score: finalScore,
+    };
+  });
+
+  // 좋은 둘: 최종이 높은 순으로 둘, 동점이면 이른 시간 순 (idx asc)
+  const sortedDesc = [...scored].sort((a, b) => b.score - a.score || a.idx - b.idx);
+  const goodPicked = [sortedDesc[0], sortedDesc[1]];
+  const goodIndices = new Set(goodPicked.map((g) => g.idx));
+
+  // 나쁜 둘: 좋은 둘을 제외한 10개 중 최종이 낮은 순으로 둘, 동점이면 이른 시간 순 (idx asc)
+  const remaining = scored.filter((s) => !goodIndices.has(s.idx));
+  const sortedAsc = [...remaining].sort((a, b) => a.score - b.score || a.idx - b.idx);
+  const badPicked = [sortedAsc[0], sortedAsc[1]];
+
+  return {
+    slots: scored.map((s) => s.slot),
+    goodTwo: goodPicked.map((s) => s.slot),
+    badTwo: badPicked.map((s) => s.slot),
+  };
+}
+
 export function buildPayloads(
   req: ReadingRequest,
 ): { productId: ProductId; kind: ReportKind; data: unknown; subject: string; question?: string }[] {
@@ -280,6 +368,8 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
     const me = an.dayMaster.element;
     const want = an.yongsin.primary.map((g) => groupElement(me, g));
     const tips = luckyPrescription(want);
+    const { slots, goodTwo, badTwo } = calculateDailyHours(ms, an.yongsin, today);
+
     return {
       kind: '오늘운세',
       subject,
@@ -288,9 +378,28 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
         오늘의간지: `${luck.pillar.stem}${luck.pillar.branch} (${luck.pillar.stemHanja}${luck.pillar.branchHanja})`,
         오늘의오행: { 천간: luck.pillar.element.stem, 지지: luck.pillar.element.branch },
         내일간: an.dayMaster,
+        손님의_바탕: {
+          일간: an.dayMaster,
+          오행분포: an.elements,
+          없는_십신: an.missingGroups,
+          신살: an.sinsal,
+          두드러진_특징: an.highlights,
+        },
         오늘의십신: { 천간: luck.stemGod, 지지: luck.branchGod },
         오늘의기운_유불리: luck.favor,
         사주와의_충합_관계: luck.interactions.length ? luck.interactions : ['특이 충돌이나 강한 묶임 없이 평온하게 흘러가는 기운입니다.'],
+        열두시진: slots,
+        고른넷: {
+          좋은둘: goodTwo,
+          나쁜둘: badTwo,
+        },
+        시간대별_흐름: {
+          열두시진: slots,
+          고른넷: {
+            좋은둘: goodTwo,
+            나쁜둘: badTwo,
+          },
+        },
         오늘의_처방전: {
           나를_돕는_기운: want,
           행운의_색상: tips.colors,

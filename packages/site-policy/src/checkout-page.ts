@@ -255,6 +255,27 @@ export function renderCheckoutPage(
   var done = document.getElementById('coDone');
   if(!f) return;
 
+  function say(t, ok){
+    if(msg){
+      msg.textContent = t;
+      msg.className = 'co-msg' + (ok ? ' ok' : '');
+    }
+  }
+  function val(id){
+    var el = document.getElementById(id);
+    return el ? el.value.trim() : '';
+  }
+  async function post(url, body){
+    var r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body)
+    });
+    var j = await r.json().catch(function(){ return {}; });
+    if(!r.ok) throw new Error(j.error || ('요청이 실패했습니다 (' + r.status + ')'));
+    return j;
+  }
+
   agree.addEventListener('change', function(){ pay.disabled = !agree.checked; });
 
   /* ref tracking */
@@ -420,8 +441,7 @@ export function renderCheckoutPage(
   if(addKin) addKin.addEventListener('click', function(){ addRow(null); });
   if(NEEDS_FAMILY && kinBox && !kinCount()) addRow(null);
 
-  var say=function(t,ok){ msg.textContent=t; msg.className='co-msg'+(ok?' ok':''); };
-  var val=function(id){ var el=document.getElementById(id); return el ? el.value.trim() : ''; };
+
 
   f.addEventListener('submit', async function(ev){
     ev.preventDefault();
@@ -453,15 +473,7 @@ export function renderCheckoutPage(
     pay.disabled = true;
     say('주문을 만들고 있습니다…');
 
-    var post = async function(url, body){
-      var r = await fetch(url, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: body === undefined ? undefined : JSON.stringify(body)
-      });
-      var j = await r.json().catch(function(){ return {}; });
-      if(!r.ok) throw new Error(j.error || ('요청이 실패했습니다 (' + r.status + ')'));
-      return j;
-    };
+
 
     var orderId = '';
     try{
