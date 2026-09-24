@@ -354,7 +354,7 @@ const CONTENTS: Record<string, string[]> = {
     '**돌아온다고 약속하지 않습니다.** 닿아도 전과 같지 않습니다',
   ],
   'family-holiday-report': [
-    '연휴 나흘(9월 24일~27일) **날마다의 일진(日辰)** — 그날 기운이 내 일간과 맞는지 어긋나는지',
+    '앞으로 나흘 **날마다의 일진(日辰)** — 그날 기운이 내 일간과 맞는지 어긋나는지',
     '어느 날이 **말을 꺼내기 좋은 날**이고 어느 날이 참는 날인지 — 날짜를 짚어서',
     '한 상에 앉는 사람들끼리 **맞물리는 짝 전부** — 넷이면 여섯 짝, 나를 사이에 두지 않는 짝까지',
     '짝마다 **어느 축에서 그렇게 나왔는지** — 일간·일지·용신·오행·전체 다섯 축의 판정과 근거',
@@ -654,6 +654,7 @@ body{background:var(--nb-paper)}
 .pd-term{margin:0 0 14px;font-size:13.5px;color:var(--nb-ink-2)}
 .pd-term b{color:var(--nb-ink)}
 .pd-buy{margin:22px 0;padding:20px 22px;border:1px solid var(--nb-line);background:var(--nb-paper-2)}
+.pd-price-notice{margin:8px 0 12px;font-size:13.5px;color:#c9a34a;line-height:1.55}
 .pd-price{font-family:var(--nb-serif);font-size:27px}
 .pd-also{margin:8px 0 0;font-size:14px;color:var(--nb-ink-2)}
 /* 언제·어떻게 받고 어떻게 무르는지. 카드사 심사가 상세페이지에서 이걸 본다 */
@@ -1605,6 +1606,9 @@ ${product.id === 'family-holiday-report' ? renderFamilyWhy() : renderWhy()}
 
   <div class="pd-buy">
     <span class="pd-price">${won(product.priceKrw)}</span><span class="pr-vat"> (부가세 포함)</span>
+    ${product.id === 'family-holiday-report'
+      ? '<p class="pd-price-notice">오픈 기념 · 추석 한정가입니다. 39,900원으로 올라갑니다 — 9월 28일부터</p>'
+      : ''}
     ${product.needsPartner ? '<p class="pd-also">두 사람의 생년월일이 필요합니다.</p>' : ''}
     ${product.needsPick
       ? `<p class="pd-also">아직 태어나지 않았으므로 생년월일은 필요 없습니다.
@@ -1667,8 +1671,11 @@ ${stickyBuy(product, ready)}
  */
 function stickyBuy(product: Product, ready: boolean): string {
   if (!ready || product.needsPick) return '';
+  const note = product.id === 'family-holiday-report'
+    ? '<small class="pd-sticky-note" style="display:block;font-size:10.5px;color:#c9a34a;margin-top:2px">9월 28일부터 39,900원</small>'
+    : '';
   return `<div class="pd-sticky">
-    <span class="pd-sticky-price">${won(product.priceKrw)}<small>부가세 포함</small></span>
+    <span class="pd-sticky-price">${won(product.priceKrw)}<small>부가세 포함</small>${note}</span>
     <a class="pd-sticky-go" href="/checkout?product=${encodeURIComponent(product.id)}">받기</a>
   </div>`;
 }

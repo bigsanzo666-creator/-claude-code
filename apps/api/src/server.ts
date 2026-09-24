@@ -34,6 +34,8 @@ import {
   renderRobots, renderSitemap,
   handoffBetween, spiritOfCategory, type Handoff,
   type BusinessInfo,
+  renderOrderNotFoundPage, renderOrderUnpaidPage,
+  renderOrderPendingReportPage, renderOrderReportPage,
 } from '../../../packages/site-policy/src/index.ts';
 import {
   findProductImages, findHeroImage, findHeroVideo, findSpiritImages, findSceneImages,
@@ -570,8 +572,8 @@ const HTML_HEADERS = {
   'Cache-Control': 'no-cache',
 } as const;
 
-function sendHtml(res: ServerResponse, html: string): void {
-  res.writeHead(200, { ...HTML_HEADERS, 'Content-Length': Buffer.byteLength(html) });
+function sendHtml(res: ServerResponse, html: string, status = 200): void {
+  res.writeHead(status, { ...HTML_HEADERS, 'Content-Length': Buffer.byteLength(html) });
   res.end(html);
 }
 
@@ -1169,6 +1171,26 @@ export function createApi(deps: ApiDeps) {
       sendHtml(res, renderDreamPage(business, renderFooter(business), text, reading));
     },
 
+    'GET /order/:id': async (_req, res, id) => {
+      const order = await deps.orders.get(id);
+      if (!order) {
+        sendHtml(res, renderOrderNotFoundPage(business, renderFooter(business)), 404);
+        return;
+      }
+      if (!hasEntitlement(order, order.inputHash)) {
+        sendHtml(res, renderOrderUnpaidPage(business, renderFooter(business), order));
+        return;
+      }
+      const text = await reports.get(id);
+      if (!text) {
+        sendHtml(res, renderOrderPendingReportPage(business, renderFooter(business), order));
+        return;
+      }
+      const viewed = order.status === 'viewed' ? order : markViewed(order);
+      await save(order, viewed);
+      sendHtml(res, renderOrderReportPage(business, renderFooter(business), viewed, text));
+    },
+
     'GET /robots.txt': async (_req, res) => {
       const body = renderRobots(business);
       res.writeHead(200, {
@@ -1360,6 +1382,11 @@ export function createApi(deps: ApiDeps) {
       const stored = await mustGet(id);
       const paymentId = String(body.paymentId ?? id);
 
+      if (stored.status === 'paid' || stored.status === 'fulfilled' || stored.status === 'viewed') {
+        send(res, 200, { order: strip(stored), ready: true });
+        return;
+      }
+
       let paid: Order;
       try {
         paid = await confirmPayment(stored, deps.gateway, paymentId);
@@ -1459,6 +1486,9 @@ export function createApi(deps: ApiDeps) {
       if (parts[0] === 'api' && parts[1] === 'orders' && parts[2]) {
         id = parts[2];
         key = `${req.method} /api/orders/:id${parts[3] ? `/${parts[3]}` : ''}`;
+      } else if (parts[0] === 'order' && parts[1] && !parts[2]) {
+        id = parts[1];
+        key = `${req.method} /order/:id`;
       } else if (parts[0] === 'products' && parts[1] && !parts[2]) {
         id = parts[1];
         key = `${req.method} /products/:id`;

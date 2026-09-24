@@ -970,6 +970,34 @@ section('11. 문 — 신령계 들어가는 곳');
     on ? '값 있음' : '값 없음 — 태그도 없음');
 }
 
+// ─── 가격 안내 및 법적 준수 검증 ────────────────────────────────
+{
+  section('가격 안내 및 표시광고법·전자상거래법 준수');
+
+  const holidayPage = renderProductPage(
+    CATALOG['family-holiday-report'],
+    full,
+    true,
+    '',
+  );
+
+  check('값 안내가 명절 가족운세에 나온다',
+    holidayPage.includes('오픈 기념 · 추석 한정가입니다. 39,900원으로 올라갑니다 — 9월 28일부터') &&
+    holidayPage.includes('9월 28일부터 39,900원'));
+
+  const otherProducts = Object.values(CATALOG).filter((p) => p.id !== 'family-holiday-report');
+  const otherPages = otherProducts.map((p) =>
+    renderProductPage(p, full, true, '')
+  );
+
+  check('값 안내가 명절 가족운세에만 나온다',
+    otherPages.every((html) => !html.includes('39,900원으로 올라갑니다') && !html.includes('9월 28일부터 39,900원')));
+
+  check('어디에도 취소선 정가·할인율·거짓 급함이 없다',
+    [holidayPage, ...otherPages].every((html) =>
+      !/<del>|<s>|할인율|% 할인|%할인|오늘 마감|지금만|선착순|마감 임박/.test(html)));
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }

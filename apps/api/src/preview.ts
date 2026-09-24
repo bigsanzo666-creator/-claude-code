@@ -174,7 +174,7 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
      */
     const 짝 = (d.맞물리는_짝 ?? []) as any[];
     const 사람 = (d.한_상에_앉는_사람 ?? []) as string[];
-    contents.push(`${d.연휴?.이름} 연휴 ${(d.연휴?.날들 ?? []).length}일을 **날마다** 봄`);
+    contents.push(`${d.연휴?.이름 ? d.연휴.이름 + ' ' : ''}연휴 ${(d.연휴?.날들 ?? []).length}일을 **날마다** 봄`);
     for (const 날 of (d.연휴_날마다 ?? []) as any[]) {
       contents.push(`${날.date} — ${날.pillar?.stem}${날.pillar?.branch} 일진, 내 기운과 ${날.favor}`);
     }

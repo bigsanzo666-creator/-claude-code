@@ -1131,6 +1131,43 @@ check('아주 긴 질문도 서버가 버틴다', longQ.status === 201, longQ.bo
   check('다른 상품은 여전히 생년월일이 있어야 한다', stillNeeds.status === 400);
 }
 
+// ─── I. 신규 주문 조회 및 확정 멱등성 검증 ───────────────────────
+section('I. 신규 주문 조회 및 확정 멱등성');
+
+// 1. 코드 어디에도 2026-09-24 같은 박힌 날짜가 없다
+const fs = await import('fs');
+const payloadSource = fs.readFileSync(new URL('./src/payload.ts', import.meta.url), 'utf8');
+const catalogSource = fs.readFileSync(new URL('../../packages/commerce/src/catalog.ts', import.meta.url), 'utf8');
+const productsSource = fs.readFileSync(new URL('../../packages/site-policy/src/products.ts', import.meta.url), 'utf8');
+check('코드 어디에도 2026-09-24 같은 박힌 날짜가 없다',
+  !payloadSource.includes('2026-09-24') &&
+  !catalogSource.includes('2026-09-24') &&
+  !productsSource.includes('2026-09-24') &&
+  !payloadSource.includes('9월 24일') &&
+  !catalogSource.includes('9월 24일') &&
+  !productsSource.includes('9월 24일'));
+
+// 2. /order/<없는번호> 는 404 다
+const noOrder = await page('/order/ord_nonexistent_12345');
+check('/order/<없는번호> 는 404 다', noOrder.status === 404 && noOrder.html.includes('그런 주문이 없습니다'));
+
+// 3. 확정을 두 번 불러도 탈이 없다
+const doubleOrder = await api('POST', '/api/orders', { ...reading, acknowledgedNotice: true, previewShown: true });
+const doubleId = doubleOrder.body.order.id;
+await api('POST', `/api/orders/${doubleId}/pending`);
+gateway.put({ paymentId: doubleId, status: 'paid', amountKrw: CATALOG['cross-report'].priceKrw, merchantOrderId: doubleId, method: 'card', paidAt: new Date().toISOString(), raw: {} });
+const firstConfirm = await api('POST', `/api/orders/${doubleId}/confirm`, { paymentId: doubleId });
+check('첫 번째 확정 성공', firstConfirm.status === 200 && firstConfirm.body.ready === true);
+const secondConfirm = await api('POST', `/api/orders/${doubleId}/confirm`, { paymentId: doubleId });
+check('확정을 두 번 불러도 탈이 없다', secondConfirm.status === 200 && secondConfirm.body.ready === true);
+
+// 4. 결제 완료된 주문의 /order/:id 조회 시 리포트 노출 확인
+const orderPage = await page(`/order/${doubleId}`);
+check('/order/<진짜 주문번호> 는 리포트를 보여준다',
+  orderPage.status === 200 &&
+  orderPage.html.includes('이 주소를 저장해 두시면 언제든 다시 보실 수 있습니다') &&
+  orderPage.html.includes(doubleId));
+
 server.close();
 console.log(`\n${'═'.repeat(60)}`);
 // ─── 작명 ─────────────────────────────────────────────────────

@@ -67,6 +67,15 @@ export const CHECKOUT_CSS = `
 .co{max-width:560px;margin:0 auto;padding:22px 18px 60px}
 .co-back{display:inline-block;color:#b9b2c6;text-decoration:none;font-size:13px;margin-bottom:14px}
 .co-what{background:rgba(255,255,255,.04);border:1px solid rgba(212,175,55,.32);
+.co-what-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:12px}
+.co-img{width:64px;height:80px;object-fit:cover;border-radius:6px;flex:0 0 64px;background:rgba(255,255,255,.05)}
+.co-what-info{flex:1 1 auto;min-width:0}
+.co-saved-link{margin:18px 0;padding:16px 18px;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.3);border-radius:10px}
+.co-saved-title{font-size:14px;font-weight:700;color:#f3e5ab;margin:0 0 10px}
+.co-copy-box{display:flex;gap:8px}
+.co-copy-box input{flex:1 1 auto;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:8px 12px;color:#fff;font-size:13px}
+.co-copy-box button{flex:0 0 auto;background:#d4af37;color:#18151f;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer}
+.co-copy-done{font-size:12px;color:#4ade80;margin:6px 0 0}
   border-radius:12px;padding:16px 16px 14px;margin-bottom:18px}
 .co-name{font-size:19px;font-weight:800;color:#f3e5ab;margin:0 0 4px}
 .co-hook{font-size:13.5px;color:#c8c2d4;margin:0 0 12px;line-height:1.6}
@@ -183,6 +192,7 @@ export function renderCheckoutPage(
     <div class="co-soon"><b>결제 준비 중입니다.</b><br>
     사주 명식·궁합·관상·손금 풀이는 지금도 값 없이 보실 수 있습니다.</div>` : `
     <form id="coForm" novalidate>
+      <div id="coFields">
       <p class="co-sec">누가 보시는 것인가</p>
       <div class="co-f"><label for="buyerName">성함</label>
         <input type="text" name="buyerName" id="buyerName" autocomplete="name" required></div>
@@ -218,8 +228,12 @@ export function renderCheckoutPage(
       </label>
 
       <button type="submit" class="co-pay" id="coPay" disabled>${price}원 결제하기</button>
+      </div>
       <p class="co-msg" id="coMsg"></p>
       <div id="coDone"></div>
+      <div id="coRetry" style="display:none;margin-top:16px">
+        <a class="co-pay" href="/checkout?product=${encodeURIComponent(product.id)}" style="display:block;text-align:center;text-decoration:none;line-height:48px;">다시 결제하기</a>
+      </div>
     </form>`;
 
   const script = keys === null ? '' : `
@@ -250,6 +264,72 @@ export function renderCheckoutPage(
       sessionStorage.setItem('nb_ref', m[1].toLowerCase().slice(0, 20));
     }
   }catch(e){}
+
+  function showReport(oid, reportText){
+    say('결제가 끝났습니다. 주문번호 ' + oid, true);
+    var link = location.origin + '/order/' + oid;
+    var html = '<div class="co-saved-link">' +
+      '<p class="co-saved-title">이 주소를 저장해 두시면 언제든 다시 보실 수 있습니다</p>' +
+      '<div class="co-copy-box">' +
+        '<input type="text" readonly value="' + link + '" id="coSavedInput">' +
+        '<button type="button" id="coCopyBtn">주소 복사</button>' +
+      '</div>' +
+      '<p class="co-copy-done" id="coCopyDone" style="display:none">주소가 복사되었습니다.</p>' +
+    '</div>' +
+    '<div class="co-done">' + (reportText || '') + '</div>';
+    done.innerHTML = html;
+    var copyBtn = document.getElementById('coCopyBtn');
+    var copyInp = document.getElementById('coSavedInput');
+    var copyMsg = document.getElementById('coCopyDone');
+    if(copyBtn && copyInp){
+      copyBtn.onclick = function(){
+        try{
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            navigator.clipboard.writeText(copyInp.value);
+          }else{
+            copyInp.select();
+            document.execCommand('copy');
+          }
+          if(copyMsg) copyMsg.style.display = 'block';
+        }catch(e){}
+      };
+    }
+  }
+
+  /* resume handling for mobile redirect */
+  (function checkResume(){
+    try{
+      var q = new URLSearchParams(location.search);
+      var resumeId = q.get('resume');
+      var portoneCode = q.get('code');
+      if(resumeId){
+        var fields = document.getElementById('coFields');
+        if(fields) fields.style.display = 'none';
+        if(portoneCode){
+          say('결제가 완료되지 않았습니다. 다시 시도해 주십시오.');
+          var retry = document.getElementById('coRetry');
+          if(retry) retry.style.display = 'block';
+        }else{
+          (async function(){
+            try{
+              say('결제를 확인하고 있습니다…');
+              var pid = q.get('paymentId') || resumeId;
+              await post('/api/orders/' + encodeURIComponent(resumeId) + '/confirm', { paymentId: pid });
+              say('풀이를 짓고 있습니다. 잠시만 기다려 주십시오…');
+              var r = await fetch('/api/orders/' + encodeURIComponent(resumeId) + '/report');
+              var report = await r.json();
+              if(!r.ok) throw new Error(report.error || '리포트를 불러오지 못했습니다.');
+              showReport(resumeId, report.text);
+            }catch(err){
+              say((err && err.message) || '결제 확인에 실패했습니다. 주문번호 ' + resumeId + ' 로 문의해 주십시오.');
+              var retry = document.getElementById('coRetry');
+              if(retry) retry.style.display = 'block';
+            }
+          })();
+        }
+      }
+    }catch(e){}
+  })();
 
 
   /*
@@ -434,9 +514,7 @@ export function renderCheckoutPage(
       var report = await r.json();
       if(!r.ok) throw new Error(report.error || '리포트를 불러오지 못했습니다.');
 
-      say('결제가 끝났습니다. 주문번호 ' + orderId, true);
-      done.innerHTML = '<div class="co-done"></div>';
-      done.firstChild.textContent = report.text || '';
+      showReport(orderId, report.text);
       pay.style.display = 'none';
     }catch(err){
       say((err && err.message) || '결제에 실패했습니다.'
@@ -471,8 +549,13 @@ ${CHECKOUT_CSS}
   <a class="co-back" href="/products/${encodeURIComponent(product.id)}">← 상품 설명 다시 보기</a>
 
   <section class="co-what">
-    <h1 class="co-name">${esc(product.name)}</h1>
-    <p class="co-hook">${esc(product.description)}</p>
+    <div class="co-what-head">
+      <img class="co-img" src="/img/products/${encodeURIComponent(product.id)}" alt="" onerror="this.style.display='none'">
+      <div class="co-what-info">
+        <h1 class="co-name">${esc(product.name)}</h1>
+        <p class="co-hook">${esc(product.description)}</p>
+      </div>
+    </div>
     <div class="co-price"><b>${price}원</b><span>부가세 포함</span></div>
     ${priceNote(product)}
   </section>

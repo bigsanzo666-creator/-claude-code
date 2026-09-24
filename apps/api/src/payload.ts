@@ -22,17 +22,7 @@ import {
 } from '../../../packages/naming/src/index.ts';
 import { CATALOG, type ProductId, HOLIDAY_MAX_MEMBERS } from '../../../packages/commerce/src/index.ts';
 
-/**
- * 이번 명절의 연휴 날들.
- *
- * 2026년 추석은 9월 25일(금)이고 연휴는 24일(목)~26일(토)이다. 27일(일)까지
- * 집에 머무는 사람이 많아 나흘을 본다.
- *
- * **설이 오면 여기를 고친다.** 상세페이지와 리포트가 같은 날을 봐야 하므로
- * 날짜는 이 한 곳에서만 온다.
- */
-export const HOLIDAY_NAME = '2026년 추석';
-export const HOLIDAY_DAYS = ['2026-09-24', '2026-09-25', '2026-09-26', '2026-09-27'];
+
 import { cleanQuestion, type ReportKind } from '../../../packages/report/src/prompt.ts';
 
 export interface BirthInput {
@@ -591,6 +581,12 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
    * `HOLIDAY_MAX_MEMBERS` 에서 막는다 — 더 넣으면 한 편에 담기지 않는다.
    */
   if (req.productId === 'family-holiday-report') {
+    const today = seoulTodayISO();
+    const holidayDays = [0, 1, 2, 3].map((offset) => {
+      const d = new Date(today + 'T00:00:00Z');
+      d.setUTCDate(d.getUTCDate() + offset);
+      return d.toISOString().slice(0, 10);
+    });
     const kin = (req.family ?? []).slice(0, HOLIDAY_MAX_MEMBERS - 1);
 
     // 한 상에 앉는 사람들. 맨 앞이 손님 자신이다
@@ -628,14 +624,14 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
       subject,
       data: {
         손님이_묻는_것: '이번 명절, 저 사람과 또 부딪힐까',
-        연휴: { 이름: HOLIDAY_NAME, 날들: HOLIDAY_DAYS },
+        연휴: { 날들: holidayDays },
         나의_명식: base.명식,
         나의_계산근거: base.계산근거,
         나의_일간: base.일간,
         나의_강약: base.강약,
         나의_용신: base.용신,
-        // 연휴 날마다 — 어느 날이 순하고 어느 날이 거친지
-        연휴_날마다: dailyLuckRange(ms, an.yongsin, HOLIDAY_DAYS[0], HOLIDAY_DAYS.length),
+        // 산 날부터 나흘 — 어느 날이 순하고 어느 날이 거친지
+        연휴_날마다: dailyLuckRange(ms, an.yongsin, holidayDays[0], holidayDays.length),
         // 명절 자리에서 내가 어떻게 반응하는 사람인지
         나의_사람자리: extractTopic(an, 'peers'),
         나의_말자리: extractTopic(an, 'expression'),
