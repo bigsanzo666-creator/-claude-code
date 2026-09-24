@@ -1,3 +1,18 @@
+export const PLACES: { name: string; longitude: number }[] = [
+  { name: '서울', longitude: 126.978 },
+  { name: '인천', longitude: 126.705 },
+  { name: '수원', longitude: 127.009 },
+  { name: '춘천', longitude: 127.729 },
+  { name: '대전', longitude: 127.385 },
+  { name: '전주', longitude: 127.148 },
+  { name: '광주', longitude: 126.851 },
+  { name: '대구', longitude: 128.601 },
+  { name: '창원', longitude: 128.681 },
+  { name: '울산', longitude: 129.311 },
+  { name: '부산', longitude: 129.075 },
+  { name: '제주', longitude: 126.531 },
+];
+
 /**
  * 택일 — 수술로 낳는 날을 고른다.
  *

@@ -88,6 +88,18 @@ export function validateReportFacts(text: string, data: any): FactCheckResult {
     }
   }
 
+    // 4. 리포트 글에 자료에 없는 지명이 나오지 않는지 (출생지/진태양시 관련)
+  const knownPlaces = ['서울', '인천', '수원', '춘천', '대전', '전주', '광주', '대구', '창원', '울산', '부산', '제주'];
+  const dataPlace = data?.출생지 || data?.태어난곳 || data?.계산근거?.place || data?.손님의_바탕?.출생지 || data?.고른곳;
+  for (const place of knownPlaces) {
+    if (place === dataPlace) continue;
+    // 자료에 없는 지명이 '기준', '출생', '태어난' 등의 문맥에서 진태양시/보정과 결합하여 쓰였는지 확인
+    const placeRegex = new RegExp(place + '\\s*(?:기준|에서|출생)?(?:[^\n]{0,20})?(?:진태양시|보정시각)', 'g');
+    if (placeRegex.test(text)) {
+      rawErrors.push('자료에 없는 지명(' + place + ')이 보정 시각 설명에 사용되었습니다.');
+    }
+  }
+
   const errors = [...new Set(rawErrors)];
   return {
     valid: errors.length === 0,

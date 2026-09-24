@@ -234,13 +234,16 @@ check('약속한 이름 개수와 프롬프트가 맞는다',
     sajuSys.includes('비중이 있는데 0% 라고 쓰면 거짓말'));
   check('보정 시각은 자료의 correctedTime을 그대로 적으라고 시킨다',
     sajuSys.includes('보정 시각은 자료의 `correctedTime` 을 그대로 적습니다'));
+  check('진태양시를 말할 때 지명은 자료에 실린 곳만 적으라고 시킨다',
+    sajuSys.includes('진태양시를 말할 때 지명은 자료에 실린 곳만 적습니다'));
   check('열두 시진 표 위 추천 이유 한 줄이 지시되어 있다',
     buildSystemPrompt('오늘운세').includes('유리하면서 부딪힘까지 없는 시간을 골랐습니다'));
 
   // ─── 수치 및 사실 검증기(validateReportFacts) 단위 검증 ──────
   const { validateReportFacts } = await import('./src/validate.ts');
   const sampleFactData = {
-    계산근거: { correctedTime: '14:14' },
+    출생지: '인천',
+    계산근거: { correctedTime: '14:14', place: '인천' },
     강약: { scores: { 비겁: 11.7, 식상: 10.7, 재성: 17.5, 관성: 19.9, 인성: 40.3 }, supportRatio: 52 },
     오행: [{ element: '금', weight: 45.6 }, { element: '토', weight: 22.5 }, { element: '수', weight: 0 }],
   };
@@ -256,6 +259,10 @@ check('약속한 이름 개수와 프롬프트가 맞는다',
   const badZeroGod = validateReportFacts('자기 목소리를 내는 힘(비겁 0%)이 약합니다.', sampleFactData);
   check('리포트 수치 검증기가 비중 있는 십신의 0% 기술을 잡아낸다',
     !badZeroGod.valid && badZeroGod.errors.some((e) => e.includes('비겁')));
+
+  const badPlace = validateReportFacts('서울 기준 진태양시 14시 14분 보정 명식입니다.', sampleFactData);
+  check('리포트 수치 검증기가 자료에 없는 지명을 잡아낸다',
+    !badPlace.valid && badPlace.errors.some((e) => e.includes('서울')));
 
   const goodReport = validateReportFacts(
     '인천 기준 진태양시 14시 14분 보정입니다. 금 45.6%로 강하고, 비겁 11.7%는 작은 편입니다. 일간을 돕는 힘은 52%입니다.',

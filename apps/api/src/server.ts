@@ -342,6 +342,14 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
           </div>
 
           <div class="form-group">
+            <label for="inputPlace">태어난 곳</label>
+            <select id="inputPlace">
+              ${PLACES.map((p) => `<option value="${p.name}"${p.name === '서울' ? ' selected' : ''}>${p.name}</option>`).join('')}
+            </select>
+            <div style="font-size: 0.75rem; color: #9a93a6; margin-top: 5px;">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</div>
+          </div>
+
+          <div class="form-group">
             <label>성별</label>
             <div class="gender-toggle">
               <button type="button" id="btnGenderMale" class="gender-btn active" data-gender="male">남성</button>
@@ -688,6 +696,12 @@ function validateReading(body: any): ReadingRequest {
     }
   } else if (!body.birth?.date) {
     throw new HttpError(400, '생년월일이 필요합니다.');
+  }
+
+  // 태어난 곳: PLACES 표에 있는 이름일 때만 인정, 아니면 서울로 본다
+  if (body.birth) {
+    const rawPlace = typeof body.birth.place === 'string' ? body.birth.place.trim() : '';
+    body.birth.place = PLACES.some((p) => p.name === rawPlace) ? rawPlace : '서울';
   }
   // 궁합이 든 묶음은 상대의 생년월일이 있어야 만들 수 있다. 결제 전에 말한다
   if (item.needsPartner && !body.partner?.date) {

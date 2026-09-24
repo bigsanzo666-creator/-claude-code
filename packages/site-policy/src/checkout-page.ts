@@ -21,6 +21,7 @@
  */
 
 import { type BusinessInfo, show } from './business.ts';
+import { PLACES } from '../../saju-rules/src/index.ts';
 import { renderSocialHead } from './social.ts';
 import { FONT_LINK, PRODUCTS_CSS } from './products.ts';
 import type { Product } from '../../commerce/src/catalog.ts';
@@ -57,6 +58,13 @@ const HOURS: readonly [string, string][] = [
   ['22:30', '해시 — 밤 21:30 ~ 23:30'],
 ];
 
+
+function placeOptions(name: string): string {
+  return `<select name="${name}" id="${name}">`
+    + PLACES.map((p) => `<option value="${esc(p.name)}"${p.name === '서울' ? ' selected' : ''}>${esc(p.name)}</option>`).join('')
+    + '</select>';
+}
+
 function hourOptions(name: string): string {
   return `<select name="${name}" id="${name}">`
     + HOURS.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join('')
@@ -88,6 +96,7 @@ export const CHECKOUT_CSS = `
 .co-sec{margin:0 0 10px;font-size:14px;font-weight:700;color:#efe9f5}
 .co-f{display:block;margin-bottom:12px}
 .co-f label{display:block;font-size:13px;color:#c8c2d4;margin-bottom:5px}
+.co-hint{display:block;font-size:12px;color:#9a93a6;margin-top:5px;line-height:1.5}
 .co-f input,.co-f select{width:100%;box-sizing:border-box;padding:11px 12px;font-size:16px;
   border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(12,10,18,.92);
   color:#f4f1f8;font-family:inherit}
@@ -203,6 +212,8 @@ export function renderCheckoutPage(
           <select name="gender" id="gender"><option value="남">남</option><option value="여">여</option></select></div>
       </div>
       <div class="co-f"><label for="birthTime">태어난 시간</label>${hourOptions('birthTime')}</div>
+      <div class="co-f"><label for="birthPlace">태어난 곳</label>${placeOptions('birthPlace')}
+        <span class="co-hint">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</span></div>
       ${surname}
       ${partner}
       ${family}
@@ -365,6 +376,7 @@ export function renderCheckoutPage(
       set('buyerName', saved.birth && saved.birth.name);
       set('birthDate', saved.birth && saved.birth.date);
       set('birthTime', saved.birth && saved.birth.time);
+      set('birthPlace', saved.birth && saved.birth.place);
       set('gender', saved.birth && saved.birth.gender);
       set('surname', saved.name && saved.name.surname);
       set('partnerDate', saved.partner && saved.partner.date);
@@ -459,7 +471,7 @@ export function renderCheckoutPage(
 
     var reading = {
       productId: PRODUCT,
-      birth: { date: date, time: val('birthTime') || '12:00', gender: val('gender'), name: name }
+      birth: { date: date, time: val('birthTime') || '12:00', place: val('birthPlace') || '서울', gender: val('gender'), name: name }
     };
     ${product.needsName ? "reading.name = { surname: val('surname') };" : ''}
     ${product.needsPartner ? "reading.partner = { date: val('partnerDate'), time: val('partnerTime') || '12:00' };" : ''}

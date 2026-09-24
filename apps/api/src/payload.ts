@@ -16,7 +16,7 @@ import {
   marriageTiming, lateLife, monthlyLuck, meetingMonths, healingMonths,
 } from '../../../packages/saju-rules/src/index.ts';
 import { pickDays, mergeHours, bestPerDay, slotSpan, slotLabel } from '../../../packages/saju-rules/src/index.ts';
-import { PLACES } from '../../../packages/site-policy/src/pick-page.ts';
+import { PLACES } from '../../../packages/saju-rules/src/index.ts';
 import { readFace, NEUTRAL_FEATURES } from '../../../packages/physiognomy/src/index.ts';
 import { readPalm, NEUTRAL_PALM_FEATURES } from '../../../packages/palmistry/src/index.ts';
 import {

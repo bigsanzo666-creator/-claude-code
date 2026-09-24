@@ -214,6 +214,11 @@ check('상세 페이지도 그림이 있을 때만 크게 건다',
   check('거짓 급함을 쓰지 않는다',
     !/지금만|오늘만|마감 임박|선착순/.test(pay));
 
+  check('결제 화면에 태어난 곳 고르개가 있다', pay.includes('id="birthPlace"'));
+  check('태어난 곳 고르개의 기본값이 서울이다', pay.includes('value="서울" selected'));
+  check('열두 곳이 고르개에 모두 들어 있다', PLACES.every((p) => pay.includes(`value="${p.name}"`)));
+  check('태어난 곳 안내 문구가 결제 화면에 실린다', pay.includes('태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다'));
+
   const notReady = renderCheckoutPage({} as any, '', CATALOG['daily-report'], null);
   check('결제가 꺼져 있어도 값은 보인다',
     notReady.includes(`${CATALOG['daily-report'].priceKrw.toLocaleString('ko-KR')}원`));

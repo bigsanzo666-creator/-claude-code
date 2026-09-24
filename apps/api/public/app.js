@@ -380,7 +380,7 @@ const TIME_MAP = {
   'unknown': '12:00'
 };
 
-let userState = { name: "", birthDate: "", birthTime: "" };
+let userState = { name: "", birthDate: "", birthTime: "", birthPlace: "서울" };
 let currentSpirit = null;
 let currentProduct = null;
 let isAudioActive = false;
@@ -403,6 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputName = document.getElementById('inputName');
   const inputBirth = document.getElementById('inputBirth');
   const inputTime = document.getElementById('inputTime');
+  const inputPlace = document.getElementById('inputPlace');
   const btnSubmitSaju = document.getElementById('btnSubmitSaju');
   const genderButtons = document.querySelectorAll('.gender-btn');
   let selectedGender = 'male';
@@ -591,6 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {
       userState.name = (inputName && inputName.value.trim()) || "";
       userState.birthDate = inputBirth ? inputBirth.value : userState.birthDate;
       userState.birthTime = inputTime ? inputTime.value : userState.birthTime;
+      userState.birthPlace = (inputPlace && inputPlace.value) || "서울";
       userState.gender = selectedGender;
 
       if (userInfoDisplay) {
@@ -1313,6 +1315,7 @@ document.addEventListener('DOMContentLoaded', () => {
           birth: {
             date: userState.birthDate,
             time: mappedTime,
+            place: userState.birthPlace || '서울',
             gender: userState.gender === 'female' ? '여' : '남',
             name: userState.name
           }

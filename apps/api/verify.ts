@@ -1334,6 +1334,54 @@ console.log(`\n${'═'.repeat(60)}`);
   const goodResult = validateReportFacts(goodFamText, famData);
   check('올바른 계산 수치가 들어간 글은 사실 검증을 통과한다', goodResult.valid);
 
+  // ─── 출생지 및 시진 경계 검증 ────────────────────────────────
+  const { PLACES } = await import('../../packages/saju-rules/src/index.ts');
+  const { resolveLongitude } = await import('./src/payload.ts');
+
+  // 1) 태어난 곳을 안 주면 예전(서울 기본값)과 똑같은 명식이 나온다
+  const noPlacePayload = buildPayload({
+    productId: 'saju-report',
+    birth: { date: '1990-09-25', time: '14:40', gender: '남' },
+  });
+  const seoulPayload = buildPayload({
+    productId: 'saju-report',
+    birth: { date: '1990-09-25', time: '14:40', place: '서울', gender: '남' },
+  });
+  check('태어난 곳을 안 주면 예전과 똑같은 명식이 나온다',
+    JSON.stringify((noPlacePayload.data as any).명식) === JSON.stringify((seoulPayload.data as any).명식)
+    && (noPlacePayload.data as any).계산근거.correctedTime === (seoulPayload.data as any).계산근거.correctedTime);
+
+  // 2) PLACES 에 없는 이름을 보내면 서울(또는 undefined fallback)로 본다
+  const invalidPlaceLon = resolveLongitude({ place: '안드로메다' });
+  const seoulLon = PLACES.find((p) => p.name === '서울')!.longitude;
+  check('PLACES 에 없는 이름을 보내면 서울(또는 undefined fallback)로 본다',
+    invalidPlaceLon === undefined);
+
+  // 3) 열두 곳 각각이 경도에 따라 서로 다른 보정 시각을 낸다
+  const correctedTimes = new Set(
+    PLACES.map((p) => {
+      const msLocal = calculate({ date: '1990-09-25', time: '15:25', longitude: p.longitude });
+      return msLocal.meta.correctedTime;
+    })
+  );
+  check('열두 곳 각각이 경도에 따라 서로 다른 보정 시각을 낸다', correctedTimes.size >= 6);
+
+  // 4) 시진 경계 근처(1990-09-25 15:25)에서 인천과 서울의 시주가 실제로 갈린다
+  const incheon1525 = calculate({ date: '1990-09-25', time: '15:25', longitude: 126.705 });
+  const seoul1525 = calculate({ date: '1990-09-25', time: '15:25', longitude: seoulLon });
+  const incheonHourPillar = incheon1525.hour?.stem + incheon1525.hour?.branch;
+  const seoulHourPillar = seoul1525.hour?.stem + seoul1525.hour?.branch;
+  check('시진 경계 근처(1990-09-25 15:25)에서 인천과 서울의 시주가 실제로 갈린다',
+    incheonHourPillar === '기미' && seoulHourPillar === '경신');
+
+  // 5) 리포트 글에 자료에 없는 지명이 나오면 검증기가 차단한다
+  const badPlaceReport = validateReportFacts(
+    '부산 기준 진태양시 14시 14분 보정입니다. 금 45.6%입니다.',
+    famData
+  );
+  check('리포트 글에 자료에 없는 지명이 나오면 검증기가 차단한다',
+    !badPlaceReport.valid && badPlaceReport.errors.some((e) => e.includes('부산')));
+
 }
 
 console.log(`통과 ${passed} / 실패 ${failed}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
