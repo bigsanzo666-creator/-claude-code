@@ -218,6 +218,8 @@ check('상세 페이지도 그림이 있을 때만 크게 건다',
   check('태어난 곳 고르개의 기본값이 서울이다', pay.includes('value="서울" selected'));
   check('열두 곳이 고르개에 모두 들어 있다', PLACES.every((p) => pay.includes(`value="${p.name}"`)));
   check('태어난 곳 안내 문구가 결제 화면에 실린다', pay.includes('태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다'));
+  const sajuRules = await import('../../packages/saju-rules/src/index.ts');
+  check('PLACES 를 내보내는 곳이 저장소에 하나뿐이다', PLACES === sajuRules.PLACES);
 
   const notReady = renderCheckoutPage({} as any, '', CATALOG['daily-report'], null);
   check('결제가 꺼져 있어도 값은 보인다',

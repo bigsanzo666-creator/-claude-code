@@ -75,6 +75,7 @@ export const CHECKOUT_CSS = `
 .co{max-width:560px;margin:0 auto;padding:22px 18px 60px}
 .co-back{display:inline-block;color:#b9b2c6;text-decoration:none;font-size:13px;margin-bottom:14px}
 .co-what{background:rgba(255,255,255,.04);border:1px solid rgba(212,175,55,.32);
+  border-radius:12px;padding:16px 16px 14px;margin-bottom:18px}
 .co-what-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:12px}
 .co-img{width:64px;height:80px;object-fit:cover;border-radius:6px;flex:0 0 64px;background:rgba(255,255,255,.05)}
 .co-what-info{flex:1 1 auto;min-width:0}
@@ -96,7 +97,7 @@ export const CHECKOUT_CSS = `
 .co-sec{margin:0 0 10px;font-size:14px;font-weight:700;color:#efe9f5}
 .co-f{display:block;margin-bottom:12px}
 .co-f label{display:block;font-size:13px;color:#c8c2d4;margin-bottom:5px}
-.co-hint{display:block;font-size:12px;color:#9a93a6;margin-top:5px;line-height:1.5}
+.co-hint{display:block;font-size:12px;color:#b9b2c6;margin-top:6px;line-height:1.5}
 .co-f input,.co-f select{width:100%;box-sizing:border-box;padding:11px 12px;font-size:16px;
   border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(12,10,18,.92);
   color:#f4f1f8;font-family:inherit}

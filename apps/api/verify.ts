@@ -457,6 +457,8 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
 }
 
 const home = await page('/');
+  check('신령 처소 입장 화면에 태어난 곳 안내 문구가 실린다',
+    home.html.includes('id="inputPlace"') && home.html.includes('태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다'));
 {
   // 카톡에 링크를 붙이면 여기가 간판이 된다. 개발자용 제목이 새어 나가면 안 된다
   check('링크 이름이 사람 말이다',
@@ -1338,7 +1340,11 @@ console.log(`\n${'═'.repeat(60)}`);
   const { PLACES } = await import('../../packages/saju-rules/src/index.ts');
   const { resolveLongitude } = await import('./src/payload.ts');
 
-  // 1) 태어난 곳을 안 주면 예전(서울 기본값)과 똑같은 명식이 나온다
+  // 0) PLACES 를 내보내는 곳이 저장소에 하나뿐이다 (saju-rules 와 site-policy re-export 객체 동일성)
+  const sitePolicy = await import('../../packages/site-policy/src/index.ts');
+  check('PLACES 를 내보내는 곳이 저장소에 하나뿐이다', PLACES === sitePolicy.PLACES);
+
+    // 1) 태어난 곳을 안 주면 예전(서울 기본값)과 똑같은 명식이 나온다
   const noPlacePayload = buildPayload({
     productId: 'saju-report',
     birth: { date: '1990-09-25', time: '14:40', gender: '남' },

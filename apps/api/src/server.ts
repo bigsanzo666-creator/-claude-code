@@ -346,7 +346,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
             <select id="inputPlace">
               ${PLACES.map((p) => `<option value="${p.name}"${p.name === '서울' ? ' selected' : ''}>${p.name}</option>`).join('')}
             </select>
-            <div style="font-size: 0.75rem; color: #9a93a6; margin-top: 5px;">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</div>
+            <div class="form-hint" style="font-size: 0.78rem; color: #b9b2c6; margin-top: 6px; line-height: 1.4;">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</div>
           </div>
 
           <div class="form-group">

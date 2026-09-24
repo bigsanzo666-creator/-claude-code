@@ -221,6 +221,7 @@ export function renderStage(
           <select id="stPlace">
         ${places}
           </select>
+          <div class="st-hint-text" style="font-size:12px;color:#b9b2c6;margin-top:6px;line-height:1.5;">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</div>
         </div>
         <div class="st-q" data-q="sex" hidden>
           <select id="stSex">
@@ -1502,7 +1503,7 @@ export const STAGE_SCRIPT = `<script>(function(){
       hint:'시각은 모르면 모르는 대로 둬도 된다. 여덟 중 두 글자만 비워 두고 본다.' },
     { q:'place', need:false, btn:'다음으로',
       say:function(){ return '어디서 태어났느냐.'; },
-      hint:'시주는 시계가 아니라 그곳의 해 위치로 선다. 서울과 부산이 팔 분 넘게 다르다.' },
+      hint:'태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다' },
     { q:'sex', need:false, btn:'다 말했다',
       say:function(){ return '남자냐, 여자냐.'; },
       hint:'열 해씩 도는 운을 어느 쪽으로 돌릴지 정하는 데에만 쓴다.' }

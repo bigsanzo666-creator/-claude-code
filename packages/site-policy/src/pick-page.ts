@@ -20,30 +20,14 @@
 import { type BusinessInfo, show } from './business.ts';
 import { renderSocialHead } from './social.ts';
 import { FONT_LINK, PRODUCTS_CSS } from './products.ts';
-import { type PickGroup, slotLabel, slotSpan } from '../../saju-rules/src/pick.ts';
+import { type PickGroup, slotLabel, slotSpan, PLACES } from '../../saju-rules/src/pick.ts';
 
 // 재는 규칙과 부르는 말은 한곳에 둔다. 여기서는 그것을 그대로 다시 내보낸다
-export { slotLabel, slotSpan };
+export { slotLabel, slotSpan, PLACES };
 
 function esc(value: string): string {
   return value.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 }
-
-/** 태어날 곳. 진태양시로 시주를 세우는 데 경도가 필요하다 */
-export const PLACES: { name: string; longitude: number }[] = [
-  { name: '서울', longitude: 126.978 },
-  { name: '인천', longitude: 126.705 },
-  { name: '수원', longitude: 127.009 },
-  { name: '춘천', longitude: 127.729 },
-  { name: '대전', longitude: 127.385 },
-  { name: '전주', longitude: 127.148 },
-  { name: '광주', longitude: 126.851 },
-  { name: '대구', longitude: 128.601 },
-  { name: '창원', longitude: 128.681 },
-  { name: '울산', longitude: 129.311 },
-  { name: '부산', longitude: 129.075 },
-  { name: '제주', longitude: 126.531 },
-];
 
 /**
  * 병원이 수술을 잡는 시간대.
