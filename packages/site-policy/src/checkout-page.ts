@@ -342,7 +342,8 @@ export function renderCheckoutPage(
               if(!r.ok) throw new Error(report.error || '리포트를 불러오지 못했습니다.');
               showReport(resumeId, report.text);
             }catch(err){
-              say((err && err.message) || '결제 확인에 실패했습니다. 주문번호 ' + resumeId + ' 로 문의해 주십시오.');
+              console.log('[결제 확인 실패]', err);
+              say('결제 확인에 실패했습니다. 주문번호 ' + resumeId + ' 로 문의해 주십시오. 결제는 완료되었을 수 있습니다.');
               var retry = document.getElementById('coRetry');
               if(retry) retry.style.display = 'block';
             }
@@ -529,8 +530,14 @@ export function renderCheckoutPage(
       showReport(orderId, report.text);
       pay.style.display = 'none';
     }catch(err){
-      say((err && err.message) || '결제에 실패했습니다.'
-        + (orderId ? ' 주문번호 ' + orderId + ' 로 문의해 주십시오.' : ''));
+      console.log('[결제 실패]', err);
+      if(err && (err.message === '결제가 완료되지 않았습니다. 다시 눌러 주십시오.' || err.message === '결제창을 여는 데 실패했습니다. 잠시 뒤 다시 눌러 주십시오.')){
+        say(err.message);
+      }else if(orderId){
+        say('결제 확인에 실패했습니다. 주문번호 ' + orderId + ' 로 문의해 주십시오. 결제는 완료되었을 수 있습니다.');
+      }else{
+        say('결제에 실패했습니다. 잠시 뒤 다시 시도해 주십시오.');
+      }
       pay.disabled = false;
     }
   });
