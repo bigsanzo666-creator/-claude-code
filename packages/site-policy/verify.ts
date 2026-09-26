@@ -451,7 +451,8 @@ section('9. 신령 — 칸마다 주인이 있는가');
   {
     const sampleSentence = '일간이 己(흙)이고, 이 뿌리가 강한 편입니다.';
     let dupCount = 0;
-    for (const p of Object.values(CATALOG)) {
+    const nonDaily = Object.values(CATALOG).filter((p) => p.id !== 'daily-report');
+    for (const p of nonDaily) {
       const pageHtml = renderProductPage(p, full, true, '', new Set(), new Set(), {
         text: sampleSentence,
         notice: '다른 분의 명식입니다.',
@@ -459,7 +460,13 @@ section('9. 신령 — 칸마다 주인이 있는가');
       const matches = pageHtml.split(sampleSentence).length - 1;
       if (matches !== 1) dupCount++;
     }
-    check('맛보기 문장이 두 번 이상 나오지 않고 딱 한 번만 나온다', dupCount === 0,
+    const dailyHtml = renderProductPage(CATALOG['daily-report'], full, true, '', new Set(), new Set(), {
+      text: sampleSentence,
+      notice: '다른 분의 명식입니다.',
+    });
+    check('daily-report 상세페이지에는 「다른 분의 명식」이라는 말이 나오지 않는다',
+      !dailyHtml.includes('다른 분의 명식'));
+    check('나머지 31개는 맛보기가 여전히 딱 한 번만 나온다', dupCount === 0,
       dupCount === 0 ? '31개 상품 모두 1번만 출력' : dupCount + '개 상품에서 중복 출력');
     check('맛보기 위에 안내 한 줄이 붙는다', pd.includes('이런 문장으로 나옵니다'));
     check('맛보기 아래에 목차가 제목만 나열된다', pd.includes('class="pd-sample-toc"'));

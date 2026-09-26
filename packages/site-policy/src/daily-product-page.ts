@@ -1,3 +1,4 @@
+import { HOURS } from './checkout-page.ts';
 import type { Product, BusinessInfo } from '../../commerce/src/index.ts';
 import { CATALOG, WITHDRAWAL_WINDOW_DAYS } from '../../commerce/src/index.ts';
 import { PLACES, buildDailyPreviewData, parseInputTime, type DailyPreviewData } from '../../saju-rules/src/index.ts';
@@ -56,24 +57,15 @@ export function renderDailyReportProductPage(
     return `<option value="${esc(p.name)}"${selected}>${esc(p.name)}</option>`;
   }).join('');
 
-  // 12개 시진 시간 옵션
-  const timeOptions = [
-    { val: '모름', label: '모름' },
-    { val: '23:30', label: '자시 (밤 11:30 ~ 새벽 1:30)' },
-    { val: '01:30', label: '축시 (새벽 1:30 ~ 3:30)' },
-    { val: '03:30', label: '인시 (새벽 3:30 ~ 5:30)' },
-    { val: '05:30', label: '묘시 (아침 5:30 ~ 7:30)' },
-    { val: '07:30', label: '진시 (아침 7:30 ~ 9:30)' },
-    { val: '09:30', label: '사시 (오전 9:30 ~ 11:30)' },
-    { val: '11:30', label: '오시 (낮 11:30 ~ 1:30)' },
-    { val: '13:30', label: '미시 (낮 1:30 ~ 3:30)' },
-    { val: '15:30', label: '신시 (오후 3:30 ~ 5:30)' },
-    { val: '17:30', label: '유시 (저녁 5:30 ~ 7:30)' },
-    { val: '19:30', label: '술시 (저녁 7:30 ~ 9:30)' },
-    { val: '21:30', label: '해시 (밤 9:30 ~ 11:30)' },
-  ].map((t) => {
-    const sel = initialQuery?.time === t.val ? ' selected' : '';
-    return `<option value="${t.val}"${sel}>${t.label}</option>`;
+  // 태어난 시간 옵션: 결제 화면(HOURS)과 똑같은 값·표를 쓴다
+  const timeOptions = HOURS.map(([val, label]) => {
+    let sel = false;
+    if (initialQuery?.time !== undefined) {
+      if (initialQuery.time === val) sel = true;
+      else if (val && initialQuery.time.includes(label.slice(0, 2))) sel = true;
+      else if (val === '14:30' && (initialQuery.time.includes('14:') || initialQuery.time.includes('2시'))) sel = true;
+    }
+    return `<option value="${val}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
   }).join('');
 
   // SSR 결과 HTML (만약 쿼리가 들어왔을 때)
@@ -508,30 +500,50 @@ ${PRODUCTS_CSS}
 .dp-hours-mist-container {
   position: relative;
   overflow: hidden;
-  max-height: 180px;
+  margin-top: 6px;
 }
 
 .dp-hour-fog {
   background: transparent;
   border-bottom: 1px solid rgba(255,255,255,0.03);
-  padding: 8px 12px;
+  padding: 9px 12px;
 }
 
 .dp-hour-blur {
   letter-spacing: 2px;
-  color: rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.22);
   font-family: monospace;
   user-select: none;
 }
 
-/* 안개 가림막: 배경색으로 잠기게 */
+/* 열 줄 안개: 첫 줄은 2px 살짝, 아래로 갈수록 어둠에 완전히 잠김 */
+.dp-fog-row-0 { filter: blur(2px); opacity: 0.85; }
+.dp-fog-row-1 { filter: blur(3px); opacity: 0.75; }
+.dp-fog-row-2 { filter: blur(4.5px); opacity: 0.65; }
+.dp-fog-row-3 { filter: blur(6px); opacity: 0.52; }
+.dp-fog-row-4 { filter: blur(7.5px); opacity: 0.40; }
+.dp-fog-row-5 { filter: blur(9px); opacity: 0.30; }
+.dp-fog-row-6 { filter: blur(11px); opacity: 0.20; }
+.dp-fog-row-7 { filter: blur(13px); opacity: 0.12; }
+.dp-fog-row-8 { filter: blur(15px); opacity: 0.06; }
+.dp-fog-row-9 { filter: blur(18px); opacity: 0.02; }
+
+/* 안개 가림막: 위는 옅고 아래로 갈수록 배경색(어둠)으로 깊게 잠기게 */
 .dp-mist-scrim {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(to bottom, rgba(18,18,28,0.1) 0%, rgba(18,18,28,0.7) 40%, rgba(18,18,28,0.98) 85%, var(--nb-paper-2) 100%);
+  background: linear-gradient(
+    to bottom,
+    rgba(18, 18, 28, 0.05) 0%,
+    rgba(18, 18, 28, 0.25) 20%,
+    rgba(18, 18, 28, 0.55) 45%,
+    rgba(18, 18, 28, 0.82) 70%,
+    rgba(18, 18, 28, 0.98) 88%,
+    var(--nb-paper-2) 100%
+  );
   pointer-events: none;
 }
 
@@ -679,23 +691,9 @@ ${PRODUCTS_CSS}
     </div>
     <div class="dp-form-row">
       <label for="dpTime" class="dp-label">태어난 시간</label>
-      <input type="text" id="dpTime" list="dpTimeList" class="dp-input" placeholder="모름 / 자시 … 해시 또는 직접 입력 (예: 낮 2시 40분)" value="${initialQuery?.time || ''}">
-      <datalist id="dpTimeList">
-        <option value="모름">모름</option>
-        <option value="낮 2시 40분">낮 2시 40분 (14:40)</option>
-        <option value="자시">자시 (밤 11:30 ~ 01:30)</option>
-        <option value="축시">축시 (새벽 01:30 ~ 03:30)</option>
-        <option value="인시">인시 (새벽 03:30 ~ 05:30)</option>
-        <option value="묘시">묘시 (아침 05:30 ~ 07:30)</option>
-        <option value="진시">진시 (아침 07:30 ~ 09:30)</option>
-        <option value="사시">사시 (오전 09:30 ~ 11:30)</option>
-        <option value="오시">오시 (낮 11:30 ~ 13:30)</option>
-        <option value="미시">미시 (낮 13:30 ~ 15:30)</option>
-        <option value="신시">신시 (오후 15:30 ~ 17:30)</option>
-        <option value="유시">유시 (저녁 17:30 ~ 19:30)</option>
-        <option value="술시">술시 (밤 19:30 ~ 21:30)</option>
-        <option value="해시">해시 (밤 21:30 ~ 23:30)</option>
-      </datalist>
+      <select id="dpTime" class="dp-select">
+        ${timeOptions}
+      </select>
     </div>
     <div class="dp-form-row">
       <label for="dpPlace" class="dp-label">태어난 곳</label>
@@ -726,14 +724,15 @@ ${PRODUCTS_CSS}
     ${renderFit(product.id)}
   </div>
 
-  <!-- 화면 아래에 붙어 따라다니는 사는 자리 -->
-  <aside class="pd-sticky">
-    <span class="pd-sticky-price">${won(product.priceKrw)}<small>부가세 포함</small></span>
-    <a class="pd-sticky-go" href="/checkout?product=${encodeURIComponent(product.id)}">받기</a>
-  </aside>
-
 </section>
+<div style="height:24px"></div>
 ${footer}
+
+<!-- 화면 아래에 붙어 따라다니는 사는 자리 -->
+<aside class="pd-sticky">
+  <span class="pd-sticky-price">${won(product.priceKrw)}<small>부가세 포함</small></span>
+  <a class="pd-sticky-go" href="/checkout?product=${encodeURIComponent(product.id)}">받기</a>
+</aside>
 
 <script>
 (function() {
@@ -747,7 +746,16 @@ ${footer}
     if (saved && saved.birth) {
       if (saved.birth.name && document.getElementById('dpName')) document.getElementById('dpName').value = saved.birth.name;
       if (saved.birth.date && document.getElementById('dpDate') && !document.getElementById('dpDate').value) document.getElementById('dpDate').value = saved.birth.date;
-      if (saved.birth.time && document.getElementById('dpTime')) document.getElementById('dpTime').value = saved.birth.time;
+      if (saved.birth.time && document.getElementById('dpTime')) {
+        const tSel = document.getElementById('dpTime');
+        const st = saved.birth.time;
+        for (let i = 0; i < tSel.options.length; i++) {
+          if (tSel.options[i].value === st) {
+            tSel.selectedIndex = i;
+            break;
+          }
+        }
+      }
       if (saved.birth.place && document.getElementById('dpPlace')) document.getElementById('dpPlace').value = saved.birth.place;
       if (saved.birth.gender) {
         const rad = document.querySelector('input[name="dpGender"][value="' + saved.birth.gender + '"]');
@@ -773,34 +781,9 @@ ${footer}
     e.preventDefault();
     const name = (document.getElementById('dpName').value || '').trim();
     const date = (document.getElementById('dpDate').value || '').trim();
-    const rawTime = (document.getElementById('dpTime').value || '').trim();
-    function parseClientTime(val) {
-      if (!val || val === '모름') return null;
-      val = val.trim();
-      if (/^\\d{1,2}:\\d{2}$/.test(val)) return val;
-      const matchKorean = val.match(/(오전|오후|낮|새벽|저녁|밤)?\\s*(\\d{1,2})시\\s*(\\d{1,2})?분?/);
-      if (matchKorean) {
-        const prefix = matchKorean[1];
-        let h = parseInt(matchKorean[2], 10);
-        const m = matchKorean[3] ? parseInt(matchKorean[3], 10) : 0;
-        if ((prefix === '오후' || prefix === '낮' || prefix === '저녁' || prefix === '밤') && h < 12) {
-          h += 12;
-        } else if ((prefix === '새벽' || prefix === '자정') && h === 12) {
-          h = 0;
-        }
-        return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-      }
-      const SIJIN_MAP = {
-        자시: '00:30', 축시: '02:30', 인시: '04:30', 묘시: '06:30',
-        진시: '08:30', 사시: '10:30', 오시: '12:30', 미시: '14:30',
-        신시: '16:30', 유시: '18:30', 술시: '20:30', 해시: '22:30',
-      };
-      for (const k in SIJIN_MAP) {
-        if (val.includes(k)) return SIJIN_MAP[k];
-      }
-      return val;
-    }
-    const time = parseClientTime(rawTime);
+    const timeSelect = document.getElementById('dpTime');
+    const rawTime = (timeSelect ? timeSelect.value : '').trim();
+    const time = rawTime ? rawTime : null;
     const place = document.getElementById('dpPlace').value;
     const genderRad = document.querySelector('input[name="dpGender"]:checked');
     const gender = genderRad ? genderRad.value : '남';
@@ -892,8 +875,8 @@ ${footer}
       '</div>';
     }).join('');
 
-    const hoursFoggyHtml = p.hours.foggy.map(function(f) {
-      return '<div class="dp-hour-item dp-hour-fog">' +
+    const hoursFoggyHtml = p.hours.foggy.map(function(f, idx) {
+      return '<div class="dp-hour-item dp-hour-fog dp-fog-row-' + idx + '">' +
         '<div class="dp-hour-left">' +
           '<span class="dp-hour-hanja">' + f.hanja + '</span>' +
           '<span class="dp-hour-name">' + f.시진 + '</span>' +
