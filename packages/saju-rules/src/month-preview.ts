@@ -1,4 +1,4 @@
-﻿import { calculate, type Myeongsik } from '../../manseryeok/src/index.ts';
+import { calculate, type Myeongsik } from '../../manseryeok/src/index.ts';
 import {
   analyze,
   monthlyLuck,
@@ -36,6 +36,9 @@ export interface MonthPreviewTopicItem {
 }
 
 export interface MonthPreviewData {
+  notice: string;
+  targetYear: number;
+  targetMonth: number;
   myeongsik: {
     pillars: MonthPreviewPillar[];
     correctionText: string;
@@ -161,12 +164,39 @@ export function buildMonthPreviewData(input: {
     : `${birthHeader}\n진태양시 보정 기준 명식입니다.`;
 
   const today = seoulTodayISO();
-  const curYear = Number(today.slice(0, 4));
+  const [yStr, mStr, dStr] = today.split('-');
+  const yNum = Number(yStr);
+  const mNum = Number(mStr);
+  const dNum = Number(dStr);
+  const thisMonthLastDay = new Date(Date.UTC(yNum, mNum, 0)).getUTCDate();
+  const daysRemaining = thisMonthLastDay - dNum + 1;
 
-  // 이번 달
-  const allMonths = [curYear - 1, curYear, curYear + 1].flatMap((y) => monthlyLuck(ms, an.yongsin, y));
+  let targetYear: number;
+  let targetMonth: number;
+  let startDate: string;
+  let dayCount: number;
+
+  if (daysRemaining < 10) {
+    // 말일까지 열흘 미만이면 → 다음 달 것을 준다
+    targetYear = mNum === 12 ? yNum + 1 : yNum;
+    targetMonth = mNum === 12 ? 1 : mNum + 1;
+    const targetLastDay = new Date(Date.UTC(targetYear, targetMonth, 0)).getUTCDate();
+    startDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
+    dayCount = targetLastDay;
+  } else {
+    targetYear = yNum;
+    targetMonth = mNum;
+    startDate = today;
+    dayCount = daysRemaining;
+  }
+
+  const targetMonthLabel = `${targetYear}년 ${targetMonth}월 운세입니다`;
+
+  // 대상 월의 월운(절기)은 그 달 15일 기준
+  const targetMidDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-15`;
+  const allMonths = [targetYear - 1, targetYear, targetYear + 1].flatMap((y) => monthlyLuck(ms, an.yongsin, y));
   allMonths.sort((a, b) => a.from.localeCompare(b.from));
-  const thisMonthIndex = allMonths.findLastIndex((m) => m.from <= today);
+  const thisMonthIndex = allMonths.findLastIndex((m) => m.from <= targetMidDate);
   const thisMonth = allMonths[thisMonthIndex >= 0 ? thisMonthIndex : 0];
 
   const mStem = thisMonth.pillar[0] || '';
@@ -220,13 +250,7 @@ export function buildMonthPreviewData(input: {
   const peopleTopic = splitTopicLines(peers, '누구와 가까워지고 누구와 엇갈리는지');
 
   // 5번 칸: 날 (좋은 날 셋, 조심할 날 셋)
-  const [yStr, mStr, dStr] = today.split('-');
-  const yNum = Number(yStr);
-  const mNum = Number(mStr);
-  const dNum = Number(dStr);
-  const lastDay = new Date(Date.UTC(yNum, mNum, 0)).getUTCDate();
-  const remainingDays = Math.max(lastDay - dNum + 1, 6);
-  const daysLuck = dailyLuckRange(ms, an.yongsin, today, remainingDays);
+  const daysLuck = dailyLuckRange(ms, an.yongsin, startDate, dayCount);
 
   const scoredDays = daysLuck.map((d, idx) => {
     let clashWeight = 0;
@@ -263,6 +287,9 @@ export function buildMonthPreviewData(input: {
   const badThree = sortedAsc.slice(0, 3).map((s) => s.day);
 
   return {
+    notice: targetMonthLabel,
+    targetYear,
+    targetMonth,
     myeongsik: {
       pillars,
       correctionText: corrText,

@@ -1349,19 +1349,21 @@ export function createApi(deps: ApiDeps) {
 
       let discountKrw = 0;
       let appliedInviteCode: string | null = null;
-      if (inviteCode && isValidInviteCode(inviteCode)) {
-        const myCode = email ? generateInviteCode(email) : '';
-        if (email && inviteCode === myCode) {
-          // 자기 코드로 자기가 할인받을 수 없다
-          discountKrw = 0;
-        } else if (email && (await referrals.hasUsedInvite(email))) {
-          // 같은 이메일은 할인권을 한 번만 쓴다
-          discountKrw = 0;
-        } else {
-          const baseAmount = orderable(reading.productId).priceKrw + extraMemberKrw(reading.productId, 1 + (reading.family?.length ?? 0));
-          if (baseAmount >= INVITE_MIN_ORDER_KRW) {
-            discountKrw = INVITE_DISCOUNT_KRW;
-            appliedInviteCode = inviteCode;
+      if (email && inviteCode && isValidInviteCode(inviteCode)) {
+        const invite = await referrals.getInvite(inviteCode);
+        if (invite) {
+          if (invite.ownerEmail.toLowerCase() === email.toLowerCase()) {
+            // 자기 코드로 자기가 할인받을 수 없다 (증표 주인 이메일과 사는 사람 이메일 비교)
+            discountKrw = 0;
+          } else if (await referrals.hasUsedInvite(email)) {
+            // 같은 이메일은 할인권을 한 번만 쓴다
+            discountKrw = 0;
+          } else {
+            const baseAmount = orderable(reading.productId).priceKrw + extraMemberKrw(reading.productId, 1 + (reading.family?.length ?? 0));
+            if (baseAmount >= INVITE_MIN_ORDER_KRW) {
+              discountKrw = INVITE_DISCOUNT_KRW;
+              appliedInviteCode = inviteCode;
+            }
           }
         }
       }

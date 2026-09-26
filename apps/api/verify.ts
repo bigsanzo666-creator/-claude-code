@@ -1372,6 +1372,74 @@ section('J. 월운세 · 행운의 번호 · 친구 추천');
     birth: { date: '1990-08-15', time: '13:00', place: '서울', gender: '남' },
   });
   check('월운세 상세페이지가 모델을 부르지 않는다', generateCalls === callsBefore);
+
+  // 12. 없는 증표로는 3,000원이 깎이지 않는다
+  const fakeCodeOrder = await api('POST', '/api/orders', {
+    productId: 'newyear-report',
+    email: 'newbie_fake@example.com',
+    invite: 'nbaaaaaa',
+    acknowledgedNotice: true,
+    previewShown: true,
+    birth: { date: '1990-01-01', time: '12:00', place: '서울', gender: '남' },
+  });
+  check('없는 증표로도 3,000원이 깎이지 않는다',
+    fakeCodeOrder.status === 201 && fakeCodeOrder.body.order.amountKrw === normalPrice);
+
+  // 13. 이메일이 없으면 증표 할인을 하지 않는다
+  const noEmailOrder = await api('POST', '/api/orders', {
+    productId: 'newyear-report',
+    invite: myCode,
+    acknowledgedNotice: true,
+    previewShown: true,
+    birth: { date: '1990-01-01', time: '12:00', place: '서울', gender: '남' },
+  });
+  check('이메일이 없으면 증표 할인을 하지 않는다',
+    noEmailOrder.status === 201 && noEmailOrder.body.order.amountKrw === normalPrice);
+
+  // 14. 월운세: 어느 달인지 명시되고 열흘 미만 시 다음 달 운세 제공
+  const monthPreviewCheck = await api('POST', '/api/preview', {
+    productId: 'month-report',
+    birth: { date: '1990-01-01', time: '12:00', place: '서울', gender: '남' },
+  });
+  check('월운세 미리보기에 어느 달인지 안내된다',
+    monthPreviewCheck.body.preview.contents.some((c: string) => c.includes('운세입니다')));
+}
+
+// ── K. 모든 화면의 스크립트 문법 검사 ─────────────────────────────────
+section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다');
+{
+  const vm = await import('node:vm');
+  const testPaths = [
+    '/',
+    '/products',
+    '/products/month-report',
+    '/products/daily-report',
+    '/checkout?product=saju-report',
+    '/invite',
+    '/pick',
+    '/dream',
+    `/order/${doubleId}`,
+  ];
+
+  for (const p of testPaths) {
+    const pageRes = await page(p);
+    check(`${p} 화면 로드 성공`, pageRes.status === 200, `상태: ${pageRes.status}`);
+    const scripts = [...pageRes.html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+    let scriptsOk = true;
+    let errDetail = '';
+    for (const m of scripts) {
+      const code = m[1].trim();
+      if (!code) continue;
+      try {
+        new vm.Script(code);
+      } catch (e: any) {
+        scriptsOk = false;
+        errDetail = `${e.message} in script: ${code.slice(0, 100)}`;
+        break;
+      }
+    }
+    check(`${p} 의 모든 인라인 스크립트 문법 통과`, scriptsOk, errDetail);
+  }
 }
 
 server.close();

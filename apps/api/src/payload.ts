@@ -436,20 +436,43 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
   if (req.productId === 'month-report') {
     const { ms, an } = sajuBundle(req.birth);
     const today = seoulTodayISO();
-    const curYear = Number(today.slice(0, 4));
-
-    const allMonths = [curYear - 1, curYear, curYear + 1].flatMap((y) => monthlyLuck(ms, an.yongsin, y));
-    allMonths.sort((a, b) => a.from.localeCompare(b.from));
-    const thisMonthIndex = allMonths.findLastIndex((m) => m.from <= today);
-    const thisMonth = allMonths[thisMonthIndex >= 0 ? thisMonthIndex : 0];
 
     const [yStr, mStr, dStr] = today.split('-');
     const yNum = Number(yStr);
     const mNum = Number(mStr);
     const dNum = Number(dStr);
-    const lastDay = new Date(Date.UTC(yNum, mNum, 0)).getUTCDate();
-    const remainingDays = Math.max(lastDay - dNum + 1, 6);
-    const daysLuck = dailyLuckRange(ms, an.yongsin, today, remainingDays);
+    const thisMonthLastDay = new Date(Date.UTC(yNum, mNum, 0)).getUTCDate();
+    const daysRemaining = thisMonthLastDay - dNum + 1;
+
+    let targetYear: number;
+    let targetMonth: number;
+    let startDate: string;
+    let dayCount: number;
+
+    if (daysRemaining < 10) {
+      // 말일까지 열흘 미만이면 → 다음 달 것을 준다
+      targetYear = mNum === 12 ? yNum + 1 : yNum;
+      targetMonth = mNum === 12 ? 1 : mNum + 1;
+      const targetLastDay = new Date(Date.UTC(targetYear, targetMonth, 0)).getUTCDate();
+      startDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
+      dayCount = targetLastDay;
+    } else {
+      targetYear = yNum;
+      targetMonth = mNum;
+      startDate = today;
+      dayCount = daysRemaining;
+    }
+
+    const targetMonthLabel = `${targetYear}년 ${targetMonth}월 운세입니다`;
+
+    // 월운(절기)은 대상 달의 중심일(15일) 기준으로 잡는다
+    const targetMidDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-15`;
+    const allMonths = [targetYear - 1, targetYear, targetYear + 1].flatMap((y) => monthlyLuck(ms, an.yongsin, y));
+    allMonths.sort((a, b) => a.from.localeCompare(b.from));
+    const thisMonthIndex = allMonths.findLastIndex((m) => m.from <= targetMidDate);
+    const thisMonth = allMonths[thisMonthIndex >= 0 ? thisMonthIndex : 0];
+
+    const daysLuck = dailyLuckRange(ms, an.yongsin, startDate, dayCount);
 
     const scoredDays = daysLuck.map((d, idx) => {
       let clashWeight = 0;
@@ -495,6 +518,8 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
       kind: '월운세',
       subject,
       data: {
+        안내문구: targetMonthLabel,
+        운세_월: `${targetYear}년 ${targetMonth}월`,
         계산근거: ms.meta,
         오늘날짜: today,
         손님의_바탕: {

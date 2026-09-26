@@ -306,6 +306,8 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
      * 이번 달 절기와 간지, 유불리, 돈·일·사람 주제 요약,
      * 좋은 날 셋과 조심할 날 셋을 결제 전 미리보기 목록으로 보여준다.
      */
+    if (d.안내문구) contents.push(d.안내문구);
+    else if (d.운세_월) contents.push(`${d.운세_월} 운세입니다`);
     if (d.이번달) {
       contents.push(`이번 달 절기: ${d.이번달.절기} (${d.이번달.시작일}부터) · 간지 ${d.이번달.간지}`);
       contents.push(`이번 달 기운: 천간 ${d.이번달.천간십신} · 지지 ${d.이번달.지지십신} — 내 명식과 ${d.이번달.유불리}`);

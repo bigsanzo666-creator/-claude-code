@@ -118,7 +118,13 @@ export const REFERRAL_BADGE_SCRIPT = `
 
     if(kakaoBtn){
       kakaoBtn.onclick = function(){
-        var text = '벗에게 알려주게\n그대의 증표 — ' + code + '\n이 증표로 들어온 벗은 3,000원을 덜 낸다네.\n벗이 첫 점사를 받으면, 그대에게도 보답이 있을 것이야.\n' + link;
+        var text = [
+          '벗에게 알려주게',
+          '그대의 증표 — ' + code,
+          '이 증표로 들어온 벗은 3,000원을 덜 낸다네.',
+          '벗이 첫 점사를 받으면, 그대에게도 보답이 있을 것이야.',
+          link
+        ].join(String.fromCharCode(10));
         if(navigator.share){
           navigator.share({ title: '늘봄사주 벗의 증표', text: text, url: link }).catch(function(){});
         }else{

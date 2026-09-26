@@ -1,4 +1,4 @@
-﻿import { HOURS } from './checkout-page.ts';
+import { HOURS } from './checkout-page.ts';
 import type { Product, BusinessInfo } from '../../commerce/src/index.ts';
 import { PLACES, buildMonthPreviewData, parseInputTime, type MonthPreviewData } from '../../saju-rules/src/index.ts';
 import { show } from './business.ts';
@@ -730,6 +730,9 @@ ${footer}
   });
 
   function renderMonthPreviewHtmlClient(p, prod) {
+    var noticeText = p.notice || (p.targetYear ? p.targetYear + '년 ' + p.targetMonth + '월 운세입니다' : '한 달 운세입니다');
+    var noticeHtml = '<div class="mp-month-target-badge" style="text-align:center;font-size:1.15rem;font-weight:700;color:var(--nb-gold-2);margin-bottom:14px;letter-spacing:-0.01em;">' + noticeText + '</div>';
+
     const pillarsHtml = p.myeongsik.pillars.map(function(col) {
       return '<div class="mp-pillar-col">' +
         '<div class="mp-pillar-hanja">' + col.stemHanja + '</div>' +
@@ -779,7 +782,7 @@ ${footer}
 
     const priceWon = Number(prod.priceKrw || 9900).toLocaleString() + '원';
 
-    return '<section class="mp-myeongsik-card">' +
+    return noticeHtml + '<section class="mp-myeongsik-card">' +
       '<div class="mp-pillars-grid">' + pillarsHtml + '</div>' +
       '<div class="mp-calc-note">' + corrHtml + '</div>' +
       '<div class="mp-reset-box">' +
@@ -892,8 +895,11 @@ function renderMonthPreviewHtml(p: MonthPreviewData, prod: Product): string {
   }).join('');
 
   const priceWon = Number(prod.priceKrw || 9900).toLocaleString() + '원';
+  const noticeText = p.notice || (p.targetYear ? `${p.targetYear}년 ${p.targetMonth}월 운세입니다` : '한 달 운세입니다');
+  const noticeHtml = `<div class="mp-month-target-badge" style="text-align:center;font-size:1.15rem;font-weight:700;color:var(--nb-gold-2);margin-bottom:14px;letter-spacing:-0.01em;">${esc(noticeText)}</div>`;
 
-  return `<section class="mp-myeongsik-card">
+  return `${noticeHtml}
+  <section class="mp-myeongsik-card">
     <div class="mp-pillars-grid">${pillarsHtml}</div>
     <div class="mp-calc-note">${corrHtml}</div>
     <div class="mp-reset-box">
