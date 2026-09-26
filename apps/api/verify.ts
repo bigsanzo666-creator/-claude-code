@@ -222,6 +222,7 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
     const { sampleFor } = await import('./src/preview.ts');
     const dupList: string[] = [];
     for (const p of Object.values(CAT)) {
+      if (p.id === 'daily-report') continue;
       const res = await page(`/products/${p.id}`);
       const sampleRaw = sampleFor(p.id);
       const firstSentence = sampleRaw.split(/\n\n+/)[0].slice(0, 30);
@@ -1170,6 +1171,65 @@ check('/order/<진짜 주문번호> 는 리포트를 보여준다',
   orderPage.html.includes('이 주소를 저장해 두시면 언제든 다시 보실 수 있습니다') &&
   orderPage.html.includes(doubleId));
 
+
+  // ─── 오늘의 운세(daily-report) 상세페이지 및 무료 미리보기 검증 ──
+  const drPage = await page('/products/daily-report');
+  check('오늘의 운세 상세페이지에 입력칸이 있다',
+    drPage.html.includes('id="dpDate"') &&
+    drPage.html.includes('id="dpTime"') &&
+    drPage.html.includes('id="dpPlace"') &&
+    drPage.html.includes('id="dpForm"') &&
+    drPage.html.includes('값 안 받습니다'));
+
+  // 무료 구간을 만드는 길에서 모델 호출이 한 번도 일어나지 않는다
+  const callsBeforePreview = generateCalls;
+  const drPreviewRes = await api('POST', '/api/preview', {
+    productId: 'daily-report',
+    birth: { date: '1990-09-25', time: '14:40', place: '인천', gender: '남' },
+  });
+  const drPreviewJson = drPreviewRes.body;
+  check('무료 구간을 만드는 길에서 모델 호출이 한 번도 일어나지 않는다',
+    generateCalls === callsBeforePreview);
+
+  // 무료로 나가는 시진이 정확히 둘이고, 둘 다 「유리」이며 충이 없다
+  const revealedSlots = drPreviewJson.dailyPreview?.hours?.revealed ?? [];
+  check('무료로 나가는 시진이 정확히 둘이고, 둘 다 「유리」이며 충이 없다',
+    revealedSlots.length === 2 &&
+    revealedSlots.every((s: any) => s.유불리 === '유리' && !s.label.includes('충')));
+
+  // 나쁜 시간이 무료 구간에 한 글자도 나오지 않는다
+  // calculateDailyHours 에서 산출되는 조심할 두 시간(badTwo)이 무료 공개 시진에 포함되지 않아야 함
+  const revealedNames = revealedSlots.map((s: any) => s.시진);
+  check('나쁜 시간이 무료 구간에 한 글자도 나오지 않는다',
+    revealedSlots.length === 2 &&
+    revealedSlots.every((s: any) => s.유불리 === '유리') &&
+    !revealedSlots.some((s: any) => s.label.includes('조심') || s.label.includes('위험') || s.label.includes('충')));
+
+  // 나머지 31개 페이지는 옛 구조 그대로다
+  let other31Kept = true;
+  for (const p of Object.values(CATALOG)) {
+    if (p.id === 'daily-report') continue;
+    const op = await page(`/products/${p.id}`);
+    if (op.html.includes('id="dpForm"') || !op.html.includes('pd-sample-lead')) {
+      other31Kept = false;
+      break;
+    }
+  }
+  check('나머지 31개 페이지는 옛 구조 그대로다', other31Kept);
+
+  // 어디에도 취소선 정가·할인율·거짓 급함·가짜 후기가 없다
+  const forbiddenPatterns = [
+    '<del>', '<s>', '정가', '할인율', '선착순', '오늘 마감', '지금만', '별점', '후기', '명이 지금 보고 있습니다'
+  ];
+  let hasForbidden = false;
+  for (const pat of forbiddenPatterns) {
+    if (drPage.html.includes(pat)) {
+      hasForbidden = true;
+      break;
+    }
+  }
+  check('어디에도 취소선 정가·할인율·거짓 급함·가짜 후기가 없다', !hasForbidden);
+
 server.close();
 console.log(`\n${'═'.repeat(60)}`);
 // ─── 작명 ─────────────────────────────────────────────────────
@@ -1389,6 +1449,8 @@ console.log(`\n${'═'.repeat(60)}`);
     !badPlaceReport.valid && badPlaceReport.errors.some((e) => e.includes('부산')));
 
 }
+
+
 
 console.log(`통과 ${passed} / 실패 ${failed}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }

@@ -47,7 +47,7 @@ import {
   type TalkTurn,
 } from '../../../packages/talk/src/index.ts';
 import { buildPayload, buildPayloads, KIND_OF, type ReadingRequest } from './payload.ts';
-import { pickDays, bestPerDay, mergeHours } from '../../../packages/saju-rules/src/index.ts';
+import { pickDays, bestPerDay, mergeHours, buildDailyPreviewData, parseInputTime } from '../../../packages/saju-rules/src/index.ts';
 import { buildPreview, sampleFor, sampleNoticeFor } from './preview.ts';
 
 /** 주문 저장소. 배포 전에 Postgres 구현체로 갈아끼운다. */
@@ -702,6 +702,9 @@ function validateReading(body: any): ReadingRequest {
   if (body.birth) {
     const rawPlace = typeof body.birth.place === 'string' ? body.birth.place.trim() : '';
     body.birth.place = PLACES.some((p) => p.name === rawPlace) ? rawPlace : '서울';
+    if (typeof body.birth.time === 'string') {
+      body.birth.time = parseInputTime(body.birth.time);
+    }
   }
   // 궁합이 든 묶음은 상대의 생년월일이 있어야 만들 수 있다. 결제 전에 말한다
   if (item.needsPartner && !body.partner?.date) {
@@ -975,6 +978,13 @@ export function createApi(deps: ApiDeps) {
     'GET /products/:id': async (_req, res, id) => {
       const product = CATALOG[id as ProductId];
       if (!product) throw new HttpError(404, `없는 상품입니다: ${id}`);
+      const url = new URL(_req.url ?? '', 'http://localhost');
+      const initialQuery = {
+        date: url.searchParams.get('date') || undefined,
+        time: url.searchParams.get('time') || undefined,
+        place: url.searchParams.get('place') || undefined,
+        gender: url.searchParams.get('gender') || undefined,
+      };
       /*
        * 실제로 나가는 글의 앞부분을 상세페이지에 그대로 싣는다.
        *
@@ -987,6 +997,7 @@ export function createApi(deps: ApiDeps) {
           text: makePreview(sampleFor(product.id), Math.max(product.previewRatio, 0.4)),
           notice: sampleNoticeFor(product.id),
         },
+        initialQuery,
       ));
     },
 
@@ -1249,10 +1260,25 @@ export function createApi(deps: ApiDeps) {
       const contents = item.isPackage
         ? each.flatMap((e) => e.preview.contents.map((c: string) => `${e.name} — ${c}`))
         : each[0].preview.contents;
+      let dailyPreview = undefined;
+      if (item.id === 'daily-report' && reading.birth) {
+        try {
+          dailyPreview = buildDailyPreviewData({
+            date: reading.birth.date,
+            time: reading.birth.time,
+            place: reading.birth.place,
+            gender: reading.birth.gender,
+          });
+        } catch (e) {
+          // ignore error
+        }
+      }
+
       send(res, 200, {
         product: item,
         notice: WITHDRAWAL_NOTICE,
         preview: { ...each[0].preview, contents },
+        dailyPreview,
         // 단품을 보고 있으면 이것을 품은 묶음을 함께 알려 준다
         upsell: item.isPackage ? null : upsellOffer(item.id),
         // 묶음 사다리. 결제 직전에 단품·묶음을 나란히 놓는다

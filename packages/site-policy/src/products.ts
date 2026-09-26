@@ -1,3 +1,4 @@
+import { renderDailyReportProductPage } from './daily-product-page.ts';
 /**
  * 상품·가격 안내.
  *
@@ -1485,7 +1486,11 @@ export function renderProductPage(
   product: Product, info: BusinessInfo, ready: boolean, footer: string,
   images: ProductImages = NO_IMAGES, faces: SpiritImages = NO_FACES,
   sample: { text: string; notice: string } | null = null,
+  initialQuery?: { date?: string; time?: string; place?: string; gender?: string },
 ): string {
+  if (product.id === 'daily-report') {
+    return renderDailyReportProductPage(product, info, ready, footer, images, faces, sample, initialQuery);
+  }
   const site = show(info, 'serviceName', '서비스 이름');
   const spirit = spiritOf(product.category);
 
@@ -1680,7 +1685,7 @@ function stickyBuy(product: Product, ready: boolean): string {
   </div>`;
 }
 /** 이런 분이 보시면 좋습니다 / 이건 안 보셔도 됩니다 */
-function renderFit(productId: string): string {
+export function renderFit(productId: string): string {
   const fit = FIT[productId];
   if (!fit) return '';
   const ys = fit.yes.map((y) => `<li>${bold(y)}</li>`).join('');
