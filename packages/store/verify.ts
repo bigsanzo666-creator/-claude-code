@@ -11,7 +11,7 @@
  */
 
 import { createPool, migrate, PostgresOrderStore, PostgresReportStore, RETENTION_YEARS,
-         PostgresContactStore, isPlausibleEmail } from './src/index.ts';
+         PostgresContactStore, isPlausibleEmail, PostgresReferralStore } from './src/index.ts';
 import { createOrder, markPending, markPaid, markFulfilled, markViewed, refundOrder,
          hasEntitlement, CATALOG, FakeGateway } from '../commerce/src/index.ts';
 
@@ -31,7 +31,7 @@ function check(label: string, ok: boolean, detail = '') {
 function section(t: string) { console.log(`\n${t}\n${'─'.repeat(60)}`); }
 
 const pool = createPool(url);
-await pool.query('DROP TABLE IF EXISTS reports, orders, contacts CASCADE');
+await pool.query('DROP TABLE IF EXISTS reports, orders, contacts, invites, invite_uses, rewards CASCADE');
 
 section('1. 스키마');
 await migrate(pool);
@@ -41,8 +41,8 @@ check('두 번 실행해도 깨지지 않는다 (여러 대로 늘어도 안전)
 
 const tables = await pool.query<{ table_name: string }>(
   `SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY 1`);
-check('orders·reports·contacts 세 테이블',
-  tables.rows.map((r) => r.table_name).join(',') === 'contacts,orders,reports',
+check('여섯 테이블 생성 (contacts,invite_uses,invites,orders,reports,rewards)',
+  tables.rows.map((r) => r.table_name).join(',') === 'contacts,invite_uses,invites,orders,reports,rewards',
   tables.rows.map((r) => r.table_name).join(','));
 
 const idx = await pool.query<{ indexname: string }>(
@@ -199,6 +199,28 @@ check('연락처를 지우지는 않는다 — 지우면 거부한 사실을 잊
 await contacts.upsert({ email: 'hong@example.kr', serviceConsent: true, marketingConsent: true });
 const resubscribed = await contacts.get('hong@example.kr');
 check('거부한 사람이 다시 동의하면 다시 받는다', resubscribed?.marketingConsent === true);
+
+section('8. 친구 추천과 보답 저장소');
+const referrals = new PostgresReferralStore(pool2);
+await referrals.createInvite('nbtest01', 'tester1@example.kr');
+check('소개 코드 생성 및 조회', (await referrals.getInvite('nbtest01'))?.ownerEmail === 'tester1@example.kr');
+check('이메일로 소개 코드 찾기', (await referrals.getInviteByEmail('tester1@example.kr'))?.code === 'nbtest01');
+
+await referrals.recordInviteUse({
+  id: 'use_1',
+  code: 'nbtest01',
+  invitedEmail: 'friend1@example.kr',
+  orderId: 'ord_f1',
+  amountKrw: 24900,
+});
+check('2만원 이상 결제 시 1명으로 집계', (await referrals.getReferralCount('tester1@example.kr')) === 1);
+check('사용한 이메일 중복 사용 방지', await referrals.hasUsedInvite('friend1@example.kr'));
+
+await referrals.rollbackInviteCount('ord_f1');
+check('환불 시 집계 되돌림', (await referrals.getReferralCount('tester1@example.kr')) === 0);
+
+await referrals.applyReward('tester1@example.kr', 1, '오늘의 운세 30일', '내줌');
+check('보답 상태 기록', (await referrals.getRewards('tester1@example.kr'))[0]?.status === '내줌');
 
 await pool.end(); await pool2.end();
 console.log(`\n${'═'.repeat(60)}`);

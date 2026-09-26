@@ -347,11 +347,11 @@ export function renderCheckoutPage(
           }
           var tst = document.getElementById('nbInviteToast');
           if(tst){ tst.textContent = '증표 주소가 복사되었습니다: ' + invLink; tst.style.display = 'block'; }
-        }catch(e){ prompt('증표 링크를 복사하십시오:', invLink); }
+        }catch(e){ prompt('증표 주소를 복사하십시오:', invLink); }
       };
       if(invKakaoBtn){
         invKakaoBtn.onclick = function(){
-          var text = '늘봄사주에서 그대의 운을 보게. 벗의 증표(' + inviteCode + ')로 들어오면 3,000원을 덜 낸다네.\n' + invLink;
+          var text = '벗에게 알려주게\n그대의 증표 — ' + inviteCode + '\n이 증표로 들어온 벗은 3,000원을 덜 낸다네.\n벗이 첫 점사를 받으면, 그대에게도 보답이 있을 것이야.\n' + invLink;
           if(navigator.share){ navigator.share({ title: '늘봄사주 벗의 증표', text: text, url: invLink }).catch(function(){}); }
           else { invCopyBtn.click(); }
         };

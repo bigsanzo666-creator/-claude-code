@@ -1,4 +1,4 @@
-﻿import { createHash } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { calculate, type Myeongsik } from '../../manseryeok/src/index.ts';
 import { groupElement, type Element, type YongsinResult } from './index.ts';
 
@@ -73,8 +73,16 @@ export function luckyNumbers(
   const sorted = Array.from(picked).sort((a, b) => a - b);
   const six = sorted.slice(0, 6) as [number, number, number, number, number, number];
 
-  const ko = ELEMENT_KO[yongsinEl] || { full: `${yongsinEl}`, short: `${yongsinEl}` };
-  const 근거 = `그대에게 이로운 기운은 ${ko.full}일세.\n${ko.short}의 숫자 ${s1}과 ${s2}에서 왔고, 이번 주 날의 기운을 더했네.`;
+  const ELEMENT_PHRASES: Record<Element, { full: string; phrase: string }> = {
+    수: { full: '물(水)', phrase: '물의 숫자 1과 6' },
+    목: { full: '나무(木)', phrase: '나무의 숫자 3과 8' },
+    화: { full: '불(火)', phrase: '불의 숫자 2와 7' },
+    토: { full: '흙(土)', phrase: '흙의 숫자 5와 10' },
+    금: { full: '쇠(金)', phrase: '쇠의 숫자 4와 9' },
+  };
+
+  const ep = ELEMENT_PHRASES[yongsinEl] || { full: `${yongsinEl}`, phrase: `${yongsinEl}의 숫자 ${s1}과 ${s2}` };
+  const 근거 = `그대에게 이로운 기운은 ${ep.full}일세.\n${ep.phrase}에서 왔고, 이번 주 날의 기운을 더했네.`;
 
   return {
     numbers: six,

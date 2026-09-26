@@ -55,7 +55,7 @@ const INVITE_PAGE_CSS = `
 
 export function renderInvitePage(info: BusinessInfo, footer: string): string {
   const site = show(info, 'serviceName', '늘봄사주');
-  const placesOptions = PLACES.map((p) => `<option value="${p}">${p}</option>`).join('');
+  const placesOptions = PLACES.map((p) => `<option value="${p.name}">${p.name}</option>`).join('');
 
   return `<!doctype html>
 <html lang="ko">
@@ -123,6 +123,7 @@ ${INVITE_PAGE_CSS}
         <button type="button" class="iv-badge-btn" id="ivCopyBtn">증표 복사하기</button>
         <button type="button" class="iv-badge-btn kakao" id="ivKakaoBtn">카톡으로 보내기</button>
       </div>
+      <p class="nb-invite-toast" id="ivCopyToast" style="display:none;color:#4ade80;font-size:12.5px;margin:8px 0 0">증표 주소가 복사되었습니다.</p>
       <div class="iv-stats">
         <div>
           <div class="iv-stat-num" id="ivCountVal">0명</div>
@@ -351,15 +352,19 @@ ${footer}
         document.execCommand('copy');
         document.body.removeChild(t);
       }
-      alert('증표 링크가 복사되었습니다!\n' + link);
+      var toast = document.getElementById('ivCopyToast');
+      if(toast){
+        toast.textContent = '증표 주소가 복사되었습니다: ' + link;
+        toast.style.display = 'block';
+      }
     }catch(e){
-      prompt('증표 링크를 복사하십시오:', link);
+      prompt('증표 주소를 복사하십시오:', link);
     }
   };
 
   kakaoBtn.onclick = function(){
     var link = location.origin + '/?invite=' + encodeURIComponent(currentCode);
-    var text = '늘봄사주에서 그대의 운을 보게. 벗의 증표(' + currentCode + ')로 들어오면 3,000원을 덜 낸다네.\n' + link;
+    var text = '벗에게 알려주게\n그대의 증표 — ' + currentCode + '\n이 증표로 들어온 벗은 3,000원을 덜 낸다네.\n벗이 첫 점사를 받으면, 그대에게도 보답이 있을 것이야.\n' + link;
     if(navigator.share){
       navigator.share({ title: '늘봄사주 벗의 증표', text: text, url: link }).catch(function(){});
     }else{
