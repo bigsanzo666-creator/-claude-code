@@ -75,6 +75,9 @@ export interface Order {
   viewedAt: string | null;
   refundedAt: string | null;
   failureReason: string | null;
+  discountKrw?: number;
+  inviteCode?: string | null;
+  rewardUsed?: string | null;
 }
 
 export interface CreateOrderInput {
@@ -84,6 +87,9 @@ export interface CreateOrderInput {
   noticeGiven: boolean;
   previewProvided: boolean;
   ref?: string | null;
+  inviteCode?: string | null;
+  discountKrw?: number;
+  rewardUsed?: string | null;
   /**
    * 본인을 포함한 인원. 인원에 따라 값이 달라지는 상품에만 쓴다.
    *
@@ -107,6 +113,7 @@ export function createOrder(input: CreateOrderInput): Order {
     amountKrw: Math.max(0, product.priceKrw + extraMemberKrw(product.id, input.memberCount ?? 1) - Math.max(0, input.discountKrw ?? 0)),
     inviteCode: input.inviteCode ?? null,
     discountKrw: Math.max(0, input.discountKrw ?? 0),
+    rewardUsed: input.rewardUsed ?? null,
     status: 'created',
     inputHash: input.inputHash,
     paymentId: null,

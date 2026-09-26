@@ -438,6 +438,15 @@ export function renderCheckoutPage(
     }
   }catch(e){}
 
+  try{
+    var qParams = new URLSearchParams(location.search);
+    var qEmail = qParams.get('email') || (function(){ try { return sessionStorage.getItem('nb_email'); } catch(e){ return null; } })();
+    if(qEmail){
+      var emEl = document.getElementById('email');
+      if(emEl && !emEl.value) emEl.value = qEmail;
+    }
+  }catch(e){}
+
   /*
    * 한 상에 앉는 사람을 넣고 빼는 자리.
    *
@@ -456,6 +465,25 @@ export function renderCheckoutPage(
   }
   function refreshPrice(){
     var p = priceNow();
+    var qp = new URLSearchParams(location.search);
+    var qRew = qp.get('invite_reward');
+    if((PRODUCT === 'daily-report' && qRew === '1') || (PRODUCT === 'month-report' && qRew === '5')){
+      pay.textContent = '0원 바로 받기 (이용권)';
+      var tag = document.querySelector('.co-price b');
+      if(tag) tag.textContent = '0원 (이용권)';
+      var noteEl = document.getElementById('coInviteNote');
+      if(!noteEl){
+        noteEl = document.createElement('p');
+        noteEl.id = 'coInviteNote';
+        noteEl.style.fontSize = '13px';
+        noteEl.style.margin = '4px 0 0';
+        var prSec = document.querySelector('.co-price');
+        if(prSec && prSec.parentNode) prSec.parentNode.insertBefore(noteEl, prSec.nextSibling);
+      }
+      noteEl.style.color = '#9fd8a8';
+      noteEl.textContent = '소개 보답 이용권 적용 (0원)';
+      return;
+    }
     var inv = (function(){ try { return sessionStorage.getItem('nb_invite'); } catch(e){ return null; } })();
     var discount = 0;
     var noteEl = document.getElementById('coInviteNote');
@@ -573,6 +601,18 @@ export function renderCheckoutPage(
       var created = await post('/api/orders',
         Object.assign({}, reading, { acknowledgedNotice:true, previewShown:true, ref: adRef, email: email, invite: userInvite }));
       orderId = created.order.id;
+
+      if(created.order.amountKrw === 0){
+        say('이용권이 적용되었습니다. 풀이를 짓고 있습니다. 잠시만 기다려 주십시오…');
+        var cf = await post('/api/orders/' + orderId + '/confirm', { paymentId: orderId });
+        say('풀이를 짓고 있습니다. 잠시만 기다려 주십시오…');
+        var r = await fetch('/api/orders/' + orderId + '/report');
+        var report = await r.json();
+        if(!r.ok) throw new Error(report.error || '리포트를 불러오지 못했습니다.');
+        showReport(orderId, report.text, (cf && cf.inviteCode) || (report.order && report.order.inviteCode));
+        pay.style.display = 'none';
+        return;
+      }
 
       await post('/api/orders/' + orderId + '/pending').catch(function(){});
 

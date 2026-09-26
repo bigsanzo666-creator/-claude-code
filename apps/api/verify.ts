@@ -11,13 +11,14 @@ import {
   CATALOG, FakeGateway, markPaid, markPending, createOrder,
   PACKAGES, bundleMath, orderable, upsellFor,
 } from '../../packages/commerce/src/index.ts';
-import { loadBusinessInfo, SPIRITS, CONTENTS_FOR } from '../../packages/site-policy/src/index.ts';
+import { loadBusinessInfo, SPIRITS, CONTENTS_FOR, renderCheckoutPage } from '../../packages/site-policy/src/index.ts';
 import { findSpiritVideos } from './src/images.ts';
 import { createApi, MemoryOrderStore } from './src/server.ts';
 import { buildPayload } from './src/payload.ts';
 import { buildPreview } from './src/preview.ts';
 import { cacheKey } from '../../packages/report/src/cache.ts';
 import { StandbyGateway, standbyGenerate } from './src/standby.ts';
+import { MemoryReferralStore } from '../../packages/store/src/index.ts';
 
 let passed = 0, failed = 0;
 const failures: string[] = [];
@@ -29,6 +30,7 @@ function section(t: string) { console.log(`\n${t}\n${'─'.repeat(60)}`); }
 
 const gateway = new FakeGateway();
 const orders = new MemoryOrderStore();
+const referrals = new MemoryReferralStore();
 let generateCalls = 0;
 /** 생성기가 실제로 무엇을 받았는지. 화면의 약속이 리포트까지 가는지 본다 */
 const generateArgs: { kind: string; subject: string; question?: string }[] = [];
@@ -46,6 +48,7 @@ const handler = createApi({
   gateway,
   orders,
   business,
+  referrals,
   generate: async ({ kind, subject, question }) => {
     generateCalls++;
     generateArgs.push({ kind, subject, question });
@@ -1403,6 +1406,143 @@ section('J. 월운세 · 행운의 번호 · 친구 추천');
   });
   check('월운세 미리보기에 어느 달인지 안내된다',
     monthPreviewCheck.body.preview.contents.some((c: string) => c.includes('운세입니다')));
+}
+
+// ── J2. 소개 보답 「바로 쓰기」 무료 이용권 검증 ─────────────────────────
+section('J2. 소개 보답 「바로 쓰기」 무료 이용권 검증');
+{
+  const { generateInviteCode } = await import('../../packages/commerce/src/index.ts');
+  const birthSample = { date: '1990-01-01', time: '12:00', place: '서울', gender: '남' };
+
+  // 1. 1명 보답을 쓰면 오늘의 운세가 0원이 된다
+  const user1 = 'reward_tester_1@example.com';
+  const code1 = generateInviteCode(user1);
+  await api('POST', '/api/invite/status', { email: user1 });
+  await referrals.recordInviteUse({
+    id: 'use_t1',
+    code: code1,
+    invitedEmail: 'friend_t1@example.com',
+    orderId: 'ord_t1',
+    amountKrw: 24900,
+  });
+  const claim1 = await api('POST', '/api/invite/reward/claim', { email: user1, tier: 1 });
+  check('1명 보답 claim 성공', claim1.status === 200 && claim1.body.ok === true && claim1.body.reward.status === '내줌');
+
+  const orderDaily = await api('POST', '/api/orders', {
+    productId: 'daily-report',
+    email: user1,
+    acknowledgedNotice: true,
+    previewShown: true,
+    birth: birthSample,
+  });
+  check('1명 보답을 쓰면 오늘의 운세가 0원이 된다',
+    orderDaily.status === 201 && orderDaily.body.order.amountKrw === 0 && orderDaily.body.order.rewardUsed === '이용권으로 받음');
+
+  // 2. 30일이 지난 이용권으로는 0원이 안 된다
+  const userExp = 'reward_tester_expired@example.com';
+  const past31Days = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
+  await referrals.applyReward(userExp, 1, '오늘의 운세 30일', '내줌', past31Days, null);
+
+  const orderExpired = await api('POST', '/api/orders', {
+    productId: 'daily-report',
+    email: userExp,
+    acknowledgedNotice: true,
+    previewShown: true,
+    birth: birthSample,
+  });
+  check('30일이 지난 이용권으로는 0원이 안 된다',
+    orderExpired.status === 201 && orderExpired.body.order.amountKrw === 1900);
+
+  // 3. 5명 보답으로 월운세를 받으면 0원이 되고, 같은 달 두 번째는 막힌다
+  const user5 = 'reward_tester_5@example.com';
+  const code5 = generateInviteCode(user5);
+  await api('POST', '/api/invite/status', { email: user5 });
+  for (let i = 1; i <= 5; i++) {
+    await referrals.recordInviteUse({
+      id: `use_t5_${i}`,
+      code: code5,
+      invitedEmail: `friend_t5_${i}@example.com`,
+      orderId: `ord_t5_${i}`,
+      amountKrw: 24900,
+    });
+  }
+  const claim5 = await api('POST', '/api/invite/reward/claim', { email: user5, tier: 5 });
+  check('5명 보답 claim 성공', claim5.status === 200 && claim5.body.ok === true && claim5.body.reward.status === '내줌');
+
+  const orderMonth1 = await api('POST', '/api/orders', {
+    productId: 'month-report',
+    email: user5,
+    acknowledgedNotice: true,
+    previewShown: true,
+    birth: birthSample,
+  });
+  check('5명 보답으로 월운세를 받으면 0원이 되고',
+    orderMonth1.status === 201 && orderMonth1.body.order.amountKrw === 0 && orderMonth1.body.order.rewardUsed === '이용권으로 받음');
+
+  // 같은 달 두 번째 시도
+  const orderMonth2 = await api('POST', '/api/orders', {
+    productId: 'month-report',
+    email: user5,
+    acknowledgedNotice: true,
+    previewShown: true,
+    birth: birthSample,
+  });
+  check('같은 달 두 번째는 막힌다',
+    orderMonth2.status === 400 && String(orderMonth2.body.error).includes('이번 달 것은 이미 받으셨네'));
+
+  // 4. 여섯 번을 다 쓰면 더 안 된다
+  const userExhausted = 'reward_tester_exhausted@example.com';
+  const rewEx = await referrals.applyReward(userExhausted, 5, '월운세 6달', '내줌', new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(), 6);
+  // 지난달 사용 기록으로 6번 소진
+  for (let i = 0; i < 6; i++) {
+    await referrals.recordRewardUse(rewEx.id, new Date(Date.now() - 40 * 24 * 60 * 60 * 1000));
+  }
+  const orderExhausted = await api('POST', '/api/orders', {
+    productId: 'month-report',
+    email: userExhausted,
+    acknowledgedNotice: true,
+    previewShown: true,
+    birth: birthSample,
+  });
+  check('여섯 번을 다 쓰면 더 안 된다',
+    orderExhausted.status === 201 && orderExhausted.body.order.amountKrw === 9900);
+
+  // 5. 이용권이 없는 사람은 0원이 안 된다
+  const userNoRew = 'user_no_rew@example.com';
+  const orderNoRew = await api('POST', '/api/orders', {
+    productId: 'daily-report',
+    email: userNoRew,
+    acknowledgedNotice: true,
+    previewShown: true,
+    birth: birthSample,
+  });
+  check('이용권이 없는 사람은 0원이 안 된다',
+    orderNoRew.status === 201 && orderNoRew.body.order.amountKrw === 1900);
+
+  // 6. 남의 이메일로는 남의 이용권을 못 쓴다
+  const userOther = 'other_stranger@example.com';
+  const orderOther = await api('POST', '/api/orders', {
+    productId: 'daily-report',
+    email: userOther,
+    acknowledgedNotice: true,
+    previewShown: true,
+    birth: birthSample,
+  });
+  check('남의 이메일로는 남의 이용권을 못 쓴다',
+    orderOther.status === 201 && orderOther.body.order.amountKrw === 1900);
+
+  // 7. 0원 주문은 결제창을 띄우지 않는다
+  // (1) 0원 주문 confirm 은 gateway 를 타지 않고 바로 200 성공 및 리포트가 생성된다
+  const confirmRes = await api('POST', `/api/orders/${orderDaily.body.order.id}/confirm`, {
+    paymentId: orderDaily.body.order.id,
+  });
+  const reportRes = await api('GET', `/api/orders/${orderDaily.body.order.id}/report`);
+  // (2) checkout 소스에 0원 주문 분기 확인
+  const checkoutHtml = renderCheckoutPage(business, '', CATALOG['daily-report'], { storeId: 'test_store', channelKey: 'test_channel' });
+  const skipsPortOneForZero = checkoutHtml.includes('created.order.amountKrw === 0') &&
+    checkoutHtml.includes("post('/api/orders/' + orderId + '/confirm'");
+  check('0원 주문은 결제창을 띄우지 않는다',
+    confirmRes.status === 200 && reportRes.status === 200 && skipsPortOneForZero);
 }
 
 // ── K. 모든 화면의 스크립트 문법 검사 ─────────────────────────────────

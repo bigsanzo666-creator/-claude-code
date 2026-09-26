@@ -740,6 +740,31 @@ ${footer}
   const resultDiv = document.getElementById('dpResult');
   const submitBtn = document.getElementById('dpSubmit');
 
+  function updateCheckoutLinks(){
+    try {
+      var sp = new URLSearchParams(location.search);
+      var qEmail = sp.get('email');
+      var qReward = sp.get('invite_reward');
+      if (qEmail || qReward) {
+        document.querySelectorAll('#dpBuyBtn, .pd-sticky-go').forEach(function(a){
+          var href = a.getAttribute('href');
+          if (href && href.indexOf('/checkout') !== -1) {
+            var sep = href.indexOf('?') === -1 ? '?' : '&';
+            if (qEmail && href.indexOf('email=') === -1) href += sep + 'email=' + encodeURIComponent(qEmail), sep = '&';
+            if (qReward && href.indexOf('invite_reward=') === -1) href += sep + 'invite_reward=' + encodeURIComponent(qReward);
+            a.setAttribute('href', href);
+          }
+        });
+        if (qReward === '1') {
+          document.querySelectorAll('.dp-price-amount').forEach(function(el){ el.textContent = '0원 (이용권)'; });
+          var buyBtn = document.getElementById('dpBuyBtn');
+          if (buyBtn) buyBtn.textContent = '▶ 무료로 오늘 전부 보기 (이용권)';
+        }
+      }
+    } catch(e){}
+  }
+  updateCheckoutLinks();
+
   // 저장된 세션 읽기
   try {
     const saved = JSON.parse(sessionStorage.getItem('nb_reading') || '{}');
@@ -974,6 +999,7 @@ ${footer}
         '7일 안에 열람하지 않으셨으면 전액 돌려드립니다.' +
       '</p>' +
     '</section>';
+    updateCheckoutLinks();
   }
 })();
 </script>
