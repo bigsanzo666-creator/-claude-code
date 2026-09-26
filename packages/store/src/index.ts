@@ -32,3 +32,5 @@ export async function migrate(pool: pg.Pool): Promise<void> {
   await pool.query(SCHEMA_SQL);
   await pool.query(CONTACTS_SQL);
 }
+
+export * from './referral.ts';

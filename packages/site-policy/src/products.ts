@@ -1,4 +1,5 @@
 import { renderDailyReportProductPage } from './daily-product-page.ts';
+import { renderMonthReportProductPage } from './month-product-page.ts';
 /**
  * 상품·가격 안내.
  *
@@ -246,6 +247,11 @@ const FIT: Record<string, Fit> = {
     yes: ['취업이 길어져 지칠 때', '직무를 바꿔야 하나 싶을 때', '언제쯤 자리가 잡힐지 궁금할 때'],
     no: '합격을 보장하지 않습니다. **자리가 열리는 해**를 다섯 해 안에서 봅니다.',
   },
+  'month-report': {
+    yes: ['이번 달 중요한 결정을 앞두고 있을 때', '한 달 동안의 길흉 흐름을 미리 알고 싶을 때', '좋은 날과 피해야 할 날을 챙기고 싶을 때'],
+    no: '한 달치입니다. 십 년 대운과 평생의 큰 흐름은 **사주 종합 리포트**에서 봅니다.',
+  },
+
   'daily-report': {
     yes: ['오늘 중요한 일이 있을 때', '가볍게 매일 보고 싶을 때', '사주가 처음이라 한번 맛보고 싶을 때'],
     no: '하루치입니다. 타고난 그릇과 십 년 흐름은 **사주 종합 리포트**에서 봅니다.',
@@ -372,6 +378,14 @@ const CONTENTS: Record<string, string[]> = {
   ],
 
   // ── 하루 ────────────────────────────────────────────────
+  'month-report': [
+    '이번 달의 간지와 절기가 **내 사주**와 맺는 관계',
+    '이번 달 나에게 유리한 기운인지 조심할 기운인지',
+    '돈·일·사람 세 영역의 **구체적인 월별 흐름**',
+    '이번 달 남은 날 중 **좋은 날 셋과 조심할 날 셋**의 날짜',
+    '이번 달에 하면 좋은 **단 하나의 실천 처방**',
+  ],
+
   'daily-report': [
     '오늘의 간지와 오행이 **내 일간**과 맺는 관계',
     '오늘 나에게 유리한 기운인지 조심할 기운인지',
@@ -1490,6 +1504,9 @@ export function renderProductPage(
 ): string {
   if (product.id === 'daily-report') {
     return renderDailyReportProductPage(product, info, ready, footer, images, faces, sample, initialQuery);
+  }
+  if (product.id === 'month-report') {
+    return renderMonthReportProductPage(product, info, ready, footer, images, faces, sample, initialQuery);
   }
   const site = show(info, 'serviceName', '서비스 이름');
   const spirit = spiritOf(product.category);

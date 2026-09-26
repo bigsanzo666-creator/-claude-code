@@ -24,6 +24,7 @@ import { type BusinessInfo, show } from './business.ts';
 import { PLACES } from '../../saju-rules/src/index.ts';
 import { renderSocialHead } from './social.ts';
 import { FONT_LINK, PRODUCTS_CSS } from './products.ts';
+import { renderInviteBadge, REFERRAL_BADGE_CSS } from './referral-badge.ts';
 import type { Product } from '../../commerce/src/catalog.ts';
 import { WITHDRAWAL_WINDOW_DAYS, DELIVERY_DUE_DAYS } from '../../commerce/src/refund.ts';
 import {
@@ -290,6 +291,15 @@ export function renderCheckoutPage(
 
   agree.addEventListener('change', function(){ pay.disabled = !agree.checked; });
 
+  
+  /* invite tracking */
+  try{
+    var mi = location.search.match(/[?&]invite=([a-zA-Z0-9]+)/);
+    if(mi && mi[1]){
+      sessionStorage.setItem('nb_invite', mi[1].toLowerCase().slice(0, 12));
+    }
+  }catch(e){}
+
   /* ref tracking */
   try{
     var m = location.search.match(/[?&]ref=([a-zA-Z0-9_-]+)/);
@@ -298,9 +308,21 @@ export function renderCheckoutPage(
     }
   }catch(e){}
 
-  function showReport(oid, reportText){
+  function showReport(oid, reportText, inviteCode){
     say('결제가 끝났습니다. 주문번호 ' + oid, true);
     var link = location.origin + '/order/' + oid;
+    var inviteHtml = inviteCode ? (
+      '<div class="nb-invite-box">' +
+        '<div class="nb-invite-head">벗에게 알려주게</div>' +
+        '<div class="nb-invite-code">그대의 증표 — <b>' + inviteCode + '</b></div>' +
+        '<p class="nb-invite-desc">이 증표로 들어온 벗은 3,000원을 덜 낸다네.<br>벗이 첫 점사를 받으면, 그대에게도 보답이 있을 것이야.</p>' +
+        '<div class="nb-invite-actions">' +
+          '<button type="button" class="nb-invite-btn" id="nbCopyInviteBtn" data-code="' + inviteCode + '">증표 복사하기</button>' +
+          '<button type="button" class="nb-invite-btn kakao" id="nbKakaoInviteBtn" data-code="' + inviteCode + '">카톡으로 보내기</button>' +
+        '</div>' +
+        '<p class="nb-invite-toast" id="nbInviteToast" style="display:none">증표 주소가 복사되었습니다.</p>' +
+      '</div>'
+    ) : '';
     var html = '<div class="co-saved-link">' +
       '<p class="co-saved-title">이 주소를 저장해 두시면 언제든 다시 보실 수 있습니다</p>' +
       '<div class="co-copy-box">' +
@@ -309,8 +331,32 @@ export function renderCheckoutPage(
       '</div>' +
       '<p class="co-copy-done" id="coCopyDone" style="display:none">주소가 복사되었습니다.</p>' +
     '</div>' +
-    '<div class="co-done">' + (reportText || '') + '</div>';
+    '<div class="co-done">' + (reportText || '') + '</div>' + inviteHtml;
     done.innerHTML = html;
+
+    var invCopyBtn = document.getElementById('nbCopyInviteBtn');
+    var invKakaoBtn = document.getElementById('nbKakaoInviteBtn');
+    if(invCopyBtn && inviteCode){
+      var invLink = location.origin + '/?invite=' + encodeURIComponent(inviteCode);
+      invCopyBtn.onclick = function(){
+        try{
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            navigator.clipboard.writeText(invLink);
+          }else{
+            var t = document.createElement('textarea'); t.value = invLink; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t);
+          }
+          var tst = document.getElementById('nbInviteToast');
+          if(tst){ tst.textContent = '증표 주소가 복사되었습니다: ' + invLink; tst.style.display = 'block'; }
+        }catch(e){ prompt('증표 링크를 복사하십시오:', invLink); }
+      };
+      if(invKakaoBtn){
+        invKakaoBtn.onclick = function(){
+          var text = '늘봄사주에서 그대의 운을 보게. 벗의 증표(' + inviteCode + ')로 들어오면 3,000원을 덜 낸다네.\n' + invLink;
+          if(navigator.share){ navigator.share({ title: '늘봄사주 벗의 증표', text: text, url: invLink }).catch(function(){}); }
+          else { invCopyBtn.click(); }
+        };
+      }
+    }
     var copyBtn = document.getElementById('coCopyBtn');
     var copyInp = document.getElementById('coSavedInput');
     var copyMsg = document.getElementById('coCopyDone');
@@ -352,7 +398,7 @@ export function renderCheckoutPage(
               var r = await fetch('/api/orders/' + encodeURIComponent(resumeId) + '/report');
               var report = await r.json();
               if(!r.ok) throw new Error(report.error || '리포트를 불러오지 못했습니다.');
-              showReport(resumeId, report.text);
+              showReport(resumeId, report.text, report.inviteCode || (report.order && report.order.inviteCode));
             }catch(err){
               console.log('[결제 확인 실패]', err);
               say('결제 확인에 실패했습니다. 주문번호 ' + resumeId + ' 로 문의해 주십시오. 결제는 완료되었을 수 있습니다.');
@@ -403,13 +449,36 @@ export function renderCheckoutPage(
     return BASE_KRW + Math.max(0, people - FREE_UPTO) * EXTRA_KRW;
   }
   function refreshPrice(){
-    if(!NEEDS_FAMILY) return;
     var p = priceNow();
-    pay.textContent = won(p) + '원 결제하기';
+    var inv = (function(){ try { return sessionStorage.getItem('nb_invite'); } catch(e){ return null; } })();
+    var discount = 0;
+    var noteEl = document.getElementById('coInviteNote');
+    if(inv){
+      if(!noteEl){
+        noteEl = document.createElement('p');
+        noteEl.id = 'coInviteNote';
+        noteEl.style.fontSize = '13px';
+        noteEl.style.margin = '4px 0 0';
+        var prSec = document.querySelector('.co-price');
+        if(prSec && prSec.parentNode) prSec.parentNode.insertBefore(noteEl, prSec.nextSibling);
+      }
+      if(p >= 20000){
+        discount = 3000;
+        noteEl.style.color = '#9fd8a8';
+        noteEl.textContent = '깎는 이유: 벗의 증표 (-3,000원)';
+      }else{
+        discount = 0;
+        noteEl.style.color = '#f0c080';
+        noteEl.textContent = '2만원 이상 점사에 쓸 수 있는 증표입니다';
+      }
+    }
+    var finalP = Math.max(0, p - discount);
+    pay.textContent = won(finalP) + '원 결제하기';
     var tag = document.querySelector('.co-price b');
-    if(tag) tag.textContent = won(p) + '원';
-    if(addKin) addKin.disabled = (1 + kinCount()) >= MAX_MEMBERS;
+    if(tag) tag.textContent = won(finalP) + '원';
+    if(addKin && NEEDS_FAMILY) addKin.disabled = (1 + kinCount()) >= MAX_MEMBERS;
   }
+  refreshPrice();
   function hourSelect(){
     return '<select class="kin-time">' + HOUR_OPTIONS.map(function(h){
       return '<option value="'+h[0]+'">'+h[1]+'</option>';
@@ -494,8 +563,9 @@ export function renderCheckoutPage(
       var adRef = (function(){
         try { return sessionStorage.getItem('nb_ref') || undefined; } catch(e){ return undefined; }
       })();
+      var userInvite = (function(){ try { return sessionStorage.getItem('nb_invite') || undefined; } catch(e){ return undefined; } })();
       var created = await post('/api/orders',
-        Object.assign({}, reading, { acknowledgedNotice:true, previewShown:true, ref: adRef }));
+        Object.assign({}, reading, { acknowledgedNotice:true, previewShown:true, ref: adRef, email: email, invite: userInvite }));
       orderId = created.order.id;
 
       await post('/api/orders/' + orderId + '/pending').catch(function(){});
@@ -533,14 +603,14 @@ export function renderCheckoutPage(
       }
 
       say('결제를 확인하고 있습니다…');
-      await post('/api/orders/' + orderId + '/confirm', { paymentId: (res && res.paymentId) || orderId });
+      var cf = await post('/api/orders/' + orderId + '/confirm', { paymentId: (res && res.paymentId) || orderId });
 
       say('풀이를 짓고 있습니다. 잠시만 기다려 주십시오…');
       var r = await fetch('/api/orders/' + orderId + '/report');
       var report = await r.json();
       if(!r.ok) throw new Error(report.error || '리포트를 불러오지 못했습니다.');
 
-      showReport(orderId, report.text);
+      showReport(orderId, report.text, (cf && cf.inviteCode) || (report.order && report.order.inviteCode));
       pay.style.display = 'none';
     }catch(err){
       console.log('[결제 실패]', err);
@@ -574,6 +644,7 @@ ${FONT_LINK}
 body{margin:0;background:#0b0912;color:#efeaf4}
 ${PRODUCTS_CSS}
 ${CHECKOUT_CSS}
+${REFERRAL_BADGE_CSS}
 </style>
 </head>
 <body>

@@ -222,7 +222,7 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
     const { sampleFor } = await import('./src/preview.ts');
     const dupList: string[] = [];
     for (const p of Object.values(CAT)) {
-      if (p.id === 'daily-report') continue;
+      if (p.id === 'daily-report' || p.id === 'month-report') continue;
       const res = await page(`/products/${p.id}`);
       const sampleRaw = sampleFor(p.id);
       const firstSentence = sampleRaw.split(/\n\n+/)[0].slice(0, 30);
@@ -1230,6 +1230,150 @@ check('/order/<진짜 주문번호> 는 리포트를 보여준다',
   }
   check('어디에도 취소선 정가·할인율·거짓 급함·가짜 후기가 없다', !hasForbidden);
 
+// ── J. 월운세 · 행운의 번호 · 친구 추천 검증 ─────────────────────────
+section('J. 월운세 · 행운의 번호 · 친구 추천');
+
+{
+  const { readFileSync } = await import('node:fs');
+  const { join, dirname } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const { generateInviteCode } = await import('../../packages/commerce/src/index.ts');
+  const here = dirname(fileURLToPath(import.meta.url));
+
+  // 1. 월운세 값이 catalog.ts 한 곳에서만 온다
+  const catalogPath = join(here, '../../packages/commerce/src/catalog.ts');
+  const catalogSrc = readFileSync(catalogPath, 'utf8');
+  check('월운세 값이 catalog.ts 한 곳에서만 온다',
+    CATALOG['month-report']?.priceKrw === 9900 && catalogSrc.includes('priceKrw: 9900'));
+
+  // 2. 2만원 미만 주문에 invite 를 붙여도 값이 깎이지 않는다
+  const inviterEmail = 'inviter_spec@example.com';
+  const myCode = generateInviteCode(inviterEmail);
+  await api('POST', '/api/invite/status', { email: inviterEmail });
+  const cheapOrder = await api('POST', '/api/orders', {
+    productId: 'month-report',
+    email: 'newbie_cheap@example.com',
+    invite: myCode,
+    acknowledgedNotice: true,
+    previewShown: true,
+    birth: { date: '1990-01-01', time: '12:00', place: '서울', gender: '남' },
+  });
+  check('2만원 미만 주문에 invite 를 붙여도 값이 깎이지 않는다',
+    cheapOrder.status === 201 && cheapOrder.body.order.amountKrw === 9900);
+
+  // 3. 2만원 이상 주문에 invite 를 붙이면 값이 3,000원 깎인다
+  const expOrder = await api('POST', '/api/orders', {
+    productId: 'newyear-report',
+    email: 'newbie_exp@example.com',
+    invite: myCode,
+    acknowledgedNotice: true,
+    previewShown: true,
+    birth: { date: '1990-01-01', time: '12:00', place: '서울', gender: '남' },
+  });
+  const normalPrice = CATALOG['newyear-report'].priceKrw;
+  check('2만원 이상 주문에 invite 붙이면 3,000원 깎인다',
+    expOrder.status === 201 && expOrder.body.order.amountKrw === normalPrice - 3000);
+
+  // Pending & confirm payment for newbie_exp
+  await api('POST', `/api/orders/${expOrder.body.order.id}/pending`);
+  gateway.put({
+    paymentId: expOrder.body.order.id,
+    status: 'paid',
+    amountKrw: expOrder.body.order.amountKrw,
+    merchantOrderId: expOrder.body.order.id,
+    method: 'card',
+    paidAt: new Date().toISOString(),
+    raw: {},
+  });
+  await api('POST', `/api/orders/${expOrder.body.order.id}/confirm`, { paymentId: expOrder.body.order.id });
+
+  // 4. 같은 이메일이 할인권을 두 번 쓸 수 없다
+  const expOrderSecond = await api('POST', '/api/orders', {
+    productId: 'newyear-report',
+    email: 'newbie_exp@example.com',
+    invite: myCode,
+    acknowledgedNotice: true,
+    previewShown: true,
+    birth: { date: '1990-01-01', time: '12:00', place: '서울', gender: '남' },
+  });
+  check('같은 이메일이 할인권을 두 번 쓸 수 없다',
+    expOrderSecond.status === 201 && expOrderSecond.body.order.amountKrw === normalPrice);
+
+  // 5. 자기 코드로 자기가 할인받을 수 없다
+  const selfOrder = await api('POST', '/api/orders', {
+    productId: 'newyear-report',
+    email: inviterEmail,
+    invite: myCode,
+    acknowledgedNotice: true,
+    previewShown: true,
+    birth: { date: '1990-01-01', time: '12:00', place: '서울', gender: '남' },
+  });
+  check('자기 코드로 자기가 할인받을 수 없다',
+    selfOrder.status === 201 && selfOrder.body.order.amountKrw === normalPrice);
+
+  // 6. 환불하면 센 소개가 되돌아간다
+  const beforeRefund = await api('POST', '/api/invite/status', { email: inviterEmail });
+  const countBefore = beforeRefund.body.count;
+  await api('POST', `/api/orders/${expOrder.body.order.id}/refund`);
+  const afterRefund = await api('POST', '/api/invite/status', { email: inviterEmail });
+  const countAfter = afterRefund.body.count;
+  check('환불하면 센 소개가 되돌아간다',
+    countBefore === 1 && countAfter === 0);
+
+  // 7. 행운의 번호 여섯 개가 1~45 안이고 겹치지 않는다
+  const { calculate } = await import('../../packages/manseryeok/src/index.ts');
+  const { luckyNumbers, analyze } = await import('../../packages/saju-rules/src/index.ts');
+  const msUser = calculate({ date: '1992-05-20', time: '10:30', place: '서울', gender: '여' });
+  const ysUser = analyze(msUser).yongsin;
+  const numObj = luckyNumbers(msUser, ysUser, '2026-09-21');
+  const uniqueNums = new Set(numObj.numbers);
+  check('행운의 번호 여섯 개가 1~45 안이고 겹치지 않는다',
+    numObj.numbers.length === 6 &&
+    uniqueNums.size === 6 &&
+    numObj.numbers.every(n => Number.isInteger(n) && n >= 1 && n <= 45));
+
+  // 8. 같은 사람 같은 주 → 행운의 번호가 똑같다. 사람이 다르면 다르다
+  const numObjSame = luckyNumbers(msUser, ysUser, '2026-09-21');
+  const msOther = calculate({ date: '1988-11-11', time: '22:00', place: '대구', gender: '남' });
+  const ysOther = analyze(msOther).yongsin;
+  const numObjOther = luckyNumbers(msOther, ysOther, '2026-09-21');
+  check('같은 사람 같은 주 → 행운의 번호가 똑같다. 사람이 다르면 다르다',
+    JSON.stringify(numObj.numbers) === JSON.stringify(numObjSame.numbers) &&
+    JSON.stringify(numObj.numbers) !== JSON.stringify(numObjOther.numbers));
+
+  // 9. 화면 어디에도 「로또」·「복권」·「당첨」 이 없다
+  const { renderInvitePage, renderAdminInvitePage, renderProductPage } = await import('../../packages/site-policy/src/index.ts');
+  const invHtml = renderInvitePage(business, '');
+  const admHtml = renderAdminInvitePage(business, '', 'test_token', [], []);
+  const mHtml = renderProductPage(CATALOG['month-report'], business, true, '', new Set(), new Set());
+  const forbidden = ['로또', '복권', '당첨'];
+  const foundInScreen = forbidden.some(w =>
+    invHtml.includes(w) || admHtml.includes(w) || mHtml.includes(w) || numObj.근거.includes(w)
+  );
+  check('화면 어디에도 「로또」·「복권」·「당첨」 이 없다', !foundInScreen);
+
+  // 10. ADMIN_TOKEN 이 없으면 관리 화면이 404다
+  const savedToken = process.env.ADMIN_TOKEN;
+  delete process.env.ADMIN_TOKEN;
+  const resNoToken = await page('/admin/invite');
+  process.env.ADMIN_TOKEN = 'my_admin_secret_pass';
+  const resBadToken = await page('/admin/invite?token=wrong');
+  const resOkToken = await page('/admin/invite?token=my_admin_secret_pass');
+  process.env.ADMIN_TOKEN = savedToken;
+  check('ADMIN_TOKEN 이 없으면 관리 화면이 404다',
+    resNoToken.status === 404 && resBadToken.status === 404 && resOkToken.status === 200);
+
+  // 11. 월운세 상세페이지가 모델을 부르지 않는다
+  const callsBefore = generateCalls;
+  await page('/products/month-report');
+  await api('POST', '/api/preview', {
+    productId: 'month-report',
+    acknowledgedNotice: true,
+    birth: { date: '1990-08-15', time: '13:00', place: '서울', gender: '남' },
+  });
+  check('월운세 상세페이지가 모델을 부르지 않는다', generateCalls === callsBefore);
+}
+
 server.close();
 console.log(`\n${'═'.repeat(60)}`);
 // ─── 작명 ─────────────────────────────────────────────────────
@@ -1449,6 +1593,9 @@ console.log(`\n${'═'.repeat(60)}`);
     !badPlaceReport.valid && badPlaceReport.errors.some((e) => e.includes('부산')));
 
 }
+
+
+
 
 
 

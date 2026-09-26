@@ -13,7 +13,7 @@
 import { CATALOG, PortOneGateway } from '../../../packages/commerce/src/index.ts';
 import { generateReport, MemoryReportCache } from '../../../packages/report/src/index.ts';
 import { loadBusinessInfo, missingFields } from '../../../packages/site-policy/src/index.ts';
-import { createPool, migrate, PostgresOrderStore, PostgresReportStore } from '../../../packages/store/src/index.ts';
+import { createPool, migrate, PostgresOrderStore, PostgresReportStore, PostgresReferralStore, MemoryReferralStore, type ReferralStore } from '../../../packages/store/src/index.ts';
 import {
   findProductImages, strayImages, ALL_PRODUCT_IDS,
   findSpiritImages, straySpiritImages, ALL_SPIRIT_IDS,
@@ -62,6 +62,7 @@ const payable = Boolean(apiSecret && storeId && channelKey);
 const databaseUrl = process.env.DATABASE_URL;
 let orders: OrderStore = new MemoryOrderStore();
 let reportStore: ReportBox | null = null;
+let referrals: ReferralStore = new MemoryReferralStore();
 let storeKind = '메모리 (재시작하면 주문이 사라집니다)';
 
 if (databaseUrl) {
@@ -75,6 +76,7 @@ if (databaseUrl) {
     ]);
     orders = new PostgresOrderStore(pool);
     reportStore = new PostgresReportStore(pool);
+    referrals = new PostgresReferralStore(pool);
     storeKind = 'Postgres';
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
@@ -155,6 +157,7 @@ startApi({
   walkVideo,
   orders,
   reportStore,
+  referrals,
   // 열쇠가 없으면 신령은 대본으로 말한다. 상담 칸이 비지는 않는다
   talkModel: hasModelKey,
   generate: hasModelKey

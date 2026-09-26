@@ -299,6 +299,31 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
     if (처방) {
       contents.push(`행운의 색 ${(처방.행운의_색상 ?? []).join('·')} · 방향 ${(처방.행운의_방향 ?? []).join('·')} · 숫자 ${(처방.행운의_숫자 ?? []).join('·')}`);
     }
+  } else if (productId === 'month-report' || d?.이번달) {
+    /*
+     * 한 달 운세.
+     *
+     * 이번 달 절기와 간지, 유불리, 돈·일·사람 주제 요약,
+     * 좋은 날 셋과 조심할 날 셋을 결제 전 미리보기 목록으로 보여준다.
+     */
+    if (d.이번달) {
+      contents.push(`이번 달 절기: ${d.이번달.절기} (${d.이번달.시작일}부터) · 간지 ${d.이번달.간지}`);
+      contents.push(`이번 달 기운: 천간 ${d.이번달.천간십신} · 지지 ${d.이번달.지지십신} — 내 명식과 ${d.이번달.유불리}`);
+      for (const x of (d.이번달.부딪힘 ?? []).slice(0, 2)) contents.push(`사주와의 흐름: ${x}`);
+    }
+    if (d.돈) contents.push(`돈: ${d.돈.주제} — ${d.돈.요약}`);
+    if (d.일) contents.push(`일: ${d.일.주제} — ${d.일.요약}`);
+    if (d.사람) contents.push(`사람: ${d.사람.주제} — ${d.사람.요약}`);
+    if (d.날) {
+      const g = (d.날.좋은날셋 ?? []).map((x: any) => `${x.날짜}(${x.간지})`).join('·');
+      const b = (d.날.조심할날셋 ?? []).map((x: any) => `${x.날짜}(${x.간지})`).join('·');
+      if (g) contents.push(`이번 달 좋은 날: ${g}`);
+      if (b) contents.push(`이번 달 조심할 날: ${b}`);
+    }
+    if (d.이번달_추천처방) {
+      const tips = d.이번달_추천처방;
+      contents.push(`행운의 색상 ${(tips.행운의_색상 ?? []).join('·')} · 방향 ${(tips.행운의_방향 ?? []).join('·')}`);
+    }
   } else if (d?.교차검증) {
     /*
      * 갈래를 대조하는 상품 전부.

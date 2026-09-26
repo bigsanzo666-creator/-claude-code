@@ -46,6 +46,34 @@ CREATE TABLE IF NOT EXISTS reports (
 );
 
 CREATE INDEX IF NOT EXISTS reports_input_hash_idx ON reports (input_hash);
+CREATE TABLE IF NOT EXISTS invites (
+  code         TEXT PRIMARY KEY,
+  owner_email  TEXT NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS invite_uses (
+  id            TEXT PRIMARY KEY,
+  code          TEXT NOT NULL,
+  invited_email TEXT NOT NULL,
+  order_id      TEXT,
+  counted       BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at    TIMESTAMPTZ NOT NULL,
+  CONSTRAINT invite_uses_code_email_key UNIQUE (code, invited_email)
+);
+
+CREATE TABLE IF NOT EXISTS rewards (
+  id          TEXT PRIMARY KEY,
+  owner_email TEXT NOT NULL,
+  tier        INTEGER NOT NULL,
+  kind        TEXT NOT NULL,
+  status      TEXT NOT NULL,
+  expires_at  TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ NOT NULL,
+  granted_at  TIMESTAMPTZ,
+  CONSTRAINT rewards_email_tier_key UNIQUE (owner_email, tier)
+);
+
 `;
 
 /** 연락처는 주문과 수명이 다르다 (동의 철회 전까지). 그래서 파일을 나눴다 */

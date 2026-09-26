@@ -135,6 +135,12 @@ export function scriptedReply(
   spiritId: string, facts: TalkFacts, ask: string, turn: number,
 ): ScriptedReply {
   const asks = ASKS[spiritId] ?? ASKS.mirror!;
+  if (/로또|복권/.test(ask)) {
+    return {
+      text: `${call(facts)}어디에 돈을 걸라는 말은 못 해. 다만 이번 주 네 기운에 맞는 숫자는 짚어줄 수 있네. 재미로 보게.`,
+      ask: asks[turn % asks.length]!,
+    };
+  }
   const intent = intentOf(ask);
   const heads = OPEN[intent];
   const head = call(facts) + heads[turn % heads.length]!;

@@ -233,7 +233,8 @@ export const PITCH: Record<string, string> = {
   'job-report': '네 자리가 어느 문 뒤에 있는지, 그 문이 언제 열리는지 봐 줄게.',
 
   // 풍신령 — 시기
-  'daily-report': '오늘 바람이 어느 쪽에서 부는지, 아침에 알려 줄게.',
+  'month-report': '이번 달 바람이 어디로 불어오는지, 길흉을 짚어 줄게.',
+    'daily-report': '오늘 바람이 어느 쪽에서 부는지, 아침에 알려 줄게.',
   'newyear-report': '올해 바람은 열두 달이 다 달라. 달마다 나눠서 말해 줄게.',
   'travel-report': '떠날 때가 있고 머물 때가 있다. 지금 종이 울리는지 들어 볼게.',
 };

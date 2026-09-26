@@ -53,7 +53,7 @@ export type ProductId =
    */
   | 'exam-report' | 'admission-report' | 'job-report'
   // 시기
-  | 'daily-report' | 'newyear-report' | 'travel-report'
+  | 'daily-report' | 'month-report' | 'newyear-report' | 'travel-report'
   /*
    * 명절 한 철 상품.
    *
@@ -463,6 +463,15 @@ export const CATALOG: Record<ProductId, Product> = {
     '인성(印星)으로 본 배움과 문서운 — 합격·계약·부동산까지 함께 봅니다.'),
 
   // ── 시기 ────────────────────────────────────────────────
+  'month-report': {
+    id: 'month-report',
+    name: '한 달 운세',
+    priceKrw: 9900,
+    description: '이번 달의 월운이 내 명식과 만나는 자리를 한 달치로 읽어 드립니다.',
+    previewRatio: 0.25,
+    category: '시기',
+    hook: '이번 달, 어디에 힘을 쓰면 되는가?',
+  },
   'daily-report': {
     id: 'daily-report',
     name: '오늘의 운세',

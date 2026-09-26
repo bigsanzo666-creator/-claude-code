@@ -31,7 +31,7 @@ const RULES: { kind: Exclude<Block, null>; words: RegExp; say: string }[] = [
   },
   {
     kind: 'invest',
-    words: /주식|코인|비트|부동산\s*살|투자|로또|복권|매수|매도/,
+    words: /주식|코인|비트|부동산\s*살|투자|매수|매도/,
     say: '어디에 돈을 넣으라는 말은 못 해. 그건 점이 아니라 남의 돈을 거는 일이야. '
       + '대신 네 돈그릇이 지금 어떤 모양인지는 봐 줄 수 있다.',
   },

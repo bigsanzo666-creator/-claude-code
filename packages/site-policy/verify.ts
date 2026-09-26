@@ -451,7 +451,7 @@ section('9. 신령 — 칸마다 주인이 있는가');
   {
     const sampleSentence = '일간이 己(흙)이고, 이 뿌리가 강한 편입니다.';
     let dupCount = 0;
-    const nonDaily = Object.values(CATALOG).filter((p) => p.id !== 'daily-report');
+    const nonDaily = Object.values(CATALOG).filter((p) => p.id !== 'daily-report' && p.id !== 'month-report');
     for (const p of nonDaily) {
       const pageHtml = renderProductPage(p, full, true, '', new Set(), new Set(), {
         text: sampleSentence,
@@ -464,7 +464,9 @@ section('9. 신령 — 칸마다 주인이 있는가');
       text: sampleSentence,
       notice: '다른 분의 명식입니다.',
     });
-    check('daily-report 상세페이지에는 「다른 분의 명식」이라는 말이 나오지 않는다',
+    const monthHtml = renderProductPage(CATALOG['month-report'], full, true, '', new Set(), new Set(), { text: sampleSentence, notice: '다른 분의 명식입니다.' });
+      check('month-report 상세페이지에는 「다른 분의 명식」이라는 말이 나오지 않는다', !monthHtml.includes('다른 분의 명식'));
+      check('daily-report 상세페이지에는 「다른 분의 명식」이라는 말이 나오지 않는다',
       !dailyHtml.includes('다른 분의 명식'));
     check('나머지 31개는 맛보기가 여전히 딱 한 번만 나온다', dupCount === 0,
       dupCount === 0 ? '31개 상품 모두 1번만 출력' : dupCount + '개 상품에서 중복 출력');

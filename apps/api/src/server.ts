@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { randomUUID, createHash } from 'node:crypto';
 import {
   CATALOG, getProduct, createOrder, markPending, markFulfilled, markViewed,
+  generateInviteCode, isValidInviteCode, INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW, COUNT_MIN_ORDER_KRW, REWARD_TIERS,
   hasEntitlement, assessRefund, refundNotice, confirmPayment, refundOrder, failOrder,
   orderable, isOrderable, upsellFor, packagesContaining, makePreview,
   HOLIDAY_MAX_MEMBERS, HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, extraMemberKrw,
@@ -35,7 +36,7 @@ import {
   handoffBetween, spiritOfCategory, type Handoff,
   type BusinessInfo,
   renderOrderNotFoundPage, renderOrderUnpaidPage,
-  renderOrderPendingReportPage, renderOrderReportPage,
+  renderOrderPendingReportPage, renderOrderReportPage, renderInvitePage, renderAdminInvitePage,
 } from '../../../packages/site-policy/src/index.ts';
 import {
   findProductImages, findHeroImage, findHeroVideo, findSpiritImages, findSceneImages,
@@ -47,8 +48,10 @@ import {
   type TalkTurn,
 } from '../../../packages/talk/src/index.ts';
 import { buildPayload, buildPayloads, KIND_OF, type ReadingRequest } from './payload.ts';
-import { pickDays, bestPerDay, mergeHours, buildDailyPreviewData, parseInputTime } from '../../../packages/saju-rules/src/index.ts';
+import { pickDays, bestPerDay, mergeHours, buildDailyPreviewData, buildMonthPreviewData, parseInputTime, luckyNumbers, analyze } from '../../../packages/saju-rules/src/index.ts';
+import { calculate } from '../../../packages/manseryeok/src/index.ts';
 import { buildPreview, sampleFor, sampleNoticeFor } from './preview.ts';
+import { type ReferralStore, MemoryReferralStore } from '../../../packages/store/src/index.ts';
 
 /** 주문 저장소. 배포 전에 Postgres 구현체로 갈아끼운다. */
 export interface OrderStore {
@@ -98,6 +101,8 @@ export interface ApiDeps {
   generate: ReportGenerator;
   /** 생성된 리포트 본문 보관. 없으면 메모리에 담는다 */
   reportStore?: ReportBox | null;
+  /** 친구 추천 저장소 */
+  referrals?: ReferralStore;
   /**
    * 신령이 모델로 말할 수 있는가.
    *
@@ -886,6 +891,7 @@ function serveStaticFile(req: IncomingMessage, res: ServerResponse, filePath: st
 
 export function createApi(deps: ApiDeps) {
   const reports: ReportBox = deps.reportStore ?? new MemoryReportBox();
+  const referrals: ReferralStore = deps.referrals ?? new MemoryReferralStore();
 
   const checkout = deps.checkout ?? null;
   const business = deps.business ?? loadBusinessInfo();
@@ -1213,7 +1219,9 @@ export function createApi(deps: ApiDeps) {
       }
       const viewed = order.status === 'viewed' ? order : markViewed(order);
       await save(order, viewed);
-      sendHtml(res, renderOrderReportPage(business, renderFooter(business), viewed, text));
+      const buyerEmail = ((order as any).email || (order as any).reading?.birth?.email || '').trim().toLowerCase();
+      const inviteCode = buyerEmail ? generateInviteCode(buyerEmail) : null;
+      sendHtml(res, renderOrderReportPage(business, renderFooter(business), viewed, text, inviteCode));
     },
 
     'GET /robots.txt': async (_req, res) => {
@@ -1260,6 +1268,19 @@ export function createApi(deps: ApiDeps) {
       const contents = item.isPackage
         ? each.flatMap((e) => e.preview.contents.map((c: string) => `${e.name} — ${c}`))
         : each[0].preview.contents;
+      let monthPreview = undefined;
+      if (item.id === 'month-report' && reading.birth) {
+        try {
+          monthPreview = buildMonthPreviewData({
+            date: reading.birth.date,
+            time: reading.birth.time,
+            place: reading.birth.place,
+            gender: reading.birth.gender,
+          });
+        } catch (e) {
+          // ignore error
+        }
+      }
       let dailyPreview = undefined;
       if (item.id === 'daily-report' && reading.birth) {
         try {
@@ -1279,6 +1300,7 @@ export function createApi(deps: ApiDeps) {
         notice: WITHDRAWAL_NOTICE,
         preview: { ...each[0].preview, contents },
         dailyPreview,
+        monthPreview,
         // 단품을 보고 있으면 이것을 품은 묶음을 함께 알려 준다
         upsell: item.isPackage ? null : upsellOffer(item.id),
         // 묶음 사다리. 결제 직전에 단품·묶음을 나란히 놓는다
@@ -1322,6 +1344,28 @@ export function createApi(deps: ApiDeps) {
           effort: 'medium',
         });
 
+      const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+      const inviteCode = typeof body.invite === 'string' ? body.invite.trim().toLowerCase() : null;
+
+      let discountKrw = 0;
+      let appliedInviteCode: string | null = null;
+      if (inviteCode && isValidInviteCode(inviteCode)) {
+        const myCode = email ? generateInviteCode(email) : '';
+        if (email && inviteCode === myCode) {
+          // 자기 코드로 자기가 할인받을 수 없다
+          discountKrw = 0;
+        } else if (email && (await referrals.hasUsedInvite(email))) {
+          // 같은 이메일은 할인권을 한 번만 쓴다
+          discountKrw = 0;
+        } else {
+          const baseAmount = orderable(reading.productId).priceKrw + extraMemberKrw(reading.productId, 1 + (reading.family?.length ?? 0));
+          if (baseAmount >= INVITE_MIN_ORDER_KRW) {
+            discountKrw = INVITE_DISCOUNT_KRW;
+            appliedInviteCode = inviteCode;
+          }
+        }
+      }
+
       const order = createOrder({
         id: `ord_${randomUUID()}`,
         productId: reading.productId,
@@ -1331,8 +1375,10 @@ export function createApi(deps: ApiDeps) {
         // 값은 **서버가 센 인원**으로만 정해진다. 화면이 보낸 금액은 쓰지 않는다
         memberCount: 1 + (reading.family?.length ?? 0),
         ref: body.ref,
+        inviteCode: appliedInviteCode,
+        discountKrw,
       });
-      await deps.orders.save({ ...order, ...({ reading } as any) });
+      await deps.orders.save({ ...order, ...({ reading, email } as any) });
       console.log(`[주문] ${order.productId} ${order.amountKrw}원${order.ref ? ` ref=${order.ref}` : ''}`);
       send(res, 201, {
         order,
@@ -1455,9 +1501,25 @@ export function createApi(deps: ApiDeps) {
       }
       await reports.set(id, stored.inputHash, chunks.join('\n\n---\n\n'));
 
+      const buyerEmail = ((stored as any).email || (reading?.birth?.email) || '').trim().toLowerCase();
+      let myInviteCode: string | null = null;
+      if (buyerEmail) {
+        myInviteCode = generateInviteCode(buyerEmail);
+        await referrals.createInvite(myInviteCode, buyerEmail);
+      }
+      if (stored.inviteCode && buyerEmail) {
+        await referrals.recordInviteUse({
+          id: `use_${randomUUID()}`,
+          code: stored.inviteCode,
+          invitedEmail: buyerEmail,
+          orderId: stored.id,
+          amountKrw: stored.amountKrw,
+        });
+      }
+
       const done = markFulfilled(paid);
       await save(stored, done);
-      send(res, 200, { order: strip(done), ready: true });
+      send(res, 200, { order: strip(done), ready: true, inviteCode: myInviteCode });
     },
 
     /**
@@ -1492,11 +1554,105 @@ export function createApi(deps: ApiDeps) {
       const outcome = await refundOrder(stored, deps.gateway);
       await save(stored, outcome.order);
       await reports.delete(id);
+      await referrals.rollbackInviteCount(stored.id);
       send(res, 200, {
         order: strip(outcome.order),
         refundedKrw: outcome.cancelledAmountKrw,
         message: refundNotice(outcome.verdict),
       });
+    },
+
+    'GET /invite': async (_req, res) => {
+      sendHtml(res, renderInvitePage(business, renderFooter(business)));
+    },
+
+    'POST /api/invite/status': async (req, res) => {
+      const body = await readJson(req);
+      const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+      if (!email) throw new HttpError(400, '이메일이 필요합니다.');
+      const code = generateInviteCode(email);
+      await referrals.createInvite(code, email);
+      const count = await referrals.getReferralCount(email);
+      const rewards = await referrals.getRewards(email);
+      send(res, 200, { code, count, rewards });
+    },
+
+    'POST /api/invite/reward/apply': async (req, res) => {
+      const body = await readJson(req);
+      const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+      const tier = typeof body.tier === 'number' ? body.tier : parseInt(String(body.tier), 10);
+      if (!email || !tier) throw new HttpError(400, '이메일과 보답 단계가 필요합니다.');
+
+      const count = await referrals.getReferralCount(email);
+      if (count < tier) {
+        throw new HttpError(400, `소개 실적(${count}명)이 보답 조건(${tier}명)에 미치지 못합니다.`);
+      }
+
+      const tierItem = REWARD_TIERS.find((t) => t.tier === tier);
+      if (!tierItem) throw new HttpError(400, '알 수 없는 보답 단계입니다.');
+
+      const rew = await referrals.applyReward(email, tier, tierItem.kind, '신청');
+      send(res, 200, { ok: true, reward: rew, message: '신청이 들어갔네. 하루 안에 확인해 드리겠네.' });
+    },
+
+    'POST /api/invite/lucky-numbers': async (req, res) => {
+      const body = await readJson(req);
+      const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+      if (!email) throw new HttpError(400, '이메일이 필요합니다.');
+      const count = await referrals.getReferralCount(email);
+      if (count < 3) {
+        throw new HttpError(403, '3명 이상 소개한 분만 보실 수 있습니다.');
+      }
+      const birth = body.birth || {};
+      const date = String(birth.date || '1990-01-01');
+      const time = String(birth.time || '12:00');
+      const place = String(birth.place || '서울');
+      const gender = (birth.gender === '여' ? '여' : '남') as '남' | '여';
+
+      const ms = calculate({ date, time, place, gender });
+      const ys = analyze(ms).yongsin;
+
+      const now = new Date();
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(now.setDate(diff));
+      const mondayISO = monday.toISOString().slice(0, 10);
+
+      const result = luckyNumbers(ms, ys, mondayISO);
+      send(res, 200, result);
+    },
+
+    'GET /admin/invite': async (req, res) => {
+      const adminToken = process.env.ADMIN_TOKEN;
+      const url = new URL(req.url ?? '/', 'http://localhost');
+      const reqToken = url.searchParams.get('token') || (req.headers['authorization']?.replace(/^Bearer\s+/, ''));
+      if (!adminToken || !reqToken || reqToken !== adminToken) {
+        throw new HttpError(404, '없는 경로입니다: GET /admin/invite');
+      }
+
+      const reqs = await referrals.listRewardRequests();
+      const requestViews = await Promise.all(reqs.map(async (r) => ({
+        id: r.id,
+        ownerEmail: r.ownerEmail,
+        referralCount: await referrals.getReferralCount(r.ownerEmail),
+        tier: r.tier,
+        kind: r.kind,
+        createdAt: r.createdAt,
+      })));
+      const top = await referrals.listTopReferrers();
+      sendHtml(res, renderAdminInvitePage(business, renderFooter(business), adminToken, requestViews, top));
+    },
+
+    'POST /api/admin/invite/reward/review': async (req, res) => {
+      const body = await readJson(req);
+      const adminToken = process.env.ADMIN_TOKEN;
+      if (!adminToken || body.token !== adminToken) {
+        throw new HttpError(404, '없는 경로입니다.');
+      }
+      const id = String(body.id || '');
+      const status = body.status === '내줌' ? '내줌' : '거절';
+      await referrals.reviewReward(id, status);
+      send(res, 200, { ok: true });
     },
   };
 
@@ -1507,12 +1663,13 @@ export function createApi(deps: ApiDeps) {
   }
   /** 내부 보관 필드(reading)를 유지하면서 저장한다 */
   async function save(previous: Order, next: Order): Promise<void> {
-    await deps.orders.save({ ...next, ...({ reading: (previous as any).reading } as any) });
+    await deps.orders.save({ ...next, ...({ reading: (previous as any).reading, email: (previous as any).email } as any) });
   }
   /** 응답에서 내부 필드를 뺀다 */
   function strip(order: Order): Order {
     const { ...rest } = order as any;
     delete rest.reading;
+    delete rest.email;
     return rest;
   }
 

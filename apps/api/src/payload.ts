@@ -183,6 +183,7 @@ const KIND_EXCEPTIONS: Partial<Record<ProductId, ReportKind>> = {
   'pick-report': '택일',
   // 오늘 하루의 흐름을 보는 것
   'daily-report': '오늘운세',
+  'month-report': '월운세',
   /*
    * 때를 묻는 상품들.
    *
@@ -416,6 +417,122 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
           },
         },
         오늘의_처방전: {
+          나를_돕는_기운: want,
+          행운의_색상: tips.colors,
+          행운의_방향: tips.directions,
+          행운의_숫자: tips.numbers,
+        },
+      },
+    };
+  }
+
+  /*
+   * 한 달 운세.
+   *
+   * 이번 달 기운(monthlyLuck)과 이번 달 남은 날들(dailyLuckRange)에서
+   * 좋은 날 셋과 조심할 날 셋을 뽑아 모델에게 넘긴다.
+   * 판단은 룰 엔진이, 문장은 모델이.
+   */
+  if (req.productId === 'month-report') {
+    const { ms, an } = sajuBundle(req.birth);
+    const today = seoulTodayISO();
+    const curYear = Number(today.slice(0, 4));
+
+    const allMonths = [curYear - 1, curYear, curYear + 1].flatMap((y) => monthlyLuck(ms, an.yongsin, y));
+    allMonths.sort((a, b) => a.from.localeCompare(b.from));
+    const thisMonthIndex = allMonths.findLastIndex((m) => m.from <= today);
+    const thisMonth = allMonths[thisMonthIndex >= 0 ? thisMonthIndex : 0];
+
+    const [yStr, mStr, dStr] = today.split('-');
+    const yNum = Number(yStr);
+    const mNum = Number(mStr);
+    const dNum = Number(dStr);
+    const lastDay = new Date(Date.UTC(yNum, mNum, 0)).getUTCDate();
+    const remainingDays = Math.max(lastDay - dNum + 1, 6);
+    const daysLuck = dailyLuckRange(ms, an.yongsin, today, remainingDays);
+
+    const scoredDays = daysLuck.map((d, idx) => {
+      let clashWeight = 0;
+      for (const inter of d.interactions) {
+        if (inter.includes('충')) {
+          if (inter.includes('일주') || inter.includes('가장 크게 본다')) clashWeight += 3;
+          else clashWeight += 1;
+        }
+      }
+      const favorScore = d.favor === '유리' ? 2 : d.favor === '불리' ? -2 : 0;
+      const finalScore = favorScore - clashWeight;
+      return {
+        idx,
+        day: {
+          날짜: d.date,
+          간지: `${d.pillar.stem}${d.pillar.branch}`,
+          천간십신: d.stemGod,
+          지지십신: d.branchGod,
+          유불리: d.favor,
+          부딪힘: d.interactions,
+        },
+        score: finalScore,
+      };
+    });
+
+    const sortedDesc = [...scoredDays].sort((a, b) => b.score - a.score || a.idx - b.idx);
+    const goodThree = sortedDesc.slice(0, 3).map((s) => s.day);
+    const goodIndices = new Set(sortedDesc.slice(0, 3).map((s) => s.idx));
+
+    const remainingForBad = scoredDays.filter((s) => !goodIndices.has(s.idx));
+    const sortedAsc = [...remainingForBad].sort((a, b) => a.score - b.score || a.idx - b.idx);
+    const badThree = sortedAsc.slice(0, 3).map((s) => s.day);
+
+    const me = an.dayMaster.element;
+    const want = an.yongsin.primary.map((g) => groupElement(me, g));
+    const tips = luckyPrescription(want);
+
+    const wealth = extractTopic(an, 'wealth');
+    const career = extractTopic(an, 'career');
+    const peers = extractTopic(an, 'peers');
+
+    return {
+      kind: '월운세',
+      subject,
+      data: {
+        계산근거: ms.meta,
+        오늘날짜: today,
+        손님의_바탕: {
+          일간: an.dayMaster,
+          오행분포: an.elements,
+          없는_십신: an.missingGroups,
+          신살: an.sinsal,
+          두드러진_특징: an.highlights,
+        },
+        이번달: {
+          절기: thisMonth.termName,
+          시작일: thisMonth.from,
+          간지: thisMonth.pillar,
+          천간십신: thisMonth.stemGod,
+          지지십신: thisMonth.branchGod,
+          유불리: thisMonth.favor,
+          부딪힘: thisMonth.interactions.length ? thisMonth.interactions : ['특이 충돌이나 강한 묶임 없이 평온하게 흘러가는 기운입니다.'],
+        },
+        돈: {
+          주제: wealth.title,
+          요약: wealth.summary,
+          특징: wealth.highlights,
+        },
+        일: {
+          주제: career.title,
+          요약: career.summary,
+          특징: career.highlights,
+        },
+        사람: {
+          주제: peers.title,
+          요약: peers.summary,
+          특징: peers.highlights,
+        },
+        날: {
+          좋은날셋: goodThree,
+          조심할날셋: badThree,
+        },
+        이번달_추천처방: {
           나를_돕는_기운: want,
           행운의_색상: tips.colors,
           행운의_방향: tips.directions,

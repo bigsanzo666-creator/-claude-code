@@ -1,5 +1,6 @@
 import { CATALOG, type Order } from '../../../packages/commerce/src/index.ts';
 import { type BusinessInfo } from './business.ts';
+import { renderInviteBadge, REFERRAL_BADGE_CSS, REFERRAL_BADGE_SCRIPT } from './referral-badge.ts';
 
 function esc(s: unknown): string {
   return String(s ?? '')
@@ -36,7 +37,8 @@ export function renderOrderNotFoundPage(business: BusinessInfo, footer: string):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>주문을 찾을 수 없습니다 — ${esc(site)}</title>
-<style>${ORDER_CSS}</style>
+<style>${ORDER_CSS}
+${REFERRAL_BADGE_CSS}</style>
 </head>
 <body>
 <main class="od-main">
@@ -105,6 +107,7 @@ export function renderOrderReportPage(
   footer: string,
   order: Order,
   reportText: string,
+  inviteCode?: string | null,
 ): string {
   const site = business.SITE_NAME || '늘봄사주';
   const siteUrl = (business.SITE_URL || 'https://neulbomsaju.co.kr').replace(/\/+$/, '');
@@ -137,6 +140,7 @@ export function renderOrderReportPage(
   </div>
 
   <article class="od-report-box">${esc(reportText)}</article>
+  ${inviteCode ? renderInviteBadge(inviteCode) : ''}
 </main>
 ${footer}
 <script>

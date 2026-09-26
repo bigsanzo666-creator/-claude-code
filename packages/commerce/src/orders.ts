@@ -104,7 +104,9 @@ export function createOrder(input: CreateOrderInput): Order {
   return {
     id: input.id,
     productId: product.id,
-    amountKrw: product.priceKrw + extraMemberKrw(product.id, input.memberCount ?? 1),
+    amountKrw: Math.max(0, product.priceKrw + extraMemberKrw(product.id, input.memberCount ?? 1) - Math.max(0, input.discountKrw ?? 0)),
+    inviteCode: input.inviteCode ?? null,
+    discountKrw: Math.max(0, input.discountKrw ?? 0),
     status: 'created',
     inputHash: input.inputHash,
     paymentId: null,
