@@ -213,18 +213,18 @@ export const GATE_CSS = `
 .gate-veil{position:absolute;inset:0;background:
   linear-gradient(to bottom,var(--nb-veil-0),var(--nb-veil-1) 16%,var(--nb-paper) 34%)}
 .gate-in{position:relative;padding-top:168px;padding-bottom:56px}
-.gate-kicker{margin:0 0 12px;font-size:12px;letter-spacing:.26em;color:var(--nb-gold)}
-.gate-h{font-family:var(--nb-serif);font-weight:500;font-size:26px;line-height:1.55;
+.gate-kicker{margin:0 0 12px;font-size:14px;letter-spacing:.26em;color:var(--nb-gold)}
+.gate-h{font-family:var(--nb-serif);font-weight:600;font-size:26px;line-height:1.55;
   letter-spacing:-.01em;word-break:keep-all;margin:0 0 12px}
 .gate-h em{font-style:normal;color:var(--nb-gold)}
-.gate-sub{margin:0 0 24px;font-size:14.5px;line-height:1.8;color:var(--nb-ink-2);
+.gate-sub{margin:0 0 24px;font-size:16px;line-height:1.85;color:var(--nb-ink-2);
   max-width:26em;word-break:keep-all}
 .gate-form{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:520px}
 .gate-f{display:block;min-width:0}
 .gate-wide{grid-column:1/-1}
-.gate-l{display:block;margin:0 0 6px;font-size:12px;letter-spacing:.16em;color:var(--nb-gold)}
+.gate-l{display:block;margin:0 0 6px;font-size:14px;letter-spacing:.16em;color:var(--nb-gold)}
 .gate-f input,.gate-f select{width:100%;box-sizing:border-box;padding:12px 13px;
-  font:15px/1.4 var(--nb-sans);color:var(--nb-ink);background:var(--nb-paper-2);
+  font:16px/1.4 var(--nb-sans);color:var(--nb-ink);background:var(--nb-paper-2);
   border:1px solid var(--nb-line);border-radius:0;appearance:none}
 .gate-f input:focus,.gate-f select:focus{outline:2px solid var(--nb-gold);outline-offset:-2px}
 .gate-bar{grid-column:1/-1;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:2px}
@@ -232,8 +232,8 @@ export const GATE_CSS = `
   color:var(--nb-paper);font:500 15.5px var(--nb-sans);letter-spacing:.02em;cursor:pointer;
   transition:background .15s,color .15s}
 .gate-go:hover,.gate-go:focus{background:transparent;color:var(--nb-gold)}
-.gate-msg{font-size:13.5px;color:var(--nb-gold)}
-.gate-skip{margin:18px 0 0;font-size:13px;color:var(--nb-ink-3)}
+.gate-msg{font-size:15px;color:var(--nb-gold)}
+.gate-skip{margin:18px 0 0;font-size:14px;color:var(--nb-ink-3)}
 .gate-skip a{color:var(--nb-gold)}
 @media (min-width:760px){
   .gate-in{padding-top:250px;padding-bottom:80px}

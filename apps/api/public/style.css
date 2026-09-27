@@ -17,7 +17,7 @@
   --border-gold: rgba(212, 175, 55, 0.4);
   --border-glass: rgba(255, 255, 255, 0.12);
   --font-serif: 'Noto Serif KR', serif;
-  --font-main: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-main: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --transition: all 0.25s ease;
 }
 
@@ -67,7 +67,7 @@ body {
   border: 1px solid var(--border-gold);
   border-radius: 20px;
   padding: 6px 12px;
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--gold-light);
   display: flex;
@@ -151,7 +151,7 @@ body {
   border: 1px solid var(--gold-primary);
   border-radius: 16px;
   color: var(--gold-light);
-  font-size: 0.8rem;
+  font-size: 0.88rem;
   font-weight: 700;
   letter-spacing: 1px;
   margin-bottom: 14px;
@@ -297,21 +297,21 @@ body {
 .user-seal-mark {
   background: #a92020;
   color: #fff;
-  font-size: 0.65rem;
+  font-size: 0.88rem;
   font-weight: 900;
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 4px;
   letter-spacing: -0.02em;
 }
 
 .user-name-text {
-  font-size: 0.76rem;
+  font-size: 0.88rem;
   color: var(--gold-light, #f5d77f);
   font-weight: 600;
 }
 
 .spirits-menu-title {
-  font-family: var(--font-myeongjo, serif);
+  font-family: var(--font-main, sans-serif);
   font-size: 1.18rem;
   font-weight: 700;
   color: #ffffff;
@@ -321,10 +321,10 @@ body {
 }
 
 .spirits-menu-desc {
-  font-size: 0.73rem;
-  color: rgba(212, 175, 55, 0.75);
+  font-size: 0.88rem;
+  color: rgba(212, 175, 55, 0.88);
   margin: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.2px;
 }
 
 /* 갈래 탭 10개 (가로 스크롤) */
@@ -352,8 +352,8 @@ body {
   padding: 8px 12px !important;
   font-family: 'Pretendard', sans-serif !important;
   font-size: 0.95rem !important;
-  font-weight: 500 !important;
-  color: rgba(245, 245, 247, 0.55) !important;
+  font-weight: 600 !important;
+  color: rgba(245, 245, 247, 0.88) !important;
   cursor: pointer !important;
   position: relative !important;
   white-space: nowrap !important;
@@ -442,6 +442,7 @@ body {
   height: 100% !important;
   object-fit: cover !important;
   display: block !important;
+  filter: brightness(0.8) !important;
 }
 
 .product-card-scrim {
@@ -449,8 +450,8 @@ body {
   bottom: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  height: 62% !important;
-  background: linear-gradient(to top, rgba(0,0,0,.88) 0%, rgba(0,0,0,.55) 45%, transparent 100%) !important;
+  height: 75% !important;
+  background: linear-gradient(to top, rgba(0,0,0,.96) 0%, rgba(0,0,0,.82) 35%, rgba(0,0,0,.4) 70%, transparent 100%) !important;
   pointer-events: none !important;
 }
 
@@ -470,13 +471,13 @@ body {
 
 .product-card-spirit {
   font-family: 'Pretendard', sans-serif !important;
-  font-size: 0.8rem !important;
+  font-size: 0.94rem !important;
   font-weight: 600 !important;
   color: var(--gold-light, #f5d77f) !important;
   /* 한글은 자간을 벌리면 「도 화 신 령」 으로 글자가 따로 논다 */
   letter-spacing: 0.04em !important;
   text-transform: uppercase !important;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9) !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85) !important;
 }
 
 .product-card-title {
@@ -492,16 +493,17 @@ body {
   -webkit-text-fill-color: transparent !important;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.95)) !important;
   word-break: keep-all !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85) !important;
 }
 
 .product-card-hook {
   margin: 2px 0 0 0 !important;
   font-family: 'Pretendard', sans-serif !important;
-  font-size: 0.86rem !important;
-  color: rgba(245, 245, 247, 0.88) !important;
-  line-height: 1.4 !important;
+  font-size: 0.95rem !important;
+  color: rgba(245, 245, 247, 0.95) !important;
+  line-height: 1.5 !important;
   word-break: keep-all !important;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95) !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85) !important;
 }
 
 /* 몇 장인지 점 인디케이터 */
@@ -533,7 +535,7 @@ body {
   width: 100% !important;
   text-align: center !important;
   padding: 40px 20px !important;
-  color: rgba(245, 245, 247, 0.5) !important;
+  color: rgba(245, 245, 247, 0.88) !important;
   font-size: 0.9rem !important;
   font-family: 'Pretendard', sans-serif !important;
 }
@@ -598,7 +600,7 @@ body {
   font-weight: 900;
   color: var(--gold-light, #f5d77f);
   line-height: 1.45;
-  font-family: var(--font-serif, serif);
+  font-family: var(--font-main, sans-serif);
 }
 
 .saju-form {
@@ -622,10 +624,11 @@ body {
 
 .form-group label {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.88rem;
   color: var(--gold-light, #f5d77f);
   margin-bottom: 6px;
   font-weight: 600;
+  letter-spacing: 0.2px;
 }
 
 .form-group input,
@@ -735,7 +738,7 @@ body {
   border-radius: 999px;
   padding: 8px 16px;
   color: #ffd700;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
   backdrop-filter: blur(12px);
@@ -783,7 +786,8 @@ body {
 
 .chamber-spirit-badge .badge-role {
   color: #ccc;
-  font-size: 0.72rem;
+  font-size: 0.88rem;
+  letter-spacing: 0.2px;
 }
 
 /* ================= 신령 1:1 상담 대화 (영상 정지 후 하단에서 떠오름) ================= */
@@ -818,10 +822,10 @@ body {
   margin: 0;
   text-align: center;
   color: #fff;
-  font-family: 'Noto Serif KR', serif;
+  font-family: var(--font-main, sans-serif);
   font-size: 1.12rem;
   font-weight: 700;
-  line-height: 1.55;
+  line-height: 1.85;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
   white-space: pre-line;
 }
@@ -829,8 +833,9 @@ body {
 .consult-note {
   margin: 0;
   text-align: center;
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.88rem;
+  letter-spacing: 0.2px;
 }
 
 .consult-fields {
@@ -952,8 +957,9 @@ body {
   position: absolute;
   right: 12px;
   bottom: 8px;
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.88);
+  letter-spacing: 0.2px;
 }
 
 .consult-cta {

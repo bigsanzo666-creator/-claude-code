@@ -591,31 +591,32 @@ export const PRODUCTS_CSS = `
   color-scheme:dark;
   --nb-paper:#06060A; --nb-paper-2:#12121C; --nb-paper-3:#1A1A26;
   --nb-line:rgba(212,175,55,.34); --nb-line-soft:rgba(255,255,255,.12);
-  --nb-ink:#F5F5F7; --nb-ink-2:#C8C8D4; --nb-ink-3:#A0A0B2;
+  --nb-ink:#F5F5F7; --nb-ink-2:#DCDCE6; --nb-ink-3:#BEBECC;
   --nb-gold:#D4AF37; --nb-gold-2:#F3E5AB; --nb-crimson:#9E1B32;
   --nb-veil-0:rgba(6,6,10,0); --nb-veil-1:rgba(6,6,10,.72);
   /* 글씨는 두 벌만 쓴다. 아래 무료 만세력 조각이 이미 이 둘을 받아 오므로
      새로 받지 않는다 — 한 페이지에 명조 두 벌, 고딕 두 벌이 도는 것을 막는다 */
   --nb-serif:"Noto Serif KR",AppleMyungjo,Batang,serif;
-  --nb-sans:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --nb-sans:"Pretendard","Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;
 }
 body{background:var(--nb-paper)}
 .pr,.lp{width:100%;max-width:1080px;margin:0 auto;padding:0 22px;box-sizing:border-box;
-  font:16px/1.75 var(--nb-sans);color:var(--nb-ink);-webkit-font-smoothing:antialiased}
+  font:17px/1.85 var(--nb-sans);color:var(--nb-ink);-webkit-font-smoothing:antialiased}
 .pr img,.lp img{max-width:100%;display:block}
-.pr h2,.pr h3,.pr h4{font-family:var(--nb-serif);font-weight:500;letter-spacing:-.01em}
+.pr h2{font-family:var(--nb-serif);font-weight:600;letter-spacing:-.01em}
+.pr h3,.pr h4{font-family:var(--nb-sans);font-weight:600;letter-spacing:0.2px}
 
 /* 목록 머리 */
 .pr-top{text-align:center;padding:74px 0 10px}
-.pr-kicker{margin:0 0 12px;font-size:12.5px;letter-spacing:.28em;color:var(--nb-gold)}
+.pr-kicker{margin:0 0 12px;font-size:14px;letter-spacing:.28em;color:var(--nb-gold)}
 .pr-top h2{font-size:27px;margin:0 0 10px}
-.pr-intro{margin:0 auto;max-width:34em;font-size:14.5px;color:var(--nb-ink-2);word-break:keep-all}
+.pr-intro{margin:0 auto;max-width:34em;font-size:16px;color:var(--nb-ink-2);word-break:keep-all;line-height:1.85}
 .pr-rule{width:38px;height:1px;background:var(--nb-gold);margin:26px auto 0}
 
 /* 갈래 */
 .pr-group{padding:46px 0 0}
-.pr-cat{margin:0 0 7px;font-size:12px;letter-spacing:.24em;color:var(--nb-gold)}
-.pr-q{font-size:22px;margin:0 0 22px}
+.pr-cat{margin:0 0 7px;font-size:14px;letter-spacing:.24em;color:var(--nb-gold)}
+.pr-q{font-size:24px;margin:0 0 22px}
 
 /* 격자 */
 .pr-grid{display:grid;grid-template-columns:1fr 1fr;gap:26px 18px}
@@ -633,14 +634,14 @@ body{background:var(--nb-paper)}
 /* 확대는 쇼핑몰 몸짓이다. 수묵 그림에는 테두리 한 줄이면 된다 */
 .pr-shot{transition:border-color .15s}
 .pr-link:hover .pr-shot,.pr-link:focus .pr-shot{border-color:var(--nb-gold)}
-.pr-hook{display:block;margin:14px 0 3px;font-size:12.5px;line-height:1.5;color:var(--nb-gold);word-break:keep-all}
-.pr-card h3{font-size:16.5px;margin:0;line-height:1.5;word-break:keep-all}
+.pr-hook{display:block;margin:14px 0 3px;font-size:14px;line-height:1.5;color:var(--nb-gold);word-break:keep-all;letter-spacing:0.2px}
+.pr-card h3{font-family:var(--nb-sans);font-size:17px;margin:0;line-height:1.5;word-break:keep-all;letter-spacing:0.2px}
 .pr-link:hover h3,.pr-link:focus h3{text-decoration:underline;text-underline-offset:3px}
-.pr-foot{display:block;margin:7px 0 0;font-size:14px;color:var(--nb-ink-2);font-variant-numeric:tabular-nums}
-.pr-price{font-size:15px;color:var(--nb-ink)}
-.pr-vat{font-size:12px;color:var(--nb-ink-3)}
-.pr-soon{display:block;margin:2px 0 0;font-size:11.5px;color:var(--nb-ink-3)}
-.pr-save{display:block;margin-top:4px;font-size:13px;color:var(--nb-ink-3)}
+.pr-foot{display:block;margin:7px 0 0;font-size:15px;color:var(--nb-ink-2);font-variant-numeric:tabular-nums;letter-spacing:0.2px}
+.pr-price{font-size:16px;color:var(--nb-ink)}
+.pr-vat{font-size:14px;color:var(--nb-ink-3);letter-spacing:0.2px}
+.pr-soon{display:block;margin:2px 0 0;font-size:14px;color:var(--nb-ink-3);letter-spacing:0.2px}
+.pr-save{display:block;margin-top:4px;font-size:15px;color:var(--nb-ink-3);letter-spacing:0.2px}
 
 /* 크게 거는 카드 · 묶음 */
 .pr-wide{grid-column:1/-1;border:1px solid var(--nb-line);background:var(--nb-paper-2)}
@@ -648,38 +649,38 @@ body{background:var(--nb-paper)}
 .pr-wide .pr-shot{border:0;border-bottom:1px solid var(--nb-line);aspect-ratio:16/11}
 .pr-body{display:block;padding:26px 24px 28px}
 .pr-tag{display:inline-block;margin-bottom:14px;padding:3px 10px;border:1px solid var(--nb-gold);
-  font-size:11.5px;letter-spacing:.18em;color:var(--nb-gold)}
-.pr-wide h3{font-size:22px;margin:0 0 8px}
-.pr-desc{display:block;margin:0 0 14px;font-size:14.5px;color:var(--nb-ink-2);word-break:keep-all}
-.pr-wide .pr-price{font-family:var(--nb-serif);font-size:22px}
+  font-size:14px;letter-spacing:.18em;color:var(--nb-gold)}
+.pr-wide h3{font-family:var(--nb-sans);font-size:22px;font-weight:600;margin:0 0 8px}
+.pr-desc{display:block;margin:0 0 14px;font-size:16px;line-height:1.85;color:var(--nb-ink-2);word-break:keep-all}
+.pr-wide .pr-price{font-family:var(--nb-sans);font-size:22px}
 .pr-list{margin:0 0 16px;padding-left:19px}
-.pr-list li{margin:4px 0;font-size:14px;color:var(--nb-ink-2)}
+.pr-list li{margin:4px 0;font-size:15px;color:var(--nb-ink-2);line-height:1.85}
 .pr-link .pr-soon{display:inline;margin:0 0 0 10px}
 .pr-rec{border-color:var(--nb-gold)}
 .pr-badge{display:inline-block;margin-bottom:12px;padding:3px 10px;background:var(--nb-gold);
-  color:var(--nb-paper);font-size:11.5px;font-weight:700;letter-spacing:.06em}
+  color:var(--nb-paper);font-size:14px;font-weight:700;letter-spacing:.06em}
 .pr-note{margin:56px 0 0;padding:22px 0 0;border-top:1px solid var(--nb-line-soft);
-  font-size:13px;line-height:1.85;color:var(--nb-ink-3)}
+  font-size:15px;line-height:1.85;color:var(--nb-ink-3);letter-spacing:0.2px}
 .pr-note a{color:var(--nb-gold)}
 
 /* 상품 하나짜리 페이지 */
-.pd-back{display:inline-block;margin-bottom:18px;font-size:13.5px;color:var(--nb-gold);text-decoration:none}
+.pd-back{display:inline-block;margin-bottom:18px;font-size:15px;color:var(--nb-gold);text-decoration:none;letter-spacing:0.2px}
 .pd-hero{width:100%;max-width:300px;aspect-ratio:3/4;object-fit:cover;margin:0 0 22px;
   background:var(--nb-paper-2);border:1px solid var(--nb-line-soft)}
-.pd-term{margin:0 0 14px;font-size:13.5px;color:var(--nb-ink-2)}
+.pd-term{margin:0 0 14px;font-size:15px;color:var(--nb-ink-2);letter-spacing:0.2px}
 .pd-term b{color:var(--nb-ink)}
 .pd-buy{margin:22px 0;padding:20px 22px;border:1px solid var(--nb-line);background:var(--nb-paper-2)}
-.pd-price-notice{margin:8px 0 12px;font-size:13.5px;color:#c9a34a;line-height:1.55}
+.pd-price-notice{margin:8px 0 12px;font-size:15px;color:#c9a34a;line-height:1.55;letter-spacing:0.2px}
 .pd-price{font-family:var(--nb-serif);font-size:27px}
-.pd-also{margin:8px 0 0;font-size:14px;color:var(--nb-ink-2)}
+.pd-also{margin:8px 0 0;font-size:15px;color:var(--nb-ink-2);letter-spacing:0.2px}
 /* 언제·어떻게 받고 어떻게 무르는지. 카드사 심사가 상세페이지에서 이걸 본다 */
 .pd-terms{margin:22px 0 0;padding:20px 22px;border:1px solid var(--nb-line-soft);background:var(--nb-paper-2)}
-.pd-terms dt{font-family:var(--nb-serif);font-size:14.5px;color:var(--nb-gold);margin:14px 0 4px}
+.pd-terms dt{font-family:var(--nb-sans);font-size:16px;font-weight:600;color:var(--nb-gold);margin:14px 0 4px;letter-spacing:0.2px}
 .pd-terms dt:first-child{margin-top:0}
-.pd-terms dd{margin:0;font-size:14.5px;line-height:1.8;color:var(--nb-ink-2);word-break:keep-all}
+.pd-terms dd{margin:0;font-size:16px;line-height:1.85;color:var(--nb-ink-2);word-break:keep-all}
 .pd-terms dd b{color:var(--nb-ink)}
 .pd-terms a{color:var(--nb-gold)}
-.pr-body>h3,.pr-card>h3{font-family:var(--nb-serif)}
+.pr-body>h3,.pr-card>h3{font-family:var(--nb-sans);font-weight:600}
 
 @media (min-width:760px){
   .pr-top h2{font-size:34px}
@@ -709,22 +710,22 @@ html,body{overflow-x:clip;max-width:100%}
    값은 맨 아래다. 무엇을 받는지 다 보여 준 다음에 값을 말한다 */
 .pd-sec{margin:34px 0 0;padding:24px 22px;border:1px solid var(--nb-line-soft);
   background:var(--nb-paper-2);border-radius:12px}
-.pd-l{margin:0 0 6px;font-size:11.5px;letter-spacing:.22em;color:var(--nb-gold)}
+.pd-l{margin:0 0 6px;font-size:14px;letter-spacing:.22em;color:var(--nb-gold)}
 .pd-h{margin:0 0 16px;font-size:19px;line-height:1.45;word-break:keep-all}
 
 /* 안 사도 되는 경우를 먼저 적는다. 손님 하나를 놓치고 믿음을 얻는다 */
 .pd-fit{border-color:var(--nb-line)}
 .pd-yes{margin:0;padding-left:19px;display:grid;gap:7px}
-.pd-yes li{font-size:15px;line-height:1.7;word-break:keep-all}
-.pd-no{margin:18px 0 0;padding:14px 16px;font-size:14px;line-height:1.8;
+.pd-yes li{font-size:16px;line-height:1.85;word-break:keep-all}
+.pd-no{margin:18px 0 0;padding:14px 16px;font-size:15px;line-height:1.85;
   color:var(--nb-ink-2);background:var(--nb-paper-3);
   border-left:2px solid var(--nb-ink-3);border-radius:0 8px 8px 0;word-break:keep-all}
 .pd-no b{color:var(--nb-ink)}
 
 /* 실제로 나가는 글의 앞부분. 그림으로 보여 주고 글로 주지 않는 짓은 안 한다 */
-.pd-samp{white-space:pre-wrap;font-size:14.5px;line-height:1.75;color:var(--nb-ink-2);
+.pd-samp{white-space:pre-wrap;font-size:16px;line-height:1.85;color:var(--nb-ink-2);
   padding:18px 18px;background:var(--nb-paper-3);border-radius:8px;word-break:keep-all}
-.pd-samp-n{margin:12px 0 0;font-size:12.5px;line-height:1.7;color:var(--nb-ink-3);word-break:keep-all}
+.pd-samp-n{margin:12px 0 0;font-size:14px;line-height:1.85;color:var(--nb-ink-3);word-break:keep-all}
 
 /* 「왜 늘봄인가」는 상품 화면 안에서는 한 칸으로 들어간다 */
 .pd-why .why{margin:0;padding:0;border:0;background:none}
@@ -756,9 +757,9 @@ body {
 
 .pd-back {
   display: inline-block;
-  color: rgba(245, 245, 247, 0.65);
+  color: rgba(245, 245, 247, 0.88);
   text-decoration: none;
-  font-size: 0.86rem;
+  font-size: 0.94rem;
   transition: color 0.2s;
 }
 
@@ -790,6 +791,7 @@ body {
   border: none;
   object-fit: cover;
   display: block;
+  filter: brightness(0.8);
 }
 
 .pd-hero-scrim {
@@ -797,8 +799,8 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 65%;
-  background: linear-gradient(to top, rgba(0,0,0,.88) 0%, rgba(0,0,0,.55) 45%, transparent 100%);
+  height: 75%;
+  background: linear-gradient(to top, rgba(0,0,0,.96) 0%, rgba(0,0,0,.82) 35%, rgba(0,0,0,.4) 70%, transparent 100%);
   pointer-events: none;
 }
 
@@ -818,11 +820,9 @@ body {
 
 .pd-hero-spirit {
   font-family: var(--font-sans);
-  font-size: 0.82rem;
+  font-size: 0.94rem;
   font-weight: 600;
   color: var(--gold-light);
-  /* 한글은 자간을 벌리면 글자가 따로 논다 — 0.18em 이면 「도 화 신 령」 으로 읽힌다.
-     uppercase 는 한글에 아무 일도 하지 않으므로 뺀다 */
   letter-spacing: 0.06em;
   text-shadow: 0 2px 4px rgba(0,0,0,0.9);
 }
@@ -844,9 +844,9 @@ body {
 .pd-hero-hook {
   margin: 2px 0 0 0;
   font-family: var(--font-sans);
-  font-size: 0.92rem;
-  color: rgba(245, 245, 247, 0.9);
-  line-height: 1.4;
+  font-size: 1rem;
+  color: rgba(245, 245, 247, 0.95);
+  line-height: 1.5;
   word-break: keep-all;
   text-shadow: 0 2px 6px rgba(0,0,0,0.95);
 }
@@ -861,15 +861,15 @@ body {
 }
 
 .pr-desc {
-  font-size: 0.95rem;
-  color: rgba(245, 245, 247, 0.85);
-  line-height: 1.7;
+  font-size: 1.06rem;
+  color: rgba(245, 245, 247, 0.92);
+  line-height: 1.85;
   margin: 0 0 24px 0;
   word-break: keep-all;
 }
 
 .pd-term {
-  font-size: 0.88rem;
+  font-size: 0.94rem;
   color: var(--gold-light);
   margin: 0 0 16px 0;
 }
@@ -880,7 +880,7 @@ body {
 }
 
 .pd-l {
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   color: var(--gold-light);
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -889,7 +889,7 @@ body {
 }
 
 .pd-h {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 1.45rem;
   font-weight: 700;
   color: #ffffff;
@@ -916,8 +916,8 @@ body {
 .pd-yes li {
   position: relative;
   padding-left: 24px;
-  font-size: 0.93rem;
-  line-height: 1.55;
+  font-size: 1rem;
+  line-height: 1.85;
   color: rgba(245, 245, 247, 0.92);
 }
 
@@ -936,9 +936,9 @@ body {
   border: 1px solid rgba(212, 175, 55, 0.22);
   border-radius: 10px;
   padding: 12px 14px;
-  font-size: 0.86rem;
-  color: rgba(245, 245, 247, 0.75);
-  line-height: 1.5;
+  font-size: 0.94rem;
+  color: rgba(245, 245, 247, 0.88);
+  line-height: 1.85;
   margin: 0;
 }
 
@@ -961,23 +961,23 @@ body {
   display: flex;
   gap: 8px;
   align-items: baseline;
-  font-size: 0.93rem;
+  font-size: 1rem;
   color: rgba(245, 245, 247, 0.92);
-  line-height: 1.55;
+  line-height: 1.85;
 }
 
 .pd-content-num {
   font-family: var(--font-sans);
   font-weight: 700;
   color: var(--gold-light);
-  font-size: 0.84rem;
+  font-size: 0.92rem;
   flex-shrink: 0;
 }
 
 /* 2. 가운데: 맛보기 (문장 한 번 + 목차) */
 .pd-sample-lead {
   font-family: var(--font-sans);
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: var(--gold-light);
   margin: 0 0 12px;
@@ -996,13 +996,13 @@ body {
 
 .pd-sample-body {
   position: relative;
-  font-family: var(--font-serif);
-  font-size: 0.94rem;
-  color: rgba(245, 245, 247, 0.88);
-  line-height: 1.75;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  color: rgba(245, 245, 247, 0.92);
+  line-height: 1.85;
   word-break: keep-all;
   white-space: pre-wrap;
-  max-height: 140px;
+  max-height: 150px;
   overflow: hidden;
 }
 
@@ -1032,28 +1032,28 @@ body {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  font-size: 0.92rem;
-  line-height: 1.55;
+  font-size: 0.98rem;
+  line-height: 1.85;
 }
 
 .pd-sample-toc-num {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   color: var(--gold-light);
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   white-space: nowrap;
   flex: 0 0 auto;
 }
 
 .pd-sample-toc-title {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   color: rgba(245, 245, 247, 0.92);
   word-break: keep-all;
 }
 
 .pd-samp-n {
-  font-size: 0.78rem;
-  color: rgba(245, 245, 247, 0.5);
+  font-size: 0.88rem;
+  color: rgba(245, 245, 247, 0.88);
   margin-top: 10px;
   word-break: keep-all;
 }
@@ -1066,7 +1066,7 @@ body {
   border: 1px solid var(--border-gold);
   border-radius: 10px;
   overflow: hidden;
-  font-size: 0.86rem;
+  font-size: 0.94rem;
 }
 
 .pd-why th, .pd-why td {
@@ -1092,9 +1092,9 @@ body {
 
 .pd-why-custom p {
   margin: 0 0 16px 0;
-  font-size: 0.94rem;
-  line-height: 1.8;
-  color: rgba(245, 245, 247, 0.88);
+  font-size: 1.02rem;
+  line-height: 1.85;
+  color: rgba(245, 245, 247, 0.92);
   word-break: keep-all;
 }
 
@@ -1134,8 +1134,8 @@ body {
 
 .pd-faq-q h4 {
   margin: 0;
-  font-family: var(--font-serif);
-  font-size: 1.02rem;
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
   font-weight: 700;
   color: #ffffff;
   line-height: 1.45;
@@ -1154,15 +1154,15 @@ body {
   font-family: var(--font-sans);
   font-weight: 800;
   font-size: 0.98rem;
-  color: rgba(245, 245, 247, 0.45);
+  color: rgba(245, 245, 247, 0.88);
   flex-shrink: 0;
 }
 
 .pd-faq-a p {
   margin: 0;
-  font-size: 0.92rem;
-  line-height: 1.68;
-  color: rgba(245, 245, 247, 0.88);
+  font-size: 1.02rem;
+  line-height: 1.85;
+  color: rgba(245, 245, 247, 0.92);
   word-break: keep-all;
 }
 
@@ -1172,9 +1172,9 @@ body {
   padding:10px 16px calc(10px + env(safe-area-inset-bottom));
   background:rgba(10,8,16,.96);border-top:1px solid rgba(212,175,55,.35);
   backdrop-filter:blur(8px)}
-.pd-sticky-price{flex:1 1 auto;font-family:var(--nb-serif);font-size:20px;color:#f3e5ab;
+.pd-sticky-price{flex:1 1 auto;font-family:var(--nb-sans);font-size:20px;color:#f3e5ab;
   display:flex;align-items:baseline;gap:6px;white-space:nowrap}
-.pd-sticky-price small{font-size:11px;color:#9a93a6;font-family:inherit}
+.pd-sticky-price small{font-size:14px;color:#BEBECC;font-family:inherit}
 .pd-sticky-go{flex:0 0 auto;padding:12px 26px;border-radius:8px;text-decoration:none;
   font-size:16px;font-weight:800;color:#1a1208;
   background:linear-gradient(135deg,#d4af37,#f0d478)}
@@ -1194,7 +1194,7 @@ body{padding-bottom:72px}
 }
 
 .pd-price {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 2.2rem;
   font-weight: 700;
   color: var(--gold-light);
@@ -1202,15 +1202,15 @@ body{padding-bottom:72px}
 }
 
 .pr-vat {
-  font-size: 0.84rem;
-  color: rgba(245, 245, 247, 0.6);
+  font-size: 0.88rem;
+  color: rgba(245, 245, 247, 0.88);
   margin-left: 4px;
 }
 
 .pd-also {
-  font-size: 0.85rem;
-  color: rgba(245, 245, 247, 0.7);
-  line-height: 1.55;
+  font-size: 0.94rem;
+  color: rgba(245, 245, 247, 0.88);
+  line-height: 1.85;
   margin: 10px 0 0 0;
 }
 
@@ -1245,10 +1245,10 @@ body{padding-bottom:72px}
 }
 
 .pd-cross-speech {
-  font-family: var(--font-serif);
-  font-size: 0.88rem;
+  font-family: var(--font-sans);
+  font-size: 0.94rem;
   color: var(--gold-light);
-  line-height: 1.45;
+  line-height: 1.55;
   word-break: keep-all;
 }
 
@@ -1288,25 +1288,25 @@ body{padding-bottom:72px}
 }
 
 .pd-cross-title {
-  font-family: var(--font-serif);
-  font-size: 0.84rem;
+  font-family: var(--font-sans);
+  font-size: 0.94rem;
   font-weight: 700;
   color: #fff;
   margin: 0;
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
 /* 4-b. 이용 안내 및 약관 세 줄 */
 .pd-terms {
   margin: 28px 0 16px 0;
   padding: 0;
-  font-size: 0.82rem;
-  color: rgba(245, 245, 247, 0.65);
-  line-height: 1.6;
+  font-size: 0.88rem;
+  color: rgba(245, 245, 247, 0.88);
+  line-height: 1.85;
 }
 
 .pd-terms dt {
-  color: rgba(245, 245, 247, 0.88);
+  color: rgba(245, 245, 247, 0.95);
   font-weight: 700;
   margin-top: 10px;
 }
@@ -1321,14 +1321,14 @@ body{padding-bottom:72px}
 }
 
 .pr-note {
-  font-size: 0.76rem;
-  color: rgba(245, 245, 247, 0.45);
-  line-height: 1.5;
+  font-size: 0.88rem;
+  color: rgba(245, 245, 247, 0.88);
+  line-height: 1.85;
   margin: 20px 0 24px 0;
 }
 
 .pr-note a {
-  color: rgba(212, 175, 55, 0.75);
+  color: rgba(212, 175, 55, 0.85);
 }
 
 ${SPIRITS_CSS}
@@ -1694,7 +1694,7 @@ ${stickyBuy(product, ready)}
 function stickyBuy(product: Product, ready: boolean): string {
   if (!ready || product.needsPick) return '';
   const note = product.id === 'family-holiday-report'
-    ? '<small class="pd-sticky-note" style="display:block;font-size:10.5px;color:#c9a34a;margin-top:2px">9월 28일부터 39,900원</small>'
+    ? '<small class="pd-sticky-note" style="display:block;font-size:14px;color:#c9a34a;margin-top:2px">9월 28일부터 39,900원</small>'
     : '';
   return `<div class="pd-sticky">
     <span class="pd-sticky-price">${won(product.priceKrw)}<small>부가세 포함</small>${note}</span>

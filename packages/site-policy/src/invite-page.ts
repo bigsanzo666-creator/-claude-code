@@ -12,14 +12,14 @@ import { PLACES } from '../../saju-rules/src/index.ts';
 import { REWARD_TIERS } from '../../commerce/src/referral.ts';
 
 const INVITE_PAGE_CSS = `
-.iv-wrap { max-width: 680px; margin: 0 auto; padding: 24px 18px 80px; font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif; }
+.iv-wrap { max-width: 680px; margin: 0 auto; padding: 24px 18px 80px; font-family: "Pretendard", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; }
 .iv-brand { display: inline-block; font-size: 14px; color: #b9b2c6; text-decoration: none; margin-bottom: 18px; }
 .iv-title { font-size: 24px; font-weight: 800; color: #f3e5ab; margin: 0 0 8px; }
-.iv-desc { font-size: 14.5px; color: #c8c2d4; margin: 0 0 24px; line-height: 1.6; }
+.iv-desc { font-size: 16px; color: #c8c2d4; margin: 0 0 24px; line-height: 1.85; }
 .iv-card { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; padding: 20px; margin-bottom: 24px; }
 .iv-f { margin-bottom: 14px; }
-.iv-f label { display: block; font-size: 13px; color: #c8c2d4; margin-bottom: 6px; }
-.iv-f input, .iv-f select { width: 100%; box-sizing: border-box; padding: 11px 12px; font-size: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.16); background: rgba(12,10,18,0.92); color: #f4f1f8; font-family: inherit; }
+.iv-f label { display: block; font-size: 14px; color: #c8c2d4; margin-bottom: 6px; }
+.iv-f input, .iv-f select { width: 100%; box-sizing: border-box; padding: 11px 12px; font-size: 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.16); background: rgba(12,10,18,0.92); color: #f4f1f8; font-family: inherit; }
 .iv-two { display: flex; gap: 10px; }
 .iv-two > * { flex: 1 1 0; min-width: 0; }
 .iv-btn { display: block; width: 100%; padding: 14px; font-size: 16px; font-weight: 800; border: none; border-radius: 8px; background: linear-gradient(135deg, #d4af37, #f0d478); color: #1a1208; cursor: pointer; font-family: inherit; }
@@ -28,29 +28,29 @@ const INVITE_PAGE_CSS = `
 .iv-badge-head { font-size: 14px; color: #c8c2d4; margin-bottom: 4px; }
 .iv-badge-code { font-size: 20px; font-weight: 800; color: #f6d878; margin-bottom: 12px; letter-spacing: 0.05em; }
 .iv-badge-actions { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
-.iv-badge-btn { padding: 8px 14px; font-size: 13px; font-weight: 700; border-radius: 6px; border: 1px solid rgba(212,175,55,0.4); background: #d4af37; color: #18151f; cursor: pointer; }
+.iv-badge-btn { padding: 8px 14px; font-size: 14px; font-weight: 700; border-radius: 6px; border: 1px solid rgba(212,175,55,0.4); background: #d4af37; color: #18151f; cursor: pointer; }
 .iv-badge-btn.kakao { background: #fee500; border-color: #e5cc00; color: #191919; }
 .iv-stats { display: flex; justify-content: space-around; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 14px; margin-top: 14px; }
 .iv-stat-num { font-size: 22px; font-weight: 800; color: #f3e5ab; }
-.iv-stat-label { font-size: 12.5px; color: #a49cb2; margin-top: 2px; }
+.iv-stat-label { font-size: 14px; color: #a49cb2; margin-top: 2px; }
 .iv-ladder-title { font-size: 18px; font-weight: 800; color: #f3e5ab; margin: 28px 0 14px; }
 .iv-ladder-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 16px; margin-bottom: 10px; gap: 12px; }
 .iv-ladder-item.active { border-color: rgba(212, 175, 55, 0.4); background: rgba(212, 175, 55, 0.05); }
 .iv-ladder-item.done { opacity: 0.7; }
 .iv-ladder-info { flex: 1; }
-.iv-ladder-tier { font-size: 12.5px; font-weight: 700; color: #d4af37; margin-bottom: 2px; }
+.iv-ladder-tier { font-size: 14px; font-weight: 700; color: #d4af37; margin-bottom: 2px; }
 .iv-ladder-name { font-size: 15px; font-weight: 700; color: #efeaf4; margin-bottom: 4px; }
-.iv-ladder-desc { font-size: 12.5px; color: #a49cb2; line-height: 1.45; }
-.iv-ladder-status { font-size: 12px; color: #9fd8a8; margin-top: 4px; }
-.iv-act-btn { padding: 9px 16px; font-size: 13.5px; font-weight: 700; border-radius: 6px; border: 1px solid #d4af37; background: #d4af37; color: #18151f; cursor: pointer; white-space: nowrap; }
+.iv-ladder-desc { font-size: 14px; color: #a49cb2; line-height: 1.6; }
+.iv-ladder-status { font-size: 14px; color: #9fd8a8; margin-top: 4px; }
+.iv-act-btn { padding: 9px 16px; font-size: 15px; font-weight: 700; border-radius: 6px; border: 1px solid #d4af37; background: #d4af37; color: #18151f; cursor: pointer; white-space: nowrap; }
 .iv-act-btn:disabled { background: rgba(255,255,255,0.1); border-color: transparent; color: #6b6478; cursor: not-allowed; }
 .iv-act-btn.applied { background: transparent; border-color: rgba(255,255,255,0.2); color: #c8c2d4; cursor: default; }
-.iv-law-note { margin-top: 32px; padding: 16px; background: rgba(0,0,0,0.3); border-radius: 8px; font-size: 12.5px; color: #8f889c; line-height: 1.7; }
+.iv-law-note { margin-top: 32px; padding: 16px; background: rgba(0,0,0,0.3); border-radius: 8px; font-size: 14px; color: #8f889c; line-height: 1.85; }
 .iv-lucky-box { margin-top: 14px; padding: 14px; background: rgba(0,0,0,0.4); border-radius: 8px; text-align: center; }
 .iv-lucky-balls { display: flex; gap: 8px; justify-content: center; margin: 10px 0; }
 .iv-ball { width: 34px; height: 34px; border-radius: 50%; background: #d4af37; color: #18151f; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 14px; }
-.iv-lucky-reason { font-size: 13px; color: #e4dfea; line-height: 1.6; white-space: pre-line; margin-top: 8px; }
-.iv-disclaimer { font-size: 12px; color: #e8b4b4; margin-top: 10px; }
+.iv-lucky-reason { font-size: 14px; color: #e4dfea; line-height: 1.85; white-space: pre-line; margin-top: 8px; }
+.iv-disclaimer { font-size: 14px; color: #e8b4b4; margin-top: 10px; }
 `;
 
 export function renderInvitePage(info: BusinessInfo, footer: string): string {
@@ -115,7 +115,7 @@ ${INVITE_PAGE_CSS}
     <section class="iv-summary">
       <div class="iv-badge-head">그대의 고유 증표</div>
       <div class="iv-badge-code" id="ivMyCode">—</div>
-      <p style="font-size:13px;color:#c8c2d4;margin:0 0 12px;line-height:1.5;">
+      <p style="font-size:14px;color:#c8c2d4;margin:0 0 12px;line-height:1.85;">
         이 증표로 들어온 벗은 <b>3,000원을 덜 낸다네.</b><br>
         벗이 첫 점사(2만원 이상)를 받으면 그대에게도 보답이 쌓인다네.
       </p>
@@ -123,7 +123,7 @@ ${INVITE_PAGE_CSS}
         <button type="button" class="iv-badge-btn" id="ivCopyBtn">증표 복사하기</button>
         <button type="button" class="iv-badge-btn kakao" id="ivKakaoBtn">카톡으로 보내기</button>
       </div>
-      <p class="nb-invite-toast" id="ivCopyToast" style="display:none;color:#4ade80;font-size:12.5px;margin:8px 0 0">증표 주소가 복사되었습니다.</p>
+      <p class="nb-invite-toast" id="ivCopyToast" style="display:none;color:#4ade80;font-size:14px;margin:8px 0 0">증표 주소가 복사되었습니다.</p>
       <div class="iv-stats">
         <div>
           <div class="iv-stat-num" id="ivCountVal">0명</div>

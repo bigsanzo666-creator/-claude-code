@@ -98,7 +98,7 @@ ${PRODUCTS_CSS}
 }
 
 .mp-form-title {
-  font-family: var(--nb-serif);
+  font-family: var(--nb-sans);
   font-size: 1.15rem;
   color: var(--nb-gold-2);
   margin: 0 0 16px 0;
@@ -111,7 +111,7 @@ ${PRODUCTS_CSS}
 
 .mp-label {
   display: block;
-  font-size: 0.86rem;
+  font-size: 0.94rem;
   font-weight: 600;
   color: var(--nb-ink-2);
   margin-bottom: 6px;
@@ -136,10 +136,10 @@ ${PRODUCTS_CSS}
 }
 
 .mp-field-helper {
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   color: var(--nb-ink-3);
   margin: 5px 0 0 0;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .mp-gender-group {
@@ -180,7 +180,7 @@ ${PRODUCTS_CSS}
 .mp-free-notice {
   text-align: center;
   margin: 10px 0 0 0;
-  font-size: 0.92rem;
+  font-size: 0.94rem;
   font-weight: 700;
   color: var(--nb-gold-2);
   letter-spacing: -0.01em;
@@ -223,7 +223,7 @@ ${PRODUCTS_CSS}
 }
 
 .mp-pillar-hangul {
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   color: var(--nb-ink-2);
   margin-top: 6px;
 }
@@ -236,16 +236,16 @@ ${PRODUCTS_CSS}
 }
 
 .mp-pillar-label {
-  font-family: var(--nb-serif);
-  font-size: 0.85rem;
+  font-family: var(--nb-sans);
+  font-size: 0.92rem;
   color: var(--nb-gold);
   font-weight: 600;
 }
 
 .mp-calc-note {
-  font-size: 0.84rem;
+  font-size: 0.92rem;
   color: var(--nb-ink-2);
-  line-height: 1.6;
+  line-height: 1.85;
   border-top: 1px solid rgba(255,255,255,0.08);
   padding-top: 14px;
   word-break: keep-all;
@@ -258,7 +258,7 @@ ${PRODUCTS_CSS}
 
 .mp-reset-box {
   margin-top: 14px;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   color: var(--nb-ink-3);
 }
 
@@ -279,18 +279,18 @@ ${PRODUCTS_CSS}
 }
 
 .mp-month-headline {
-  font-family: var(--nb-serif);
+  font-family: var(--nb-sans);
   font-size: 1.35rem;
   font-weight: 700;
   color: #ffffff;
-  line-height: 1.4;
+  line-height: 1.45;
   margin: 0 0 12px 0;
   word-break: keep-all;
 }
 
 .mp-month-reading {
-  font-size: 0.95rem;
-  line-height: 1.7;
+  font-size: 1rem;
+  line-height: 1.85;
   color: var(--nb-ink-2);
   margin: 0 0 16px 0;
   word-break: keep-all;
@@ -301,17 +301,18 @@ ${PRODUCTS_CSS}
   border: 1px dashed rgba(212,175,55,0.4);
   border-radius: 8px;
   padding: 14px 16px;
-  font-size: 0.86rem;
-  line-height: 1.65;
+  font-size: 0.92rem;
+  line-height: 1.85;
   color: var(--nb-ink-2);
   word-break: keep-all;
 }
 
 .mp-why-box-title {
   color: var(--nb-gold);
-  font-family: monospace;
-  font-size: 0.8rem;
+  font-family: var(--nb-sans);
+  font-size: 0.88rem;
   margin-bottom: 6px;
+  font-weight: 600;
 }
 
 /* 2, 3, 4번 칸: 돈·일·사람 (두 줄 공개 + 안개) */
@@ -336,7 +337,7 @@ ${PRODUCTS_CSS}
 }
 
 .mp-topic-title {
-  font-family: var(--nb-serif);
+  font-family: var(--nb-sans);
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--nb-gold-2);
@@ -344,13 +345,13 @@ ${PRODUCTS_CSS}
 }
 
 .mp-topic-ask {
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   color: var(--nb-ink-3);
 }
 
 .mp-topic-revealed {
-  font-size: 0.92rem;
-  line-height: 1.65;
+  font-size: 0.95rem;
+  line-height: 1.85;
   color: var(--nb-ink);
   margin: 0 0 8px 0;
   word-break: keep-all;
@@ -363,8 +364,8 @@ ${PRODUCTS_CSS}
 }
 
 .mp-topic-foggy {
-  font-size: 0.9rem;
-  line-height: 1.6;
+  font-size: 0.95rem;
+  line-height: 1.85;
   color: rgba(255,255,255,0.25);
   filter: blur(4px);
   user-select: none;
@@ -392,15 +393,15 @@ ${PRODUCTS_CSS}
 }
 
 .mp-subhead {
-  font-family: var(--nb-serif);
+  font-family: var(--nb-sans);
   font-size: 1.25rem;
   color: #ffffff;
   margin: 0 0 12px 0;
 }
 
 .mp-days-lead {
-  font-size: 0.9rem;
-  line-height: 1.6;
+  font-size: 0.95rem;
+  line-height: 1.85;
   color: var(--nb-ink-2);
   margin: 0 0 16px 0;
   word-break: keep-all;
@@ -423,20 +424,20 @@ ${PRODUCTS_CSS}
 }
 
 .mp-day-date {
-  font-family: var(--nb-serif);
+  font-family: var(--nb-sans);
   font-size: 1.05rem;
   font-weight: 700;
   color: #ffffff;
 }
 
 .mp-day-pillar {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: var(--nb-ink-2);
   margin-top: 2px;
 }
 
 .mp-day-badge {
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: #7ef5a0;
   background: rgba(126,245,160,0.15);
@@ -469,7 +470,7 @@ ${PRODUCTS_CSS}
 .mp-days-notice {
   text-align: center;
   margin-top: 14px;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   color: var(--nb-ink-2);
 }
 
@@ -487,7 +488,7 @@ ${PRODUCTS_CSS}
 }
 
 .mp-action-title {
-  font-family: var(--nb-serif);
+  font-family: var(--nb-sans);
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--nb-gold-2);
@@ -495,10 +496,10 @@ ${PRODUCTS_CSS}
 }
 
 .mp-action-desc {
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   color: var(--nb-ink-2);
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.85;
 }
 
 /* 맨 아래 값 카드 */
@@ -513,14 +514,14 @@ ${PRODUCTS_CSS}
 }
 
 .mp-price-amount {
-  font-family: var(--nb-serif);
+  font-family: var(--nb-sans);
   font-size: 2.1rem;
   font-weight: 700;
   color: var(--nb-gold-2);
 }
 
 .mp-price-vat {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   color: var(--nb-ink-3);
 }
 
@@ -545,9 +546,10 @@ ${PRODUCTS_CSS}
 }
 
 .mp-guarantee-text {
-  font-size: 0.84rem;
+  font-size: 0.9rem;
   color: var(--nb-ink-2);
-  line-height: 1.6;
+  line-height: 1.85;
+  letter-spacing: 0.2px;
   margin: 0;
 }
 </style>

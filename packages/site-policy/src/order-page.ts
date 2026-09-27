@@ -21,11 +21,11 @@ body{margin:0;padding:0;background:#18151f;color:#f0eaf7;font-family:-apple-syst
 .od-saved-link{margin:18px 0 24px;padding:16px 18px;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.3);border-radius:10px}
 .od-saved-title{font-size:14px;font-weight:700;color:#f3e5ab;margin:0 0 8px}
 .od-copy-box{display:flex;gap:8px}
-.od-copy-box input{flex:1 1 auto;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:9px 12px;color:#fff;font-size:13px}
-.od-copy-box button{flex:0 0 auto;background:#d4af37;color:#18151f;border:none;border-radius:6px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer}
-.od-copy-done{font-size:12.5px;color:#4ade80;margin:6px 0 0}
-.od-report-box{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:24px 20px;margin-top:16px;white-space:pre-wrap;word-break:break-word;font-size:15px;line-height:1.8;color:#e8e2f0}
-.od-order-info{font-size:12.5px;color:#9a93a6;margin-top:8px}
+.od-copy-box input{flex:1 1 auto;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:9px 12px;color:#fff;font-size:14px}
+.od-copy-box button{flex:0 0 auto;background:#d4af37;color:#18151f;border:none;border-radius:6px;padding:9px 16px;font-size:14px;font-weight:700;cursor:pointer}
+.od-copy-done{font-size:14px;color:#4ade80;margin:6px 0 0}
+.od-report-box{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:24px 20px;margin-top:16px;white-space:pre-wrap;word-break:break-word;font-size:16px;line-height:1.85;color:#e8e2f0}
+.od-order-info{font-size:14px;color:#9a93a6;margin-top:8px}
 `;
 
 export function renderOrderNotFoundPage(business: BusinessInfo, footer: string): string {

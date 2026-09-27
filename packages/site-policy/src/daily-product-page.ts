@@ -103,7 +103,7 @@ ${PRODUCTS_CSS}
 }
 
 .dp-form-title {
-  font-family: var(--nb-serif);
+  font-family: var(--nb-sans);
   font-size: 1.15rem;
   color: var(--nb-gold-2);
   margin: 0 0 16px 0;
@@ -116,7 +116,7 @@ ${PRODUCTS_CSS}
 
 .dp-label {
   display: block;
-  font-size: 0.86rem;
+  font-size: 0.94rem;
   font-weight: 600;
   color: var(--nb-ink-2);
   margin-bottom: 6px;
@@ -141,10 +141,10 @@ ${PRODUCTS_CSS}
 }
 
 .dp-field-helper {
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   color: var(--nb-ink-3);
   margin: 5px 0 0 0;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .dp-gender-group {
@@ -185,7 +185,7 @@ ${PRODUCTS_CSS}
 .dp-free-notice {
   text-align: center;
   margin: 10px 0 0 0;
-  font-size: 0.92rem;
+  font-size: 0.94rem;
   font-weight: 700;
   color: var(--nb-gold-2);
   letter-spacing: -0.01em;
@@ -228,7 +228,7 @@ ${PRODUCTS_CSS}
 }
 
 .dp-pillar-hangul {
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   color: var(--nb-ink-2);
   margin-top: 6px;
 }
@@ -241,16 +241,16 @@ ${PRODUCTS_CSS}
 }
 
 .dp-pillar-label {
-  font-family: var(--nb-serif);
-  font-size: 0.85rem;
+  font-family: var(--nb-sans);
+  font-size: 0.92rem;
   color: var(--nb-gold);
   font-weight: 600;
 }
 
 .dp-calc-note {
-  font-size: 0.84rem;
+  font-size: 0.92rem;
   color: var(--nb-ink-2);
-  line-height: 1.6;
+  line-height: 1.85;
   border-top: 1px solid rgba(255,255,255,0.08);
   padding-top: 14px;
   word-break: keep-all;
@@ -263,7 +263,7 @@ ${PRODUCTS_CSS}
 
 .dp-reset-box {
   margin-top: 14px;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   color: var(--nb-ink-3);
 }
 
@@ -284,25 +284,25 @@ ${PRODUCTS_CSS}
 }
 
 .dp-today-date {
-  font-family: var(--nb-serif);
+  font-family: var(--nb-sans);
   font-size: 0.94rem;
   color: var(--nb-gold);
   margin: 0 0 6px 0;
 }
 
 .dp-today-headline {
-  font-family: var(--nb-serif);
+  font-family: var(--nb-sans);
   font-size: 1.48rem;
   font-weight: 700;
   color: #ffffff;
-  line-height: 1.35;
+  line-height: 1.45;
   margin: 0 0 12px 0;
   word-break: keep-all;
 }
 
 .dp-today-reading {
-  font-size: 0.95rem;
-  line-height: 1.7;
+  font-size: 1rem;
+  line-height: 1.85;
   color: var(--nb-ink-2);
   margin: 0 0 16px 0;
   word-break: keep-all;
@@ -318,7 +318,7 @@ ${PRODUCTS_CSS}
 }
 
 .dp-stamp-tag {
-  font-family: var(--nb-serif);
+  font-family: var(--nb-sans);
   font-size: 0.92rem;
   color: #ff9da8;
   font-weight: 600;
@@ -329,25 +329,27 @@ ${PRODUCTS_CSS}
   border: 1px dashed rgba(212,175,55,0.4);
   border-radius: 8px;
   padding: 14px 16px;
-  font-size: 0.88rem;
-  line-height: 1.65;
+  font-size: 0.92rem;
+  line-height: 1.85;
   color: var(--nb-ink-2);
   word-break: keep-all;
 }
 
 .dp-why-box-title {
   color: var(--nb-gold);
-  font-family: monospace;
-  font-size: 0.8rem;
+  font-family: var(--nb-sans);
+  font-size: 0.88rem;
   margin-bottom: 6px;
+  font-weight: 600;
 }
 
 .dp-why-box-bottom {
   color: var(--nb-gold);
-  font-family: monospace;
-  font-size: 0.8rem;
+  font-family: var(--nb-sans);
+  font-size: 0.88rem;
   margin-top: 6px;
   text-align: right;
+  font-weight: 600;
 }
 
 /* 3단계: 이 손님은 어떤 사람인가 */
@@ -359,7 +361,7 @@ ${PRODUCTS_CSS}
 }
 
 .dp-subhead {
-  font-family: var(--nb-serif);
+  font-family: var(--nb-sans);
   font-size: 1.25rem;
   color: #ffffff;
   margin: 0 0 16px 0;
@@ -367,8 +369,8 @@ ${PRODUCTS_CSS}
 
 .dp-person-item {
   margin-bottom: 14px;
-  font-size: 0.9rem;
-  line-height: 1.6;
+  font-size: 0.95rem;
+  line-height: 1.85;
 }
 
 .dp-person-item:last-child {
@@ -377,7 +379,7 @@ ${PRODUCTS_CSS}
 
 .dp-person-item strong {
   display: block;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   color: var(--nb-gold);
   margin-bottom: 4px;
 }
@@ -407,7 +409,7 @@ ${PRODUCTS_CSS}
   border: 1px solid rgba(212,175,55,0.3);
   border-radius: 6px;
   padding: 6px 10px;
-  font-size: 0.84rem;
+  font-size: 0.88rem;
   color: var(--nb-gold-2);
   word-break: keep-all;
 }
@@ -421,8 +423,8 @@ ${PRODUCTS_CSS}
 }
 
 .dp-hours-lead {
-  font-size: 0.92rem;
-  line-height: 1.6;
+  font-size: 0.95rem;
+  line-height: 1.85;
   color: var(--nb-ink-2);
   margin: 0 0 16px 0;
   word-break: keep-all;
@@ -457,7 +459,7 @@ ${PRODUCTS_CSS}
 }
 
 .dp-hour-name {
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   color: var(--nb-ink);
 }
 
@@ -469,17 +471,17 @@ ${PRODUCTS_CSS}
 }
 
 .dp-hour-time {
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   color: var(--nb-ink-2);
 }
 
 .dp-hour-gods {
-  font-size: 0.8rem;
+  font-size: 0.88rem;
   color: var(--nb-ink-3);
 }
 
 .dp-hour-badge {
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   color: #7ef5a0;
   background: rgba(126,245,160,0.12);
   border: 1px solid rgba(126,245,160,0.3);
@@ -489,10 +491,10 @@ ${PRODUCTS_CSS}
 }
 
 .dp-mist-divider {
-  font-family: monospace;
-  font-size: 0.8rem;
+  font-family: var(--nb-sans);
+  font-size: 0.88rem;
   color: var(--nb-gold);
-  opacity: 0.7;
+  opacity: 0.8;
   text-align: center;
   margin: 18px 0 10px 0;
 }
@@ -550,8 +552,8 @@ ${PRODUCTS_CSS}
 .dp-hours-notice {
   text-align: center;
   margin-top: 14px;
-  font-size: 0.9rem;
-  line-height: 1.55;
+  font-size: 0.92rem;
+  line-height: 1.6;
   color: var(--nb-ink-2);
 }
 
@@ -584,7 +586,7 @@ ${PRODUCTS_CSS}
 }
 
 .dp-locked-badge {
-  font-family: var(--nb-serif);
+  font-family: var(--nb-sans);
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--nb-gold);
@@ -595,16 +597,16 @@ ${PRODUCTS_CSS}
 
 .dp-locked-desc strong {
   display: block;
-  font-size: 0.92rem;
+  font-size: 0.94rem;
   color: #ffffff;
   margin-bottom: 2px;
 }
 
 .dp-locked-desc p {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   color: var(--nb-ink-3);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 /* 6단계: 값 */
@@ -618,14 +620,14 @@ ${PRODUCTS_CSS}
 }
 
 .dp-price-amount {
-  font-family: var(--nb-serif);
+  font-family: var(--nb-sans);
   font-size: 2.1rem;
   font-weight: 700;
   color: var(--nb-gold-2);
 }
 
 .dp-price-vat {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   color: var(--nb-ink-3);
 }
 
@@ -650,9 +652,10 @@ ${PRODUCTS_CSS}
 }
 
 .dp-guarantee-text {
-  font-size: 0.84rem;
+  font-size: 0.9rem;
   color: var(--nb-ink-2);
-  line-height: 1.6;
+  line-height: 1.85;
+  letter-spacing: 0.2px;
   margin: 0;
 }
 </style>

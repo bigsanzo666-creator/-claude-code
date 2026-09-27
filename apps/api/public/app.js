@@ -1283,7 +1283,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // 3-1. 택일 상품: 후보 날짜가 없으면 /api/preview 를 부르지 않고 안내 후 /pick 화면으로 이동
       if (targetProductId === 'pick-report') {
         consultSay.textContent = '“의사 선생님께 받은 날짜를 넣으시면 점수를 내어 드릴게.”';
-        consultFields.innerHTML = '<div style="text-align:center;padding:16px;color:#a0a0b2;font-size:13.5px;line-height:1.6;">출산택일은 의사 선생님과 상의된 수술 가능 일시가 필요합니다.</div>';
+        consultFields.innerHTML = '<div style="text-align:center;padding:16px;color:#a0a0b2;font-size:15px;line-height:1.85;">출산택일은 의사 선생님과 상의된 수술 가능 일시가 필요합니다.</div>';
         consultCta.textContent = '택일 화면으로 이동';
         consultCta.disabled = false;
         consultCta.onclick = () => {
@@ -1297,7 +1297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const partnerDate = consultAnswers['partnerBirth'] && consultAnswers['partnerBirth'].trim();
         if (!partnerDate) {
           consultSay.textContent = '“상대 생년월일을 알려 주면 맞물려 볼게.”';
-          consultFields.innerHTML = '<div style="text-align:center;padding:16px;color:#a0a0b2;font-size:13.5px;line-height:1.6;">상대방의 생년월일을 먼저 알려주세요.</div>';
+          consultFields.innerHTML = '<div style="text-align:center;padding:16px;color:#a0a0b2;font-size:15px;line-height:1.85;">상대방의 생년월일을 먼저 알려주세요.</div>';
           consultCta.textContent = '상세 안내 보기';
           consultCta.disabled = false;
           consultCta.onclick = () => {
@@ -1367,13 +1367,13 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="background:rgba(18,18,28,0.95);border:1px solid rgba(212,175,55,0.35);border-radius:8px;padding:14px;margin-top:8px;text-align:left;">
             <div style="font-size:15px;font-weight:700;color:#f3e5ab;margin-bottom:4px;">${pInfo.name}</div>
             <div style="font-size:14px;color:#d4af37;font-weight:700;margin-bottom:12px;">${Number(pInfo.priceKrw).toLocaleString()}원 (부가세 포함)</div>
-            <div style="font-size:12.5px;color:#ddd;margin-bottom:10px;line-height:1.6;">
+            <div style="font-size:14px;color:#ddd;margin-bottom:10px;line-height:1.85;">
               <strong style="color:#fff;display:block;margin-bottom:4px;">📜 리포트에 담기는 내용:</strong>
               <ul style="margin:0;padding-left:18px;">
                 ${(data.preview.contents || []).map(c => `<li style="margin-bottom:3px;">${c}</li>`).join('')}
               </ul>
             </div>
-            <div style="font-size:11px;color:#888;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;line-height:1.5;">
+            <div style="font-size:14px;color:#bebecc;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;line-height:1.6;">
               ${data.notice}
             </div>
           </div>

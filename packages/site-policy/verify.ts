@@ -314,7 +314,7 @@ section('10. 첫 화면');
   check('제목 글씨는 실제로 받아 오는 것만 쓴다',
     PRODUCTS_CSS.includes('--nb-serif:"Noto Serif KR"') && FONT_LINK.includes('Noto+Serif+KR'));
   check('본문 글씨도 실제로 받아 오는 것만 쓴다',
-    PRODUCTS_CSS.includes('--nb-sans:"Noto Sans KR"') && FONT_LINK.includes('Noto+Sans+KR'));
+    PRODUCTS_CSS.includes('--nb-sans:"Pretendard","Noto Sans KR"') && FONT_LINK.includes('Noto+Sans+KR'));
   check('로고가 인장보다 크다', LANDING_CSS.includes('.lp-name{font-family:var(--nb-serif);font-size:20px')
     && LANDING_CSS.includes('.lp-seal{width:26px'));
 

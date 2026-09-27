@@ -118,39 +118,39 @@ export const WHY_CSS = `
  * 글씨가 우리 이름이 아니라 손님의 의심("GPT랑 뭐가 다른데")이다.
  */
 .why{margin:56px 0 0;padding:34px 0 0;border-top:1px solid var(--nb-line)}
-.why-cat{margin:0 0 10px;font-size:11.5px;letter-spacing:.2em;color:var(--nb-gold)}
-.why-q{margin:0 0 18px;font-family:var(--nb-serif);font-size:20px;font-weight:400;
+.why-cat{margin:0 0 10px;font-size:14px;letter-spacing:.2em;color:var(--nb-gold)}
+.why-q{margin:0 0 18px;font-family:var(--nb-sans);font-size:22px;font-weight:600;
   line-height:1.5;word-break:keep-all}
 .why-hero{margin:0 0 16px;padding:20px 18px;border:1px solid var(--nb-line);
-  background:var(--nb-paper-2);text-align:center;font-family:var(--nb-serif);
-  font-size:19px;line-height:1.6;word-break:keep-all}
-.why-b{margin:0 0 22px;font-size:14.5px;line-height:1.9;color:var(--nb-ink-2);
+  background:var(--nb-paper-2);text-align:center;font-family:var(--nb-sans);
+  font-size:19px;font-weight:600;line-height:1.6;word-break:keep-all}
+.why-b{margin:0 0 22px;font-size:16px;line-height:1.85;color:var(--nb-ink-2);
   word-break:keep-all}
-.why-b strong{color:var(--nb-ink);font-weight:500}
-.why-l{margin:26px 0 12px;font-size:11.5px;letter-spacing:.2em;color:var(--nb-gold)}
+.why-b strong{color:var(--nb-ink);font-weight:600}
+.why-l{margin:26px 0 12px;font-size:14px;letter-spacing:.2em;color:var(--nb-gold)}
 
 /* 네 층 — 앞의 셋은 규칙, 마지막 하나만 모델. 그 경계가 보여야 한다 */
 .why-stack{margin:0 0 20px;padding:0;list-style:none}
-.why-f{display:grid;grid-template-columns:38px 1fr auto;align-items:center;gap:12px;
+.why-f{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:12px;
   padding:13px 14px;margin:0 0 6px;border:1px solid var(--nb-line-soft);
   background:var(--nb-paper-2)}
-.why-n{font-size:11px;letter-spacing:.08em;color:var(--nb-ink-3);font-weight:400}
-.why-d{font-size:13.5px;line-height:1.6;color:var(--nb-ink-2);word-break:keep-all}
-.why-d em{display:block;font-style:normal;font-family:var(--nb-serif);font-size:16px;
+.why-n{font-size:14px;letter-spacing:.08em;color:var(--nb-ink-3);font-weight:600}
+.why-d{font-size:15px;line-height:1.85;color:var(--nb-ink-2);word-break:keep-all}
+.why-d em{display:block;font-style:normal;font-family:var(--nb-sans);font-size:17px;font-weight:600;
   color:var(--nb-ink);margin-bottom:2px}
-.why-by{flex:0 0 auto;font-style:normal;font-size:10.5px;letter-spacing:.1em;
+.why-by{flex:0 0 auto;font-style:normal;font-size:14px;letter-spacing:.1em;
   padding:4px 9px;border:1px solid var(--nb-line);color:var(--nb-ink-3)}
 .why-ai{border-color:var(--nb-gold);color:var(--nb-gold)}
 
 .why-grid{display:grid;gap:10px}
 .why-c{padding:18px;border:1px solid var(--nb-line-soft);background:var(--nb-paper-2)}
-.why-c h4{margin:0 0 8px;font-family:var(--nb-serif);font-size:16px;font-weight:400;
+.why-c h4{margin:0 0 8px;font-family:var(--nb-sans);font-size:17px;font-weight:600;
   line-height:1.5;word-break:keep-all}
-.why-c p{margin:0;font-size:13.5px;line-height:1.85;color:var(--nb-ink-2);
+.why-c p{margin:0;font-size:15px;line-height:1.85;color:var(--nb-ink-2);
   word-break:keep-all}
 
 @media (min-width:760px){
-  .why-q{font-size:24px}
+  .why-q{font-size:25px}
   .why-hero{font-size:23px;padding:28px 24px}
   .why-grid{grid-template-columns:1fr 1fr}
 }

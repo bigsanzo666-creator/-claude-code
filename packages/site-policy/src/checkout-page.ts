@@ -74,31 +74,31 @@ function hourOptions(name: string): string {
 
 export const CHECKOUT_CSS = `
 .co{max-width:560px;margin:0 auto;padding:22px 18px 60px}
-.co-back{display:inline-block;color:#b9b2c6;text-decoration:none;font-size:13px;margin-bottom:14px}
+.co-back{display:inline-block;color:#b9b2c6;text-decoration:none;font-size:15px;letter-spacing:0.2px;margin-bottom:14px}
 .co-what{background:rgba(255,255,255,.04);border:1px solid rgba(212,175,55,.32);
   border-radius:12px;padding:16px 16px 14px;margin-bottom:18px}
 .co-what-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:12px}
 .co-img{width:64px;height:80px;object-fit:cover;border-radius:6px;flex:0 0 64px;background:rgba(255,255,255,.05)}
 .co-what-info{flex:1 1 auto;min-width:0}
 .co-saved-link{margin:18px 0;padding:16px 18px;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.3);border-radius:10px}
-.co-saved-title{font-size:14px;font-weight:700;color:#f3e5ab;margin:0 0 10px}
+.co-saved-title{font-size:15px;font-weight:700;color:#f3e5ab;margin:0 0 10px}
 .co-copy-box{display:flex;gap:8px}
-.co-copy-box input{flex:1 1 auto;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:8px 12px;color:#fff;font-size:13px}
-.co-copy-box button{flex:0 0 auto;background:#d4af37;color:#18151f;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer}
-.co-copy-done{font-size:12px;color:#4ade80;margin:6px 0 0}
+.co-copy-box input{flex:1 1 auto;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:8px 12px;color:#fff;font-size:14px}
+.co-copy-box button{flex:0 0 auto;background:#d4af37;color:#18151f;border:none;border-radius:6px;padding:8px 14px;font-size:14px;font-weight:700;cursor:pointer}
+.co-copy-done{font-size:14px;color:#4ade80;margin:6px 0 0}
   border-radius:12px;padding:16px 16px 14px;margin-bottom:18px}
 .co-name{font-size:19px;font-weight:800;color:#f3e5ab;margin:0 0 4px}
-.co-hook{font-size:13.5px;color:#c8c2d4;margin:0 0 12px;line-height:1.6}
+.co-hook{font-size:15px;color:#c8c2d4;margin:0 0 12px;line-height:1.85}
 .co-price{display:flex;align-items:baseline;justify-content:space-between;
   border-top:1px solid rgba(255,255,255,.1);padding-top:12px}
 .co-price b{font-size:22px;color:#d4af37;font-weight:800}
-.co-price span{font-size:12px;color:#9a93a6}
-.co-pricenote{margin:10px 0 0;font-size:12.5px;color:#c9a34a;line-height:1.55}
+.co-price span{font-size:14px;color:#9a93a6}
+.co-pricenote{margin:10px 0 0;font-size:14px;color:#c9a34a;line-height:1.85}
 .co-pricenote b{color:#e8c86a}
-.co-sec{margin:0 0 10px;font-size:14px;font-weight:700;color:#efe9f5}
+.co-sec{margin:0 0 10px;font-size:15px;font-weight:700;color:#efe9f5}
 .co-f{display:block;margin-bottom:12px}
-.co-f label{display:block;font-size:13px;color:#c8c2d4;margin-bottom:5px}
-.co-hint{display:block;font-size:12px;color:#b9b2c6;margin-top:6px;line-height:1.5}
+.co-f label{display:block;font-size:14px;color:#c8c2d4;margin-bottom:5px}
+.co-hint{display:block;font-size:14px;color:#b9b2c6;margin-top:6px;line-height:1.5}
 .co-f input,.co-f select{width:100%;box-sizing:border-box;padding:11px 12px;font-size:16px;
   border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(12,10,18,.92);
   color:#f4f1f8;font-family:inherit}
@@ -111,25 +111,25 @@ export const CHECKOUT_CSS = `
 .co-addkin:disabled{opacity:.4;cursor:not-allowed}
 .co-kin{border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px;margin-bottom:10px}
 .co-kin-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.co-kin-top b{font-size:13px;color:#e4dfea}
-.co-kin-del{background:none;border:none;color:#9a93a6;font-size:13px;cursor:pointer;font-family:inherit}
+.co-kin-top b{font-size:14px;color:#e4dfea}
+.co-kin-del{background:none;border:none;color:#9a93a6;font-size:14px;cursor:pointer;font-family:inherit}
 .co-note{background:rgba(12,10,18,.6);border:1px solid rgba(255,255,255,.1);
   border-radius:10px;padding:13px 14px;margin:18px 0 14px}
-.co-note p{margin:0 0 7px;font-size:12.5px;color:#bdb6c8;line-height:1.65}
+.co-note p{margin:0 0 7px;font-size:14px;color:#bdb6c8;line-height:1.85}
 .co-note p:last-child{margin-bottom:0}
 .co-agree{display:flex;gap:9px;align-items:flex-start;margin:0 0 16px;cursor:pointer}
 .co-agree input{width:19px;height:19px;flex:0 0 auto;margin:1px 0 0;accent-color:#d4af37}
-.co-agree span{font-size:13px;color:#e4dfea;line-height:1.55}
+.co-agree span{font-size:14px;color:#e4dfea;line-height:1.6}
 .co-pay{display:block;width:100%;padding:16px;font-size:17px;font-weight:800;
   border:none;border-radius:10px;background:linear-gradient(135deg,#d4af37,#f0d478);
   color:#1a1208;cursor:pointer;font-family:inherit}
 .co-pay:disabled{background:rgba(255,255,255,.12);color:#8b8496;cursor:not-allowed}
-.co-msg{margin:14px 0 0;font-size:13.5px;line-height:1.6;color:#e8b4b4;min-height:1em}
+.co-msg{margin:14px 0 0;font-size:15px;line-height:1.85;color:#e8b4b4;min-height:1em}
 .co-msg.ok{color:#9fd8a8}
 .co-soon{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);
-  border-radius:10px;padding:16px;font-size:14px;color:#d8d3e0;line-height:1.7}
+  border-radius:10px;padding:16px;font-size:15px;color:#d8d3e0;line-height:1.85}
 .co-done{white-space:pre-wrap;background:rgba(12,10,18,.75);border:1px solid rgba(212,175,55,.3);
-  border-radius:10px;padding:16px;margin-top:16px;font-size:14px;line-height:1.85;color:#efeaf4}
+  border-radius:10px;padding:16px;margin-top:16px;font-size:15px;line-height:1.85;color:#efeaf4}
 `;
 
 /**

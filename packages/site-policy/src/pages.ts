@@ -88,18 +88,18 @@ export const FOOTER_CSS = `
 .biz{max-width:720px;margin:0 auto;padding:26px 22px 34px;
   border-top:1px solid var(--line,var(--nb-line));
   color:var(--muted,var(--nb-ink-3));
-  font:12.5px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
+  font:14px/1.85 "Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif}
 .biz-links{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 18px;
   padding:0 0 16px;border-bottom:1px solid var(--line,var(--nb-line))}
-.biz-links a{color:var(--muted,var(--nb-ink-2));text-decoration:none;font-size:13px}
+.biz-links a{color:var(--muted,var(--nb-ink-2));text-decoration:none;font-size:14px}
 .biz-links a:hover{color:var(--accent,var(--nb-gold));text-decoration:underline;text-underline-offset:3px}
 /* 이름과 값을 줄로 나눈다. 폰에서 글이 통째로 이어지지 않게 */
 .biz-rows{margin:0;display:grid;gap:5px}
 .biz-row{display:grid;grid-template-columns:88px 1fr;gap:10px;align-items:baseline}
-.biz-row dt{margin:0;font-size:11.5px;letter-spacing:.02em;color:var(--muted,var(--nb-ink-3));opacity:.85}
+.biz-row dt{margin:0;font-size:14px;letter-spacing:.02em;color:var(--muted,var(--nb-ink-3));opacity:.9}
 .biz-row dd{margin:0;color:var(--fg,var(--nb-ink-2));word-break:keep-all;overflow-wrap:anywhere}
 .biz-note{margin:18px 0 0;padding-top:14px;border-top:1px solid var(--line,var(--nb-line));
-  word-break:keep-all;line-height:1.75}
+  word-break:keep-all;line-height:1.85}
 @media (min-width:640px){
   .biz-rows{grid-template-columns:1fr 1fr;gap:5px 28px}
 }
@@ -109,13 +109,13 @@ const CSS = `
 /* 정책 페이지도 본 화면과 같은 밤 한 벌이다. 여기만 하얗게 뒤집히면 딴 집 같다.
    값은 상품 화면 쪽과 같은 것을 쓴다 — 한쪽만 고치면 화면이 어긋난다 */
 :root{color-scheme:dark;
-  --fg:#F5F5F7;--muted:#A0A0B2;--line:rgba(255,255,255,.14);--bg:#06060A;--accent:#D4AF37}
+  --fg:#F5F5F7;--muted:#BEBECC;--line:rgba(255,255,255,.14);--bg:#06060A;--accent:#D4AF37}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);
-  font:15px/1.75 "Noto Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
+  font:17px/1.85 "Pretendard","Noto Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",system-ui,sans-serif}
 main{max-width:720px;margin:0 auto;padding:32px 20px 64px}
 h1{font-size:24px;margin:0 0 4px}
-.meta{color:var(--muted);font-size:13px;margin:0 0 28px}
+.meta{color:var(--muted);font-size:14px;letter-spacing:0.2px;margin:0 0 28px}
 h2{font-size:17px;margin:32px 0 8px;padding-top:16px;border-top:1px solid var(--line)}
 p,li{margin:8px 0}
 ul,ol{padding-left:22px}

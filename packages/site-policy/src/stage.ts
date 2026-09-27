@@ -221,7 +221,7 @@ export function renderStage(
           <select id="stPlace">
         ${places}
           </select>
-          <div class="st-hint-text" style="font-size:12px;color:#b9b2c6;margin-top:6px;line-height:1.5;">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</div>
+          <div class="st-hint-text" style="font-size:14px;color:#b9b2c6;margin-top:6px;line-height:1.5;">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</div>
         </div>
         <div class="st-q" data-q="sex" hidden>
           <select id="stSex">
@@ -544,7 +544,7 @@ function stageFace(id: string, seal: string, faces: SpiritImages, size: number):
  */
 export const STAGE_CSS = `
 .stage{position:fixed;inset:0;z-index:80;background:var(--nb-paper);
-  font:16px/1.75 var(--nb-sans);color:var(--nb-ink)}
+  font:17px/1.85 var(--nb-sans);color:var(--nb-ink)}
 .stage[hidden]{display:none}
 /* 덮개가 떠 있는 동안 뒤 화면은 움직이지 않는다 */
 body.st-locked{overflow:hidden}
@@ -563,20 +563,20 @@ body.st-locked{overflow:hidden}
 .st-in{position:absolute;left:0;right:0;bottom:0;padding:0 24px 34px;
   max-width:560px;margin:0 auto;box-sizing:border-box}
 .st-mid{top:0;display:grid;place-items:center;padding:0}
-.st-kicker{margin:0 0 12px;font-size:12px;letter-spacing:.26em;color:var(--nb-gold)}
-.st-h{font-family:var(--nb-serif);font-weight:500;font-size:27px;line-height:1.55;
+.st-kicker{margin:0 0 12px;font-size:14px;letter-spacing:.26em;color:var(--nb-gold)}
+.st-h{font-family:var(--nb-serif);font-weight:600;font-size:27px;line-height:1.55;
   letter-spacing:-.01em;word-break:keep-all;margin:0 0 12px}
 .st-h em{font-style:normal;color:var(--nb-gold)}
-.st-sub{margin:0 0 22px;font-size:14.5px;line-height:1.8;color:var(--nb-ink-2);
+.st-sub{margin:0 0 22px;font-size:16px;line-height:1.85;color:var(--nb-ink-2);
   max-width:26em;word-break:keep-all}
 .st-open-t{font-family:var(--nb-serif);font-size:19px;letter-spacing:.24em;color:var(--nb-gold)}
 
 .st-form{display:grid;grid-template-columns:1fr 1fr;gap:13px}
 .st-f{display:block;min-width:0}
 .st-wide{grid-column:1/-1}
-.st-l{display:block;margin:0 0 6px;font-size:12px;letter-spacing:.16em;color:var(--nb-gold)}
+.st-l{display:block;margin:0 0 6px;font-size:14px;letter-spacing:.16em;color:var(--nb-gold)}
 .st-f input,.st-f select,.st-q input,.st-q select{width:100%;box-sizing:border-box;padding:13px;
-  font:16px/1.4 var(--nb-sans);color:var(--nb-ink);background:var(--nb-paper-2);
+  font:17px/1.4 var(--nb-sans);color:var(--nb-ink);background:var(--nb-paper-2);
   border:1px solid var(--nb-line);border-radius:0;appearance:none}
 .st-f input:focus,.st-f select:focus{outline:2px solid var(--nb-gold);outline-offset:-2px}
 .st-bar{grid-column:1/-1;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
@@ -639,9 +639,9 @@ body.st-locked{overflow:hidden}
 .st-dots{display:flex;gap:6px;padding:0}
 .st-dots i{width:20px;height:2px;background:var(--nb-line);display:block}
 .st-dots i.on{background:var(--nb-gold)}
-.st-say{margin:0 0 8px;font-family:var(--nb-serif);font-weight:500;font-size:25px;
+.st-say{margin:0 0 8px;font-family:var(--nb-serif);font-weight:600;font-size:25px;
   line-height:1.55;letter-spacing:-.01em;word-break:keep-all;color:var(--nb-ink)}
-.st-hint{margin:0 0 20px;font-size:13.5px;line-height:1.75;color:var(--nb-ink-3);
+.st-hint{margin:0 0 20px;font-size:15px;line-height:1.85;color:var(--nb-ink-3);
   word-break:keep-all}
 .st-q[hidden]{display:none}
 .st-talk .st-go{width:100%;padding:16px}
@@ -651,9 +651,9 @@ body.st-locked{overflow:hidden}
 .st-go:hover,.st-next:hover{background:transparent;color:var(--nb-gold)}
 /* 글 아래에 그대로 붙는다. 화면 구석에 따로 떠 있으면 넓은 화면에서 글자를 덮는다 */
 .st-next{margin:10px 0 0}
-.st-msg{font-size:13.5px;color:var(--nb-gold)}
+.st-msg{font-size:15px;color:var(--nb-gold)}
 .st-skip{display:block;margin:16px 0 0;padding:0;border:0;background:none;
-  font:13px var(--nb-sans);color:var(--nb-ink-3);text-decoration:underline;
+  font:15px var(--nb-sans);color:var(--nb-ink-3);text-decoration:underline;
   text-underline-offset:3px;cursor:pointer}
 
 /* ── 첫 화면 발치의 사업자 정보 ───────────────────────────────
@@ -663,10 +663,10 @@ body.st-locked{overflow:hidden}
    띄우면 발치의 단추를 가리고, 가리면 손님이 못 들어온다. */
 .st-biz{margin:16px 0 0;padding:11px 0 0;border-top:1px solid var(--nb-line-soft)}
 .st-biz-links{display:flex;flex-wrap:wrap;gap:4px 13px;margin:0 0 7px}
-.st-biz-links a{font:12px var(--nb-sans);color:var(--nb-gold);text-decoration:none}
+.st-biz-links a{font:14px var(--nb-sans);color:var(--nb-gold);text-decoration:none}
 .st-biz-links a:hover{text-decoration:underline;text-underline-offset:3px}
 .st-biz-rows{display:flex;flex-wrap:wrap;gap:0 10px;margin:0;
-  font:11px/1.6 var(--nb-sans);color:var(--nb-ink-3);word-break:keep-all}
+  font:14px/1.85 var(--nb-sans);color:var(--nb-ink-3);word-break:keep-all}
 .st-biz-rows b{font-weight:400;color:var(--nb-ink-3);opacity:.75}
 
 /* 신령계·신령 판은 안에서 조금 움직일 수 있다. 뒤 화면으로 넘어가는 스크롤이 아니라
@@ -728,21 +728,21 @@ body.st-locked{overflow:hidden}
 
 .wd-c-in{display:grid;align-content:start;gap:7px;padding:14px 15px 16px}
 .wd-c-who{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.wd-c-who b{font-family:var(--nb-serif);font-weight:500;font-size:17px}
-.wd-c-who i{font-style:normal;font-size:11px;letter-spacing:.14em;color:var(--nb-gold)}
+.wd-c-who b{font-family:var(--nb-sans);font-weight:600;font-size:17px}
+.wd-c-who i{font-style:normal;font-size:14px;letter-spacing:.14em;color:var(--nb-gold)}
 /* 손님 머릿속에 이미 있는 물음. 카드에서 제일 크게 읽혀야 한다 */
-.wd-c-ask{font-family:var(--nb-serif);font-size:16px;line-height:1.55;
+.wd-c-ask{font-family:var(--nb-sans);font-size:16px;line-height:1.85;
   color:var(--nb-ink);word-break:keep-all}
 
 .wd-bottom{position:relative;z-index:2;padding:0 20px 22px;
   max-width:560px;margin:0 auto;width:100%;box-sizing:border-box}
-.wd-swipe{margin:0 0 12px;font-size:12px;letter-spacing:.06em;color:var(--nb-ink-3);text-align:center}
+.wd-swipe{margin:0 0 12px;font-size:14px;letter-spacing:.06em;color:var(--nb-ink-3);text-align:center}
 .wd-free{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
   padding:15px 20px;border:1px solid var(--nb-gold);border-radius:12px;
   background:var(--nb-paper-2);cursor:pointer;font:inherit;color:inherit;text-align:left}
 .wd-free:hover{background:var(--nb-paper-3)}
-.wd-free-t{font-family:var(--nb-serif);font-size:16.5px;word-break:keep-all}
-.wd-free-go{font-size:13.5px;color:var(--nb-gold);white-space:nowrap}
+.wd-free-t{font-family:var(--nb-sans);font-size:17px;font-weight:600;word-break:keep-all}
+.wd-free-go{font-size:15px;color:var(--nb-gold);white-space:nowrap}
 
 /* 넓은 화면에서는 밀 필요가 없다. 한눈에 펼친다 */
 @media (min-width:760px){
@@ -759,7 +759,7 @@ body.st-locked{overflow:hidden}
 .st-ask-box{width:100%;max-width:360px;padding:26px 24px;background:var(--nb-paper-2);
   border:1px solid var(--nb-gold);box-sizing:border-box}
 .st-ask-t{margin:0 0 10px;font-family:var(--nb-serif);font-size:20px}
-.st-ask-b{margin:0 0 20px;font-size:14px;line-height:1.8;color:var(--nb-ink-2);word-break:keep-all}
+.st-ask-b{margin:0 0 20px;font-size:15px;line-height:1.85;color:var(--nb-ink-2);word-break:keep-all}
 .st-ask-bar{display:flex;gap:10px}
 .st-stay,.st-leave{flex:1;padding:13px 10px;font:500 15px var(--nb-sans);cursor:pointer;
   border:1px solid var(--nb-ink)}
@@ -768,7 +768,7 @@ body.st-locked{overflow:hidden}
 
 /* 신령 하나의 판 */
 .st-back{margin:0 0 20px;padding:0;border:0;background:none;cursor:pointer;
-  font:13.5px var(--nb-sans);color:var(--nb-gold)}
+  font:15px var(--nb-sans);color:var(--nb-gold)}
 .sp-top{display:flex;align-items:center;gap:14px;margin:0 0 14px}
 .sp-q{font-size:24px;margin:0}
 /*
@@ -781,7 +781,7 @@ body.st-locked{overflow:hidden}
  * 그래서 그림을 왼쪽에 작게 두고 글을 옆에 세웠다. 넷이 한 화면에
  * 들어오면 그때부터 「고르는 것」이 된다 — 그 전에는 스크롤이다.
  */
-.sp-l{margin:26px 0 12px;font-size:11.5px;letter-spacing:.2em;color:var(--nb-gold)}
+.sp-l{margin:26px 0 12px;font-size:14px;letter-spacing:.2em;color:var(--nb-gold)}
 .sp-list{display:grid;gap:10px}
 .sp-item{display:grid;grid-template-columns:96px 1fr;align-items:stretch;gap:0;
   width:100%;padding:0;text-align:left;cursor:pointer;
@@ -794,26 +794,26 @@ body.st-locked{overflow:hidden}
 /* 글 두 줄은 한 덩어리로 묶어 오른쪽 칸을 통째로 쓴다.
    따로 두면 이름이 그림 밑으로 흘러내린다 */
 .sp-text{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:12px 14px}
-.sp-hook{font-size:12.5px;color:var(--nb-gold);word-break:keep-all;line-height:1.5}
-.sp-item .sp-name{font-family:var(--nb-serif);font-size:16.5px;line-height:1.4;
+.sp-hook{font-size:14px;color:var(--nb-gold);word-break:keep-all;line-height:1.85}
+.sp-item .sp-name{font-family:var(--nb-sans);font-weight:600;font-size:17px;line-height:1.4;
   word-break:keep-all}
 .sp-plain{display:grid;gap:10px;margin-top:20px}
 .sp-back{display:block;width:100%;margin:26px 0 0;padding:15px;
   border:1px solid var(--nb-line);background:none;color:var(--nb-ink-2);
-  font:14.5px var(--nb-sans);cursor:pointer}
+  font:15px var(--nb-sans);cursor:pointer}
 .sp-back:hover{border-color:var(--nb-gold);color:var(--nb-ink)}
 .sp-plain a{color:var(--nb-ink);font-size:15px}
 
 /* 신령이 여기서 끊고 리포트로 넘기는 말 */
 .sp-taste-more{margin:14px 0 0;padding-top:14px;border-top:1px dashed var(--nb-line);
-  font-family:var(--nb-serif);font-size:15px;color:var(--nb-gold);line-height:1.75}
+  font-family:var(--nb-sans);font-size:16px;color:var(--nb-gold);line-height:1.85}
 .sp-buy{display:block;width:100%;margin:14px 0 0;padding:14px;text-align:center;
   text-decoration:none;border:1px solid var(--nb-gold);background:var(--nb-gold);
   color:var(--nb-paper);font:500 15px var(--nb-sans)}
 .sp-buy:hover{background:transparent;color:var(--nb-gold)}
 
 /* 왜 묻는지 밝히면 손님이 덜 도망간다 */
-.st-why{font-style:normal;font-size:11px;letter-spacing:0;color:var(--nb-ink-3)}
+.st-why{font-style:normal;font-size:14px;letter-spacing:0;color:var(--nb-ink-3)}
 
 /*
  * 값을 받기 전에 펼쳐 주는 긴 풀이.
@@ -823,30 +823,30 @@ body.st-locked{overflow:hidden}
  */
 .sp-read{margin:18px 0 0;padding:20px 0 0;border-top:1px solid var(--nb-line)}
 .sp-read[hidden]{display:none}
-.rd-say{font-size:15px;line-height:1.95;word-break:keep-all}
+.rd-say{font-size:16px;line-height:1.85;word-break:keep-all}
 .rd-say p{margin:0 0 12px}
 .rd-say p:last-child{margin:0}
-.rd-head{margin:16px 0 0;font-family:var(--nb-serif);font-size:16px;color:var(--nb-gold)}
+.rd-head{margin:16px 0 0;font-family:var(--nb-sans);font-weight:600;font-size:17px;color:var(--nb-gold)}
 .rd-b{margin:26px 0 0}
-.rd-t{margin:0 0 10px;font-size:11.5px;letter-spacing:.2em;color:var(--nb-gold);font-weight:400}
-.rd-b p{margin:0 0 10px;font-size:14.5px;line-height:1.9;word-break:keep-all}
+.rd-t{margin:0 0 10px;font-size:14px;letter-spacing:.2em;color:var(--nb-gold);font-weight:600}
+.rd-b p{margin:0 0 10px;font-size:16px;line-height:1.85;word-break:keep-all}
 .rd-b p:last-child{margin:0}
 
 /* 여덟 글자 표 — 글자는 크게, 십신은 그 밑에 작게 */
-.rd-tb{width:100%;border-collapse:collapse;font-size:13px}
-.rd-tb th{padding:6px 4px;text-align:center;font-weight:400;font-size:11px;
+.rd-tb{width:100%;border-collapse:collapse;font-size:15px}
+.rd-tb th{padding:6px 4px;text-align:center;font-weight:600;font-size:14px;
   letter-spacing:.14em;color:var(--nb-ink-3);border-bottom:1px solid var(--nb-line)}
 .rd-tb td{padding:9px 4px;text-align:center;border-bottom:1px solid var(--nb-line-soft)}
-.rd-tb td:first-child{color:var(--nb-ink-3);font-size:12px}
+.rd-tb td:first-child{color:var(--nb-ink-3);font-size:14px}
 .rd-ch{display:block;font-family:var(--nb-serif);font-size:19px;line-height:1.3}
-.rd-god{display:block;font-size:11px;color:var(--nb-ink-3);margin-top:2px}
+.rd-god{display:block;font-size:14px;color:var(--nb-ink-3);margin-top:2px}
 
 /* 오행 막대 */
 .rd-bar{display:grid;grid-template-columns:1fr 90px 34px;align-items:center;gap:10px;
-  margin:0 0 8px;font-size:13px}
+  margin:0 0 8px;font-size:15px}
 .rd-bar-t{display:block;height:7px;background:var(--nb-line-soft)}
 .rd-bar-t i{display:block;height:100%;background:var(--nb-gold)}
-.rd-bar-n{text-align:right;color:var(--nb-ink-3);font-size:12px}
+.rd-bar-n{text-align:right;color:var(--nb-ink-3);font-size:14px}
 /* 아예 없는 기운은 눈에 띄어야 한다 — 비어 있는 것이 알맹이다 */
 .rd-zero .rd-bar-l{color:var(--nb-ink-3)}
 .rd-zero .rd-bar-n{color:var(--nb-gold)}
@@ -857,16 +857,16 @@ body.st-locked{overflow:hidden}
 .rd-lk{flex:0 0 auto;width:96px;padding:10px 8px;text-align:center;
   border:1px solid var(--nb-line-soft);background:var(--nb-paper-2)}
 .rd-lk b{display:block;font-family:var(--nb-serif);font-size:17px;font-weight:400}
-.rd-lk span{display:block;font-size:11px;color:var(--nb-ink-3);margin-top:3px}
-.rd-lk em{display:block;font-style:normal;font-size:11.5px;margin-top:6px;color:var(--nb-ink-2)}
+.rd-lk span{display:block;font-size:14px;color:var(--nb-ink-3);margin-top:3px}
+.rd-lk em{display:block;font-style:normal;font-size:14px;margin-top:6px;color:var(--nb-ink-2)}
 .rd-now{border-color:var(--nb-gold);background:var(--nb-paper)}
 .rd-now b{color:var(--nb-gold)}
-.rd-badge{display:inline-block;margin-top:6px;padding:2px 7px;font-size:10.5px;
+.rd-badge{display:inline-block;margin-top:6px;padding:2px 7px;font-size:14px;
   letter-spacing:.1em;background:var(--nb-gold);color:var(--nb-paper)}
-.rd-note{margin:0;padding-left:16px;font-size:13.5px;line-height:1.85;color:var(--nb-ink-2)}
+.rd-note{margin:0;padding-left:16px;font-size:15px;line-height:1.85;color:var(--nb-ink-2)}
 .rd-note li{margin:0 0 6px;word-break:keep-all}
 .rd-cut{margin:24px 0 0;padding-top:16px;border-top:1px dashed var(--nb-line);
-  font-family:var(--nb-serif);font-size:15px;line-height:1.8;color:var(--nb-gold);
+  font-family:var(--nb-sans);font-size:16px;line-height:1.85;color:var(--nb-gold);
   word-break:keep-all}
 
 /*
@@ -896,17 +896,17 @@ body.st-locked{overflow:hidden}
 .wd-peek-clip{display:block;width:100%;aspect-ratio:3/4;max-height:46dvh;margin:-24px -22px 14px;
   width:calc(100% + 44px);overflow:hidden;background:var(--nb-paper)}
 .wd-peek-clip video{display:block;width:100%;height:100%;object-fit:cover}
-.wd-peek-say{margin:8px 0 18px;font-family:var(--nb-serif);font-size:17px;line-height:1.7;
+.wd-peek-say{margin:8px 0 18px;font-family:var(--nb-sans);font-size:17px;line-height:1.85;
   word-break:keep-all}
-.wd-peek-l{margin:0 0 8px;font-size:11.5px;letter-spacing:.2em;color:var(--nb-gold)}
+.wd-peek-l{margin:0 0 8px;font-size:14px;letter-spacing:.2em;color:var(--nb-gold)}
 .wd-peek-list{margin:0 0 20px;padding:0;list-style:none;display:grid;gap:7px}
-.wd-peek-list li{font-size:14px;line-height:1.6;color:var(--nb-ink-2);word-break:keep-all}
+.wd-peek-list li{font-size:15px;line-height:1.85;color:var(--nb-ink-2);word-break:keep-all}
 .wd-peek-list li::before{content:'· '}
 .wd-peek-go{display:block;width:100%;padding:15px;border:1px solid var(--nb-ink);
   background:var(--nb-gold);color:var(--nb-paper);font:500 15.5px var(--nb-sans);cursor:pointer}
 .wd-peek-go:hover{background:transparent;color:var(--nb-gold)}
 .wd-peek-x{display:block;width:100%;margin:12px 0 0;padding:0;border:0;background:none;
-  font:13px var(--nb-sans);color:var(--nb-ink-3);text-decoration:underline;
+  font:14px var(--nb-sans);color:var(--nb-ink-3);text-decoration:underline;
   text-underline-offset:3px;cursor:pointer}
 @media (prefers-reduced-motion:reduce){ .wd-peek-in{animation:none} }
 
@@ -914,12 +914,12 @@ body.st-locked{overflow:hidden}
 .tk{margin:0 0 22px}
 .tk[hidden]{display:none}
 .tk-log{display:grid;gap:10px;margin:0 0 14px}
-.tk-say{padding:13px 15px;font-size:14.5px;line-height:1.85;word-break:keep-all;
+.tk-say{padding:13px 15px;font-size:16px;line-height:1.85;word-break:keep-all;
   border:1px solid var(--nb-line-soft);background:var(--nb-paper-2)}
 /* 신령의 말은 왼쪽, 손님의 말은 오른쪽. 누가 한 말인지 한눈에 갈린다 */
 .tk-me{justify-self:end;max-width:82%;background:var(--nb-paper-3);color:var(--nb-ink);
   border-color:var(--nb-line)}
-.tk-ask{display:block;margin:8px 0 0;color:var(--nb-gold);font-family:var(--nb-serif);font-size:15.5px}
+.tk-ask{display:block;margin:8px 0 0;color:var(--nb-gold);font-family:var(--nb-sans);font-weight:600;font-size:16px}
 .tk-wait{color:var(--nb-ink-3);font-style:italic}
 .tk-row{display:flex;gap:8px;align-items:stretch}
 .tk-l{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
@@ -931,7 +931,7 @@ body.st-locked{overflow:hidden}
   color:var(--nb-paper);font:500 15px var(--nb-sans);cursor:pointer}
 .tk-go:hover{background:transparent;color:var(--nb-gold)}
 .tk-go[disabled]{opacity:.45;cursor:default}
-.tk-note{margin:10px 0 0;font-size:12px;line-height:1.7;color:var(--nb-ink-3);word-break:keep-all}
+.tk-note{margin:10px 0 0;font-size:14px;line-height:1.85;color:var(--nb-ink-3);word-break:keep-all}
 @media (min-width:760px){
   /* 그림과 영상이 전부 세로(784x1168)다. 넓은 화면에서 가로로 늘려 자르면
      신령이 화면 밖으로 밀려나고, 신령계 지도의 자리도 그림과 어긋난다.

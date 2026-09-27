@@ -72,27 +72,27 @@ export const LANDING_CSS = `
 .lp-lead{padding:20px 0 52px}
 .lp-brand{display:flex;align-items:center;gap:10px}
 .lp-seal{width:26px;height:26px;flex:0 0 auto;display:grid;place-items:center;
-  border:1px solid var(--nb-gold);color:var(--nb-gold);font-family:var(--nb-serif);font-size:13px}
+  border:1px solid var(--nb-gold);color:var(--nb-gold);font-family:var(--nb-sans);font-size:14px}
 .lp-name{font-family:var(--nb-serif);font-size:20px;letter-spacing:.06em}
-.lp-hero h1{font-family:var(--nb-serif);font-weight:500;font-size:29px;line-height:1.55;
+.lp-hero h1{font-family:var(--nb-serif);font-weight:600;font-size:29px;line-height:1.55;
   letter-spacing:-.01em;word-break:keep-all;margin:0 0 14px}
 .lp-hero h1 em{font-style:normal;color:var(--nb-gold)}
-.lp-sub{margin:0 0 26px;font-size:15.5px;color:var(--nb-ink-2);max-width:30em;word-break:keep-all}
+.lp-sub{margin:0 0 26px;font-size:17px;color:var(--nb-ink-2);max-width:30em;word-break:keep-all;line-height:1.85}
 .lp-cta{display:inline-block;padding:15px 34px;border:1px solid var(--nb-gold);background:var(--nb-gold);
-  color:var(--nb-paper);text-decoration:none;font-size:15.5px;font-weight:600;letter-spacing:.02em;
+  color:var(--nb-paper);text-decoration:none;font-size:17px;font-weight:600;letter-spacing:.02em;
   transition:background .15s,color .15s}
 .lp-cta:hover,.lp-cta:focus{background:transparent;color:var(--nb-gold)}
-.lp-free{display:block;margin-top:14px;font-size:13px;color:var(--nb-ink-3)}
+.lp-free{display:block;margin-top:14px;font-size:14px;color:var(--nb-ink-3);letter-spacing:0.2px}
 .lp-pledge{padding:56px 0 0}
 .lp-row{display:grid;gap:0}
 .lp-item{padding:26px 0;border-top:1px solid var(--nb-line-soft)}
 .lp-item:last-child{border-bottom:1px solid var(--nb-line-soft)}
-.lp-num{display:block;margin-bottom:8px;font-family:var(--nb-serif);font-size:13px;
-  letter-spacing:.22em;color:var(--nb-gold)}
-.lp-bt{font-family:var(--nb-serif);font-weight:500;font-size:19px;margin:0 0 6px}
-.lp-bb{margin:0;font-size:14.5px;line-height:1.8;color:var(--nb-ink-2);word-break:keep-all}
+.lp-num{display:block;margin-bottom:8px;font-family:var(--nb-sans);font-size:14px;
+  letter-spacing:.22em;color:var(--nb-gold);font-weight:600}
+.lp-bt{font-family:var(--nb-sans);font-weight:600;font-size:19px;margin:0 0 6px}
+.lp-bb{margin:0;font-size:16px;line-height:1.85;color:var(--nb-ink-2);word-break:keep-all}
 .lp-try{padding:64px 0 0}
-.lp-try h2{font-family:var(--nb-serif);font-weight:500;font-size:23px;margin:0 0 8px}
+.lp-try h2{font-family:var(--nb-serif);font-weight:600;font-size:24px;margin:0 0 8px}
 @media (min-width:760px){
   /* 넓어질수록 세로 그림에서 잘라 쓰는 띠가 얇아진다. 맨 아래를 붙들면 물만
      남으므로, 꽃가지와 산자락이 함께 걸리도록 조금 올려 잡는다 */

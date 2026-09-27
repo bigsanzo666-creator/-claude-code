@@ -15,11 +15,11 @@ const ADMIN_CSS = `
 .ad-sub { font-size: 14px; color: #a49cb2; margin: 0 0 28px; }
 .ad-sec { font-size: 18px; font-weight: 800; color: #f3e5ab; margin: 32px 0 14px; }
 .ad-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; overflow-x: auto; margin-bottom: 24px; }
-.ad-tbl { width: 100%; border-collapse: collapse; text-align: left; font-size: 13.5px; }
+.ad-tbl { width: 100%; border-collapse: collapse; text-align: left; font-size: 15px; }
 .ad-tbl th { background: rgba(255, 255, 255, 0.05); padding: 12px 16px; color: #d4af37; font-weight: 700; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
 .ad-tbl td { padding: 14px 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); color: #efeaf4; }
 .ad-tbl tr:last-child td { border-bottom: none; }
-.ad-btn { padding: 6px 12px; font-size: 12.5px; font-weight: 700; border-radius: 6px; cursor: pointer; border: none; font-family: inherit; margin-right: 6px; }
+.ad-btn { padding: 6px 12px; font-size: 14px; font-weight: 700; border-radius: 6px; cursor: pointer; border: none; font-family: inherit; margin-right: 6px; }
 .ad-btn.grant { background: #9fd8a8; color: #0f2d14; }
 .ad-btn.reject { background: #e8b4b4; color: #3b1111; }
 .ad-empty { padding: 32px; text-align: center; color: #8a8296; font-size: 14px; }

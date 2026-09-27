@@ -399,31 +399,31 @@ export const SPIRITS_CSS = `
 .sp-place{color:var(--nb-ink-3);letter-spacing:.06em}
 /* 한글에 자간 .2em 을 주면 「도 화 / 신 령」 으로 쪼개져 내려간다.
    이름은 한 덩어리로 붙여 두고, 줄도 바꾸지 않는다 */
-.sp-who{margin:0 0 2px;font-size:12px;letter-spacing:.04em;color:var(--nb-gold);
+.sp-who{margin:0 0 2px;font-size:14px;letter-spacing:.04em;color:var(--nb-gold);
   white-space:nowrap}
 .sp-keeps{color:var(--nb-ink-3);letter-spacing:0}
-.sp-line{margin:0;font-size:14.5px;line-height:1.75;color:var(--nb-ink-2);word-break:keep-all}
+.sp-line{margin:0;font-size:16px;line-height:1.85;color:var(--nb-ink-2);word-break:keep-all}
 
 /* 상품 하나짜리 페이지에서 거는 말 */
 .sp-pitch{display:flex;align-items:flex-start;gap:14px;margin:0 0 20px;padding:16px 18px;
   border-left:2px solid var(--nb-gold);background:var(--nb-paper-2)}
 .sp-pitch .sp-face{width:54px;height:54px}
-.sp-pitch .sp-line{font-size:15px;color:var(--nb-ink)}
+.sp-pitch .sp-line{font-size:16px;line-height:1.85;color:var(--nb-ink)}
 
 /* 첫 화면 소개 띠 — 폰에서는 옆으로 밀어서 본다 */
 /* 좌우 여백을 지우면 아래 띠의 「가장자리까지 밀기」가 화면 밖으로 나간다 */
 .sp-row-wrap{padding-top:64px}
-.sp-title{font-family:var(--nb-serif);font-weight:500;font-size:23px;margin:0 0 8px}
-.sp-sub{margin:0 0 22px;font-size:14.5px;color:var(--nb-ink-2);word-break:keep-all}
+.sp-title{font-family:var(--nb-serif);font-weight:600;font-size:24px;margin:0 0 8px}
+.sp-sub{margin:0 0 22px;font-size:16px;line-height:1.85;color:var(--nb-ink-2);word-break:keep-all}
 .sp-row{list-style:none;margin:0;padding:0 22px 4px;display:flex;gap:16px;
   overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
   margin-left:-22px;margin-right:-22px}
 .sp-card{flex:0 0 132px;scroll-snap-align:start;text-align:center}
 .sp-card .sp-face{width:84px;height:84px;margin:0 auto 10px}
 .sp-card .sp-seal{font-size:34px}
-.sp-name{margin:0;font-family:var(--nb-serif);font-size:16px}
-.sp-card .sp-keeps{display:block;margin:2px 0 6px;font-size:11.5px;letter-spacing:.16em;color:var(--nb-gold)}
-.sp-intro{margin:0;font-size:12.5px;line-height:1.7;color:var(--nb-ink-2);word-break:keep-all}
+.sp-name{margin:0;font-family:var(--nb-sans);font-weight:600;font-size:17px}
+.sp-card .sp-keeps{display:block;margin:2px 0 6px;font-size:14px;letter-spacing:.16em;color:var(--nb-gold)}
+.sp-intro{margin:0;font-size:14px;line-height:1.85;color:var(--nb-ink-2);word-break:keep-all}
 
 @media (min-width:760px){
   .sp-said{gap:18px}

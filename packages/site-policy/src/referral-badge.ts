@@ -32,9 +32,9 @@ export const REFERRAL_BADGE_CSS = `
   border-radius: 6px;
 }
 .nb-invite-desc {
-  font-size: 13.5px;
+  font-size: 15px;
   color: #c8c2d4;
-  line-height: 1.6;
+  line-height: 1.85;
   margin: 0 0 16px;
 }
 .nb-invite-actions {
@@ -44,7 +44,7 @@ export const REFERRAL_BADGE_CSS = `
 }
 .nb-invite-btn {
   padding: 10px 18px;
-  font-size: 13.5px;
+  font-size: 15px;
   font-weight: 700;
   border-radius: 8px;
   border: 1px solid rgba(212, 175, 55, 0.5);
@@ -63,7 +63,7 @@ export const REFERRAL_BADGE_CSS = `
   color: #191919;
 }
 .nb-invite-toast {
-  font-size: 12.5px;
+  font-size: 14px;
   color: #4ade80;
   margin: 10px 0 0;
 }
