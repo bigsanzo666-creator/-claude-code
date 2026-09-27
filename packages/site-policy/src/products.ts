@@ -718,18 +718,29 @@ html,body{overflow-x:clip;max-width:100%}
   border-left:3px solid rgba(200,120,120,.55);border-radius:0 8px 8px 0;word-break:keep-all}
 .pd-no b{display:block;margin:0 0 6px;color:#fff;font-weight:700;font-size:16px}
 
-/* 이런 분이 보시면 좋습니다 — 줄마다 그림 하나 */
-.pd-yes-pic{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:10px}
-.pd-yes-row{display:grid;grid-template-columns:92px 1fr;gap:14px;align-items:center;
-  padding:10px;border:1px solid var(--nb-line-soft);border-radius:10px;
-  background:var(--nb-paper-2)}
-.pd-yes-img{display:block;width:92px;height:69px;border-radius:7px;
-  background:#15121a center/cover no-repeat;flex:none}
-.pd-yes-t{font-size:16px;line-height:1.7;color:var(--nb-ink);word-break:keep-all}
+/*
+ * 이런 분이 보시면 좋습니다 — 한 줄에 큰 그림 하나.
+ *
+ * 세 줄을 옆으로 나란히 놓으면 휴대폰에서 한 칸이 110px밖에 안 된다.
+ * 세로로 긴 그림이 거기 들어가면 그림도 글씨도 다 작아진다.
+ * 그래서 한 줄에 하나씩, 3:4로 크게 둔다.
+ *
+ * 페이지가 길어지는 것은 **일부러 그러는 것이다.** 손님에게 많이
+ * 보여 주는 쪽이 사는 데로 이어진다.
+ */
+.pd-yes-pic{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:12px}
+.pd-yes-row{position:relative;display:block;aspect-ratio:3/4;overflow:hidden;
+  border:1px solid var(--nb-line-soft);border-radius:13px;background:#15121a}
+.pd-yes-img{position:absolute;inset:0;display:block;
+  background:#15121a center/cover no-repeat;filter:brightness(.72)}
+/* 글씨가 앉는 아래쪽만 짙게 — 그림 위쪽은 그대로 보여 준다 */
+.pd-yes-row::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to top,rgba(6,5,10,.96) 0%,rgba(6,5,10,.72) 30%,transparent 66%)}
+.pd-yes-t{position:absolute;left:0;right:0;bottom:0;z-index:1;
+  padding:20px 20px 22px;font-size:20px;font-weight:700;line-height:1.55;
+  color:var(--nb-ink);word-break:keep-all;text-shadow:0 2px 12px rgba(0,0,0,.95)}
 @media(max-width:400px){
-  .pd-yes-row{grid-template-columns:76px 1fr;gap:12px}
-  .pd-yes-img{width:76px;height:57px}
-  .pd-yes-t{font-size:15.5px}
+  .pd-yes-t{padding:18px 17px 19px;font-size:18.5px}
 }
 
 /* 여기 쓰인 명리 말 — 접어 둔다. 궁금한 사람만 연다 */
