@@ -67,7 +67,9 @@ export type ProductId =
  *
  * 순서가 곧 화면의 탭 순서다. 앞이 입구, 뒤가 차별점.
  */
-export type Category = '연애' | '재회' | '궁합' | '가족' | '작명' | '출산' | '나' | '삼합' | '돈과 일' | '시기';
+export type Category =
+  | '연애' | '재회' | '궁합' | '가족' | '작명' | '출산' | '나' | '삼합'
+  | '돈과 일' | '시험과 취업' | '시기';
 
 export interface Product {
   id: ProductId;
@@ -457,7 +459,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'career-report': topic('career-report', 'career', '출세운', '돈과 일',
     '이 일을 계속하는 게 맞을까?',
     '내 자리를 만드는 기운으로 본 자리와 명예, 조직에서 내가 놓이는 위치를 씁니다.'),
-  'learning-report': topic('learning-report', 'learning', '공부·문서운', '돈과 일',
+  'learning-report': topic('learning-report', 'learning', '공부·문서운', '시험과 취업',
     '시험·계약, 지금이 때일까?',
     '문서와 배움의 기운으로 본 공부운 — 합격·계약·부동산까지 함께 봅니다.'),
 
@@ -496,15 +498,15 @@ export const CATALOG: Record<ProductId, Product> = {
    * 경우가 많다. 부모는 자식 일에 지갑을 더 연다. 그래서 시험운만 값이 높다.
    */
   'exam-report': {
-    ...topic('exam-report', 'learning', '시험 합격운', '돈과 일',
+    ...topic('exam-report', 'learning', '시험 합격운', '시험과 취업',
       '이번 시험, 붙을 수 있을까?',
       '문서와 배움의 기운에 그해 흐름을 겹쳐 본 시험운 — 붙는 자리인지, 한 해 미루는 편이 나은지 씁니다.'),
     priceKrw: 19900,
   },
-  'admission-report': topic('admission-report', 'learning', '진학운', '돈과 일',
+  'admission-report': topic('admission-report', 'learning', '진학운', '시험과 취업',
     '어느 쪽으로 보내야 할까?',
     '문서와 배움의 기운으로 본 배움의 결 — 어느 갈래가 이 아이에게 맞는지 씁니다.'),
-  'job-report': topic('job-report', 'career', '취업운', '돈과 일',
+  'job-report': topic('job-report', 'career', '취업운', '시험과 취업',
     '언제쯤 자리가 잡힐까?',
     '내 자리를 만드는 기운으로 본 자리 운 — 붙는 때와 맞는 조직의 결을 씁니다.'),
 
@@ -529,6 +531,7 @@ export const CATEGORIES: { key: Category; question: string }[] = [
   { key: '나', question: '나는 어떤 사람일까?' },
   { key: '삼합', question: '셋이 같은 말을 할까?' },
   { key: '돈과 일', question: '먹고사는 일은 풀릴까?' },
+  { key: '시험과 취업', question: '이번엔 붙을까?' },
   { key: '시기', question: '지금이 그때일까?' },
 ];
 
