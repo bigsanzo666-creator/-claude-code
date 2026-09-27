@@ -1,6 +1,34 @@
-import { createHash } from 'node:crypto';
 import { calculate, type Myeongsik } from '../../manseryeok/src/index.ts';
 import { groupElement, type Element, type YongsinResult } from './index.ts';
+
+/*
+ * 씨 문자열에서 **늘 같은** 바이트를 뽑는다.
+ *
+ * 전에는 `node:crypto` 의 sha256 을 썼다. 그런데 이 파일은 만세력 뷰어에도
+ * 함께 묶이고, 뷰어는 **브라우저에서 도는 파일 하나**다. 브라우저에는
+ * `node:crypto` 가 없어서 **도커 빌드가 거기서 멈췄고, 열 번이 넘는 배포가
+ * 통째로 실패했다.** 사이트는 옛 버전 그대로 돌고 있었다.
+ *
+ * 여기 쓰이는 값은 **자물쇠가 아니라 주사위**다. 번호 여섯 개가 모자랄 때
+ * 빈자리를 메우는 데만 쓴다. 그래서 암호 도구가 필요 없다. 서버에서든
+ * 브라우저에서든 같은 답이 나오는 것, 그거 하나만 있으면 된다.
+ */
+function seedBytes(seed: string): number[] {
+  // FNV-1a — 짧고, 어디서나 같은 값이 나온다
+  let h = 0x811c9dc5;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  const out: number[] = [];
+  for (let i = 0; i < 32; i++) {
+    h ^= h << 13; h >>>= 0;
+    h ^= h >>> 17;
+    h ^= h << 5; h >>>= 0;
+    out.push(h & 0xff);
+  }
+  return out;
+}
 
 export const ELEMENT_NUMBERS: Record<Element, [number, number]> = {
   수: [1, 6],
@@ -41,7 +69,7 @@ export function luckyNumbers(
 
   const personKey = `${ms.year.stemHanja}${ms.year.branchHanja}${ms.month.stemHanja}${ms.month.branchHanja}${ms.day.stemHanja}${ms.day.branchHanja}${ms.hour ? ms.hour.stemHanja + ms.hour.branchHanja : 'nohour'}`;
   const seedStr = `${personKey}:${weekStartISO}:${yongsinEl}:${s1},${s2}:${m1},${m2},${m3},${m4}`;
-  const hash = createHash('sha256').update(seedStr).digest();
+  const hash = seedBytes(seedStr);
 
   const picked = new Set<number>();
   // 1) 이로운 기운의 두 숫자를 씨로 삼는다

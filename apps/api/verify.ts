@@ -1815,6 +1815,47 @@ console.log(`\n${'═'.repeat(60)}`);
 
 
 
+/*
+ * 뷰어에 묶이는 파일이 **서버 전용 도구를 쓰지 않는가.**
+ *
+ * 만세력 뷰어는 브라우저에서 도는 파일 하나로 묶인다. 그런데 거기 묶이는
+ * `lucky-number.ts` 가 `node:crypto` 를 가져다 썼다. 브라우저에는 그런 것이
+ * 없어서 **도커 빌드가 거기서 멈췄고, 열 번이 넘는 배포가 통째로 실패했다.**
+ *
+ * 더 나쁜 것은 **아무도 몰랐다는 점**이다. 검증은 전부 통과했고, 사이트도
+ * 멀쩡해 보였다. 렌더가 실패한 새 버전 대신 **옛 버전을 그대로 살려 두기**
+ * 때문이다. 새 상품도 고친 말도 며칠 동안 손님에게 안 나갔다.
+ *
+ * 그래서 여기서 막는다. 뷰어 진입점에서 시작해 따라 들어가는 모든 파일을
+ * 훑고, `node:` 로 시작하는 것을 가져다 쓰면 실패로 잡는다.
+ */
+{
+  const { readFileSync, existsSync } = await import('node:fs');
+  const { join, dirname, resolve, relative } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const viewerEntry = join(dirname(fileURLToPath(import.meta.url)), '..', 'manse-viewer', 'entry.ts');
+  const seen = new Set<string>();
+  const nodeOnly: string[] = [];
+  const walk = (file: string) => {
+    if (seen.has(file) || !existsSync(file)) return;
+    seen.add(file);
+    const text = readFileSync(file, 'utf8');
+    for (const m of text.matchAll(/(?:from|import)\s*['"]([^'"]+)['"]/g)) {
+      const spec = m[1]!;
+      if (spec.startsWith('node:')) {
+        nodeOnly.push(`${relative(process.cwd(), file)} → ${spec}`);
+        continue;
+      }
+      if (!spec.startsWith('.')) continue;
+      walk(resolve(dirname(file), spec));
+    }
+  };
+  walk(viewerEntry);
+  check('뷰어에 묶이는 파일이 서버 전용 도구를 쓰지 않는다',
+    nodeOnly.length === 0,
+    nodeOnly.length ? nodeOnly.join(' · ') : `${seen.size}개 파일을 훑음`);
+}
+
 console.log(`통과 ${passed} / 실패 ${failed}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
 console.log('전부 통과.');
