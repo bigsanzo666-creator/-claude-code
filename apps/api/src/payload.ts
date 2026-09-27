@@ -131,6 +131,9 @@ const TOPIC_OF_PRODUCT: Partial<Record<ProductId, TopicScope>> = {
   'helper-report': { topics: ['helper'], asks: '나를 도와줄 사람은 어디에 있는가', years: 3 },
   'learning-report': { topics: ['learning'], asks: '공부와 문서의 일은 어떤가', years: 3 },
   'travel-report': { topics: ['travel'], asks: '자리를 옮기는 일은 어떤가', years: 3 },
+  // 매력은 사람을 끌어들이는 힘(charm)에 **밖으로 내보이는 힘(expression)**을 겹쳐 본다.
+  // 사진을 받지 않으므로 여덟 글자 안에서만 찾는다
+  'charm-report': { topics: ['charm', 'expression'], asks: '내 매력은 어디서 나오는가', years: 3 },
 
   /*
    * 아래 셋은 위의 것과 뿌리가 겹친다. 그래서 **보는 자리를 넓혀서** 가른다.
@@ -156,14 +159,10 @@ const CROSS_SOURCES: Partial<Record<ProductId, { 사주: boolean; 관상: boolea
   'saju-palm-report': { 사주: true, 관상: false, 손금: true },
   'saju-face-report': { 사주: true, 관상: true, 손금: false },
   'cross-report': { 사주: true, 관상: true, 손금: true },
-  'charm-report': { 사주: true, 관상: true, 손금: true },
 };
 
 /** 그 상품이 보는 축만 남긴다. 비워 두면 여덟 축을 다 본다 */
-const CROSS_AXES: Partial<Record<ProductId, string[]>> = {
-  // 매력은 사람을 끌어들이는 힘과 밖으로 내보이는 힘에서 나온다
-  'charm-report': ['대인관계', '표현력'],
-};
+const CROSS_AXES: Partial<Record<ProductId, string[]>> = {};
 
 const KIND_EXCEPTIONS: Partial<Record<ProductId, ReportKind>> = {
   /*
@@ -178,7 +177,6 @@ const KIND_EXCEPTIONS: Partial<Record<ProductId, ReportKind>> = {
   'parent-child-report': '부모자식',
   // 세 갈래를 대조하는 것
   'cross-report': '교차검증',
-  'charm-report': '교차검증',
   // 사람이 아니라 **날**을 보는 것
   'pick-report': '택일',
   // 오늘 하루의 흐름을 보는 것

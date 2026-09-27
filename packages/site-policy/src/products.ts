@@ -105,7 +105,7 @@ function topicContents(term: string, gloss: string, years: number, extra?: strin
 
 
 /**
- * 이런 분이 보시면 좋습니다 / 이건 안 보셔도 됩니다.
+ * 이런 분이 보시면 좋습니다 / 이런 분께는 권하지 않습니다.
  *
  * ## 안 보셔도 된다고 말하는 이유
  *
@@ -395,13 +395,8 @@ const CONTENTS: Record<string, string[]> = {
   ],
 
   // ── 매력 ────────────────────────────────────────────────
-  'charm-report': [
-    '도화·홍염이 여덟 글자 어디에 있는지',
-    '얼굴이 말하는 것과 손이 말하는 것을 **같은 눈금**으로 옮긴 값',
-    '세 갈래가 **대인관계·표현력** 두 축에서 같은 말을 하는 곳',
-    '엇갈리는 곳 — 타고난 결과 지금 드러나는 모습의 차이로 읽습니다',
-    '**이 두 축만 봅니다.** 여덟 축 전부는 삼합 리포트가 봅니다',
-  ],
+  'charm-report': topicContents('도화(桃花)와 식상(食傷)', '도화는 **사람을 끌어당기는 기운**, 식상은 **밖으로 내보이는 힘**입니다', 3,
+    '얼굴과 손까지 함께 보시려면 **삼합 리포트**입니다'),
 
   'naming-report': [
     '아이 사주에서 비어 있는 기운과 채워야 할 기운',
@@ -719,8 +714,10 @@ html,body{overflow-x:clip;max-width:100%}
 .pd-yes li{font-size:16px;line-height:1.85;word-break:keep-all}
 .pd-no{margin:18px 0 0;padding:14px 16px;font-size:15px;line-height:1.85;
   color:var(--nb-ink-2);background:var(--nb-paper-3);
-  border-left:2px solid var(--nb-ink-3);border-radius:0 8px 8px 0;word-break:keep-all}
-.pd-no b{color:var(--nb-ink)}
+  border-left:3px solid rgba(200,120,120,.55);border-radius:0 8px 8px 0;word-break:keep-all}
+.pd-no b{display:block;margin:0 0 6px;color:#fff;font-weight:700;font-size:16px}
+.pd-no-x{display:inline-block;margin-right:6px;color:#e8a0a0;font-weight:700}
+.pd-no-t{display:block;color:var(--nb-ink-2)}
 
 /* 실제로 나가는 글의 앞부분. 그림으로 보여 주고 글로 주지 않는 짓은 안 한다 */
 .pd-samp{white-space:pre-wrap;font-size:16px;line-height:1.85;color:var(--nb-ink-2);
@@ -933,7 +930,8 @@ body {
 
 .pd-no {
   background: rgba(24, 18, 22, 0.85);
-  border: 1px solid rgba(212, 175, 55, 0.22);
+  border: 1px solid rgba(200, 120, 120, 0.3);
+  border-left: 3px solid rgba(200, 120, 120, 0.55);
   border-radius: 10px;
   padding: 12px 14px;
   font-size: 0.94rem;
@@ -943,7 +941,7 @@ body {
 }
 
 .pd-no b {
-  color: var(--gold-light);
+  color: #fff;
 }
 
 /* 3-b. 이 리포트에 담기는 것 (번호 목록 + 금색 세로선) */
@@ -974,7 +972,7 @@ body {
   flex-shrink: 0;
 }
 
-/* 2. 가운데: 맛보기 (문장 한 번 + 목차) */
+/* 2. 가운데: 실제로 나가는 글의 앞부분 (문장 한 번 + 목차) */
 .pd-sample-lead {
   font-family: var(--font-sans);
   font-size: 1.05rem;
@@ -1487,7 +1485,7 @@ function buyLink(product: Product): string {
  * 값을 맨 위에 두면 손님이 값부터 재고 나간다. **무엇을 받는지 다 보여 준
  * 다음**에 값을 말한다. 경쟁사도 아홉 칸 중 여덟 번째에 값을 둔다.
  *
- * 순서: 누가 봐 주는가 → 이런 분이 보시면 / 안 보셔도 → 담기는 것 →
+ * 순서: 누가 봐 주는가 → 이런 분이 보시면 / 권하지 않는 → 담기는 것 →
  *       어떤 문장으로 나오는지 → 이 집 계산을 믿어도 되는가 → 값 → 묶음 → 약속
  *
  * ## 따라 하지 않는 것
@@ -1701,7 +1699,7 @@ function stickyBuy(product: Product, ready: boolean): string {
     <a class="pd-sticky-go" href="/checkout?product=${encodeURIComponent(product.id)}">받기</a>
   </div>`;
 }
-/** 이런 분이 보시면 좋습니다 / 이건 안 보셔도 됩니다 */
+/** 이런 분이 보시면 좋습니다 / 이런 분께는 권하지 않습니다 */
 export function renderFit(productId: string): string {
   const fit = FIT[productId];
   if (!fit) return '';
@@ -1710,7 +1708,7 @@ export function renderFit(productId: string): string {
     <p class="pd-l">고르기 전에</p>
     <h3 class="pd-h">이런 분이 보시면 좋습니다</h3>
     <ul class="pd-yes">${ys}</ul>
-    <p class="pd-no"><b>이건 안 보셔도 됩니다 —</b> ${bold(fit.no)}</p>
+    <p class="pd-no"><b><span class="pd-no-x">✕</span> 이런 분께는 권하지 않습니다</b><span class="pd-no-t">${bold(fit.no)}</span></p>
   </section>`;
 }
 
@@ -1800,8 +1798,7 @@ function renderSample(
   }
 
   return `  <section class="pd-sec">
-    <p class="pd-l">맛보기</p>
-    <h3 class="pd-h">어떤 문장으로 나오는지</h3>
+    <h3 class="pd-h">신령이 이렇게 말합니다</h3>
     ${leadLine}
     <div class="pd-sample-card">
       <div class="pd-sample-body">

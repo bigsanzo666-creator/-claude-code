@@ -114,9 +114,9 @@ export function renderWhy(): string {
 
   return `<section class="why" id="why">
 <p class="why-cat">늘봄이 다른 점</p>
-<h3 class="why-q">GPT한테 물어본 거랑 뭐가 다릅니까</h3>
+<h3 class="why-q">AI한테 물어본 거랑 뭐가 다릅니까</h3>
 <p class="why-hero">그럴듯한 문장과 계산된 값은<br>같은 것이 아닙니다</p>
-<p class="why-b">GPT에 사주를 물으면 그 자리에서 글을 지어냅니다.
+<p class="why-b">AI에 사주를 물으면 그 자리에서 글을 지어냅니다.
 계산을 하는 게 아니라 그럴듯한 문장을 만드는 것이라, 같은 것을 두 번 물으면 답이 달라집니다.</p>
 
 <p class="why-l">늘봄은 네 층으로 봅니다</p>
@@ -137,11 +137,12 @@ export const WHY_CSS = `
  * 「왜 늘봄이냐」 판.
  *
  * 자랑을 늘어놓는 자리가 아니라 **의심에 답하는 자리**다. 그래서 제일 큰
- * 글씨가 우리 이름이 아니라 손님의 의심("GPT랑 뭐가 다른데")이다.
+ * 글씨가 우리 이름이 아니라 손님의 의심("AI랑 뭐가 다른데")이다.
  */
 .why{margin:56px 0 0;padding:34px 0 0;border-top:1px solid var(--nb-line)}
-.why-cat{margin:0 0 10px;font-size:14px;letter-spacing:.2em;color:var(--nb-gold)}
-.why-q{margin:0 0 18px;font-family:var(--nb-sans);font-size:22px;font-weight:600;
+.why-cat{margin:0 0 8px;font-family:var(--nb-sans);font-size:26px;font-weight:700;
+  letter-spacing:-.01em;color:var(--nb-gold)}
+.why-q{margin:0 0 18px;font-family:var(--nb-sans);font-size:19px;font-weight:600;
   line-height:1.5;word-break:keep-all}
 .why-hero{margin:0 0 16px;padding:20px 18px;border:1px solid var(--nb-line);
   background:var(--nb-paper-2);text-align:center;font-family:var(--nb-sans);
@@ -188,7 +189,8 @@ export const WHY_CSS = `
 .why-c p{margin:0;font-size:15px;line-height:1.75;color:var(--nb-ink-2);word-break:keep-all;text-shadow:0 2px 12px rgba(0,0,0,.9)}
 
 @media (min-width:760px){
-  .why-q{font-size:25px}
+  .why-cat{font-size:30px}
+  .why-q{font-size:21px}
   .why-hero{font-size:23px;padding:28px 24px}
 }
 `;

@@ -183,11 +183,10 @@ export function extraMemberKrw(productId: string, memberCount = 1): number {
 export const CATALOG: Record<ProductId, Product> = {
   // ── 연애 (입구) ──────────────────────────────────────────
   'charm-report': {
-    ...topic('charm-report', 'charm', '매력 삼합', '연애',
+    ...topic('charm-report', 'charm', '내 매력, 어디서 나오는가', '연애',
       '나는 어떤 사람에게 끌릴까?',
-      '도화·홍염을 사주·관상·손금 세 갈래로 대조해, 내 매력이 어디서 나오는지 씁니다.'),
+      '타고난 여덟 글자에서 내 매력이 어디서 나오는지 찾아 씁니다.'),
     priceKrw: 24900,
-    needsFace: true,
   },
   'single-report': {
     id: 'single-report',

@@ -188,7 +188,7 @@ export function spiritFor(category: Category): Spirit | null {
  */
 export const PITCH: Record<string, string> = {
   // 도화신령 — 연애
-  'charm-report': '네가 어디가 예쁜지는 내가 첫눈에 알아. 얼굴하고 손금까지 같이 보고 말해 줄게.',
+  'charm-report': '네가 어디가 예쁜지는 내가 첫눈에 알아. 타고난 여덟 글자 안에 그게 어디 있는지 짚어 줄게.',
   'single-report': '꽃은 아무 때나 피지 않아. 네 꽃이 피는 달이 언제인지 세어 줄게.',
   'marriage-timing-report': '서두르면 꽃이 진다. 언제가 좋은 때인지 짚어 줄게.',
 
