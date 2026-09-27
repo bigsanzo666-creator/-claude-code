@@ -245,33 +245,31 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
         <p class="spirits-menu-desc">마음이 닿는 신령을 선택하면 1:1 대면 처소로 모십니다</p>
       </div>
 
-      <!-- 갈래 탭 10개 (가로 스크롤) -->
-      <nav class="spirits-category-tabs" id="spiritsCategoryTabs" aria-label="사주 갈래 선택">
-        <button type="button" class="category-tab active" data-category="연애">연애</button>
-        <button type="button" class="category-tab" data-category="재회">재회</button>
-        <button type="button" class="category-tab" data-category="궁합">궁합</button>
-        <button type="button" class="category-tab" data-category="가족">가족</button>
-        <button type="button" class="category-tab" data-category="작명">작명</button>
-        <button type="button" class="category-tab" data-category="출산">출산</button>
-        <button type="button" class="category-tab" data-category="나">나</button>
-        <button type="button" class="category-tab" data-category="삼합">삼합</button>
-        <button type="button" class="category-tab" data-category="돈과 일">돈과 일</button>
-        <button type="button" class="category-tab" data-category="시기">시기</button>
-      </nav>
+      <!-- 갈래 탭 11개 (가로 스크롤) -->
+      <div class="spirits-tabs-wrapper">
+        <button type="button" class="tabs-arrow-btn prev" id="tabsArrowPrev" aria-label="이전 탭">‹</button>
+        <nav class="spirits-category-tabs" id="spiritsCategoryTabs" aria-label="사주 갈래 선택">
+          <button type="button" class="category-tab active" data-category="전체">전체</button>
+          <button type="button" class="category-tab" data-category="연애">연애</button>
+          <button type="button" class="category-tab" data-category="재회">재회</button>
+          <button type="button" class="category-tab" data-category="궁합">궁합</button>
+          <button type="button" class="category-tab" data-category="가족">가족</button>
+          <button type="button" class="category-tab" data-category="작명">작명</button>
+          <button type="button" class="category-tab" data-category="출산">출산</button>
+          <button type="button" class="category-tab" data-category="나">나</button>
+          <button type="button" class="category-tab" data-category="삼합">삼합</button>
+          <button type="button" class="category-tab" data-category="돈과 일">돈과 일</button>
+          <button type="button" class="category-tab" data-category="시기">시기</button>
+        </nav>
+        <button type="button" class="tabs-arrow-btn next" id="tabsArrowNext" aria-label="다음 탭">›</button>
+      </div>
 
-      <!-- 신령 얼굴 한 줄 헤더는 걷어냈다.
-           카드가 큼직하게 나오면서 그 안에 신령 이름과 물음이 이미 얹힌다.
-           위에 한 줄을 더 두면 그만큼 카드 아래가 잘려 나갔다 -->
-
-      <!-- 상품 카드 캐러셀 (화면 폭 82%, 다음 장 살짝 걸침) -->
-      <div class="product-carousel-container" id="productCarouselContainer">
-        <div class="product-carousel-track" id="productCarouselTrack">
+      <!-- 세로 상품 목록 -->
+      <div class="product-vertical-container" id="productCarouselContainer">
+        <div class="product-vertical-list" id="productCarouselTrack">
           <!-- JS가 동적으로 렌더링 -->
         </div>
       </div>
-
-      <!-- 몇 장인지 나타내는 점 인디케이터 -->
-      <div class="carousel-dots" id="carouselDots" aria-hidden="true"></div>
 
       <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
     </section>
@@ -351,7 +349,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
             <select id="inputPlace">
               ${PLACES.map((p) => `<option value="${p.name}"${p.name === '서울' ? ' selected' : ''}>${p.name}</option>`).join('')}
             </select>
-            <div class="form-hint" style="font-size: 0.88rem; color: #b9b2c6; margin-top: 6px; line-height: 1.5;">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</div>
+            <div class="form-hint" style="font-size: 0.88rem; color: #dcdce6; margin-top: 6px; line-height: 1.85;">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</div>
           </div>
 
           <div class="form-group">
@@ -465,7 +463,7 @@ ${STAGE_SCRIPT}
 
 const FOOTER_CSS = `
 .biz{max-width:1080px;margin:56px auto 0;padding:22px;border-top:1px solid var(--nb-line-soft);
-  color:var(--nb-ink-3);font:12.5px/1.7 var(--nb-sans)}
+  color:var(--nb-ink-3);font:14px/1.85 var(--nb-sans)}
 .biz-links{display:flex;gap:16px;margin-bottom:10px}
 .biz-links a{color:var(--nb-gold)}
 .biz-rows{display:flex;flex-wrap:wrap;gap:4px 14px}
@@ -1028,6 +1026,18 @@ export function createApi(deps: ApiDeps) {
       const image = images.get(id);
       if (!image) throw new HttpError(404, `그림이 없습니다: ${id}`);
       sendImage(res, image);
+    },
+
+    /** 늘봄이 다른 점 그림 */
+    'GET /img/why/:id': async (_req, res, id) => {
+      const cleanId = id.endsWith('.jpg') ? id : `${id}.jpg`;
+      const p = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'why', cleanId);
+      if (!existsSync(p)) throw new HttpError(404, `그림이 없습니다: ${id}`);
+      pipeFile(res, p, {
+        'Content-Type': 'image/jpeg',
+        'Content-Length': statSync(p).size,
+        'Cache-Control': 'public, max-age=3600',
+      });
     },
 
     /**
@@ -1794,6 +1804,9 @@ export function createApi(deps: ApiDeps) {
       } else if (parts[0] === 'img' && parts[1] === 'products' && parts[2] && !parts[3]) {
         id = parts[2];
         key = `${req.method} /img/products/:id`;
+      } else if (parts[0] === 'img' && parts[1] === 'why' && parts[2] && !parts[3]) {
+        id = parts[2];
+        key = `${req.method} /img/why/:id`;
       } else if (parts[0] === 'video' && parts[1] === 'spirits' && parts[2] && !parts[3]) {
         id = parts[2];
         key = `${req.method} /video/spirits/:id`;

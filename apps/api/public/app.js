@@ -621,7 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
     { name: '시기',    spirit: { id: 'wind',     name: '풍신령',   question: '지금이 그때일까?' } },
   ];
 
-  let currentCategory = '연애';
+  let currentCategory = '전체';
   let catalogProducts = (Array.isArray(window.__CATALOG_PRODUCTS__) && window.__CATALOG_PRODUCTS__.length > 0) ? window.__CATALOG_PRODUCTS__ : [];
   let isProductsLoading = false;
 
@@ -649,18 +649,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return catalogProducts;
   }
 
-  // 방금 마우스로 끌어서 카드를 넘겼는가 — 그 직후의 클릭은 상세로 보내지 않는다
-  let justDragged = false;
-
   const categoryTabsContainer = document.getElementById('spiritsCategoryTabs');
   const productCarouselTrack = document.getElementById('productCarouselTrack');
-  const carouselDots = document.getElementById('carouselDots');
 
   // 트랙에 클릭 이벤트 위임 (카드 클릭 시 상세페이지 이동)
   if (productCarouselTrack && !productCarouselTrack._hasClickBound) {
     productCarouselTrack._hasClickBound = true;
     productCarouselTrack.addEventListener('click', (e) => {
-      if (justDragged) return;   // 방금 끌어서 넘긴 것이면 상세로 가지 않는다
       const card = e.target.closest('.product-card');
       if (!card) return;
       const productId = card.getAttribute('data-product-id');
@@ -668,48 +663,10 @@ document.addEventListener('DOMContentLoaded', () => {
         location.href = '/products/' + encodeURIComponent(productId);
       }
     });
-
-    // 트랙 가로 스크롤 시 인디케이터 점 동기화
-    let scrollTimeout = null;
-    productCarouselTrack.addEventListener('scroll', () => {
-      if (scrollTimeout) cancelAnimationFrame(scrollTimeout);
-      scrollTimeout = requestAnimationFrame(() => {
-        updateCarouselDotsOnScroll();
-      });
-    }, { passive: true });
-  }
-
-  function updateCarouselDotsOnScroll() {
-    if (!productCarouselTrack || !carouselDots) return;
-    const cards = productCarouselTrack.querySelectorAll('.product-card');
-    if (cards.length === 0) return;
-
-    const trackCenter = productCarouselTrack.scrollLeft + productCarouselTrack.clientWidth / 2;
-    let closestIndex = 0;
-    let minDiff = Infinity;
-
-    cards.forEach((card, index) => {
-      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-      const diff = Math.abs(trackCenter - cardCenter);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestIndex = index;
-      }
-    });
-
-    const dots = carouselDots.querySelectorAll('.dot');
-    dots.forEach((dot, index) => {
-      if (index === closestIndex) {
-        dot.classList.add('active');
-      } else {
-        dot.classList.remove('active');
-      }
-    });
   }
 
   async function renderCategory(categoryName) {
     currentCategory = categoryName;
-    const catConfig = CATEGORIES.find(c => c.name === categoryName) || CATEGORIES[0];
 
     // 1) 탭 버튼 활성화 및 중앙 정렬 스크롤
     if (categoryTabsContainer) {
@@ -724,15 +681,28 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // 2) 신령 한 줄 헤더 갱신
-
-    // 3) 상품 데이터 가져오기
+    // 2) 상품 데이터 가져오기
     const products = (Array.isArray(window.__CATALOG_PRODUCTS__) && window.__CATALOG_PRODUCTS__.length > 0)
       ? window.__CATALOG_PRODUCTS__
       : await fetchCatalogProducts();
-    const catProducts = products.filter(p => p.category === categoryName);
 
-    // 4) 카드 렌더링 (값은 일절 넣지 않음)
+    let catProducts = [];
+    if (categoryName === '전체') {
+      // 10개 갈래 순서대로 이어 붙인다
+      CATEGORIES.forEach(cat => {
+        const inCat = products.filter(p => p.category === cat.name);
+        catProducts.push(...inCat);
+      });
+      // 카테고리 미지정 상품이 있다면 뒤에 포함
+      const addedIds = new Set(catProducts.map(p => p.id));
+      products.forEach(p => {
+        if (!addedIds.has(p.id)) catProducts.push(p);
+      });
+    } else {
+      catProducts = products.filter(p => p.category === categoryName);
+    }
+
+    // 3) 카드 렌더링 (세로 목록)
     if (productCarouselTrack) {
       if (catProducts.length === 0) {
         productCarouselTrack.innerHTML = '<div class="carousel-empty">준비된 상품이 없습니다</div>';
@@ -740,40 +710,21 @@ document.addEventListener('DOMContentLoaded', () => {
         productCarouselTrack.innerHTML = catProducts.map((p, i) => {
           const rawHook = p.hook || '';
           const hookText = rawHook.replace(/^[\"'\s]+|[\"'\s]+$/g, '');
+          const prodCat = CATEGORIES.find(c => c.name === p.category) || CATEGORIES[0];
+          const spiritName = prodCat.spirit.name;
           return [
             '<article class="product-card" data-product-id="' + p.id + '" tabindex="0" role="button" aria-label="' + p.name + '">',
-            // 첫 장은 바로 보여야 한다. 미루면 손님은 까만 카드를 먼저 본다
             '  <img src="/img/products/' + p.id + '" alt="' + p.name + '" class="product-card-bg" decoding="async"'
               + (i === 0 ? ' fetchpriority="high">' : ' loading="lazy">'),
             '  <div class="product-card-scrim"></div>',
             '  <div class="product-card-info">',
-            '    <div class="product-card-spirit">' + catConfig.spirit.name + '</div>',
+            '    <div class="product-card-spirit">' + spiritName + '</div>',
             '    <h3 class="product-card-title">' + p.name + '</h3>',
             '    <p class="product-card-hook">"' + hookText + '"</p>',
             '  </div>',
             '</article>'
           ].join('\n');
         }).join('\n');
-      }
-
-      // 캐러셀 위치를 첫 장으로 리셋
-      productCarouselTrack.scrollLeft = 0;
-      // 갈래마다 장수가 다르다 — 화살표를 다시 잡는다
-      if (typeof productCarouselTrack._refreshArrows === 'function') {
-        requestAnimationFrame(productCarouselTrack._refreshArrows);
-      }
-    }
-
-    // 5) 점 인디케이터 렌더링
-    if (carouselDots) {
-      if (catProducts.length > 1) {
-        carouselDots.innerHTML = catProducts.map((_, i) =>
-          '<span class="dot ' + (i === 0 ? 'active' : '') + '" data-index="' + i + '"></span>'
-        ).join('');
-        carouselDots.style.display = 'flex';
-      } else {
-        carouselDots.innerHTML = '';
-        carouselDots.style.display = 'none';
       }
     }
   }
@@ -791,113 +742,28 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    /*
-     * 컴퓨터에서 카드를 옆으로 넘기는 길.
-     *
-     * 손가락으로 미는 것만 되어 있었다. 마우스로는 넘길 방법이 아예 없어
-     * 컴퓨터로 들어온 손님은 첫 장만 보고 끝났다. 셋을 붙인다.
-     *   ① 좌우 화살표 버튼   ② 마우스로 끌기   ③ 아래 점 누르기
-     */
-    if (productCarouselTrack && !productCarouselTrack._hasDeskBound) {
-      productCarouselTrack._hasDeskBound = true;
-
-      const stepOf = () => {
-        const card = productCarouselTrack.querySelector('.product-card');
-        if (!card) return productCarouselTrack.clientWidth;
-        const gap = parseFloat(getComputedStyle(productCarouselTrack).columnGap || '14') || 14;
-        return card.getBoundingClientRect().width + gap;
-      };
-      const slide = (dir) => productCarouselTrack.scrollBy({ left: dir * stepOf(), behavior: 'smooth' });
-
-      // ① 화살표 — 넘길 장이 없으면 흐려진다
-      const container = productCarouselTrack.closest('.product-carousel-container') || productCarouselTrack.parentElement;
-      const mkArrow = (dir, label) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'carousel-arrow carousel-arrow-' + (dir < 0 ? 'prev' : 'next');
-        btn.setAttribute('aria-label', label);
-        btn.textContent = dir < 0 ? '\u2039' : '\u203a';
-        btn.addEventListener('click', () => slide(dir));
-        return btn;
-      };
-      const prev = mkArrow(-1, '이전 상품');
-      const next = mkArrow(1, '다음 상품');
-      if (container) { container.appendChild(prev); container.appendChild(next); }
-
-      const refreshArrows = () => {
-        const max = productCarouselTrack.scrollWidth - productCarouselTrack.clientWidth;
-        prev.classList.toggle('is-off', productCarouselTrack.scrollLeft <= 4);
-        next.classList.toggle('is-off', productCarouselTrack.scrollLeft >= max - 4);
-        const one = max <= 4;
-        prev.style.display = one ? 'none' : '';
-        next.style.display = one ? 'none' : '';
-      };
-      productCarouselTrack._refreshArrows = refreshArrows;
-
-      // ② 마우스로 끌기 — 끈 뒤에는 카드가 눌리지 않게 한다
-      let down = false, startX = 0, startLeft = 0, moved = 0;
-      productCarouselTrack.addEventListener('mousedown', (e) => {
-        down = true; moved = 0;
-        startX = e.pageX; startLeft = productCarouselTrack.scrollLeft;
-        /*
-         * 여기서 is-dragging 을 붙이면 안 된다.
-         *
-         * 그 표시가 붙는 순간 카드가 「눌리지 않는 상태」가 되고, 손을 떼며
-         * 생기는 클릭의 주인이 카드가 아니라 바닥판이 되어 버린다. 그러면
-         * 카드를 그냥 눌러도 상세페이지로 넘어가지 않는다 — 실제로 그랬다.
-         *
-         * 표시는 **정말 끌기 시작했을 때** 붙인다.
-         */
-      });
-      window.addEventListener('mousemove', (e) => {
-        if (!down) return;
-        const dx = e.pageX - startX;
-        moved = Math.max(moved, Math.abs(dx));
-        if (moved > 12) productCarouselTrack.classList.add('is-dragging');
-        productCarouselTrack.scrollLeft = startLeft - dx;
-      });
-      window.addEventListener('mouseup', () => {
-        if (!down) return;
-        down = false;
-        productCarouselTrack.classList.remove('is-dragging');
-        /*
-         * 끌어서 옮긴 직후의 클릭만 삼킨다.
-         *
-         * 처음에는 클릭을 한 번 가로채는 리스너를 걸어 두었는데, 그 클릭이
-         * 안 오면 리스너가 그대로 남아 **다음에 제대로 누른 것까지 삼켰다.**
-         * 카드를 눌러도 상세페이지로 넘어가지 않았다.
-         *
-         * 리스너를 남기지 않고, 「방금 끌었다」는 표시만 잠깐 켜 둔다.
-         * 손 떨림으로 몇 픽셀 움직인 것은 끈 것으로 치지 않는다.
-         */
-        if (moved > 12) {
-          justDragged = true;
-          setTimeout(() => { justDragged = false; }, 250);
+    // 데스크탑 좌우 화살표 버튼
+    const tabsArrowPrev = document.getElementById('tabsArrowPrev');
+    const tabsArrowNext = document.getElementById('tabsArrowNext');
+    if (tabsArrowPrev && !tabsArrowPrev._hasBound) {
+      tabsArrowPrev._hasBound = true;
+      tabsArrowPrev.addEventListener('click', () => {
+        if (categoryTabsContainer) {
+          categoryTabsContainer.scrollBy({ left: -160, behavior: 'smooth' });
         }
       });
-
-      // ③ 점을 누르면 그 장으로
-      if (carouselDots && !carouselDots._hasBound) {
-        carouselDots._hasBound = true;
-        carouselDots.addEventListener('click', (e) => {
-          const dot = e.target.closest('.dot');
-          if (!dot) return;
-          const i = Number(dot.getAttribute('data-index') || 0);
-          productCarouselTrack.scrollTo({ left: i * stepOf(), behavior: 'smooth' });
-        });
-      }
-
-      // 지금 몇 번째 장인지 점과 화살표에 알려 준다
-      productCarouselTrack.addEventListener('scroll', () => {
-        refreshArrows();
-        if (!carouselDots) return;
-        const i = Math.round(productCarouselTrack.scrollLeft / stepOf());
-        carouselDots.querySelectorAll('.dot').forEach((d, k) => d.classList.toggle('active', k === i));
-      }, { passive: true });
+    }
+    if (tabsArrowNext && !tabsArrowNext._hasBound) {
+      tabsArrowNext._hasBound = true;
+      tabsArrowNext.addEventListener('click', () => {
+        if (categoryTabsContainer) {
+          categoryTabsContainer.scrollBy({ left: 160, behavior: 'smooth' });
+        }
+      });
     }
 
-    // 최초 진입 시 연애 탭 렌더링
-    renderCategory('연애');
+    // 최초 진입 시 전체 탭 렌더링
+    renderCategory('전체');
   }
 
   // DOMContentLoaded 시점에 미리 연애 탭 초기화

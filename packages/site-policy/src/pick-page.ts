@@ -280,6 +280,10 @@ ${footer}
 }
 
 export const PICK_CSS = `
+.pk{max-width:760px;margin-left:auto;margin-right:auto;box-sizing:border-box}
+.pk .pd-back{display:inline-flex;align-items:center;font-size:16px;font-weight:600;
+  color:var(--nb-gold);text-decoration:none;margin-bottom:18px}
+.pk .pd-back:hover{color:#fff;text-decoration:underline}
 .pk .pr-desc{margin-bottom:26px}
 .pk-form{display:grid;gap:26px;margin:0 0 10px;padding:22px;border:1px solid var(--nb-line);
   background:var(--nb-paper-2)}
@@ -288,15 +292,15 @@ export const PICK_CSS = `
 .pk-f{display:grid;gap:8px}
 .pk-l{margin:0;font-size:14px;letter-spacing:.2em;color:var(--nb-gold)}
 .pk-h{margin:0 0 4px;font-size:15px;line-height:1.85;color:var(--nb-ink-2);word-break:keep-all}
-.pk-dates{display:grid;gap:16px}
+.pk-dates{display:grid;grid-template-columns:1fr;gap:12px}
 .pk-d{display:grid;gap:5px}
 .pk-dn{font-size:14px;letter-spacing:.1em;color:var(--nb-ink-3)}
 .pk-form input[type=date],.pk-form select{width:100%;padding:11px 12px;font:15px var(--nb-sans);
   color:var(--nb-ink);background:var(--nb-paper);border:1px solid var(--nb-line);border-radius:0}
-.pk-times{display:flex;flex-wrap:wrap;gap:10px}
+.pk-times{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 /* 폰에서 손가락으로 누른다. 13px 네모는 못 누른다 — 라벨째로 44px 을 준다 */
-.pk-t{display:inline-flex;align-items:center;gap:9px;padding:10px 14px;cursor:pointer;
-  min-height:44px;box-sizing:border-box;border-radius:10px;
+.pk-t{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:10px 14px;cursor:pointer;
+  min-height:44px;box-sizing:border-box;border-radius:10px;width:100%;
   border:1px solid var(--nb-line);background:var(--nb-paper);font-size:15px;white-space:nowrap}
 .pk-t input{width:20px;height:20px;margin:0;accent-color:var(--nb-ink);cursor:pointer}
 .pk-on{border-color:var(--nb-gold);background:var(--nb-paper-2)}
@@ -341,7 +345,7 @@ export const PICK_CSS = `
 .pk-nh{margin:12px 0 0;font-size:14px;line-height:1.85;color:var(--nb-ink-3)}
 .pk-why{margin:0 0 14px;font-size:15px;line-height:1.85;color:var(--nb-ink-2)}
 .pk-rules{margin:0;padding:0;list-style:none;display:grid;gap:14px;counter-reset:pkr}
-.pk-rules li{position:relative;padding:16px 18px 16px 46px;border:1px solid var(--nb-line-soft);
+.pk-rules li{position:relative;width:100%;box-sizing:border-box;padding:16px 18px 16px 46px;border:1px solid var(--nb-line-soft);
   background:var(--nb-paper-2);counter-increment:pkr}
 .pk-rules li::before{content:counter(pkr);position:absolute;left:18px;top:16px;
   font-family:var(--nb-sans);font-weight:700;font-size:16px;color:var(--nb-gold)}
@@ -353,8 +357,11 @@ export const PICK_CSS = `
 .pk-warn{margin:22px 0 0;padding:16px;border:1px solid var(--nb-line);background:var(--nb-paper-2);
   font-size:15px;line-height:1.85;color:var(--nb-ink-2);word-break:keep-all}
 
+@media (min-width:640px){
+  .pk-dates{grid-template-columns:repeat(5,1fr)}
+  .pk-times{grid-template-columns:repeat(5,1fr)}
+}
 @media (min-width:760px){
-  .pk-dates{grid-template-columns:1fr 1fr 1fr}
   .pk-cards{grid-template-columns:1fr 1fr}
 }
 `;
