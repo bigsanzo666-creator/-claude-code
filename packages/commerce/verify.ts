@@ -17,6 +17,7 @@ import {
   orderable, isOrderable, upsellFor, upgradeCostKrw,
   priceOf, HOLIDAY_EXTRA_MEMBER_KRW, HOLIDAY_MAX_MEMBERS,
 } from './src/index.ts';
+import { TOPIC_LABELS } from '../saju-rules/src/topics.ts';
 
 let passed = 0, failed = 0;
 const failures: string[] = [];
@@ -65,6 +66,8 @@ check('갈래마다 상품이 있다', CATEGORIES.every((c) => productsIn(c.key)
 check('갈래 제목도 질문이다', CATEGORIES.every((c) => c.question.endsWith('?')));
 check('식별자가 겹치지 않는다', new Set(Object.values(CATALOG).map((p) => p.id)).size === COUNT);
 check('id 와 키가 일치', Object.entries(CATALOG).every(([k, v]) => k === v.id));
+check('charm 토픽 label과 charm-report 카탈로그 이름이 일치한다',
+  TOPIC_LABELS.charm.label === CATALOG['charm-report'].name);
 
 // 삼합(49,000원)이 부담스러운 손님이 한 갈래씩 고른다. 그래도 우리가 잘하는
 // 「대조」는 남아 있어야 한다 — 사주 하나만 파는 것은 어디서나 한다

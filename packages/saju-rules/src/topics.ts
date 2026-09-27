@@ -69,7 +69,7 @@ export const TOPIC_LABELS: Record<TopicId, TopicLabel> = {
     gloss: '나와 같은 자리에 선 사람 — 동료이자 경쟁자를 뜻합니다',
   },
   charm: {
-    label: '매력 삼합',
+    label: '내 매력, 어디서 나오는가',
     term: '도화·홍염', termHanja: '桃花·紅艶',
     gloss: '사람을 끌어당기는 기운을 뜻합니다',
   },
