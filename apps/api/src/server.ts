@@ -1042,17 +1042,31 @@ export function createApi(deps: ApiDeps) {
      * 파일이 없으면 404 로 답하고, 화면은 그 칸을 어두운 네모로 둔다.
      * 그림을 아직 안 만든 상품이 있어도 화면이 깨지지 않아야 한다.
      */
+    /*
+     * 「이런 분이 보시면 좋습니다」 그림.
+     *
+     * 화면은 `.jpg` 로 부르지만, **확장자가 달라도 찾아 준다.** 사장님이
+     * 그림을 어떤 형식으로 저장하실지는 프로그램이 정할 일이 아니다.
+     * 전에는 `.jpg` 만 받아서, `.webp` 를 올리면 **칸이 까맣게 남고 아무
+     * 말도 안 나왔다.** 없는 그림과 못 읽는 그림이 똑같이 보였다.
+     */
     'GET /img/fit/:id': async (_req, res, id) => {
       // 요청 문자열로 파일을 찾으므로 폴더를 벗어나는 이름을 먼저 막는다
-      if (!/^[a-z0-9-]+\.jpg$/.test(id) && !/^[a-z0-9-]+$/.test(id)) {
+      if (!/^[a-z0-9-]+(\.[a-z0-9]+)?$/.test(id)) {
         throw new HttpError(404, `그림이 없습니다: ${id}`);
       }
-      const cleanId = id.endsWith('.jpg') ? id : `${id}.jpg`;
-      const p = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'fit', cleanId);
-      if (!existsSync(p)) throw new HttpError(404, `그림이 없습니다: ${id}`);
-      pipeFile(res, p, {
-        'Content-Type': 'image/jpeg',
-        'Content-Length': statSync(p).size,
+      const base = id.replace(/\.[a-z0-9]+$/, '');
+      const dir = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'fit');
+      const KINDS: [string, string][] = [
+        ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.png', 'image/png'],
+        ['.webp', 'image/webp'], ['.avif', 'image/avif'],
+      ];
+      const hit = KINDS.map(([ext, type]) => [join(dir, base + ext), type] as const)
+        .find(([path]) => existsSync(path));
+      if (!hit) throw new HttpError(404, `그림이 없습니다: ${id}`);
+      pipeFile(res, hit[0], {
+        'Content-Type': hit[1],
+        'Content-Length': statSync(hit[0]).size,
         'Cache-Control': 'public, max-age=3600',
       });
     },

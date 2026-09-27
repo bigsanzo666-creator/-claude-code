@@ -423,6 +423,31 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
   check('신령 주소도 경로를 거슬러 올라갈 수 없다',
     (await get('/img/spirits/..%2F..%2Fetc%2Fpasswd')).status === 404);
 
+  /*
+   * 「이런 분이 보시면 좋습니다」 그림은 **확장자가 달라도 나가야 한다.**
+   *
+   * 화면은 `.jpg` 로 부른다. 전에는 서버도 `.jpg` 만 찾아서, 사장님이
+   * `.webp` 로 저장하시면 칸이 까맣게 남고 아무 말도 안 나왔다.
+   */
+  {
+    const { mkdirSync, writeFileSync, rmSync } = await import('node:fs');
+    const { join: j, dirname: dn } = await import('node:path');
+    const { fileURLToPath: f2u } = await import('node:url');
+    const fitDir = j(dn(f2u(import.meta.url)), 'public', 'fit');
+    mkdirSync(fitDir, { recursive: true });
+    const webp = j(fitDir, 'zzz-test-report-1.webp');
+    writeFileSync(webp, Buffer.from('RIFF....WEBPVP8 ', 'binary'));
+    const got = await get('/img/fit/zzz-test-report-1.jpg');
+    check('그림이 webp 로 올라와도 화면은 jpg 로 받아 간다',
+      got.status === 200 && got.headers.get('content-type') === 'image/webp',
+      `${got.status} ${got.headers.get('content-type')}`);
+    await got.arrayBuffer();
+    rmSync(webp, { force: true });
+    check('없는 그림은 404', (await get('/img/fit/zzz-test-report-9.jpg')).status === 404);
+    check('그림 주소도 경로를 거슬러 올라갈 수 없다',
+      (await get('/img/fit/..%2F..%2Fetc%2Fpasswd')).status === 404);
+  }
+
   check('카탈로그에 없는 아이디도 404', (await get('/img/products/nope')).status === 404);
   // 요청 문자열로 경로를 만들지 않으므로 애초에 성립하지 않는다
   check('경로를 거슬러 올라갈 수 없다',
