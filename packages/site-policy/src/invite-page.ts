@@ -210,21 +210,73 @@ ${footer}
       div.className = 'iv-ladder-item' + (achieved ? ' active' : '');
 
       var statusText = '';
-      if(rew && rew.status === '신청') statusText = '신청이 들어갔네. 하루 안에 확인해 드리겠네.';
-      else if(rew && rew.status === '내줌') statusText = '지급 완료 (' + (rew.expiresAt ? rew.expiresAt.slice(0,10) + '까지' : '이용 가능') + ')';
-      else if(rew && rew.status === '거절') statusText = '신청이 반려되었습니다.';
-      else if(achieved && item.type === '자동') statusText = '지금 바로 이용하실 수 있습니다.';
+      var isExpired = false;
+      var isExhausted = false;
+
+      if(rew && rew.expiresAt){
+        isExpired = new Date(rew.expiresAt).getTime() <= Date.now();
+      }
+      if(rew && rew.maxUses != null){
+        isExhausted = (rew.usedCount || 0) >= rew.maxUses;
+      }
+
+      var usedThisMonth = false;
+      if(rew && rew.lastUsedAt){
+        var nowD = new Date();
+        var lastD = new Date(rew.lastUsedAt);
+        var nowKst = new Date(nowD.getTime() + 9 * 3600000);
+        var lastKst = new Date(lastD.getTime() + 9 * 3600000);
+        usedThisMonth = (nowKst.getUTCFullYear() === lastKst.getUTCFullYear() && nowKst.getUTCMonth() === lastKst.getUTCMonth());
+      }
+
+      if(rew && (isExpired || isExhausted)){
+        statusText = '기간이 지났네';
+      }else if(rew && rew.status === '신청'){
+        statusText = '신청이 들어갔네. 하루 안에 확인해 드리겠네.';
+      }else if(rew && rew.status === '거절'){
+        statusText = '신청이 반려되었습니다.';
+      }else if(rew && rew.status === '내줌'){
+        if(item.tier === 1){
+          var msLeft = new Date(rew.expiresAt).getTime() - Date.now();
+          var daysLeft = Math.max(0, Math.ceil(msLeft / (24 * 60 * 60 * 1000)));
+          if(daysLeft <= 0){
+            statusText = '기간이 지났네';
+          }else{
+            statusText = daysLeft + '일 남음';
+          }
+        }else if(item.tier === 5){
+          var countNames = ['영', '한', '두', '세', '네', '다섯', '여섯'];
+          var uc = rew.usedCount || 0;
+          var countStr = countNames[uc] || (uc + '');
+          if(uc === 0){
+            statusText = '여섯 달 동안 이용 가능';
+          }else if(usedThisMonth){
+            var nextM = ((new Date().getMonth() + 1) % 12) + 1;
+            statusText = '여섯 달 중 ' + countStr + ' 번 쓰심 · 다음은 ' + nextM + '월부터';
+          }else{
+            statusText = '여섯 달 중 ' + countStr + ' 번 쓰심 · 이번 달 이용 가능';
+          }
+        }else{
+          statusText = '지급 완료 (' + (rew.expiresAt ? rew.expiresAt.slice(0,10) + '까지' : '이용 가능') + ')';
+        }
+      }else if(achieved && item.type === '자동'){
+        statusText = '지금 바로 이용하실 수 있습니다.';
+      }
 
       var btnHtml = '';
       if(item.type === '자동'){
-        if(achieved){
-          btnHtml = '<button type="button" class="iv-act-btn" data-act="use" data-tier="' + item.tier + '">바로 쓰기</button>';
-        }else{
+        if(!achieved){
           btnHtml = '<button type="button" class="iv-act-btn" disabled>' + (item.tier - count) + '명 더</button>';
+        }else if(rew && (isExpired || isExhausted)){
+          btnHtml = '<button type="button" class="iv-act-btn" disabled>기간이 지났네</button>';
+        }else{
+          btnHtml = '<button type="button" class="iv-act-btn" data-act="use" data-tier="' + item.tier + '">바로 쓰기</button>';
         }
       }else{
         if(!achieved){
           btnHtml = '<button type="button" class="iv-act-btn" disabled>' + (item.tier - count) + '명 더</button>';
+        }else if(rew && (isExpired || isExhausted)){
+          btnHtml = '<button type="button" class="iv-act-btn" disabled>기간이 지났네</button>';
         }else if(rew && rew.status === '신청'){
           btnHtml = '<button type="button" class="iv-act-btn applied" disabled>신청 완료</button>';
         }else if(rew && rew.status === '내줌'){
@@ -268,10 +320,33 @@ ${footer}
     ladderListEl.querySelectorAll('[data-act="use"]').forEach(function(b){
       b.onclick = async function(){
         var tier = parseInt(b.getAttribute('data-tier'), 10);
-        if(tier === 1){
-          location.href = '/products/daily-report?invite_reward=1';
-        }else if(tier === 5){
-          location.href = '/products/month-report?invite_reward=5';
+        if(tier === 1 || tier === 5){
+          var rew = rewardMap[tier];
+          if(tier === 5 && rew && rew.lastUsedAt){
+            var nowD = new Date();
+            var lastD = new Date(rew.lastUsedAt);
+            var nowKst = new Date(nowD.getTime() + 9 * 3600000);
+            var lastKst = new Date(lastD.getTime() + 9 * 3600000);
+            if(nowKst.getUTCFullYear() === lastKst.getUTCFullYear() && nowKst.getUTCMonth() === lastKst.getUTCMonth()){
+              alert('이번 달 것은 이미 받으셨네.');
+              return;
+            }
+          }
+          b.disabled = true;
+          b.textContent = '확인 중…';
+          try{
+            await postJson('/api/invite/reward/claim', { email: currentEmail, tier: tier });
+            try{
+              sessionStorage.setItem('nb_reward_email', currentEmail);
+              sessionStorage.setItem('nb_email', currentEmail);
+            }catch(e){}
+            var target = tier === 1 ? '/products/daily-report' : '/products/month-report';
+            location.href = target + '?email=' + encodeURIComponent(currentEmail) + '&invite_reward=' + tier;
+          }catch(e){
+            alert(e.message);
+            b.disabled = false;
+            b.textContent = '바로 쓰기';
+          }
         }else if(tier === 3){
           b.disabled = true;
           b.textContent = '뽑는 중…';

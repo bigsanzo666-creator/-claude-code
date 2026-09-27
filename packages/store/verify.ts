@@ -220,7 +220,18 @@ await referrals.rollbackInviteCount('ord_f1');
 check('환불 시 집계 되돌림', (await referrals.getReferralCount('tester1@example.kr')) === 0);
 
 await referrals.applyReward('tester1@example.kr', 1, '오늘의 운세 30일', '내줌');
-check('보답 상태 기록', (await referrals.getRewards('tester1@example.kr'))[0]?.status === '내줌');
+const rewList = await referrals.getRewards('tester1@example.kr');
+check('보답 상태 기록', rewList[0]?.status === '내줌');
+
+const claimed5 = await referrals.claimReward('tester1@example.kr', 5, '월운세 6달', new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(), 6);
+check('보답 claimReward 생성', claimed5.tier === 5 && claimed5.maxUses === 6 && claimed5.usedCount === 0);
+
+const claimedAgain = await referrals.claimReward('tester1@example.kr', 5, '월운세 6달', new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(), 6);
+check('보답 claimReward 중복 시 기존 것 반환', claimedAgain.id === claimed5.id);
+
+await referrals.recordRewardUse(claimed5.id);
+const updated5 = (await referrals.getRewards('tester1@example.kr')).find(r => r.tier === 5);
+check('보답 recordRewardUse 사용 횟수 증가', updated5?.usedCount === 1 && updated5?.lastUsedAt !== null);
 
 await pool.end(); await pool2.end();
 console.log(`\n${'═'.repeat(60)}`);

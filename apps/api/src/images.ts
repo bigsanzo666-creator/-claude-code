@@ -82,6 +82,7 @@ const KOREAN_NAMES: Record<string, string> = {
   '출세운': 'career-report',
   '공부운': 'learning-report',
   '오늘운세': 'daily-report',
+  '월운세': 'month-report',
   '신년운세': 'newyear-report',
   '이동운': 'travel-report',
   '마음정리': 'letgo-report',

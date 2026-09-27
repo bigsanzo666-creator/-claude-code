@@ -63,17 +63,23 @@ CREATE TABLE IF NOT EXISTS invite_uses (
 );
 
 CREATE TABLE IF NOT EXISTS rewards (
-  id          TEXT PRIMARY KEY,
-  owner_email TEXT NOT NULL,
-  tier        INTEGER NOT NULL,
-  kind        TEXT NOT NULL,
-  status      TEXT NOT NULL,
-  expires_at  TIMESTAMPTZ,
-  created_at  TIMESTAMPTZ NOT NULL,
-  granted_at  TIMESTAMPTZ,
+  id           TEXT PRIMARY KEY,
+  owner_email  TEXT NOT NULL,
+  tier         INTEGER NOT NULL,
+  kind         TEXT NOT NULL,
+  status       TEXT NOT NULL,
+  expires_at   TIMESTAMPTZ,
+  created_at   TIMESTAMPTZ NOT NULL,
+  granted_at   TIMESTAMPTZ,
+  used_count   INTEGER NOT NULL DEFAULT 0,
+  max_uses     INTEGER,
+  last_used_at TIMESTAMPTZ,
   CONSTRAINT rewards_email_tier_key UNIQUE (owner_email, tier)
 );
 
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS used_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS max_uses INTEGER;
+ALTER TABLE rewards ADD COLUMN IF NOT EXISTS last_used_at TIMESTAMPTZ;
 `;
 
 /** 연락처는 주문과 수명이 다르다 (동의 철회 전까지). 그래서 파일을 나눴다 */

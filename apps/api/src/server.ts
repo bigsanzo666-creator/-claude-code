@@ -14,7 +14,7 @@ import { dirname, join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID, createHash } from 'node:crypto';
 import {
-  CATALOG, getProduct, createOrder, markPending, markFulfilled, markViewed,
+  CATALOG, getProduct, createOrder, markPending, markPaid, markFulfilled, markViewed,
   generateInviteCode, isValidInviteCode, INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW, COUNT_MIN_ORDER_KRW, REWARD_TIERS,
   hasEntitlement, assessRefund, refundNotice, confirmPayment, refundOrder, failOrder,
   orderable, isOrderable, upsellFor, packagesContaining, makePreview,
@@ -889,6 +889,14 @@ function serveStaticFile(req: IncomingMessage, res: ServerResponse, filePath: st
   pipeFile(res, filePath, { ...head, 'Content-Length': size });
 }
 
+function isSameKoreanMonth(d1: Date, d2: Date): boolean {
+  const getYearMonth = (d: Date) => {
+    const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+    return `${kst.getUTCFullYear()}-${kst.getUTCMonth()}`;
+  };
+  return getYearMonth(d1) === getYearMonth(d2);
+}
+
 export function createApi(deps: ApiDeps) {
   const reports: ReportBox = deps.reportStore ?? new MemoryReportBox();
   const referrals: ReferralStore = deps.referrals ?? new MemoryReferralStore();
@@ -1349,7 +1357,31 @@ export function createApi(deps: ApiDeps) {
 
       let discountKrw = 0;
       let appliedInviteCode: string | null = null;
-      if (email && inviteCode && isValidInviteCode(inviteCode)) {
+      let rewardUsed: string | null = null;
+      let appliedRewardId: string | null = null;
+
+      const baseAmount = orderable(reading.productId).priceKrw + extraMemberKrw(reading.productId, 1 + (reading.family?.length ?? 0));
+      const targetRewardTier = reading.productId === 'daily-report' ? 1 : reading.productId === 'month-report' ? 5 : null;
+
+      if (email && targetRewardTier !== null) {
+        const userRewards = await referrals.getRewards(email);
+        const rew = userRewards.find((r) => r.tier === targetRewardTier && r.status === '내줌');
+        if (rew) {
+          const isExpired = rew.expiresAt ? new Date(rew.expiresAt).getTime() <= Date.now() : false;
+          const isExhausted = rew.maxUses != null && (rew.usedCount || 0) >= rew.maxUses;
+
+          if (!isExpired && !isExhausted) {
+            if (targetRewardTier === 5 && rew.lastUsedAt && isSameKoreanMonth(new Date(), new Date(rew.lastUsedAt))) {
+              throw new HttpError(400, '이번 달 것은 이미 받으셨네.');
+            }
+            discountKrw = baseAmount;
+            rewardUsed = '이용권으로 받음';
+            appliedRewardId = rew.id;
+          }
+        }
+      }
+
+      if (!appliedRewardId && email && inviteCode && isValidInviteCode(inviteCode)) {
         const invite = await referrals.getInvite(inviteCode);
         if (invite) {
           if (invite.ownerEmail.toLowerCase() === email.toLowerCase()) {
@@ -1359,7 +1391,6 @@ export function createApi(deps: ApiDeps) {
             // 같은 이메일은 할인권을 한 번만 쓴다
             discountKrw = 0;
           } else {
-            const baseAmount = orderable(reading.productId).priceKrw + extraMemberKrw(reading.productId, 1 + (reading.family?.length ?? 0));
             if (baseAmount >= INVITE_MIN_ORDER_KRW) {
               discountKrw = INVITE_DISCOUNT_KRW;
               appliedInviteCode = inviteCode;
@@ -1379,9 +1410,15 @@ export function createApi(deps: ApiDeps) {
         ref: body.ref,
         inviteCode: appliedInviteCode,
         discountKrw,
+        rewardUsed,
       });
-      await deps.orders.save({ ...order, ...({ reading, email } as any) });
-      console.log(`[주문] ${order.productId} ${order.amountKrw}원${order.ref ? ` ref=${order.ref}` : ''}`);
+
+      if (appliedRewardId) {
+        await referrals.recordRewardUse(appliedRewardId);
+      }
+
+      await deps.orders.save({ ...order, ...({ reading, email, rewardUsed } as any) });
+      console.log(`[주문] ${order.productId} ${order.amountKrw}원${order.ref ? ` ref=${order.ref}` : ''}${rewardUsed ? ` (${rewardUsed})` : ''}`);
       send(res, 201, {
         order,
         // 포트원은 결제 식별자를 우리가 정한다. 주문 id를 그대로 쓴다
@@ -1476,14 +1513,19 @@ export function createApi(deps: ApiDeps) {
       }
 
       let paid: Order;
-      try {
-        paid = await confirmPayment(stored, deps.gateway, paymentId);
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : '알 수 없는 오류';
-        if (stored.status === 'created' || stored.status === 'pending') {
-          await save(stored, failOrder(stored, reason));
+      if (stored.amountKrw === 0) {
+        const pending = stored.status === 'created' ? markPending(stored, paymentId) : stored;
+        paid = markPaid(pending, 0, new Date());
+      } else {
+        try {
+          paid = await confirmPayment(stored, deps.gateway, paymentId);
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : '알 수 없는 오류';
+          if (stored.status === 'created' || stored.status === 'pending') {
+            await save(stored, failOrder(stored, reason));
+          }
+          throw new HttpError(402, reason);
         }
-        throw new HttpError(402, reason);
       }
 
       const reading = (stored as any).reading as ReadingRequest;
@@ -1510,12 +1552,13 @@ export function createApi(deps: ApiDeps) {
         await referrals.createInvite(myInviteCode, buyerEmail);
       }
       if (stored.inviteCode && buyerEmail) {
+        const baseAmount = stored.amountKrw + ((stored as any).discountKrw ?? stored.discountKrw ?? 0);
         await referrals.recordInviteUse({
           id: `use_${randomUUID()}`,
           code: stored.inviteCode,
           invitedEmail: buyerEmail,
           orderId: stored.id,
-          amountKrw: stored.amountKrw,
+          amountKrw: baseAmount,
         });
       }
 
@@ -1579,6 +1622,43 @@ export function createApi(deps: ApiDeps) {
       send(res, 200, { code, count, rewards });
     },
 
+    'POST /api/invite/reward/claim': async (req, res) => {
+      const body = await readJson(req);
+      const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+      const tier = typeof body.tier === 'number' ? body.tier : parseInt(String(body.tier), 10);
+      if (!email || !tier) throw new HttpError(400, '이메일과 보답 단계가 필요합니다.');
+
+      const count = await referrals.getReferralCount(email);
+      if (count < tier) {
+        throw new HttpError(400, `소개 실적(${count}명)이 보답 조건(${tier}명)에 미치지 못합니다.`);
+      }
+
+      let kind = '';
+      let expiresAt: string | null = null;
+      let maxUses: number | null = null;
+
+      if (tier === 1) {
+        kind = '오늘의 운세 30일';
+        const d = new Date();
+        d.setDate(d.getDate() + 30);
+        expiresAt = d.toISOString();
+        maxUses = null;
+      } else if (tier === 5) {
+        kind = '월운세 6달';
+        const d = new Date();
+        d.setMonth(d.getMonth() + 6);
+        expiresAt = d.toISOString();
+        maxUses = 6;
+      } else {
+        const tierItem = REWARD_TIERS.find((t) => t.tier === tier);
+        if (!tierItem) throw new HttpError(400, '알 수 없는 보답 단계입니다.');
+        kind = tierItem.kind;
+      }
+
+      const rew = await referrals.claimReward(email, tier, kind, '내줌', expiresAt, maxUses);
+      send(res, 200, { ok: true, reward: rew });
+    },
+
     'POST /api/invite/reward/apply': async (req, res) => {
       const body = await readJson(req);
       const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
@@ -1592,6 +1672,20 @@ export function createApi(deps: ApiDeps) {
 
       const tierItem = REWARD_TIERS.find((t) => t.tier === tier);
       if (!tierItem) throw new HttpError(400, '알 수 없는 보답 단계입니다.');
+
+      if (tier === 1) {
+        const d = new Date();
+        d.setDate(d.getDate() + 30);
+        const rew = await referrals.claimReward(email, 1, '오늘의 운세 30일', '내줌', d.toISOString(), null);
+        send(res, 200, { ok: true, reward: rew, message: '이용권이 지급되었습니다.' });
+        return;
+      } else if (tier === 5) {
+        const d = new Date();
+        d.setMonth(d.getMonth() + 6);
+        const rew = await referrals.claimReward(email, 5, '월운세 6달', '내줌', d.toISOString(), 6);
+        send(res, 200, { ok: true, reward: rew, message: '이용권이 지급되었습니다.' });
+        return;
+      }
 
       const rew = await referrals.applyReward(email, tier, tierItem.kind, '신청');
       send(res, 200, { ok: true, reward: rew, message: '신청이 들어갔네. 하루 안에 확인해 드리겠네.' });
@@ -1663,9 +1757,15 @@ export function createApi(deps: ApiDeps) {
     if (!order) throw new HttpError(404, '주문을 찾을 수 없습니다.');
     return order;
   }
-  /** 내부 보관 필드(reading)를 유지하면서 저장한다 */
   async function save(previous: Order, next: Order): Promise<void> {
-    await deps.orders.save({ ...next, ...({ reading: (previous as any).reading, email: (previous as any).email } as any) });
+    await deps.orders.save({
+      ...next,
+      reading: (previous as any).reading,
+      email: (previous as any).email,
+      inviteCode: (previous as any).inviteCode ?? next.inviteCode,
+      discountKrw: (previous as any).discountKrw ?? next.discountKrw,
+      rewardUsed: (previous as any).rewardUsed ?? next.rewardUsed,
+    } as any);
   }
   /** 응답에서 내부 필드를 뺀다 */
   function strip(order: Order): Order {
