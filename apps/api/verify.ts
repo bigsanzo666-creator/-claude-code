@@ -253,10 +253,18 @@ for (const [path, title] of [['/products', '판매 상품과 가격'], ['/terms'
     check('「망설여지는 점」이 다른 상품에는 나오지 않는다', !otherHasHesitation);
   }
   const one = await page('/products/wealth-report');
-  // 값을 여기 적어 두면 값을 고칠 때마다 검증이 깨진다. 카탈로그에서 가져온다
-  check('상세페이지에 가격이 실판매가로 나온다',
-    one.html.includes(CAT['wealth-report'].priceKrw.toLocaleString('ko-KR') + '원'),
-    `${CAT['wealth-report'].priceKrw.toLocaleString('ko-KR')}원`);
+  check('상세페이지 본문과 고정 띠에 값이 나오지 않는다',
+    !one.html.includes(CAT['wealth-report'].priceKrw.toLocaleString('ko-KR') + '원') &&
+    !one.html.includes('부가세 포함'));
+  check('결제가 준비 중일 때는 결제 준비 중 안내가 나온다',
+    one.html.includes('결제 준비 중입니다'));
+  const { renderProductPage: renderProd } = await import('../../packages/site-policy/src/index.ts');
+  const readyPage = renderProd(CAT['wealth-report'], business, true, '');
+  check('상세페이지에 「더욱 자세한 내용 받기」 단추가 있다',
+    readyPage.includes('더욱 자세한 내용 받기'));
+  const coWealth = await page('/checkout?product=wealth-report');
+  check('결제 화면에는 값이 나온다',
+    coWealth.html.includes(CAT['wealth-report'].priceKrw.toLocaleString('ko-KR') + '원'));
   check('상세페이지에 명리 용어를 함께 단다', one.html.includes('재성(財星)'));
   check('상세페이지에서 목록으로 돌아갈 수 있다', one.html.includes('href="/products"'));
   check('상세페이지에도 사업자 정보', one.html.includes('220-81-62517'));

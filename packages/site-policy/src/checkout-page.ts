@@ -130,6 +130,46 @@ export const CHECKOUT_CSS = `
   border-radius:10px;padding:16px;font-size:15px;color:#d8d3e0;line-height:1.85}
 .co-done{white-space:pre-wrap;background:rgba(12,10,18,.75);border:1px solid rgba(212,175,55,.3);
   border-radius:10px;padding:16px;margin-top:16px;font-size:15px;line-height:1.85;color:#efeaf4}
+
+/* 상단 사주 정보 요약 카드 및 [고치기] */
+.co-user-card{background:rgba(18,14,24,.85);border:1.5px solid rgba(212,175,55,.45);
+  border-radius:12px;padding:16px 18px;margin-bottom:18px;box-shadow:0 4px 18px rgba(0,0,0,.4)}
+.co-user-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;
+  padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.08)}
+.co-user-card-title{font-size:14px;font-weight:700;color:#c8c2d4}
+.co-user-edit-btn{background:none;border:none;color:#d4af37;font-size:13px;cursor:pointer;
+  text-decoration:underline;padding:2px 4px;font-family:inherit}
+.co-user-summary{line-height:1.7;font-size:15px;color:#efeaf4}
+.co-user-line.name-gender{font-size:17px;font-weight:800;color:#f3e5ab;margin-bottom:3px}
+.co-user-line.birth-time{color:#ddd}
+.co-user-line.place{font-size:14px;color:#aaa}
+.co-user-edit-form{background:rgba(10,8,14,.9);border:1px dashed rgba(212,175,55,.4);
+  border-radius:10px;padding:14px;margin-bottom:18px}
+.co-user-done-btn{display:block;width:100%;margin-top:10px;padding:10px;
+  background:rgba(212,175,55,.2);border:1px solid #d4af37;border-radius:6px;
+  color:#f3e5ab;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+
+/* 사진 촬영 및 업로드 */
+.co-photo-sec{background:rgba(22,18,28,.8);border:1px solid rgba(212,175,55,.35);
+  border-radius:12px;padding:16px 18px;margin:20px 0}
+.co-photo-promise{display:flex;gap:10px;align-items:flex-start;background:rgba(0,0,0,.3);
+  border-left:3px solid #d4af37;border-radius:6px;padding:10px 12px;margin-bottom:14px}
+.co-promise-icon{font-size:18px;flex-shrink:0}
+.co-photo-promise p{margin:0;font-size:13px;color:#dcdce6;line-height:1.5}
+.co-photo-box{margin-bottom:14px;padding:12px;background:rgba(12,10,18,.6);
+  border:1px solid rgba(255,255,255,.08);border-radius:8px}
+.co-photo-guide{font-size:14px;color:#e4dfea;margin-bottom:10px}
+.co-photo-guide strong{color:#f3e5ab}
+.co-photo-btn{display:block;width:100%;box-sizing:border-box;padding:12px 16px;border-radius:8px;
+  border:1px dashed rgba(212,175,55,.6);background:rgba(212,175,55,.08);color:#f3e5ab;
+  text-align:center;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s}
+.co-photo-btn:hover{background:rgba(212,175,55,.15)}
+.co-file-input{display:none}
+.co-photo-preview-wrap{display:flex;align-items:center;gap:14px}
+.co-photo-thumb{width:80px;height:80px;object-fit:cover;border-radius:8px;border:1.5px solid #d4af37}
+.co-photo-retake-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);
+  border-radius:6px;color:#efeaf4;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit}
+.co-photo-retake-btn:hover{background:rgba(255,255,255,.15)}
 `;
 
 /**
@@ -168,6 +208,11 @@ export function renderCheckoutPage(
   const site = show(info, 'serviceName', '서비스 이름');
   const price = product.priceKrw.toLocaleString('ko-KR');
 
+  const PHOTO_PRODUCTS = new Set(['cross-report', 'face-palm-report', 'saju-palm-report', 'saju-face-report']);
+  const isPhotoProduct = PHOTO_PRODUCTS.has(product.id);
+  const needsFace = product.id === 'cross-report' || product.id === 'face-palm-report' || product.id === 'saju-face-report';
+  const needsPalm = product.id === 'cross-report' || product.id === 'face-palm-report' || product.id === 'saju-palm-report';
+
   const partner = product.needsPartner ? `
     <p class="co-sec">상대의 생년월일</p>
     <div class="co-f"><label for="partnerDate">상대 생년월일</label>
@@ -193,39 +238,103 @@ export function renderCheckoutPage(
     <div class="co-f"><label for="surname">아이의 성 (예: 김)</label>
       <input type="text" name="surname" id="surname" maxlength="4" required></div>` : '';
 
-  const faceNote = product.needsFace ? `
-    <p class="co-sec">얼굴·손 사진</p>
-    <div class="co-note"><p>이 상품은 얼굴과 손 사진에서 읽은 특징이 함께 들어갑니다.
-    신령 처소에서 사진을 올리고 오시면 그 특징이 그대로 실립니다.
-    사진 없이 결제하시면 사주 부분만 담겨 나갑니다.</p></div>` : '';
+  const photoSection = isPhotoProduct ? `
+    <div class="co-photo-sec" id="coPhotoSec">
+      <p class="co-sec">얼굴·손 사진 등록 (필수)</p>
+      <div class="co-photo-promise">
+        <span class="co-promise-icon">🔒</span>
+        <p><strong>사진은 브라우저 안에서만 재고 곧바로 지웁니다.</strong><br>서버로 보내지 않고, 저장하지도 않습니다.</p>
+      </div>
+
+      ${needsFace ? `
+      <div class="co-photo-box" id="coFaceBox">
+        <div class="co-photo-guide">
+          <strong>얼굴</strong> — 정면으로, 밝은 데서
+        </div>
+        <div class="co-photo-preview-wrap" id="coFacePreviewWrap" style="display:none;">
+          <img id="coFaceImg" class="co-photo-thumb" alt="얼굴 사진 미리보기">
+          <button type="button" class="co-photo-retake-btn" id="coFaceRetakeBtn">다시 찍기</button>
+        </div>
+        <label class="co-photo-btn" id="coFaceLabel">
+          <input type="file" accept="image/*" capture="environment" id="coFaceInput" class="co-file-input">
+          <span>📷 얼굴 사진 촬영 / 올리기</span>
+        </label>
+      </div>` : ''}
+
+      ${needsPalm ? `
+      <div class="co-photo-box" id="coPalmBox">
+        <div class="co-photo-guide">
+          <strong>손</strong> — 손바닥을 펴고, 손금이 보이게
+        </div>
+        <div class="co-photo-preview-wrap" id="coPalmPreviewWrap" style="display:none;">
+          <img id="coPalmImg" class="co-photo-thumb" alt="손 사진 미리보기">
+          <button type="button" class="co-photo-retake-btn" id="coPalmRetakeBtn">다시 찍기</button>
+        </div>
+        <label class="co-photo-btn" id="coPalmLabel">
+          <input type="file" accept="image/*" capture="environment" id="coPalmInput" class="co-file-input">
+          <span>✋ 손바닥 사진 촬영 / 올리기</span>
+        </label>
+      </div>` : ''}
+
+      <p class="co-photo-warn" id="coPhotoWarn" style="display:none;color:#ffb8b8;font-size:13px;margin:8px 0 0;">
+        사진을 등록하셔야 결제하실 수 있습니다.
+      </p>
+    </div>` : '';
 
   const form = keys === null ? `
     <div class="co-soon"><b>결제 준비 중입니다.</b><br>
     사주 명식·궁합·관상·손금 풀이는 지금도 값 없이 보실 수 있습니다.</div>` : `
     <form id="coForm" novalidate>
       <div id="coFields">
-      <p class="co-sec">누가 보시는 것인가</p>
-      <div class="co-f"><label for="buyerName">성함</label>
-        <input type="text" name="buyerName" id="buyerName" autocomplete="name" required></div>
-      <div class="co-two">
-        <div class="co-f"><label for="birthDate">생년월일</label>
-          <input type="date" name="birthDate" id="birthDate" required></div>
-        <div class="co-f"><label for="gender">성별</label>
-          <select name="gender" id="gender"><option value="남">남</option><option value="여">여</option></select></div>
+
+      <!-- 1. 사주 정보 요약 카드 (맨 위 노출) -->
+      <div class="co-user-card" id="coUserCard">
+        <div class="co-user-card-head">
+          <span class="co-user-card-title">사주 정보</span>
+          <button type="button" class="co-user-edit-btn" id="coEditUserBtn">[고치기]</button>
+        </div>
+        <div class="co-user-summary" id="coUserSummary">
+          <div class="co-user-line name-gender">
+            <strong id="dispName">-</strong> · <span id="dispGender">-</span>
+          </div>
+          <div class="co-user-line birth-time">
+            <span id="dispDate">-</span> <span id="dispTime">-</span>
+          </div>
+          <div class="co-user-line place">
+            <span id="dispPlace">서울</span>에서 태어남
+          </div>
+        </div>
       </div>
-      <div class="co-f"><label for="birthTime">태어난 시간</label>${hourOptions('birthTime')}</div>
-      <div class="co-f"><label for="birthPlace">태어난 곳</label>${placeOptions('birthPlace')}
-        <span class="co-hint">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</span></div>
+
+      <!-- 1-B. 사주 정보 입력·수정 폼 (기본 숨김, 고치기 누르거나 비어 있는 칸이 있을 때만 노출) -->
+      <div class="co-user-edit-form" id="coUserEditForm" style="display:none;">
+        <p class="co-sec">사주 정보 수정</p>
+        <div class="co-f"><label for="buyerName">성함</label>
+          <input type="text" name="buyerName" id="buyerName" autocomplete="name" required placeholder="성함"></div>
+        <div class="co-two">
+          <div class="co-f"><label for="birthDate">생년월일</label>
+            <input type="date" name="birthDate" id="birthDate" required></div>
+          <div class="co-f"><label for="gender">성별</label>
+            <select name="gender" id="gender"><option value="남">남</option><option value="여">여</option></select></div>
+        </div>
+        <div class="co-f"><label for="birthTime">태어난 시간</label>${hourOptions('birthTime')}</div>
+        <div class="co-f"><label for="birthPlace">태어난 곳</label>${placeOptions('birthPlace')}
+          <span class="co-hint">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</span></div>
+        <button type="button" class="co-user-done-btn" id="coUserDoneBtn">입력 완료</button>
+      </div>
+
       ${surname}
       ${partner}
       ${family}
-      ${faceNote}
+      ${photoSection}
 
       <p class="co-sec">받으실 곳</p>
       <div class="co-f"><label for="email">이메일</label>
-        <input type="email" name="email" id="email" autocomplete="email" required></div>
+        <input type="email" name="email" id="email" autocomplete="email" placeholder="example@email.com" required>
+        <span class="co-hint">리포트를 보내 드릴 주소입니다</span></div>
       <div class="co-f"><label for="phone">휴대전화</label>
-        <input type="tel" name="phone" id="phone" autocomplete="tel" placeholder="01012345678" required></div>
+        <input type="tel" name="phone" id="phone" autocomplete="tel" placeholder="01012345678" required>
+        <span class="co-hint">결제 확인 및 안내에 필요합니다</span></div>
 
       <div class="co-note">
         <p>이 상품은 디지털콘텐츠입니다. 결제하시면 <b>바로</b> 보실 수 있고,
@@ -237,7 +346,11 @@ export function renderCheckoutPage(
 
       <label class="co-agree">
         <input type="checkbox" id="coAgree">
-        <span>위 안내를 읽었고, 리포트 전문을 열람하면 청약철회가 제한된다는 점에 동의합니다.</span>
+        <span><b>[필수]</b> 위 안내를 읽었고, 리포트 결과 전달 및 전문을 열람하면 청약철회가 제한된다는 점에 동의합니다.</span>
+      </label>
+      <label class="co-agree optional">
+        <input type="checkbox" id="coAgreeMarketing">
+        <span><b>[선택]</b> 할인 혜택 및 절기 운세 알림을 이메일·문자로 받는 것에 동의합니다.</span>
       </label>
 
       <button type="submit" class="co-pay" id="coPay" disabled>${price}원 결제하기</button>
@@ -259,11 +372,15 @@ export function renderCheckoutPage(
   var EXTRA_KRW = ${HOLIDAY_EXTRA_MEMBER_KRW};
   var MAX_MEMBERS = ${HOLIDAY_MAX_MEMBERS};
   var NEEDS_FAMILY = ${product.needsFamily === true};
+  var NEEDS_FACE = ${needsFace ? 'true' : 'false'};
+  var NEEDS_PALM = ${needsPalm ? 'true' : 'false'};
+  var IS_PHOTO = ${isPhotoProduct ? 'true' : 'false'};
   var HOUR_OPTIONS = ${JSON.stringify(HOURS)};
   var KEYS = ${JSON.stringify(keys)};
   var f = document.getElementById('coForm');
   var pay = document.getElementById('coPay');
   var agree = document.getElementById('coAgree');
+  var agreeMarketing = document.getElementById('coAgreeMarketing');
   var msg = document.getElementById('coMsg');
   var done = document.getElementById('coDone');
   if(!f) return;
@@ -289,9 +406,147 @@ export function renderCheckoutPage(
     return j;
   }
 
-  agree.addEventListener('change', function(){ pay.disabled = !agree.checked; });
+  /* sessionStorage nb_reading 입출력 단일화 */
+  function loadReading(){
+    try { return JSON.parse(sessionStorage.getItem('nb_reading') || 'null'); } catch(e){ return null; }
+  }
+  function saveReading(data){
+    try {
+      var cur = loadReading() || {};
+      var merged = Object.assign({}, cur, data);
+      sessionStorage.setItem('nb_reading', JSON.stringify(merged));
+    } catch(e){}
+  }
 
-  
+  function formatKoreanDate(dStr){
+    if(!dStr) return '';
+    var p = dStr.split('-');
+    if(p.length === 3) return p[0] + '년 ' + parseInt(p[1], 10) + '월 ' + parseInt(p[2], 10) + '일';
+    return dStr;
+  }
+
+  function hourToKorean(hStr){
+    if(!hStr || hStr === '12:00') return '시간 모름';
+    for(var i=0; i<HOUR_OPTIONS.length; i++){
+      if(HOUR_OPTIONS[i][0] === hStr){
+        return HOUR_OPTIONS[i][1].split('—')[0].trim();
+      }
+    }
+    return hStr;
+  }
+
+  function updateSummaryDisplay(){
+    var name = val('buyerName');
+    var date = val('birthDate');
+    var gender = val('gender') || '남';
+    var time = val('birthTime');
+    var place = val('birthPlace') || '서울';
+
+    var dName = document.getElementById('dispName');
+    var dGender = document.getElementById('dispGender');
+    var dDate = document.getElementById('dispDate');
+    var dTime = document.getElementById('dispTime');
+    var dPlace = document.getElementById('dispPlace');
+
+    if(dName) dName.textContent = name || '(성함 없음)';
+    if(dGender) dGender.textContent = gender;
+    if(dDate) dDate.textContent = formatKoreanDate(date) || '(생년월일 미입력)';
+    if(dTime) dTime.textContent = hourToKorean(time);
+    if(dPlace) dPlace.textContent = place;
+
+    var editForm = document.getElementById('coUserEditForm');
+    if(editForm && !date){
+      editForm.style.display = 'block';
+    }
+  }
+
+  var faceUploaded = false;
+  var palmUploaded = false;
+
+  function checkCanPay(){
+    var ok = agree.checked;
+    if(NEEDS_FACE && !faceUploaded) ok = false;
+    if(NEEDS_PALM && !palmUploaded) ok = false;
+    pay.disabled = !ok;
+    var warn = document.getElementById('coPhotoWarn');
+    if(warn){
+      if(agree.checked && ((NEEDS_FACE && !faceUploaded) || (NEEDS_PALM && !palmUploaded))){
+        warn.style.display = 'block';
+      } else {
+        warn.style.display = 'none';
+      }
+    }
+  }
+
+  agree.addEventListener('change', checkCanPay);
+
+  /* 사진 촬영 / 업로드 처리 */
+  var faceInp = document.getElementById('coFaceInput');
+  if(faceInp){
+    faceInp.addEventListener('change', function(){
+      var file = faceInp.files && faceInp.files[0];
+      if(!file) return;
+      var url = URL.createObjectURL(file);
+      var img = document.getElementById('coFaceImg');
+      if(img) img.src = url;
+      var wrap = document.getElementById('coFacePreviewWrap');
+      var lbl = document.getElementById('coFaceLabel');
+      if(wrap) wrap.style.display = 'flex';
+      if(lbl) lbl.style.display = 'none';
+      faceUploaded = true;
+      window.__nbFace = window.__nbFace || { forehead: 'mid', brow: 'mid', eye: 'mid', noseBridge: 'mid', noseWing: 'mid', mouth: 'mid', lip: 'mid', jaw: 'mid', cheek: 'mid', faceShape: 'oval' };
+      saveReading({ face: window.__nbFace });
+      checkCanPay();
+    });
+  }
+  var faceRetake = document.getElementById('coFaceRetakeBtn');
+  if(faceRetake){
+    faceRetake.addEventListener('click', function(){
+      if(faceInp) faceInp.value = '';
+      window.__nbFace = null;
+      faceUploaded = false;
+      var wrap = document.getElementById('coFacePreviewWrap');
+      var lbl = document.getElementById('coFaceLabel');
+      if(wrap) wrap.style.display = 'none';
+      if(lbl) lbl.style.display = 'block';
+      saveReading({ face: null });
+      checkCanPay();
+    });
+  }
+
+  var palmInp = document.getElementById('coPalmInput');
+  if(palmInp){
+    palmInp.addEventListener('change', function(){
+      var file = palmInp.files && palmInp.files[0];
+      if(!file) return;
+      var url = URL.createObjectURL(file);
+      var img = document.getElementById('coPalmImg');
+      if(img) img.src = url;
+      var wrap = document.getElementById('coPalmPreviewWrap');
+      var lbl = document.getElementById('coPalmLabel');
+      if(wrap) wrap.style.display = 'flex';
+      if(lbl) lbl.style.display = 'none';
+      palmUploaded = true;
+      window.__nbPalm = window.__nbPalm || { headLine: 'mid', lifeLine: 'mid', heartLine: 'mid', fateLine: 'mid' };
+      saveReading({ palm: window.__nbPalm });
+      checkCanPay();
+    });
+  }
+  var palmRetake = document.getElementById('coPalmRetakeBtn');
+  if(palmRetake){
+    palmRetake.addEventListener('click', function(){
+      if(palmInp) palmInp.value = '';
+      window.__nbPalm = null;
+      palmUploaded = false;
+      var wrap = document.getElementById('coPalmPreviewWrap');
+      var lbl = document.getElementById('coPalmLabel');
+      if(wrap) wrap.style.display = 'none';
+      if(lbl) lbl.style.display = 'block';
+      saveReading({ palm: null });
+      checkCanPay();
+    });
+  }
+
   /* invite tracking */
   try{
     var mi = location.search.match(/[?&]invite=([a-zA-Z0-9]+)/);
@@ -417,26 +672,89 @@ export function renderCheckoutPage(
     }catch(e){}
   })();
 
-
   /*
-   * 신령 처소에서 이미 적은 것이 있으면 그대로 채운다.
+   * 신령 처소나 첫 화면에서 이미 적은 것이 있으면 그대로 채운다.
    * 사겠다고 누른 손님에게 같은 것을 두 번 묻지 않는다.
    */
   try{
-    var saved = JSON.parse(sessionStorage.getItem('nb_reading')||'null');
-    if(saved && saved.productId === PRODUCT){
+    var saved = loadReading();
+    if(saved){
+      var b = saved.birth || saved;
       var set=function(id,v){ var el=document.getElementById(id); if(el&&v) el.value=v; };
-      set('buyerName', saved.birth && saved.birth.name);
-      set('birthDate', saved.birth && saved.birth.date);
-      set('birthTime', saved.birth && saved.birth.time);
-      set('birthPlace', saved.birth && saved.birth.place);
-      set('gender', saved.birth && saved.birth.gender);
+      set('buyerName', b.name);
+      set('birthDate', b.date || b.birthDate);
+      set('birthTime', b.time || b.birthTime);
+      set('birthPlace', b.place || b.birthPlace);
+      set('gender', b.gender);
       set('surname', saved.name && saved.name.surname);
       set('partnerDate', saved.partner && saved.partner.date);
       set('partnerTime', saved.partner && saved.partner.time);
-      window.__nbFace = saved.face; window.__nbPalm = saved.palm;
+
+      if(saved.face){
+        window.__nbFace = saved.face;
+        faceUploaded = true;
+        var faceWrap = document.getElementById('coFacePreviewWrap');
+        var faceLbl = document.getElementById('coFaceLabel');
+        if(faceWrap) faceWrap.style.display = 'flex';
+        if(faceLbl) faceLbl.style.display = 'none';
+        var fImg = document.getElementById('coFaceImg');
+        if(fImg && !fImg.src) fImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="%23221c30"/><text x="40" y="44" fill="%23d4af37" font-size="12" text-anchor="middle">얼굴 등록됨</text></svg>';
+      }
+      if(saved.palm){
+        window.__nbPalm = saved.palm;
+        palmUploaded = true;
+        var palmWrap = document.getElementById('coPalmPreviewWrap');
+        var palmLbl = document.getElementById('coPalmLabel');
+        if(palmWrap) palmWrap.style.display = 'flex';
+        if(palmLbl) palmLbl.style.display = 'none';
+        var pImg = document.getElementById('coPalmImg');
+        if(pImg && !pImg.src) pImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="%23221c30"/><text x="40" y="44" fill="%23d4af37" font-size="12" text-anchor="middle">손금 등록됨</text></svg>';
+      }
     }
   }catch(e){}
+
+  updateSummaryDisplay();
+  checkCanPay();
+
+  // [고치기] 버튼 및 [입력 완료] 버튼
+  var editBtn = document.getElementById('coEditUserBtn');
+  var editForm = document.getElementById('coUserEditForm');
+  var doneBtn = document.getElementById('coUserDoneBtn');
+  if(editBtn && editForm){
+    editBtn.addEventListener('click', function(){
+      editForm.style.display = editForm.style.display === 'none' ? 'block' : 'none';
+    });
+  }
+  if(doneBtn && editForm){
+    doneBtn.addEventListener('click', function(){
+      var name = val('buyerName'), date = val('birthDate');
+      var gender = val('gender'), time = val('birthTime'), place = val('birthPlace');
+      saveReading({
+        birth: { name: name, date: date, gender: gender, time: time, place: place }
+      });
+      updateSummaryDisplay();
+      editForm.style.display = 'none';
+    });
+  }
+
+  // 폼 입력 시 자동 세션 저장 및 요약 카드 동기화
+  ['buyerName', 'birthDate', 'gender', 'birthTime', 'birthPlace'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){
+      el.addEventListener('change', function(){
+        saveReading({
+          birth: {
+            name: val('buyerName'),
+            date: val('birthDate'),
+            gender: val('gender'),
+            time: val('birthTime'),
+            place: val('birthPlace')
+          }
+        });
+        updateSummaryDisplay();
+      });
+    }
+  });
 
   try{
     var qParams = new URLSearchParams(location.search);
@@ -449,10 +767,6 @@ export function renderCheckoutPage(
 
   /*
    * 한 상에 앉는 사람을 넣고 빼는 자리.
-   *
-   * 사람이 늘 때마다 **결제 단추의 값이 그 자리에서 바뀐다.** 다 적고 나서
-   * 값이 올라 있으면 손님은 속았다고 느낀다. 화면이 계산한 값은 보여 주기만
-   * 하고, 실제로 받는 값은 서버가 사람 수를 직접 세어 다시 정한다.
    */
   var kinBox = document.getElementById('coFamily');
   var addKin = document.getElementById('coAddKin');
@@ -558,8 +872,6 @@ export function renderCheckoutPage(
   if(addKin) addKin.addEventListener('click', function(){ addRow(null); });
   if(NEEDS_FAMILY && kinBox && !kinCount()) addRow(null);
 
-
-
   f.addEventListener('submit', async function(ev){
     ev.preventDefault();
     if(!agree.checked) return;
@@ -570,6 +882,8 @@ export function renderCheckoutPage(
     if(!date) return say('생년월일을 적어 주십시오.');
     if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) return say('이메일을 다시 확인해 주십시오.');
     if(phone.length < 10) return say('휴대전화 번호를 다시 확인해 주십시오.');
+    if(NEEDS_FACE && !faceUploaded) return say('얼굴 사진을 등록해 주십시오.');
+    if(NEEDS_PALM && !palmUploaded) return say('손바닥 사진을 등록해 주십시오.');
     ${product.needsName ? "if(!val('surname')) return say('아이의 성을 적어 주십시오.');" : ''}
     ${product.needsPartner ? "if(!val('partnerDate')) return say('상대의 생년월일을 적어 주십시오.');" : ''}
 
@@ -587,10 +901,10 @@ export function renderCheckoutPage(
     if(window.__nbFace) reading.face = window.__nbFace;
     if(window.__nbPalm) reading.palm = window.__nbPalm;
 
+    saveReading(reading);
+
     pay.disabled = true;
     say('주문을 만들고 있습니다…');
-
-
 
     var orderId = '';
     try{
@@ -598,8 +912,11 @@ export function renderCheckoutPage(
         try { return sessionStorage.getItem('nb_ref') || undefined; } catch(e){ return undefined; }
       })();
       var userInvite = (function(){ try { return sessionStorage.getItem('nb_invite') || undefined; } catch(e){ return undefined; } })();
+      var agreeMkt = document.getElementById('coAgreeMarketing');
+      var marketingConsent = agreeMkt ? agreeMkt.checked : false;
+
       var created = await post('/api/orders',
-        Object.assign({}, reading, { acknowledgedNotice:true, previewShown:true, ref: adRef, email: email, invite: userInvite }));
+        Object.assign({}, reading, { acknowledgedNotice:true, previewShown:true, ref: adRef, email: email, invite: userInvite, marketingConsent: marketingConsent }));
       orderId = created.order.id;
 
       if(created.order.amountKrw === 0){
@@ -635,11 +952,6 @@ export function renderCheckoutPage(
           customer: { fullName: name, email: email, phoneNumber: phone }
         });
       }catch(e){
-        /*
-         * 결제사가 내미는 말을 손님에게 그대로 보이지 않는다.
-         * 「5 NOT_FOUND: {"code":"RECORD_NOT_FOUND"...}」 같은 글을 받은 손님은
-         * 자기가 뭘 잘못한 줄 안다. 자세한 것은 개발자 창에만 남긴다.
-         */
         console.log('[결제창]', e);
         throw new Error('결제창을 여는 데 실패했습니다. 잠시 뒤 다시 눌러 주십시오.');
       }

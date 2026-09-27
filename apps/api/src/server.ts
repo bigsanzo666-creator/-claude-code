@@ -349,7 +349,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
             <select id="inputPlace">
               ${PLACES.map((p) => `<option value="${p.name}"${p.name === '서울' ? ' selected' : ''}>${p.name}</option>`).join('')}
             </select>
-            <div class="form-hint" style="font-size: 0.88rem; color: #dcdce6; margin-top: 6px; line-height: 1.85;">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</div>
+            <div class="form-hint" style="font-size: 14px; color: #dcdce6; margin-top: 6px; line-height: 1.85;">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</div>
           </div>
 
           <div class="form-group">
@@ -507,7 +507,7 @@ const VIEWER_SKIN = `
    붉은색은 남겨 둔다 — 오류·경고·불리처럼 **뜻이 있는 자리**에 쓰이고 있어서,
    금색으로 바꾸면 나쁜 소식이 좋은 소식처럼 보인다. 손대는 것은 껍데기뿐이다. */
 .tabs{width:100%}
-.tab{flex:1;white-space:nowrap;font-size:.9rem}
+.tab{flex:1;white-space:nowrap;font-size:14px}
 .tab.on{color:var(--nb-gold);box-shadow:inset 0 -2px 0 var(--nb-gold)}
 .seg button.on{background:transparent;color:var(--nb-gold);box-shadow:inset 0 -2px 0 var(--nb-gold)}
 button.pay{background:var(--nb-ink);color:var(--nb-paper-2);border-radius:0;letter-spacing:.02em}
@@ -515,10 +515,12 @@ input,select,textarea{border-radius:0;border-color:var(--nb-line)}
 input:focus-visible,select:focus-visible,button:focus-visible{outline-color:var(--nb-gold)}
 /* 대문자 영문 모노 라벨은 서식 서류의 인상을 준다. 위쪽 금색 라벨과 같은 결로 맞춘다 */
 .label,.who{font-family:var(--nb-sans);text-transform:none;letter-spacing:.16em;color:var(--nb-gold)}
-.f > .label{color:var(--nb-ink-3);letter-spacing:.04em;font-size:.88rem}
+.f > .label{color:var(--nb-ink-3);letter-spacing:.04em;font-size:14px}
 .seal{border-color:var(--nb-gold);color:var(--nb-gold);border-radius:0;border-width:1px}
 .pro{border-color:var(--nb-gold)}
-.pro::before{background:var(--nb-gold);color:var(--nb-paper-2)}`;
+.pro::before{background:var(--nb-gold);color:var(--nb-paper-2)}
+#legacyStageWrapper *{font-family:var(--nb-sans);font-size:14px}
+#legacyStageWrapper h1,#legacyStageWrapper h2,#legacyStageWrapper .glyph{font-size:28px}`;
 
 class HttpError extends Error {
   readonly status: number;
@@ -965,6 +967,11 @@ export function createApi(deps: ApiDeps) {
      * 화면을 렌더링하지 않으므로 파일을 읽지 않는다 — 헬스체크가 디스크를
      * 건드리면 그 자체가 장애 원인이 된다.
      */
+    'GET /favicon.ico': async (_req, res) => {
+      res.writeHead(204, { 'Content-Type': 'image/x-icon' });
+      res.end();
+    },
+
     'GET /healthz': async (_req, res) => {
       send(res, 200, { ok: true, payments: checkout !== null });
     },

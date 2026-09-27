@@ -408,6 +408,56 @@ document.addEventListener('DOMContentLoaded', () => {
   const genderButtons = document.querySelectorAll('.gender-btn');
   let selectedGender = 'male';
 
+  /*
+   * 사주 정보를 담고 꺼내는 단일 함수 (sessionStorage 'nb_reading')
+   */
+  function loadReading() {
+    try {
+      return JSON.parse(sessionStorage.getItem('nb_reading') || 'null');
+    } catch (e) { return null; }
+  }
+
+  function saveReading(data) {
+    try {
+      const cur = loadReading() || {};
+      const merged = Object.assign({}, cur, data);
+      sessionStorage.setItem('nb_reading', JSON.stringify(merged));
+    } catch (err) { /* 저장이 막혀 있어도 결제 자리에서 다시 받으면 된다 */ }
+  }
+
+  try {
+    const saved = loadReading();
+    if (saved) {
+      const b = saved.birth || saved;
+      if (b.name && inputName) inputName.value = b.name;
+      if ((b.date || b.birthDate) && inputBirth) inputBirth.value = b.date || b.birthDate;
+      if (b.place && inputPlace) inputPlace.value = b.place;
+      if (b.gender) {
+        selectedGender = (b.gender === 'female' || b.gender === '여') ? 'female' : 'male';
+        genderButtons.forEach(btn => {
+          if (btn.getAttribute('data-gender') === selectedGender) btn.classList.add('active');
+          else btn.classList.remove('active');
+        });
+      }
+      if (b.time && inputTime) {
+        for (const [k, v] of Object.entries(TIME_MAP)) {
+          if (v === b.time || k === b.time) {
+            inputTime.value = k;
+            break;
+          }
+        }
+      }
+      userState.name = (inputName && inputName.value.trim()) || (b.name || "");
+      userState.birthDate = inputBirth ? inputBirth.value : (b.date || b.birthDate || "");
+      userState.birthTime = inputTime ? inputTime.value : (b.time || "");
+      userState.birthPlace = (inputPlace && inputPlace.value) || (b.place || "서울");
+      userState.gender = selectedGender;
+      if (userInfoDisplay && userState.name) {
+        userInfoDisplay.innerHTML = `<span class="user-icon">🏮</span><span class="user-name-text"><strong>${userState.name}</strong> 님의 명식 봉인 해제</span>`;
+      }
+    }
+  } catch (e) {}
+
   const panoramaViewport = document.getElementById('panoramaViewport');
 
   // ================= 🔊 사운드 컨트롤 =================
@@ -526,9 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
    * 브라우저를 닫으면 지워지는 자리에만 둔다. 이 창에서 결제까지 가는 동안만 쓴다.
    */
   function rememberReading(productId, payload) {
-    try {
-      sessionStorage.setItem('nb_reading', JSON.stringify({ ...payload, productId }));
-    } catch (err) { /* 저장이 막혀 있어도 결제 자리에서 다시 받으면 된다 */ }
+    saveReading(Object.assign({}, payload, productId ? { productId: productId } : {}));
   }
 
   // ================= 3. 입장 연출 영상 1회 재생 후 마당 파노라마 고정! =================
@@ -594,6 +642,19 @@ document.addEventListener('DOMContentLoaded', () => {
       userState.birthTime = inputTime ? inputTime.value : userState.birthTime;
       userState.birthPlace = (inputPlace && inputPlace.value) || "서울";
       userState.gender = selectedGender;
+
+      const mappedTime = TIME_MAP[userState.birthTime] || userState.birthTime || '12:00';
+      const mappedGender = (userState.gender === 'female' || userState.gender === '여') ? '여' : '남';
+
+      saveReading({
+        birth: {
+          name: userState.name,
+          date: userState.birthDate,
+          time: mappedTime,
+          place: userState.birthPlace,
+          gender: mappedGender,
+        }
+      });
 
       if (userInfoDisplay) {
         userInfoDisplay.innerHTML = userState.name

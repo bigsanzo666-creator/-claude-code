@@ -1183,19 +1183,19 @@ body {
 
 /* 화면 아래에 붙어 따라다니는 사는 자리 */
 .pd-sticky{position:fixed;left:0;right:0;bottom:0;z-index:40;
-  display:flex;align-items:center;gap:12px;
+  display:flex;align-items:center;justify-content:center;gap:12px;
   padding:10px 16px calc(10px + env(safe-area-inset-bottom));
   background:rgba(10,8,16,.96);border-top:1px solid rgba(212,175,55,.35);
   backdrop-filter:blur(8px)}
-.pd-sticky-price{flex:1 1 auto;font-family:var(--nb-sans);font-size:20px;color:#f3e5ab;
-  display:flex;align-items:baseline;gap:6px;white-space:nowrap}
-.pd-sticky-price small{font-size:14px;color:#BEBECC;font-family:inherit}
-.pd-sticky-go{flex:0 0 auto;padding:12px 26px;border-radius:8px;text-decoration:none;
+.pd-sticky-go{width:100%;max-width:400px;text-align:center;padding:14px 26px;border-radius:8px;text-decoration:none;
   font-size:16px;font-weight:800;color:#1a1208;
-  background:linear-gradient(135deg,#d4af37,#f0d478)}
+  background:linear-gradient(135deg,#d4af37,#f0d478);display:block}
 /* 띠가 맨 아래 글을 가리지 않게 자리를 비워 둔다 */
 body{padding-bottom:72px}
-@media (min-width:760px){.pd-sticky{max-width:720px;margin:0 auto;border-radius:12px 12px 0 0}}
+@media (min-width:760px){
+  .pr{max-width:760px;padding:0 24px 48px}
+  .pd-sticky{max-width:760px;margin:0 auto;border-radius:12px 12px 0 0}
+}
 
 /* 4. 맨 아래: 값과 결제 */
 .pd-buy {
@@ -1207,6 +1207,26 @@ body{padding-bottom:72px}
   margin: 40px 0 28px 0;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
+
+.pd-go {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  max-width: 400px;
+  margin: 16px auto 0;
+  padding: 15px 24px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-family: var(--font-sans);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #1a1208;
+  text-align: center;
+  background: linear-gradient(135deg, #d4af37, #f0d478);
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.35);
+  transition: transform 0.15s, opacity 0.15s;
+}
+.pd-go:active { transform: scale(0.98); }
 
 .pd-price {
   font-family: var(--font-sans);
@@ -1483,15 +1503,7 @@ ${footer}
 function buyLink(product: Product): string {
   if (product.needsPick) return '';
   const go = `/checkout?product=${encodeURIComponent(product.id)}`;
-  if (product.needsPartner) {
-    return `<a class="pd-go" href="${go}">두 사람 생년월일 넣고 받기</a>`;
-  }
-  if (product.needsFace) {
-    return `<a class="pd-go" href="${go}">얼굴·손까지 넣고 받기</a>`
-      + '<p class="pd-also">사진은 기기 밖으로 나가지 않습니다. 화면에서 특징만 고르시면 됩니다.</p>';
-  }
-  return `<a class="pd-go" href="${go}">생년월일 넣고 받기</a>`
-    + '<p class="pd-also">결제 전에 무엇이 담기는지와 예시 문장을 먼저 보여 드립니다.</p>';
+  return `<a class="pd-go" href="${go}">더욱 자세한 내용 받기</a>`;
 }
 
 /**
@@ -1539,7 +1551,7 @@ export function renderProductPage(
     .filter((p) => p.members.includes(product.id))
     .sort((a, b) => a.priceKrw - b.priceKrw);
   const alsoIn = packs.length
-    ? `<p class="pd-also">이 리포트는 ${packs.map((p) => `<b>${esc(p.name)}</b>(${won(bundleMath(p.id).bundleKrw)})`).join(', ')} 묶음에도 들어 있습니다.</p>`
+    ? `<p class="pd-also">이 리포트는 ${packs.map((p) => `<b>${esc(p.name)}</b>`).join(', ')} 묶음에도 들어 있습니다.</p>`
     : '';
 
   // 5. 다른 상품으로 넘기기 (같은 갈래 다른 상품 둘셋)
@@ -1644,10 +1656,6 @@ ${product.id === 'family-holiday-report' ? renderFamilyWhy() : renderWhy()}
 ${renderGlossary(product.id)}
 
   <div class="pd-buy">
-    <span class="pd-price">${won(product.priceKrw)}</span><span class="pr-vat"> (부가세 포함)</span>
-    ${product.id === 'family-holiday-report'
-      ? '<p class="pd-price-notice">오픈 기념 · 추석 한정가입니다. 39,900원으로 올라갑니다 — 9월 28일부터</p>'
-      : ''}
     ${product.needsPartner ? '<p class="pd-also">두 사람의 생년월일이 필요합니다.</p>' : ''}
     ${product.needsPick
       ? `<p class="pd-also">아직 태어나지 않았으므로 생년월일은 필요 없습니다.
@@ -1655,6 +1663,7 @@ ${renderGlossary(product.id)}
         점수를 <b>공짜로</b> 먼저 보실 수 있고, 그 뒤에 이 리포트를 고르시면 됩니다.</p>`
       : ''}
     ${ready ? buyLink(product) : '<p class="pd-also"><b>결제 준비 중입니다.</b> 사주 명식·궁합·관상·손금 풀이는 지금도 결제 없이 이용하실 수 있습니다.</p>'}
+    <p class="pd-guarantee-note" style="margin:14px 0 0;font-size:0.88rem;color:rgba(245,245,247,0.78);line-height:1.6;">${WITHDRAWAL_WINDOW_DAYS}일 안에 열람하지 않으셨으면 전액 돌려드립니다.</p>
     ${alsoIn}
   </div>
 
@@ -1698,24 +1707,14 @@ ${stickyBuy(product, ready)}
 /**
  * 화면 아래에 붙어 따라다니는 사는 자리.
  *
- * 상세페이지는 휴대폰 화면으로 일곱 장이 넘는다. 값과 사는 단추는 **맨 아래에만**
- * 있어서, 중간에서 마음이 선 손님이 사려면 끝까지 내려가야 했다. 그 사이에
- * 마음이 식는다.
- *
- * 값을 위로 올리지는 않는다 — 사장님이 값은 맨 아래에만 두기로 정했다.
- * 대신 **아래에 붙은 띠**로 언제든 살 자리로 갈 수 있게 한다. 값은 그 띠에도
- * 적는다. 값을 숨긴 채 단추만 내미는 것은 손님을 속이는 것이다.
- *
- * 거짓 급함("오늘 마감")을 쓰지 않는다. 띠는 늘 같은 말을 한다.
+ * 상세페이지는 휴대폰 화면으로 일곱 장이 넘는다.
+ * 어디서든 결제 화면으로 이동할 수 있도록 고정 띠를 둔다.
+ * 값은 결제 화면에서 처음 보인다.
  */
 function stickyBuy(product: Product, ready: boolean): string {
   if (!ready || product.needsPick) return '';
-  const note = product.id === 'family-holiday-report'
-    ? '<small class="pd-sticky-note" style="display:block;font-size:14px;color:#c9a34a;margin-top:2px">9월 28일부터 39,900원</small>'
-    : '';
   return `<div class="pd-sticky">
-    <span class="pd-sticky-price">${won(product.priceKrw)}<small>부가세 포함</small>${note}</span>
-    <a class="pd-sticky-go" href="/checkout?product=${encodeURIComponent(product.id)}">받기</a>
+    <a class="pd-sticky-go" href="/checkout?product=${encodeURIComponent(product.id)}">더욱 자세한 내용 받기</a>
   </div>`;
 }
 /**

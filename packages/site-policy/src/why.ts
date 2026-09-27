@@ -160,31 +160,30 @@ export const WHY_CSS = `
   justify-content:flex-end;box-sizing:border-box;border:1px solid var(--nb-line-soft);
   background:var(--nb-paper-2);border-radius:8px}
 .why-card-bg{position:absolute;top:0;left:0;width:100%;height:100%;background-size:cover;
-  background-position:center;filter:brightness(.62);pointer-events:none;z-index:1}
-.why-scrim{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:2}
-.why-card-body{position:relative;z-index:3;padding:18px 20px;display:flex;flex-direction:column;
-  justify-content:flex-end;box-sizing:border-box}
+  background-position:center;filter:brightness(.62);pointer-events:none;border-radius:8px;z-index:1}
+.why-scrim{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;border-radius:8px;z-index:2}
+.why-card-body{position:relative;z-index:3;padding:22px 20px;display:flex;flex-direction:column;
+  justify-content:flex-start;box-sizing:border-box;width:100%}
 
 /* side에 따른 그늘 및 정렬 */
-.why-card-left .why-scrim{background:linear-gradient(to right,rgba(0,0,0,.92) 0%,rgba(0,0,0,.75) 45%,rgba(0,0,0,.15) 100%),linear-gradient(to top,rgba(0,0,0,.95) 0%,transparent 70%)}
-.why-card-left .why-card-body{align-items:flex-start;text-align:left;margin-right:auto;max-width:85%}
+.why-card-left .why-scrim{background:linear-gradient(to right,rgba(0,0,0,.92) 0%,rgba(0,0,0,.78) 55%,rgba(0,0,0,.35) 100%),linear-gradient(to bottom,rgba(0,0,0,.4) 0%,rgba(0,0,0,.9) 100%)}
+.why-card-left .why-card-body{align-items:flex-start;text-align:left}
 
-.why-card-right .why-scrim{background:linear-gradient(to left,rgba(0,0,0,.92) 0%,rgba(0,0,0,.75) 45%,rgba(0,0,0,.15) 100%),linear-gradient(to top,rgba(0,0,0,.95) 0%,transparent 70%)}
-.why-card-right .why-card-body{align-items:flex-end;text-align:right;margin-left:auto;max-width:85%}
+.why-card-right .why-scrim{background:linear-gradient(to left,rgba(0,0,0,.92) 0%,rgba(0,0,0,.78) 55%,rgba(0,0,0,.35) 100%),linear-gradient(to bottom,rgba(0,0,0,.4) 0%,rgba(0,0,0,.9) 100%)}
+.why-card-right .why-card-body{align-items:flex-start;text-align:left}
 
 /* 층 카드 세부 요소 */
-.why-f-top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-.why-card-right .why-f-top{flex-direction:row-reverse}
-.why-n{font-size:15px;letter-spacing:.08em;color:var(--nb-gold);font-weight:700;text-shadow:0 2px 12px rgba(0,0,0,.9)}
-.why-by{font-style:normal;font-size:14px;letter-spacing:.1em;padding:3px 8px;
-  border:1px solid var(--nb-line);color:var(--nb-ink-3);border-radius:4px;background:rgba(0,0,0,.5);text-shadow:0 2px 12px rgba(0,0,0,.9)}
+.why-f-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.why-n{font-size:16px;letter-spacing:.08em;color:var(--nb-gold);font-weight:700;text-shadow:0 2px 12px rgba(0,0,0,.9)}
+.why-by{font-style:normal;font-size:14px;letter-spacing:.1em;padding:4px 9px;
+  border:1px solid var(--nb-line);color:var(--nb-ink);border-radius:4px;background:rgba(0,0,0,.65);text-shadow:0 2px 12px rgba(0,0,0,.9);font-weight:600}
 .why-ai{border-color:var(--nb-gold);color:var(--nb-gold)}
-.why-d{font-size:15px;line-height:1.75;color:var(--nb-ink);word-break:keep-all;text-shadow:0 2px 12px rgba(0,0,0,.9)}
+.why-d{font-size:15px;line-height:1.75;color:var(--nb-ink-2);word-break:keep-all;text-shadow:0 2px 12px rgba(0,0,0,.9)}
 .why-d em{display:block;font-style:normal;font-family:var(--nb-sans);font-size:18px;
-  font-weight:700;color:var(--nb-ink);margin-bottom:3px;text-shadow:0 2px 12px rgba(0,0,0,.9)}
+  font-weight:700;color:var(--nb-ink);margin-bottom:4px;text-shadow:0 2px 12px rgba(0,0,0,.9)}
 
 /* 약속 카드 세부 요소 */
-.why-c h4{margin:0 0 8px;font-family:var(--nb-sans);font-size:18px;font-weight:700;
+.why-c h4{margin:0 0 10px;font-family:var(--nb-sans);font-size:18px;font-weight:700;
   line-height:1.45;color:var(--nb-ink);word-break:keep-all;text-shadow:0 2px 12px rgba(0,0,0,.9)}
 .why-c p{margin:0;font-size:15px;line-height:1.75;color:var(--nb-ink-2);word-break:keep-all;text-shadow:0 2px 12px rgba(0,0,0,.9)}
 

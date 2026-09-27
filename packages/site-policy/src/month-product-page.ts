@@ -627,8 +627,7 @@ ${footer}
 
 <!-- 화면 아래에 붙어 따라다니는 사는 자리 -->
 <aside class="pd-sticky">
-  <span class="pd-sticky-price">${won(product.priceKrw)}<small>부가세 포함</small></span>
-  <a class="pd-sticky-go" href="/checkout?product=${encodeURIComponent(product.id)}">받기</a>
+  <a class="pd-sticky-go" href="/checkout?product=${encodeURIComponent(product.id)}">더욱 자세한 내용 받기</a>
 </aside>
 
 <script>
@@ -972,12 +971,8 @@ function renderMonthPreviewHtml(p: MonthPreviewData, prod: Product): string {
   </section>
 
   <section class="mp-section mp-price-card">
-    <div class="mp-price-tag">
-      <span class="mp-price-amount">${priceWon}</span>
-      <span class="mp-price-vat"> (부가세 포함)</span>
-    </div>
     <a id="mpBuyBtn" href="/checkout?product=month-report" class="mp-btn-buy">
-      ▶ 한 달 운세 전부 보기
+      더욱 자세한 내용 받기
     </a>
     <p class="mp-guarantee-text">
       결제하시면 바로 보실 수 있습니다.<br>

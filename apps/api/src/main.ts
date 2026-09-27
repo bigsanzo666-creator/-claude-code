@@ -80,18 +80,18 @@ if (databaseUrl) {
     storeKind = 'Postgres';
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    if (payable) {
+    if (payable && !process.env.ALLOW_MEMORY_PAYMENTS) {
       console.error(`[api] 결제가 켜져 있는데 데이터베이스에 붙지 못했습니다: ${reason}`);
       console.error('      메모리 저장소로 결제를 받으면 재시작 시 주문이 사라집니다 — 뜨지 않습니다.');
       process.exit(1);
     }
     console.error(`[api] 데이터베이스에 붙지 못했습니다: ${reason}`);
-    console.warn('[api] 결제가 꺼져 있으므로 메모리 저장소로 뜹니다. 사이트는 정상 동작합니다.');
+    console.warn('[api] 결제가 꺼져 있거나 개발 모드이므로 메모리 저장소로 뜹니다.');
     storeKind = `메모리 (DB 연결 실패: ${reason})`;
   }
 }
 
-if (payable && !databaseUrl) {
+if (payable && !databaseUrl && !process.env.ALLOW_MEMORY_PAYMENTS) {
   console.error('[api] 결제가 켜져 있는데 DATABASE_URL 이 없습니다.');
   console.error('      메모리 저장소로는 재시작 시 주문이 사라집니다 — 결제를 켠 채로는 뜨지 않습니다.');
   process.exit(1);

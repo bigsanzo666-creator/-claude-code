@@ -92,7 +92,7 @@ export const LANDING_CSS = `
 .lp-bt{font-family:var(--nb-sans);font-weight:600;font-size:19px;margin:0 0 6px}
 .lp-bb{margin:0;font-size:16px;line-height:1.85;color:var(--nb-ink-2);word-break:keep-all}
 .lp-try{padding:64px 0 0}
-.lp-try h2{font-family:var(--nb-serif);font-weight:600;font-size:24px;margin:0 0 8px}
+.lp-try h2{font-family:var(--nb-sans);font-weight:700;font-size:24px;margin:0 0 8px}
 @media (min-width:760px){
   /* 넓어질수록 세로 그림에서 잘라 쓰는 띠가 얇아진다. 맨 아래를 붙들면 물만
      남으므로, 꽃가지와 산자락이 함께 걸리도록 조금 올려 잡는다 */

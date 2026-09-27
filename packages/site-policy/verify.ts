@@ -209,10 +209,23 @@ check('상세 페이지도 그림이 있을 때만 크게 건다',
   check('확인 표를 하기 전에는 결제 단추가 안 눌린다',
     /id="coPay"[^>]*disabled/.test(pay));
   check('미리 켜 둔 표가 하나도 없다', !/type="checkbox"[^>]*checked/.test(pay));
-  check('광고 수신 동의를 결제 자리에서 받지 않는다',
-    !pay.includes('광고') && !pay.includes('마케팅'));
+  check('결과 전달 동의와 광고 수신 동의가 따로 있다',
+    pay.includes('id="coAgree"') && pay.includes('id="coAgreeMarketing"'));
+  check('광고 수신 동의가 기본 체크가 아니다',
+    !/id="coAgreeMarketing"[^>]*checked/.test(pay));
   check('거짓 급함을 쓰지 않는다',
     !/지금만|오늘만|마감 임박|선착순/.test(pay));
+
+  const photoRequiredProducts = Object.values(CATALOG).filter((p) => {
+    const pPage = renderCheckoutPage({} as any, '', p, { storeId: 's', channelKey: 'c' });
+    return pPage.includes('id="coPhotoSec"');
+  });
+  check('사진이 필요한 상품은 넷뿐이다 (매력 상품은 아니다)',
+    photoRequiredProducts.length === 4 &&
+    !photoRequiredProducts.some((p) => p.id === 'charm-report') &&
+    ['cross-report', 'face-palm-report', 'saju-palm-report', 'saju-face-report'].every((id) =>
+      photoRequiredProducts.some((p) => p.id === id)
+    ));
 
   check('결제 화면에 태어난 곳 고르개가 있다', pay.includes('id="birthPlace"'));
   check('태어난 곳 고르개의 기본값이 서울이다', pay.includes('value="서울" selected'));
@@ -437,11 +450,15 @@ section('9. 신령 — 칸마다 주인이 있는가');
 
   const pd = renderProductPage(CATALOG['wealth-report'], full, true, '',
     new Set(), new Set(), { text: '예시 문장입니다.', notice: '다른 분의 명식입니다.' });
-  check('고르기 전 칸이 값보다 위에 온다',
-    pd.indexOf('이런 분이 보시면 좋습니다') < pd.indexOf(`class="pd-price"`));
-  check('담기는 것이 값보다 위에 온다',
-    pd.indexOf('이 리포트에 담기는 것') < pd.indexOf(`class="pd-price"`));
-  check('맛보기가 값보다 위에 온다', pd.indexOf('어떤 문장으로 나오는지') < pd.indexOf(`class="pd-price"`));
+  check('상세페이지 본문과 고정 띠에 값이 나오지 않는다',
+    !pd.includes('19,900원') && !pd.includes('부가세 포함') && !pd.includes('class="pd-price"'));
+  check('상세페이지에 「더욱 자세한 내용 받기」 단추가 있다',
+    pd.includes('더욱 자세한 내용 받기'));
+  check('고르기 전 칸이 구매 칸보다 위에 온다',
+    pd.indexOf('이런 분이 보시면 좋습니다') < pd.indexOf(`class="pd-buy"`));
+  check('담기는 것이 구매 칸보다 위에 온다',
+    pd.indexOf('이 리포트에 담기는 것') < pd.indexOf(`class="pd-buy"`));
+  check('맛보기가 구매 칸보다 위에 온다', pd.indexOf('어떤 문장으로 나오는지') < pd.indexOf(`class="pd-buy"`));
   check('「이 집 계산을 믿어도 되는가」가 붙는다', pd.includes('그래서 믿어도 되는가'));
   check('맛보기가 누구 것인지 밝힌다', pd.includes('다른 분의 명식입니다.'));
   check('맛보기가 없으면 그 칸을 아예 안 만든다',
@@ -485,8 +502,8 @@ section('9. 신령 — 칸마다 주인이 있는가');
     check('「망설여지는 점」이 다른 상품에는 나오지 않는다',
       Object.values(CATALOG).filter((p) => p.id !== 'family-holiday-report')
         .every((p) => !renderProductPage(p, full, true, '').includes('망설여지는 점')));
-    check('「망설여지는 점」이 값보다 위에 온다',
-      fhrPage.indexOf('망설여지는 점') < fhrPage.indexOf('class="pd-price"'));
+    check('「망설여지는 점」이 구매 칸보다 위에 온다',
+      fhrPage.indexOf('망설여지는 점') < fhrPage.indexOf('class="pd-buy"'));
     check('「망설여지는 점」이 「그래서 믿어도 되는가」 아래에 온다',
       fhrPage.indexOf('그래서 믿어도 되는가') < fhrPage.indexOf('망설여지는 점'));
   }
@@ -901,10 +918,10 @@ section('11. 문 — 신령계 들어가는 곳');
       renderProductPage(CATALOG[id], full, true, '<footer>ft</footer>');
     check('상품 화면에 사러 가는 단추가 있다',
       buyPage('saju-report').includes('href="/checkout?product=saju-report"'));
-    check('상대가 필요하면 그렇게 적는다',
-      buyPage('compat-report').includes('두 사람 생년월일 넣고 받기'));
-    check('얼굴·손이 필요하면 그렇게 적는다',
-      buyPage('cross-report').includes('얼굴·손까지 넣고 받기'));
+    check('단추 문구가 「더욱 자세한 내용 받기」로 통일되어 있다',
+      buyPage('compat-report').includes('더욱 자세한 내용 받기') &&
+      buyPage('cross-report').includes('더욱 자세한 내용 받기') &&
+      buyPage('saju-report').includes('더욱 자세한 내용 받기'));
     check('택일은 택일 화면으로 보낸다',
       buyPage('pick-report').includes('href="/pick"')
       && !buyPage('pick-report').includes('?buy=pick-report'));
@@ -1002,16 +1019,18 @@ section('11. 문 — 신령계 들어가는 곳');
     '',
   );
 
-  check('값 안내가 명절 가족운세에 나온다',
-    holidayPage.includes('오픈 기념 · 추석 한정가입니다. 39,900원으로 올라갑니다 — 9월 28일부터') &&
-    holidayPage.includes('9월 28일부터 39,900원'));
+  const holidayPay = renderCheckoutPage({} as any, '', CATALOG['family-holiday-report'], { storeId: 's', channelKey: 'c' });
+  check('값 안내가 명절 가족운세 결제 화면에 나온다',
+    holidayPay.includes('39,900원') && holidayPay.includes('9월 28일'));
+  check('명절 가족운세 상세페이지 본문과 고정 띠에는 값이 나오지 않는다',
+    !holidayPage.includes('39,900원') && !holidayPage.includes('9월 28일부터'));
 
   const otherProducts = Object.values(CATALOG).filter((p) => p.id !== 'family-holiday-report');
   const otherPages = otherProducts.map((p) =>
     renderProductPage(p, full, true, '')
   );
 
-  check('값 안내가 명절 가족운세에만 나온다',
+  check('값 안내가 명절 가족운세 외의 다른 상품 상세페이지에 나오지 않는다',
     otherPages.every((html) => !html.includes('39,900원으로 올라갑니다') && !html.includes('9월 28일부터 39,900원')));
 
   check('어디에도 취소선 정가·할인율·거짓 급함이 없다',

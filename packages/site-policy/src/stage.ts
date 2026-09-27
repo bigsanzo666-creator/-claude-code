@@ -667,7 +667,7 @@ body.st-locked{overflow:hidden}
 .st-biz-links a:hover{text-decoration:underline;text-underline-offset:3px}
 .st-biz-rows{display:flex;flex-wrap:wrap;gap:0 10px;margin:0;
   font:14px/1.85 var(--nb-sans);color:var(--nb-ink-3);word-break:keep-all}
-.st-biz-rows b{font-weight:400;color:var(--nb-ink-3);opacity:.75}
+.st-biz-rows b{font-weight:400;color:var(--nb-ink-3);opacity:.9}
 
 /* 신령계·신령 판은 안에서 조금 움직일 수 있다. 뒤 화면으로 넘어가는 스크롤이 아니라
    이 화면 안에서만 도는 것이다 */
@@ -698,7 +698,7 @@ body.st-locked{overflow:hidden}
 
 .wd-head{position:relative;z-index:2;padding:26px 20px 14px;
   max-width:560px;margin:0 auto;width:100%;box-sizing:border-box}
-.wd-h{font-size:22px;margin:0;line-height:1.4;word-break:keep-all}
+.wd-h{font-family:var(--nb-sans);font-weight:700;font-size:22px;margin:0;line-height:1.4;word-break:keep-all}
 
 /*
  * 옆으로 미는 판.
