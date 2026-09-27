@@ -985,6 +985,8 @@ section('H1. 값이 다르면 물건도 다르다');
    * 못 만들면 그 자체가 실패다.
    */
   const 못만든것: string[] = [];
+  const 갈래어긋남: string[] = [];
+  const 상대빠짐: string[] = [];
   for (const p of Object.values(CATALOG)) {
     let built;
     try {
@@ -1002,12 +1004,49 @@ section('H1. 값이 다르면 물건도 다르다');
       못만든것.push(`${p.id}: ${(e as Error).message}`);
       continue;
     }
+    /*
+     * 표만 붙여 놓고 **자료는 안 갈라 준 상품**을 잡는다.
+     *
+     * 혼인 택일을 만들 때, 갈래만 「택일」로 적어 두고 계산은 나중에 하기로
+     * 했다. 그런데 그 상품이 **그대로 팔 수 있는 상태로 라이브에 나갔다.**
+     * 손님이 5만 9천 원을 내면, 신랑 한 사람의 사주만 담긴 자료를 들고
+     * 모델이 「택일 리포트」를 써야 한다 — **날짜를 지어낸다.**
+     *
+     * 검증은 다 통과하고 있었다. 자료가 만들어지기는 했고, 다른 상품과
+     * 겹치지도 않았기 때문이다. **갈래와 자료가 맞는지를 아무도 안 봤다.**
+     */
+    const 갈래필수: Record<string, string[]> = {
+      택일: ['후보날', '순위'],
+      궁합: ['A', 'B'],
+      작명: ['이름밭', '채워야할기운'],
+    };
+    for (const 키 of 갈래필수[built.kind] ?? []) {
+      if (!(키 in (built.data as Record<string, unknown>))) {
+        갈래어긋남.push(`${p.id}: ${built.kind}인데 ${키}가 없다`);
+        break;
+      }
+    }
+    /*
+     * 상대가 필요하다고 적어 둔 상품은 **자료에 상대가 실제로 들어가야 한다.**
+     * 결제 화면에서 상대 생년월일을 받아 놓고 계산에 안 쓰면, 손님은 낸 돈만큼
+     * 못 받는다.
+     */
+    if (p.needsPartner) {
+      const 글 = JSON.stringify(built.data) + String(built.subject);
+      if (!글.includes(PARTNER2.date.slice(0, 4)) && !String(built.subject).includes('·')) {
+        상대빠짐.push(p.id);
+      }
+    }
     const key = cacheKey({
       input: { kind: built.kind, data: built.data, subject: built.subject },
       model: 'claude-opus-5', effort: 'medium',
     });
     byReport.set(key, [...(byReport.get(key) ?? []), p.id]);
   }
+  check('갈래와 자료가 맞는다', 갈래어긋남.length === 0,
+    갈래어긋남.join(' / ') || '전부 맞음');
+  check('상대가 필요한 상품은 자료에 상대가 들어간다', 상대빠짐.length === 0,
+    상대빠짐.join(' / ') || '전부 들어감');
   check('상품마다 리포트 자료가 만들어진다', 못만든것.length === 0, 못만든것.join(' / ') || '31개 모두');
 
   /*

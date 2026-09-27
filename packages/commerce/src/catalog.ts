@@ -34,7 +34,7 @@ export type ProductId =
   // 재회
   | 'reunion-report' | 'letgo-report'
   // 궁합
-  | 'compat-report' | 'crush-compat-report' | 'marriage-pick-report'
+  | 'compat-report' | 'crush-compat-report'
   // 가족 — 차별점
   | 'child-report' | 'child-aptitude-report' | 'parent-child-report' | 'latelife-report'
   | 'pick-report' | 'naming-report' | 'naming-plus-report'
@@ -259,16 +259,6 @@ export const CATALOG: Record<ProductId, Product> = {
     previewRatio: 0.3,
     category: '궁합',
     hook: '이 사람, 나한테 관심 있을까?',
-    needsPartner: true,
-  },
-  'marriage-pick-report': {
-    id: 'marriage-pick-report',
-    name: '혼인 택일 리포트',
-    priceKrw: 59000,
-    description: '신랑과 신부 두 사람의 여덟 글자를 함께 보고 견둡니다. 원하시는 기간 안에서 두 분에게 가장 좋은 날을 골라 드립니다.',
-    previewRatio: 0.2,
-    category: '궁합',
-    hook: '우리 결혼, 며칠이 좋을까?',
     needsPartner: true,
   },
 
