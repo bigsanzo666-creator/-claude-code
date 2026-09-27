@@ -1036,6 +1036,27 @@ export function createApi(deps: ApiDeps) {
     },
 
     /** 늘봄이 다른 점 그림 */
+    /**
+     * 「이런 분이 보시면 좋습니다」 세 줄에 붙는 그림.
+     *
+     * 파일이 없으면 404 로 답하고, 화면은 그 칸을 어두운 네모로 둔다.
+     * 그림을 아직 안 만든 상품이 있어도 화면이 깨지지 않아야 한다.
+     */
+    'GET /img/fit/:id': async (_req, res, id) => {
+      // 요청 문자열로 파일을 찾으므로 폴더를 벗어나는 이름을 먼저 막는다
+      if (!/^[a-z0-9-]+\.jpg$/.test(id) && !/^[a-z0-9-]+$/.test(id)) {
+        throw new HttpError(404, `그림이 없습니다: ${id}`);
+      }
+      const cleanId = id.endsWith('.jpg') ? id : `${id}.jpg`;
+      const p = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'fit', cleanId);
+      if (!existsSync(p)) throw new HttpError(404, `그림이 없습니다: ${id}`);
+      pipeFile(res, p, {
+        'Content-Type': 'image/jpeg',
+        'Content-Length': statSync(p).size,
+        'Cache-Control': 'public, max-age=3600',
+      });
+    },
+
     'GET /img/why/:id': async (_req, res, id) => {
       const cleanId = id.endsWith('.jpg') ? id : `${id}.jpg`;
       const p = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'why', cleanId);
@@ -1814,6 +1835,9 @@ export function createApi(deps: ApiDeps) {
       } else if (parts[0] === 'img' && parts[1] === 'why' && parts[2] && !parts[3]) {
         id = parts[2];
         key = `${req.method} /img/why/:id`;
+      } else if (parts[0] === 'img' && parts[1] === 'fit' && parts[2] && !parts[3]) {
+        id = parts[2];
+        key = `${req.method} /img/fit/:id`;
       } else if (parts[0] === 'video' && parts[1] === 'spirits' && parts[2] && !parts[3]) {
         id = parts[2];
         key = `${req.method} /video/spirits/:id`;

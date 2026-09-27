@@ -718,6 +718,20 @@ html,body{overflow-x:clip;max-width:100%}
   border-left:3px solid rgba(200,120,120,.55);border-radius:0 8px 8px 0;word-break:keep-all}
 .pd-no b{display:block;margin:0 0 6px;color:#fff;font-weight:700;font-size:16px}
 
+/* 이런 분이 보시면 좋습니다 — 줄마다 그림 하나 */
+.pd-yes-pic{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:10px}
+.pd-yes-row{display:grid;grid-template-columns:92px 1fr;gap:14px;align-items:center;
+  padding:10px;border:1px solid var(--nb-line-soft);border-radius:10px;
+  background:var(--nb-paper-2)}
+.pd-yes-img{display:block;width:92px;height:69px;border-radius:7px;
+  background:#15121a center/cover no-repeat;flex:none}
+.pd-yes-t{font-size:16px;line-height:1.7;color:var(--nb-ink);word-break:keep-all}
+@media(max-width:400px){
+  .pd-yes-row{grid-template-columns:76px 1fr;gap:12px}
+  .pd-yes-img{width:76px;height:57px}
+  .pd-yes-t{font-size:15.5px}
+}
+
 /* 여기 쓰인 명리 말 — 접어 둔다. 궁금한 사람만 연다 */
 .pd-gloss{margin:26px 0 0;border:1px solid var(--nb-line-soft);border-radius:10px;
   background:var(--nb-paper-2);overflow:hidden}
@@ -1746,11 +1760,24 @@ ${rows}
 export function renderFit(productId: string): string {
   const fit = FIT[productId];
   if (!fit) return '';
-  const ys = fit.yes.map((y) => `<li>${bold(y)}</li>`).join('');
+  /*
+   * 줄마다 그림을 하나씩 둔다.
+   *
+   * 글자만 세 줄 있으면 손님이 훑고 지나간다. 「아, 내 얘기네」가 걸리는
+   * 자리라서 눈이 한 번 멈춰야 한다.
+   *
+   * 그림이 아직 없어도 **화면이 멀쩡해야 한다.** 깨진 그림 표시가 뜨면
+   * 안 판다는 인상을 준다. 그래서 `<img>` 가 아니라 배경으로 깔고,
+   * 파일이 없으면 그 칸이 그냥 어두운 네모로 남는다.
+   */
+  const ys = fit.yes.map((y, i) => `<li class="pd-yes-row">
+      <span class="pd-yes-img" style="background-image:url('/img/fit/${esc(productId)}-${i + 1}.jpg')"></span>
+      <span class="pd-yes-t">${bold(y)}</span>
+    </li>`).join('\n');
   return `  <section class="pd-sec pd-fit">
     <p class="pd-l">고르기 전에</p>
     <h3 class="pd-h">이런 분이 보시면 좋습니다</h3>
-    <ul class="pd-yes">${ys}</ul>
+    <ul class="pd-yes pd-yes-pic">${ys}</ul>
     <p class="pd-no"><b><span class="pd-no-x">✕</span> 이런 분께는 권하지 않습니다</b><span class="pd-no-t">${bold(fit.no)}</span></p>
   </section>`;
 }
