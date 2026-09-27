@@ -834,8 +834,13 @@ section('11. 문 — 신령계 들어가는 곳');
   check('단정하는 말을 안 쓴다', !/반드시|100%|절대적/.test(why));
 
   check('판의 CSS가 상품 묶음에 실린다', PRODUCTS_CSS.includes('.why-stack'));
-  check('넓은 화면에서 두 칸으로 눕는다',
-    /min-width:760px[\s\S]{0,400}\.why-grid\{grid-template-columns:1fr 1fr/.test(WHY_CSS));
+  // 통이 좁으면 한 줄, 넓으면 두 줄. 칸 수를 화면 폭이 아니라 **통 폭**으로 정한다 —
+  // 상품 화면은 480px 통 안에 들어가므로 화면이 넓어도 두 칸으로 쪼개면 글이 잘린다
+  check('칸 수를 통 폭에 맞춰 스스로 정한다',
+    /\.why-grid\{[^}]*grid-template-columns:repeat\(auto-fit,minmax\(\d+px,1fr\)\)/.test(WHY_CSS));
+  // 칸 높이를 고정하면 글이 잘려 나간다. 실제로 제목이 통째로 사라진 적이 있다
+  check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
+    !/\.why-card\{[^}]*aspect-ratio/.test(WHY_CSS) && /\.why-card\{[^}]*min-height/.test(WHY_CSS));
 }
 
 

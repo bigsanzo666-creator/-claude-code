@@ -153,9 +153,9 @@ export const WHY_CSS = `
 
 /* 네 층 & 네 약속 카드 그리드 */
 .why-stack{margin:0 0 20px;padding:0;list-style:none}
-.why-grid{display:grid;grid-template-columns:1fr;gap:12px}
+.why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
 
-.why-card{position:relative;overflow:hidden;aspect-ratio:4/3;display:flex;flex-direction:column;
+.why-card{position:relative;overflow:hidden;min-height:210px;display:flex;flex-direction:column;
   justify-content:flex-end;box-sizing:border-box;border:1px solid var(--nb-line-soft);
   background:var(--nb-paper-2);border-radius:8px}
 .why-card-bg{position:absolute;top:0;left:0;width:100%;height:100%;background-size:cover;
@@ -190,6 +190,5 @@ export const WHY_CSS = `
 @media (min-width:760px){
   .why-q{font-size:25px}
   .why-hero{font-size:23px;padding:28px 24px}
-  .why-grid{grid-template-columns:1fr 1fr}
 }
 `;
