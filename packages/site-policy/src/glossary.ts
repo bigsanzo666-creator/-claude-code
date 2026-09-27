@@ -98,6 +98,7 @@ export const TERMS_OF_PRODUCT: Record<string, string[]> = {
   // 두 사람을 보는 것
   'compat-report': [...바탕, '일지', '십신', '합충', '육합', '삼합', '원진'],
   'crush-compat-report': [...바탕, '일지', '도화', '홍염'],
+  'marriage-pick-report': [...바탕, '일지', '간지', '절기', '합충', '신살'],
   'parent-child-report': [...바탕, '일지', '십신'],
   'family-holiday-report': [...바탕, '일지', '간지', '합충'],
 

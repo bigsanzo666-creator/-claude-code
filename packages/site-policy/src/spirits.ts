@@ -217,6 +217,7 @@ export const PITCH: Record<string, string> = {
   // 연신령 — 궁합
   'compat-report': '두 사람한테 걸린 실을 다 세어 볼게. 어느 가닥이 튼튼하고 어느 가닥이 끊어질 실인지.',
   'crush-compat-report': '아직 실이 한 가닥이구나. 이어질 실인지 아닌지만 빨리 봐 줄게.',
+  'marriage-pick-report': '두 사람 실이 제일 순하게 이어지는 날이 언제인지, 그 기간 안에서 골라 줄게.',
 
   // 산신령 — 가족
   'child-report': '아이는 나무 같단다. 어떤 나무로 태어났는지 알아야 물을 얼마나 줄지 알지.',

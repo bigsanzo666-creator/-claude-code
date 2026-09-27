@@ -1045,6 +1045,28 @@ section('11. 문 — 신령계 들어가는 곳');
       !/<del>|<s>|할인율|% 할인|%할인|오늘 마감|지금만|선착순|마감 임박/.test(html)));
 }
 
+// ─── 혼인 택일 리포트 검증 ────────────────────────────────────
+{
+  section('혼인 택일 리포트');
+
+  const mp = CATALOG['marriage-pick-report'];
+  check('혼인 택일 리포트가 카탈로그에 있다', Boolean(mp));
+  check('혼인 택일 리포트는 상대 생년월일이 필요하다', Boolean(mp?.needsPartner));
+
+  const prodsHtml = renderProducts(true);
+  check('혼인 택일 리포트가 상품 목록에 나온다',
+    prodsHtml.includes('혼인 택일 리포트') && prodsHtml.includes('/products/marriage-pick-report'));
+
+  const mpPage = renderProductPage(mp, full, true, '');
+  check('혼인 택일 리포트 상품 페이지가 열린다', mpPage.startsWith('<!doctype html>') && mpPage.includes('혼인 택일 리포트'));
+  check('상세페이지에 상대 생년월일 안내가 뜬다', mpPage.includes('두 사람의 생년월일이 필요합니다.'));
+  check('상세페이지 본문에 값이 안 보인다', !mpPage.includes(`${mp.priceKrw.toLocaleString('ko-KR')}원`) && !mpPage.includes('class="pd-price"'));
+
+  const mpCheckout = renderCheckoutPage({} as any, '', mp, { storeId: 's', channelKey: 'c' });
+  check('결제 화면에 상대 생년월일 입력칸이 뜬다',
+    mpCheckout.includes('id="partnerDate"') && mpCheckout.includes('상대의 생년월일'));
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }

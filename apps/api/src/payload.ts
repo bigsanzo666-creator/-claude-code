@@ -179,6 +179,7 @@ const KIND_EXCEPTIONS: Partial<Record<ProductId, ReportKind>> = {
   'cross-report': '교차검증',
   // 사람이 아니라 **날**을 보는 것
   'pick-report': '택일',
+  'marriage-pick-report': '택일',
   // 오늘 하루의 흐름을 보는 것
   'daily-report': '오늘운세',
   'month-report': '월운세',

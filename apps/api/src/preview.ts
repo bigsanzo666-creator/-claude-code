@@ -114,7 +114,7 @@ export interface PreviewResult {
  */
 export function sampleFor(productId: ProductId): string {
   if (SAMPLES[productId]) return SAMPLES[productId]!;
-  const twoPerson = ['crush-compat-report', 'reunion-report', 'parent-child-report'];
+  const twoPerson = ['crush-compat-report', 'reunion-report', 'parent-child-report', 'marriage-pick-report'];
   if (twoPerson.includes(productId)) return SAMPLES['compat-report']!;
   if (productId === 'charm-report') return SAMPLES['cross-report']!;
   return SAMPLES['saju-report']!;
