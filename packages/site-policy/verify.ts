@@ -19,10 +19,11 @@ import {
   renderStage, STAGE_CSS, STAGE_SCRIPT, NO_VIDEOS,
   renderWhy, WHY_CSS, LAYERS, CLAIMS,
   renderPickPage, PICK_CSS, PLACES, TIMES, DATE_SLOTS, slotLabel, slotSpan,
-  renderRobots, renderSitemap,
+  renderRobots, renderSitemap, packageCard,
 } from './src/index.ts';
 import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
+import { orderable } from '../commerce/src/orderable.ts';
 import { WITHDRAWAL_WINDOW_DAYS, REFUND_DUE_BUSINESS_DAYS } from '../commerce/src/refund.ts';
 
 let passed = 0, failed = 0;
@@ -251,17 +252,18 @@ check('상품마다 후킹 질문이 붙는다',
 check('갈래 제목과 겹치는 질문은 카드에서 한 번만 나온다',
   [...groupQuestions].every((q) => (off.split(q).length - 1) <= 1));
 
-// 묶음 — 정가를 지어내지 않는다
+// 묶음 — 정가를 지어내지 않는다 (사는 화면에서 검증)
 for (const pack of Object.values(PACKAGES)) {
   const m = bundleMath(pack.id);
-  check(`${pack.name}: 묶음가 표시`, off.includes(m.bundleKrw.toLocaleString('ko-KR')));
-  check(`${pack.name}: 따로 사는 합계도 함께 표시`, off.includes(m.individualKrw.toLocaleString('ko-KR')));
+  const packBuy = renderCheckoutPage(full, '', orderable(pack.id) as any, null);
+  check(`${pack.name}: 묶음가 표시 (사는 화면)`, packBuy.includes(m.bundleKrw.toLocaleString('ko-KR')));
+  check(`${pack.name}: 따로 사는 합계도 함께 표시 (사는 화면)`, packBuy.includes(m.individualKrw.toLocaleString('ko-KR')));
+  check(`${pack.name}: 지어낸 정가가 아님을 밝힌다`, packBuy.includes('판매한 적 없는 정가를 지어내'));
 }
 // 주제마다 2종·3종 두 칸이 있고 그중 하나에만 배지가 붙는다.
-// 예전에는 묶음이 넷뿐이라 화면 전체에서 하나였다
-check('추천 배지가 주제 수만큼', (off.match(/pr-badge/g) ?? []).length ===
+const allPackCards = Object.values(PACKAGES).map((p) => packageCard(p, false)).join('\n');
+check('추천 배지가 주제 수만큼', (allPackCards.match(/pr-badge/g) ?? []).length ===
   Object.values(PACKAGES).filter((p) => p.recommended).length);
-check('지어낸 정가가 아님을 밝힌다', off.includes('판매한 적 없는 정가를 지어내'));
 
 // 받을 내용을 못 박아야 손님도 심사자도 결제 전에 안다
 check('교차검증 상품의 포함 내용 명시',
@@ -594,8 +596,8 @@ section('9. 신령 — 칸마다 주인이 있는가');
     !quiet.includes('19,900원') && !quiet.includes('부가세 포함'));
   check('값을 끄면 묶음도 빠진다', !quiet.includes('따로 사면'));
   check('값을 꺼도 가격표로 가는 길은 남는다', quiet.includes('href="/products"'));
-  check('값을 켜면 그대로 다 나온다',
-    list.includes('19,900원') && list.includes('따로 사면'));
+  check('값을 켜면 단품 가격이 나온다', list.includes('19,900원'));
+  check('판매 상품과 가격 페이지에서 묶음 목록은 빠져 있다', !list.includes('여러 개를 함께 보시려면'));
 }
 
 section('10. 들어가는 길 — 전체 화면');

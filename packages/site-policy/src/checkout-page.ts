@@ -30,6 +30,7 @@ import { WITHDRAWAL_WINDOW_DAYS, DELIVERY_DUE_DAYS } from '../../commerce/src/re
 import {
   HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, HOLIDAY_MAX_MEMBERS,
 } from '../../commerce/src/catalog.ts';
+import { PACKAGES } from '../../commerce/src/packages.ts';
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -186,9 +187,15 @@ export const CHECKOUT_CSS = `
  * 안 올리면 그 순간 거짓말이 된다.
  */
 function priceNote(product: Product): string {
-  if (product.id !== 'family-holiday-report') return '';
-  return `<p class="co-pricenote">오픈 기념 · 추석 한정가입니다.
+  if (product.id === 'family-holiday-report') {
+    return `<p class="co-pricenote">오픈 기념 · 추석 한정가입니다.
     <b>${HOLIDAY_REGULAR_KRW.toLocaleString('ko-KR')}원</b>으로 올라갑니다 — ${HOLIDAY_RAISE_ON}부터</p>`;
+  }
+  if ((product as any).isPackage || (product.id in PACKAGES)) {
+    return `<p class="co-pricenote">묶음 가격 옆의 「따로 사면」은 <strong>구성 상품을 실제로 낱개 판매하는 가격의 합계</strong>입니다.
+    판매한 적 없는 정가를 지어내 할인율을 부풀리지 않습니다.</p>`;
+  }
+  return '';
 }
 
 /** 연휴가 끝나면 올릴 값. 실제로 이 값으로 올려야 한다 */

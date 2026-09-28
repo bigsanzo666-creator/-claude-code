@@ -553,7 +553,7 @@ function featureCard(product: Product, ready: boolean, images: ProductImages, pr
  * 그 가격에 실제로 판 적이 없으면 표시광고법상 거짓·과장광고가 된다.
  * 우리는 구성 상품이 전부 실재하므로 **그 합계를 그대로 쓴다.**
  */
-function packageCard(pack: BundlePackage, ready: boolean): string {
+export function packageCard(pack: BundlePackage, ready: boolean): string {
   const m = bundleMath(pack.id);
   const names = pack.members.map((id) => CATALOG[id].name).join(' + ');
   return `<article class="pr-card pr-wide pr-pack${pack.recommended ? ' pr-rec' : ''}">
@@ -1468,17 +1468,8 @@ ${cards}
 <div class="pr-rule"></div>
 </div>
 ${groups}
-${prices ? `<section class="pr-group">
-<p class="pr-cat">묶음</p>
-<h3 class="pr-q">여러 개를 함께 보시려면</h3>
-<div class="pr-grid">
-${packs}
-</div>
-</section>` : ''}
 ${renderWhy()}
 ${prices ? `<p class="pr-note">
-묶음 가격 옆의 「따로 사면」은 <strong>구성 상품을 실제로 낱개 판매하는 가격의 합계</strong>입니다.
-판매한 적 없는 정가를 지어내 할인율을 부풀리지 않습니다.<br>
 결제 전에 리포트 일부를 미리 보실 수 있으며, 결제일부터 ${WITHDRAWAL_WINDOW_DAYS}일 이내에
 청약철회가 가능합니다. 자세한 내용은 <a href="/refund">취소·환불 정책</a>을 참고해 주세요.
 </p>` : `<p class="pr-note">
