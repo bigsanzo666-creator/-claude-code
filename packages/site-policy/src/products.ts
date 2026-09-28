@@ -1697,6 +1697,7 @@ ${renderGlossary(product.id)}
 
   <div class="pd-buy">
     ${product.needsPartner ? '<p class="pd-also">두 사람의 생년월일이 필요합니다.</p>' : ''}
+    ${product.needsRange ? '<p class="pd-also">원하시는 기간을 결제 화면에서 정하시면 됩니다.</p>' : ''}
     ${product.needsPick
       ? `<p class="pd-also">아직 태어나지 않았으므로 생년월일은 필요 없습니다.
         <a href="/pick">택일 화면</a>에서 <b>의사에게 받은 후보 날짜</b>를 넣으시면

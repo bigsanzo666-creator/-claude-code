@@ -15,7 +15,7 @@ import {
   extractTopic, allTopics, type TopicId,
   marriageTiming, lateLife, monthlyLuck, meetingMonths, healingMonths,
 } from '../../../packages/saju-rules/src/index.ts';
-import { pickDays, mergeHours, bestPerDay, slotSpan, slotLabel } from '../../../packages/saju-rules/src/index.ts';
+import { pickDays, mergeHours, bestPerDay, slotSpan, slotLabel, pickMarriageDays } from '../../../packages/saju-rules/src/index.ts';
 import { PLACES } from '../../../packages/saju-rules/src/index.ts';
 import { readFace, NEUTRAL_FEATURES } from '../../../packages/physiognomy/src/index.ts';
 import { readPalm, NEUTRAL_PALM_FEATURES } from '../../../packages/palmistry/src/index.ts';
@@ -84,6 +84,8 @@ export interface ReadingRequest {
    * 리포트까지 실어 보낸다. 안 적었으면 없는 채로 간다.
    */
   question?: string;
+  /** 혼인 택일 등 기간이 필요한 상품에서 쓴다 */
+  range?: { from: string; to: string; avoid?: string[] };
 }
 
 /**
@@ -179,6 +181,7 @@ const KIND_EXCEPTIONS: Partial<Record<ProductId, ReportKind>> = {
   'cross-report': '교차검증',
   // 사람이 아니라 **날**을 보는 것
   'pick-report': '택일',
+  'marriage-pick-report': '택일',
   // 오늘 하루의 흐름을 보는 것
   'daily-report': '오늘운세',
   'month-report': '월운세',
@@ -597,6 +600,77 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
         순위: ranked.map(say),
         날마다최고: bestPerDay(ranked).map(say),
         눈금: '연주와 월주는 이미 정해져 있어 고를 수 있는 것은 절반뿐이다. 100점은 나오지 않는다.',
+      },
+    };
+  }
+
+  /*
+   * 혼인 택일.
+   *
+   * 신랑과 신부 두 사람의 사주를 세우고,
+   * 손님이 고른 기간 안에서 두 분에게 가장 좋은 날을 계산한다.
+   */
+  if (req.productId === 'marriage-pick-report') {
+    if (!req.birth?.date) throw new Error('혼인 택일에는 신랑의 생년월일이 필요합니다.');
+    if (!req.partner?.date) throw new Error('혼인 택일에는 신부의 생년월일이 필요합니다.');
+    if (!req.range?.from || !req.range?.to) throw new Error('혼인 택일에는 보고 싶은 기간이 필요합니다.');
+
+    const groomBundle = sajuBundle(req.birth);
+    const brideBundle = sajuBundle(req.partner);
+
+    const result = pickMarriageDays({
+      groom: {
+        date: req.birth.date,
+        time: req.birth.time,
+        longitude: req.birth.longitude,
+        place: req.birth.place,
+      },
+      bride: {
+        date: req.partner.date,
+        time: req.partner.time,
+        longitude: req.partner.longitude,
+        place: req.partner.place,
+      },
+      startDate: req.range.from,
+      endDate: req.range.to,
+      avoidDates: req.range.avoid,
+      longitude: req.birth.longitude,
+    });
+
+    const say = (d: (typeof result.days)[number]) => ({
+      날: d.date,
+      점수: d.score,
+      등급: d.band,
+      여덟글자: d.eight,
+      까닭: d.says,
+    });
+
+    return {
+      kind: '택일',
+      subject: '결혼을 앞둔 두 사람',
+      data: {
+        신랑: {
+          생년월일: req.birth.date,
+          태어난때: req.birth.time ?? '모름',
+          태어난곳: req.birth.place ?? null,
+          간지: groomBundle.ms.pillars,
+        },
+        신부: {
+          생년월일: req.partner.date,
+          태어난때: req.partner.time ?? '모름',
+          태어난곳: req.partner.place ?? null,
+          간지: brideBundle.ms.pillars,
+        },
+        기간: {
+          시작: req.range.from,
+          끝: req.range.to,
+          피할날: req.range.avoid ?? [],
+        },
+        후보날: result.days.map((d) => d.date),
+        순위: result.days.map(say),
+        제일좋은날: result.bestFive.map(say),
+        피할날: result.avoidDays.map(say),
+        눈금: '점수는 같은 기간 안에서 서로 견주는 눈금이며 100점 만점이 아닙니다.',
       },
     };
   }

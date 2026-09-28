@@ -220,6 +220,18 @@ export function renderCheckoutPage(
     <div class="co-f"><label for="partnerTime">상대가 태어난 시간</label>
       ${hourOptions('partnerTime')}</div>` : '';
 
+  const range = product.needsRange ? `
+    <p class="co-sec">언제부터 언제 사이에서 고를까요?</p>
+    <div class="co-two">
+      <div class="co-f"><label for="rangeFrom">시작 날짜</label>
+        <input type="date" name="rangeFrom" id="rangeFrom" required></div>
+      <div class="co-f"><label for="rangeTo">끝 날짜</label>
+        <input type="date" name="rangeTo" id="rangeTo" required></div>
+    </div>
+    <div class="co-f"><label for="rangeAvoid">피하고 싶은 날이 있으면 적어 주세요</label>
+      <input type="text" name="rangeAvoid" id="rangeAvoid" placeholder="예: 2026-10-05, 2026-10-15 (선택)">
+      <span class="co-hint">없으시면 비워 두셔도 됩니다</span></div>` : '';
+
   /*
    * 한 상에 앉는 사람들.
    *
@@ -325,6 +337,7 @@ export function renderCheckoutPage(
 
       ${surname}
       ${partner}
+      ${range}
       ${family}
       ${photoSection}
 
@@ -886,6 +899,14 @@ export function renderCheckoutPage(
     if(NEEDS_PALM && !palmUploaded) return say('손바닥 사진을 등록해 주십시오.');
     ${product.needsName ? "if(!val('surname')) return say('아이의 성을 적어 주십시오.');" : ''}
     ${product.needsPartner ? "if(!val('partnerDate')) return say('상대의 생년월일을 적어 주십시오.');" : ''}
+    ${product.needsRange ? `
+    var rFrom = val('rangeFrom');
+    var rTo = val('rangeTo');
+    if(!rFrom || !rTo) return say('보고 싶은 기간을 적어 주십시오.');
+    if(rFrom > rTo) return say('끝 날짜가 시작 날짜보다 앞설 수 없습니다.');
+    var diffDays = Math.round((new Date(rTo) - new Date(rFrom))/(1000*60*60*24)) + 1;
+    if(diffDays > 180) return say('기간은 최대 180일(여섯 달) 안으로 잡아 주세요.');
+    ` : ''}
 
     var reading = {
       productId: PRODUCT,
@@ -893,6 +914,11 @@ export function renderCheckoutPage(
     };
     ${product.needsName ? "reading.name = { surname: val('surname') };" : ''}
     ${product.needsPartner ? "reading.partner = { date: val('partnerDate'), time: val('partnerTime') || '12:00' };" : ''}
+    ${product.needsRange ? `
+    var rawAvoid = val('rangeAvoid');
+    var avoidList = rawAvoid ? rawAvoid.split(/[,\\s]+/).map(function(s){ return s.trim(); }).filter(function(s){ return /^\\d{4}-\\d{2}-\\d{2}$/.test(s); }) : [];
+    reading.range = { from: rFrom, to: rTo, avoid: avoidList };
+    ` : ''}
     if(NEEDS_FAMILY){
       var kin = readFamily();
       if(!kin.length) return say('같이 보실 분을 한 분 이상 넣어 주십시오.');

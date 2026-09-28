@@ -715,6 +715,39 @@ function validateReading(body: any): ReadingRequest {
   if (item.needsPartner && !body.partner?.date) {
     throw new HttpError(400, '이 상품에는 상대의 생년월일이 필요합니다.');
   }
+
+  /*
+   * 혼인 택일처럼 기간이 필요한 상품.
+   *
+   * 최대 180일(여섯 달)까지만 받는다.
+   */
+  if (item.needsRange) {
+    const range = body.range;
+    if (!range || typeof range !== 'object' || !range.from || !range.to) {
+      throw new HttpError(400, '보고 싶은 기간(시작 날짜와 끝 날짜)이 필요합니다.');
+    }
+    const fromStr = String(range.from).trim();
+    const toStr = String(range.to).trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fromStr) || !/^\d{4}-\d{2}-\d{2}$/.test(toStr)) {
+      throw new HttpError(400, '날짜 형식이 올바르지 않습니다.');
+    }
+    if (fromStr > toStr) {
+      throw new HttpError(400, '끝 날짜가 시작 날짜보다 앞설 수 없습니다.');
+    }
+    const fromMs = new Date(fromStr).getTime();
+    const toMs = new Date(toStr).getTime();
+    const diffDays = Math.round((toMs - fromMs) / (1000 * 60 * 60 * 24)) + 1;
+    if (diffDays > 180) {
+      throw new HttpError(400, '기간은 최대 180일(여섯 달) 안으로 잡아 주세요.');
+    }
+    body.range = {
+      from: fromStr,
+      to: toStr,
+      avoid: Array.isArray(range.avoid)
+        ? range.avoid.filter((d: any) => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.trim())).map((d: any) => d.trim())
+        : [],
+    };
+  }
   /*
    * 작명은 성이 있어야 짓는다. 성의 획수로 네 격이 서기 때문에, 성이 없으면
    * 고를 수 있는 획수 자체가 정해지지 않는다.

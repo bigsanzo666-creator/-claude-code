@@ -993,6 +993,7 @@ section('H1. 값이 다르면 물건도 다르다');
       built = buildPayload({
         productId: p.id, birth: BIRTH2, partner: PARTNER2,
         name: { surname: '김' }, pick: { dates: ['2027-04-30'], times: ['16:30'] },
+        range: { from: '2026-10-01', to: '2026-10-31' },
         // 명절 가족운세는 한 상에 앉는 사람이 있어야 짝이 선다
         family: [
           { relation: '어머니', date: '1962-03-11', time: '08:30' },
@@ -1104,6 +1105,7 @@ section('H1. 값이 다르면 물건도 다르다');
       pl = buildPayload({
         productId: p.id, birth: BIRTH2, partner: PARTNER2,
         name: { surname: '김' }, pick: { dates: ['2027-04-30'], times: ['16:30'] },
+        range: { from: '2026-10-01', to: '2026-10-31' },
         // 명절 가족운세는 한 상에 앉는 사람이 있어야 짝이 선다
         family: [
           { relation: '어머니', date: '1962-03-11', time: '08:30' },
@@ -1207,6 +1209,82 @@ check('아주 긴 질문도 서버가 버틴다', longQ.status === 201, longQ.bo
   // 다른 상품은 그대로 생년월일을 받는다 — 택일 때문에 문이 열리면 안 된다
   const stillNeeds = await api('POST', '/api/preview', { productId: 'saju-report' });
   check('다른 상품은 여전히 생년월일이 있어야 한다', stillNeeds.status === 400);
+}
+
+// ─── 혼인 택일 리포트 ──────────────────────────────────────────
+{
+  section('혼인 택일 리포트 (두 사람 생년월일 + 기간)');
+
+  // 1. 상품이 목록에 나오고 상품 페이지가 열린다
+  const prods = await api('GET', '/api/products');
+  check('혼인 택일 상품이 목록에 나온다',
+    prods.body.products.some((p: any) => p.id === 'marriage-pick-report'));
+  const prodPage = await page('/products/marriage-pick-report');
+  check('혼인 택일 상품 페이지가 열린다 (200)', prodPage.status === 200);
+
+  // 2. 상세페이지 본문에 값이 안 보인다
+  check('상세페이지 본문에 값이 안 보인다 (가격안내 법 준수)',
+    !prodPage.html.includes('59,000'));
+  check('상세페이지에 결제 화면에서 기간 정한다는 안내가 있다',
+    prodPage.html.includes('원하시는 기간을 결제 화면에서 정하시면 됩니다.'));
+
+  // 3. 결제 화면에 상대 생년월일 칸과 기간 칸이 뜬다
+  const coHtml = renderCheckoutPage(business, '', CATALOG['marriage-pick-report'], { storeId: 'test_store', channelKey: 'test_channel' });
+  check('결제 화면에 상대 생년월일 칸이 뜬다', coHtml.includes('name="partnerDate"'));
+  check('결제 화면에 기간 칸(시작·끝)이 뜬다',
+    coHtml.includes('name="rangeFrom"') && coHtml.includes('name="rangeTo"'));
+
+  // 4. 기간 없이 주문하면 400
+  const noRange = await api('POST', '/api/orders', {
+    productId: 'marriage-pick-report',
+    acknowledgedNotice: true,
+    birth: BIRTH,
+    partner: { date: '1992-08-20', time: '10:00' },
+  });
+  check('기간 없이 주문하면 400', noRange.status === 400, noRange.body?.error);
+
+  // 5. 기간이 뒤집히면 400
+  const flipped = await api('POST', '/api/orders', {
+    productId: 'marriage-pick-report',
+    acknowledgedNotice: true,
+    birth: BIRTH,
+    partner: { date: '1992-08-20', time: '10:00' },
+    range: { from: '2026-10-31', to: '2026-10-01' },
+  });
+  check('기간이 뒤집히면 400', flipped.status === 400, flipped.body?.error);
+
+  // 6. 181일을 넣으면 400
+  const over180 = await api('POST', '/api/orders', {
+    productId: 'marriage-pick-report',
+    acknowledgedNotice: true,
+    birth: BIRTH,
+    partner: { date: '1992-08-20', time: '10:00' },
+    range: { from: '2026-05-01', to: '2026-10-31' }, // 184일
+  });
+  check('181일 이상 넣으면 400',
+    over180.status === 400 && String(over180.body?.error).includes('여섯 달'),
+    over180.body?.error);
+
+  // 7. 만들어진 자료에 후보날과 순위가 들어 있다
+  const pl = buildPayload({
+    productId: 'marriage-pick-report',
+    birth: BIRTH,
+    partner: { date: '1992-08-20', time: '10:00' },
+    range: { from: '2026-10-01', to: '2026-10-31' },
+  });
+  check('갈래가 택일이다', pl.kind === '택일');
+  check('만들어진 자료에 후보날이 들어 있다',
+    Array.isArray(pl.data?.후보날) && pl.data.후보날.length === 31);
+  check('만들어진 자료에 순위가 들어 있다',
+    Array.isArray(pl.data?.순위) && pl.data.순위.length === 31);
+
+  // 8. 만들어진 자료에 신부가 들어 있다
+  check('만들어진 자료에 신부가 들어 있다',
+    pl.data?.신부?.생년월일 === '1992-08-20');
+
+  // 9. 모든 날에 근거가 한 줄 이상 붙어 있다
+  check('모든 날에 근거가 한 줄 이상 붙어 있다',
+    Array.isArray(pl.data?.순위) && pl.data.순위.every((item: any) => Array.isArray(item.까닭) && item.까닭.length >= 1));
 }
 
 // ─── I. 신규 주문 조회 및 확정 멱등성 검증 ───────────────────────

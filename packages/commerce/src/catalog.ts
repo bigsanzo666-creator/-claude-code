@@ -34,7 +34,7 @@ export type ProductId =
   // 재회
   | 'reunion-report' | 'letgo-report'
   // 궁합
-  | 'compat-report' | 'crush-compat-report'
+  | 'compat-report' | 'crush-compat-report' | 'marriage-pick-report'
   // 가족 — 차별점
   | 'child-report' | 'child-aptitude-report' | 'parent-child-report' | 'latelife-report'
   | 'pick-report' | 'naming-report' | 'naming-plus-report'
@@ -94,6 +94,13 @@ export interface Product {
    * 이 표가 서 있으면 서버는 생년월일 대신 후보 날짜를 받는다.
    */
   needsPick?: boolean;
+  /**
+   * 보고 싶은 기간이 필요한가.
+   *
+   * 혼인 택일처럼 두 사람의 생년월일과 함께 날짜 구간을 받아야 할 때 쓴다.
+   * 생년월일 없이 후보 날짜만 받는 `needsPick` 과는 다르다.
+   */
+  needsRange?: boolean;
   /**
    * 얼굴과 손 사진이 필요한가.
    *
@@ -260,6 +267,17 @@ export const CATALOG: Record<ProductId, Product> = {
     category: '궁합',
     hook: '이 사람, 나한테 관심 있을까?',
     needsPartner: true,
+  },
+  'marriage-pick-report': {
+    id: 'marriage-pick-report',
+    name: '혼인 택일 리포트',
+    priceKrw: 59000,
+    category: '궁합',
+    hook: '우리 결혼, 며칠이 좋을까?',
+    needsPartner: true,
+    needsRange: true,
+    previewRatio: 0.2,
+    description: '신랑과 신부 두 사람의 여덟 글자를 함께 보고 견줍니다. 원하시는 기간 안에서 두 분에게 가장 좋은 날을 골라 드립니다.',
   },
 
   // ── 가족 (차별점) ────────────────────────────────────────

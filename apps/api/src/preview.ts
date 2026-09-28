@@ -44,6 +44,14 @@ const SAMPLES: Partial<Record<ProductId, string>> = {
 
 …`,
 
+  'marriage-pick-report': `신랑과 신부 두 분의 여덟 글자를 함께 세우고, 원하시는 기간 안의 날들을 하나씩 견주어 보았습니다. 가장 앞선 것은 10월 18일입니다. 89점으로 「아주 좋음」에 들어갑니다. 두 사람의 기운을 서로 돕는 글자가 모이고, 부딪히는 자리가 없어 새 출발의 날로 가장 순탄합니다.
+
+먼저 이 점수를 읽는 법부터 말씀드립니다. 이 점수는 100점 만점의 절대 점수가 아니라, **주신 기간 안에서 서로 견주는 눈금**입니다. 80점 이상이면 두 사람의 글자와 부딪힘 없이 화합하는 날이고, 65점 이상이면 순탄한 날입니다.
+
+1순위로 꼽힌 10월 18일은 병오년 무술월 을축일입니다. 신랑의 일간과 그날의 천간이 서로 조화를 이루며 화합하고, 어려움을 풀어 주는 길신(천을귀인)의 기운이 신랑에게 닿습니다. 신부의 일지와도 충돌이 없어 양가 모두 편안한 기운으로 치를 수 있습니다…
+
+…`,
+
   'naming-report': `도윤이 아버님, 아이의 사주부터 말씀드립니다.
 
 아이는 제 힘이 센 편입니다. 자기를 돕는 기운이 열 중 일곱쯤 되니, 더 보태는 것보다 **덜어내 주는 쪽**이 이롭습니다. 그래서 채워야 할 기운은 품고 버티는 기운(토), 자르고 맺는 기운(금), 흐르고 스며드는 기운(수) 셋입니다.
@@ -216,6 +224,22 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
       if (perDay.length) contents.push(`날마다 제일 좋은 시각 ${perDay.length}줄`);
       const last = ranked[ranked.length - 1];
       if (ranked.length > 1) contents.push(`피하는 게 나은 때: ${last.날} ${last.때} (${last.점수}점)`);
+    }
+  } else if (productId === 'marriage-pick-report') {
+    const ranked = (d?.순위 ?? []) as any[];
+    const best = (d?.제일좋은날 ?? []) as any[];
+    if (ranked.length) {
+      contents.push(`원하시는 기간 안의 ${ranked.length}날을 하나씩 견줌`);
+      if (best.length) {
+        const top = best[0];
+        contents.push(`1순위 ${top.날} (${top.여덟글자}) — ${top.점수}점 · ${top.등급}`);
+        for (const why of (top.까닭 ?? []).slice(0, 3)) contents.push(`1순위 근거: ${why}`);
+      }
+      contents.push(`두 분에게 가장 좋은 날 ${best.length}선`);
+      const avoid = (d?.피할날 ?? []) as any[];
+      if (avoid.length) {
+        contents.push(`부딪힘이 있어 피하는 것이 좋은 날 ${avoid.length}개`);
+      }
     }
   } else if (productId === 'naming-report' || productId === 'naming-plus-report') {
     /*
