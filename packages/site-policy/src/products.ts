@@ -743,19 +743,28 @@ html,body{overflow-x:clip;max-width:100%}
  * 페이지가 길어지는 것은 **일부러 그러는 것이다.** 손님에게 많이
  * 보여 주는 쪽이 사는 데로 이어진다.
  */
-.pd-yes-pic{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:12px}
+.pd-yes-pic{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:16px}
 .pd-yes-row{position:relative;display:block;aspect-ratio:896/1200;overflow:hidden;
-  border:1px solid var(--nb-line-soft);border-radius:13px;background:#15121a}
+  border:1px solid rgba(255,255,255,.09);border-radius:14px;background:#15121a;
+  box-shadow:0 8px 24px rgba(0,0,0,.35)}
 .pd-yes-img{position:absolute;inset:0;display:block;
-  background:#15121a center top/cover no-repeat;filter:brightness(.72)}
-/* 글씨가 앉는 아래쪽만 짙게 — 그림 위쪽은 그대로 보여 준다 */
+  background:#15121a center top/cover no-repeat;filter:none}
+/* 글씨가 앉는 아래쪽만 자연스럽게 어두워지는 부드러운 그라디언트 */
 .pd-yes-row::after{content:'';position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(to top,rgba(6,5,10,.96) 0%,rgba(6,5,10,.72) 30%,transparent 66%)}
-.pd-yes-t{position:absolute;left:0;right:0;bottom:0;z-index:1;
-  padding:20px 20px 22px;font-size:20px;font-weight:700;line-height:1.55;
-  color:var(--nb-ink);word-break:keep-all;text-shadow:0 2px 12px rgba(0,0,0,.95)}
+  background:linear-gradient(to top, rgba(6,5,10,.96) 0%, rgba(6,5,10,.82) 22%, rgba(6,5,10,.48) 42%, rgba(6,5,10,.12) 62%, transparent 78%)}
+.pd-yes-t{position:absolute;left:0;right:0;bottom:0;z-index:2;
+  padding:24px 22px 26px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;
+  box-sizing:border-box}
+.pd-yes-idx{display:inline-block;font-size:13px;font-weight:700;letter-spacing:0.12em;
+  color:#E5C365;background:rgba(212,175,55,.14);border:1px solid rgba(212,175,55,.32);
+  border-radius:4px;padding:3px 9px;line-height:1.2;font-family:var(--font-sans)}
+.pd-yes-txt{font-size:20px;font-weight:600;line-height:1.55;letter-spacing:-0.025em;
+  color:#FFFFFF;word-break:keep-all;text-shadow:0 2px 10px rgba(0,0,0,.85);font-family:var(--font-sans)}
+.pd-yes-txt strong{color:#FFFFFF;font-weight:700}
 @media(max-width:400px){
-  .pd-yes-t{padding:18px 17px 19px;font-size:18.5px}
+  .pd-yes-t{padding:20px 18px 22px;gap:7px}
+  .pd-yes-idx{font-size:13px;padding:2px 8px}
+  .pd-yes-txt{font-size:18px;line-height:1.5}
 }
 
 /* 여기 쓰인 명리 말 — 접어 둔다. 궁금한 사람만 연다 */
@@ -1790,7 +1799,10 @@ export function renderFit(productId: string): string {
    */
   const ys = fit.yes.map((y, i) => `<li class="pd-yes-row">
       <span class="pd-yes-img" style="background-image:url('/img/fit/${esc(productId)}-${i + 1}.jpg')"></span>
-      <span class="pd-yes-t">${bold(y)}</span>
+      <div class="pd-yes-t">
+        <span class="pd-yes-idx">0${i + 1}</span>
+        <span class="pd-yes-txt">${bold(y)}</span>
+      </div>
     </li>`).join('\n');
   return `  <section class="pd-sec pd-fit">
     <p class="pd-l">고르기 전에</p>
