@@ -757,6 +757,64 @@ console.log(`\n${'═'.repeat(60)}`);
   }
 }
 
+// ─── 혼인 택일 셈법 검증 ─────────────────────────────────────
+{
+  section('혼인 택일 — 날짜를 고르는 계산');
+  const { pickMarriageDays } = await import('./src/marriage-pick.ts');
+
+  const groom = { date: '1992-05-14', time: '08:30', longitude: 126.978 };
+  const bride = { date: '1994-09-20', time: '14:20', longitude: 126.978 };
+
+  const start = '2026-10-01';
+  const end = '2026-10-31';
+
+  // 1. 같은 두 사람, 같은 기간이면 늘 같은 답이 나온다
+  const r1 = pickMarriageDays({ groom, bride, startDate: start, endDate: end });
+  const r2 = pickMarriageDays({ groom, bride, startDate: start, endDate: end });
+  check('같은 두 사람, 같은 기간이면 늘 같은 답이 나온다',
+    JSON.stringify(r1) === JSON.stringify(r2));
+
+  // 2. 신랑과 신부를 바꿔 넣어도 답이 같다
+  const rSwap = pickMarriageDays({ groom: bride, bride: groom, startDate: start, endDate: end });
+  const scoresOriginal = r1.days.map((d) => `${d.date}:${d.score}:${d.band}`).sort().join(';');
+  const scoresSwapped = rSwap.days.map((d) => `${d.date}:${d.score}:${d.band}`).sort().join(';');
+  check('신랑과 신부를 바꿔 넣어도 답이 같다', scoresOriginal === scoresSwapped);
+
+  // 3. 피해야 할 날로 적은 날은 결과에 없다
+  const avoid = ['2026-10-05', '2026-10-15', '2026-10-25'];
+  const rAvoid = pickMarriageDays({ groom, bride, startDate: start, endDate: end, avoidDates: avoid });
+  check('피해야 할 날로 적은 날은 결과에 없다',
+    rAvoid.days.every((d) => !avoid.includes(d.date)) &&
+    rAvoid.days.length === r1.days.length - avoid.length);
+
+  // 4. 기간이 하루여도 터지지 않는다
+  const rOneDay = pickMarriageDays({ groom, bride, startDate: '2026-10-10', endDate: '2026-10-10' });
+  check('기간이 하루여도 터지지 않는다', rOneDay.days.length === 1 && rOneDay.bestFive.length === 1);
+
+  // 5. 기간이 뒤집혀 들어오면(끝이 시작보다 앞) 또렷한 말로 막는다
+  let errorMsg = '';
+  try {
+    pickMarriageDays({ groom, bride, startDate: '2026-10-31', endDate: '2026-10-01' });
+  } catch (e: any) {
+    errorMsg = e.message;
+  }
+  check('기간이 뒤집혀 들어오면(끝이 시작보다 앞) 또렷한 말로 막는다',
+    errorMsg.includes('시작 날짜가 끝 날짜보다 뒤에 올 수 없습니다'));
+
+  // 6. 모든 날에 근거가 한 줄 이상 붙어 있다
+  check('모든 날에 근거가 한 줄 이상 붙어 있다',
+    r1.days.every((d) => d.says && d.says.length >= 1));
+
+  // 7. 점수가 전부 같은 값으로 나오지 않는다 (계산이 실제로 갈린다)
+  const uniqueScores = new Set(r1.days.map((d) => d.score));
+  check('점수가 전부 같은 값으로 나오지 않는다 (계산이 실제로 갈린다)',
+    uniqueScores.size > 1, `${uniqueScores.size}가지 점수 분포`);
+
+  check('제일 좋은 날 다섯 개가 뽑힌다', r1.bestFive.length === 5);
+  check('결과가 점수 높은 순으로 정렬되어 있다',
+    r1.days.every((d, i) => i === 0 || r1.days[i - 1].score >= d.score));
+}
+
 console.log(`통과 ${passed} / 실패 ${failed}`);
 if (failed) {
   console.log('\n실패 항목:');
