@@ -12,6 +12,7 @@ import {
   PACKAGES, bundleMath, orderable, upsellFor,
 } from '../../packages/commerce/src/index.ts';
 import { loadBusinessInfo, SPIRITS, CONTENTS_FOR, renderCheckoutPage } from '../../packages/site-policy/src/index.ts';
+import { CATEGORIES } from '../../packages/commerce/src/catalog.ts';
 import { findSpiritVideos } from './src/images.ts';
 import { createApi, MemoryOrderStore } from './src/server.ts';
 import { buildPayload } from './src/payload.ts';
@@ -1719,6 +1720,25 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     '/dream',
     `/order/${doubleId}`,
   ];
+
+  /*
+   * 터진 뒤에 적은 것 (2026-09-28): 갈래 단추 열한 개가 화면에도 app.js 에도
+   * 손으로 적혀 있었다. 「시험과 취업」 갈래를 새로 만들자 그 갈래만 단추가
+   * 없었고, 「전체」도 그 손으로 적은 목록을 돌기 때문에 급제신령 상품 넷은
+   * 신령계 메뉴 어디에도 나오지 않았다. 손 목록은 반드시 어긋난다.
+   */
+  {
+    const home = await page('/');
+    const 빠진갈래 = CATEGORIES.filter((c) => !home.html.includes(`data-category="${c.key}"`));
+    check(`갈래 단추가 ${CATEGORIES.length}개 갈래를 전부 덮는다`,
+      빠진갈래.length === 0, 빠진갈래.map((c) => c.key).join(', '));
+    const 빠진메뉴 = CATEGORIES.filter((c) => !home.html.includes(`"name":"${c.key}"`));
+    check('신령계 메뉴 목록에도 갈래가 전부 들어간다',
+      빠진메뉴.length === 0, 빠진메뉴.map((c) => c.key).join(', '));
+    const 신령없음 = SPIRITS.filter((sp) => !home.html.includes(`"name":"${sp.name}"`));
+    check(`신령 ${SPIRITS.length}분이 전부 메뉴에 선다`,
+      신령없음.length === 0, 신령없음.map((sp) => sp.name).join(', '));
+  }
 
   for (const p of testPaths) {
     const pageRes = await page(p);

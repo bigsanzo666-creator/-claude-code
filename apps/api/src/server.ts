@@ -19,7 +19,7 @@ import {
   hasEntitlement, assessRefund, refundNotice, confirmPayment, refundOrder, failOrder,
   orderable, isOrderable, upsellFor, packagesContaining, makePreview,
   HOLIDAY_MAX_MEMBERS, HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, extraMemberKrw,
-  WITHDRAWAL_NOTICE, type Order, type PaymentGateway, type ProductId,
+  WITHDRAWAL_NOTICE, CATEGORIES, type Order, type PaymentGateway, type ProductId,
 } from '../../../packages/commerce/src/index.ts';
 import { cacheKey } from '../../../packages/report/src/cache.ts';
 import { cleanQuestion, QUESTION_MAX } from '../../../packages/report/src/prompt.ts';
@@ -33,7 +33,7 @@ import {
   renderCheckoutPage,
   renderDreamPage, readDream,
   renderRobots, renderSitemap,
-  handoffBetween, spiritOfCategory, type Handoff,
+  handoffBetween, spiritOfCategory, SPIRITS, type Handoff,
   type BusinessInfo,
   renderOrderNotFoundPage, renderOrderUnpaidPage,
   renderOrderPendingReportPage, renderOrderReportPage, renderInvitePage, renderAdminInvitePage,
@@ -192,6 +192,27 @@ function assetStamp(...names: string[]): string {
   return h.digest('hex').slice(0, 10);
 }
 
+/*
+ * 갈래 단추는 **상품표에서 뽑는다.**
+ *
+ * 터진 뒤에 적은 것 (2026-09-28): 「시험과 취업」 갈래를 새로 만들었는데 여기
+ * 단추 열한 개가 손으로 적혀 있어서 그 갈래만 단추가 없었다. 급제신령 상품
+ * 네 개를 갈래로 찾아 들어올 길이 없었다. 손으로 적은 목록은 반드시 어긋난다.
+ */
+const CATEGORY_MENU = CATEGORIES.map((c) => {
+  const spirit = SPIRITS.find((s) => s.keeps === c.key);
+  return {
+    name: c.key,
+    spirit: { id: spirit?.id ?? '', name: spirit?.name ?? '', question: c.question },
+  };
+});
+
+const CATEGORY_TABS = [
+  '<button type="button" class="category-tab active" data-category="전체">전체</button>',
+  ...CATEGORIES.map((c) =>
+    `<button type="button" class="category-tab" data-category="${c.key}">${c.key}</button>`),
+].join('\n          ');
+
 const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
 
     <!-- 상단 글로벌 바: 신령음 오디오 스위치 (첫 대문에서 유일하게 노출되는 상단 HUD) -->
@@ -249,17 +270,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
       <div class="spirits-tabs-wrapper">
         <button type="button" class="tabs-arrow-btn prev" id="tabsArrowPrev" aria-label="이전 탭">‹</button>
         <nav class="spirits-category-tabs" id="spiritsCategoryTabs" aria-label="사주 갈래 선택">
-          <button type="button" class="category-tab active" data-category="전체">전체</button>
-          <button type="button" class="category-tab" data-category="연애">연애</button>
-          <button type="button" class="category-tab" data-category="재회">재회</button>
-          <button type="button" class="category-tab" data-category="궁합">궁합</button>
-          <button type="button" class="category-tab" data-category="가족">가족</button>
-          <button type="button" class="category-tab" data-category="작명">작명</button>
-          <button type="button" class="category-tab" data-category="출산">출산</button>
-          <button type="button" class="category-tab" data-category="나">나</button>
-          <button type="button" class="category-tab" data-category="삼합">삼합</button>
-          <button type="button" class="category-tab" data-category="돈과 일">돈과 일</button>
-          <button type="button" class="category-tab" data-category="시기">시기</button>
+          ${CATEGORY_TABS}
         </nav>
         <button type="button" class="tabs-arrow-btn next" id="tabsArrowNext" aria-label="다음 탭">›</button>
       </div>
@@ -434,6 +445,7 @@ ${FOOTER_CSS}
 <script>
 window.SAJU_CONFIG = ${config};
 window.__CATALOG_PRODUCTS__ = ${JSON.stringify(Object.values(CATALOG).map(p => ({ id: p.id, name: p.name, hook: p.hook, category: p.category })))};
+window.__CATEGORIES__ = ${JSON.stringify(CATEGORY_MENU)};
 </script>
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 </head>

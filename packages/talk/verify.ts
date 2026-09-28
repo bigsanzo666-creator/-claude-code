@@ -18,6 +18,7 @@ import {
   taste, chooseAsk, EMPTY_FACTS,
 } from './src/index.ts';
 import { SPIRITS } from '../site-policy/src/spirits.ts';
+import { CATALOG } from '../commerce/src/catalog.ts';
 import { readFileSync } from 'node:fs';
 
 let passed = 0, failed = 0;
@@ -224,6 +225,23 @@ section('15. 고르면 그 자리에서 한 조각 봐 준다');
   check('모르는 상품은 거절한다', (() => {
     try { taste('없는상품', F); return false; } catch { return true; }
   })());
+
+  /*
+   * 터진 뒤에 적은 것 (2026-09-28): 갈래를 새로 만들면서 맛보기 표에 그 갈래를
+   * 안 넣었다. 작명·출산·시험과 취업 상품을 누른 손님은 맛보기에서 500을 받았다.
+   * 타입은 빌드가 없어 아무것도 막아 주지 않는다. 그러니 여기서 전부 눌러 본다.
+   */
+  const 맛보기실패: string[] = [];
+  for (const id of Object.keys(CATALOG)) {
+    try {
+      const one = taste(id, F);
+      if (!one.lines.length || !one.more) 맛보기실패.push(`${id}(빈 말)`);
+    } catch (e) {
+      맛보기실패.push(`${id}(${e instanceof Error ? e.message : '알 수 없음'})`);
+    }
+  }
+  check(`상품 ${Object.keys(CATALOG).length}개 전부 맛보기가 나온다`,
+    맛보기실패.length === 0, 맛보기실패.join(', '));
 
   const ask = chooseAsk(F);
   check('무엇부터 보고 싶은지 묻는다', ask.includes('무엇부터'));

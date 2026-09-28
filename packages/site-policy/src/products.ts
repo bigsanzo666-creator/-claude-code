@@ -673,6 +673,8 @@ body{background:var(--nb-paper)}
 .pr-note{margin:56px 0 0;padding:22px 0 0;border-top:1px solid var(--nb-line-soft);
   font-size:15px;line-height:1.85;color:var(--nb-ink-3);letter-spacing:0.2px}
 .pr-note a{color:var(--nb-gold)}
+/* 묶음 값 옆의 「따로 사면」이 무엇인지 한 줄로 밝힌다 */
+.pr-packnote{margin:14px 0 0;font-size:13.5px;line-height:1.7;color:var(--nb-ink-3)}
 
 /* 상품 하나짜리 페이지 */
 .pd-back{display:inline-block;margin-bottom:18px;font-size:15px;color:var(--nb-gold);text-decoration:none;letter-spacing:0.2px}
@@ -1477,6 +1479,14 @@ ${cards}
 <div class="pr-rule"></div>
 </div>
 ${groups}
+${prices ? `<section class="pr-group">
+<p class="pr-cat">묶음</p>
+<h3 class="pr-q">여러 개를 함께 보시려면</h3>
+<div class="pr-grid">
+${packs}
+</div>
+<p class="pr-packnote">「따로 사면」은 구성 상품을 <strong>실제로 낱개 판매하는 가격</strong>의 합계입니다.</p>
+</section>` : ''}
 ${renderWhy()}
 ${prices ? `<p class="pr-note">
 결제 전에 리포트 일부를 미리 보실 수 있으며, 결제일부터 ${WITHDRAWAL_WINDOW_DAYS}일 이내에

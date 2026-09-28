@@ -170,7 +170,7 @@ export const WHY_CSS = `
 .why-card-left .why-card-body{align-items:flex-start;text-align:left}
 
 .why-card-right .why-scrim{background:linear-gradient(to left,rgba(6,5,10,.94) 0%,rgba(6,5,10,.82) 36%,rgba(6,5,10,.25) 65%,transparent 88%)}
-.why-card-right .why-card-body{align-items:flex-start;text-align:left}
+.why-card-right .why-card-body{align-items:flex-start;text-align:left;margin-left:auto}
 
 @media (max-width:600px){
   .why-card-left .why-scrim, .why-card-right .why-scrim{
@@ -199,9 +199,25 @@ export const WHY_CSS = `
 @media (min-width:760px){
   .why-claims{gap:24px}
   .why-c{min-height:320px}
-  .why-c .why-card-body{padding:42px 38px;max-width:620px}
+  .why-c .why-card-body{padding:42px 38px;max-width:min(620px,62%)}
   .why-c h4{font-size:23px}
   .why-c p{font-size:16.5px}
+  /* 글이 긴 큰 카드는 글 앉는 자리를 더 넓게 덮고, 사진 쪽은 그대로 살린다 */
+  .why-c.why-card-left .why-scrim{background:linear-gradient(to right,
+    rgba(6,5,10,.96) 0%,rgba(6,5,10,.92) 46%,rgba(6,5,10,.6) 70%,rgba(6,5,10,.12) 90%,transparent 100%)}
+  .why-c.why-card-right .why-scrim{background:linear-gradient(to left,
+    rgba(6,5,10,.96) 0%,rgba(6,5,10,.92) 46%,rgba(6,5,10,.6) 70%,rgba(6,5,10,.12) 90%,transparent 100%)}
+}
+
+/* 좁은 화면: 큰 카드는 사진을 위에 통째로 보여주고 글은 그 아래 깨끗한 자리에 앉힌다 */
+@media (max-width:600px){
+  .why-c{min-height:0;display:block;background:#0b0910}
+  .why-c .why-card-bg{height:200px;border-radius:14px 14px 0 0}
+  .why-c .why-scrim{bottom:auto;height:200px;border-radius:14px 14px 0 0;
+    background:linear-gradient(to top,rgba(11,9,16,.98) 0%,rgba(11,9,16,.35) 40%,transparent 78%)}
+  .why-c .why-card-body{margin-top:186px;padding:0 22px 26px;max-width:none;margin-left:0}
+  .why-c h4{text-shadow:none}
+  .why-c p{text-shadow:none}
 }
 
 @media (min-width:760px){

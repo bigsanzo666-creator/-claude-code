@@ -597,7 +597,22 @@ section('9. 신령 — 칸마다 주인이 있는가');
   check('값을 끄면 묶음도 빠진다', !quiet.includes('따로 사면'));
   check('값을 꺼도 가격표로 가는 길은 남는다', quiet.includes('href="/products"'));
   check('값을 켜면 단품 가격이 나온다', list.includes('19,900원'));
-  check('판매 상품과 가격 페이지에서 묶음 목록은 빠져 있다', !list.includes('여러 개를 함께 보시려면'));
+  /*
+   * 터진 뒤에 적은 것 (2026-09-28): 아래쪽 묶음 목록을 통째로 지웠더니 묶음
+   * 열여섯 개를 손님이 볼 자리도 살 자리도 없어졌다. 상품 상세는 「이 묶음에도
+   * 들어 있습니다」라고 계속 말하고 있었다. 그래서 여기서 전부 서 있는지 본다.
+   */
+  check('묶음 열여섯 개가 전부 가격표에 서 있다',
+    Object.values(PACKAGES).every((pk) => list.includes(pk.name)),
+    Object.values(PACKAGES).filter((pk) => !list.includes(pk.name)).map((pk) => pk.name).join(', '));
+  check('묶음 값과 따로 사는 합계가 함께 나온다',
+    Object.values(PACKAGES).every((pk) => {
+      const m = bundleMath(pk.id);
+      return list.includes(m.bundleKrw.toLocaleString('ko-KR'))
+        && list.includes(m.individualKrw.toLocaleString('ko-KR'));
+    }));
+  check('「따로 사면」이 무엇인지 그 자리에서 밝힌다',
+    list.includes('실제로 낱개 판매하는 가격'));
 }
 
 section('10. 들어가는 길 — 전체 화면');

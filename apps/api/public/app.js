@@ -669,7 +669,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ================= 5. 신령 열 분 메뉴판 (갈래 탭 10개 + 청월당 스타일 상품 카드 캐러셀) =================
-  const CATEGORIES = [
+  /*
+   * 갈래 목록은 서버가 상품표에서 뽑아 넣어 준다.
+   *
+   * 터진 뒤에 적은 것 (2026-09-28): 「시험과 취업」 갈래를 새로 만들었는데 이
+   * 목록이 손으로 적혀 있어서 급제신령과 그 상품 넷이 신령계 메뉴에 아예
+   * 나오지 않았다. 「전체」도 이 목록을 돌기 때문에 거기서도 빠졌다.
+   * 아래 목록은 서버가 값을 못 넣어 준 때를 위한 마지막 보루다.
+   */
+  const CATEGORIES = Array.isArray(window.__CATEGORIES__) && window.__CATEGORIES__.length
+    ? window.__CATEGORIES__
+    : [
     { name: '연애',    spirit: { id: 'flower',   name: '도화신령', question: '이 사람, 어떨까?' } },
     { name: '재회',    spirit: { id: 'moon',     name: '월신령',   question: '다시 만날 수 있을까?' } },
     { name: '궁합',    spirit: { id: 'thread',   name: '연신령',   question: '우리, 잘 맞을까?' } },
@@ -679,6 +689,7 @@ document.addEventListener('DOMContentLoaded', () => {
     { name: '나',      spirit: { id: 'mirror',   name: '명경신령', question: '나는 어떤 사람일까?' } },
     { name: '삼합',    spirit: { id: 'cross',    name: '삼합신령', question: '셋이 같은 말을 할까?' } },
     { name: '돈과 일', spirit: { id: 'jar',      name: '재신령',   question: '먹고사는 일은 풀릴까?' } },
+    { name: '시험과 취업', spirit: { id: 'pass', name: '급제신령', question: '이번엔 붙을까?' } },
     { name: '시기',    spirit: { id: 'wind',     name: '풍신령',   question: '지금이 그때일까?' } },
   ];
 
