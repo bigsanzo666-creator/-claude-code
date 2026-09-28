@@ -160,17 +160,23 @@ export const WHY_CSS = `
   justify-content:flex-end;box-sizing:border-box;border:1px solid var(--nb-line-soft);
   background:var(--nb-paper-2);border-radius:8px}
 .why-card-bg{position:absolute;top:0;left:0;width:100%;height:100%;background-size:cover;
-  background-position:center;filter:brightness(.62);pointer-events:none;border-radius:8px;z-index:1}
+  background-position:center;filter:none;pointer-events:none;border-radius:8px;z-index:1}
 .why-scrim{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;border-radius:8px;z-index:2}
-.why-card-body{position:relative;z-index:3;padding:22px 20px;display:flex;flex-direction:column;
+.why-card-body{position:relative;z-index:3;padding:24px 22px;display:flex;flex-direction:column;
   justify-content:flex-start;box-sizing:border-box;width:100%}
 
-/* side에 따른 그늘 및 정렬 */
-.why-card-left .why-scrim{background:linear-gradient(to right,rgba(0,0,0,.92) 0%,rgba(0,0,0,.78) 55%,rgba(0,0,0,.35) 100%),linear-gradient(to bottom,rgba(0,0,0,.4) 0%,rgba(0,0,0,.9) 100%)}
+/* side에 따른 그늘 및 정렬 — 글씨가 앉는 자리만 어둡게 하고 나머지는 사진이 살아 있게 */
+.why-card-left .why-scrim{background:linear-gradient(to right,rgba(6,5,10,.94) 0%,rgba(6,5,10,.82) 36%,rgba(6,5,10,.25) 65%,transparent 88%)}
 .why-card-left .why-card-body{align-items:flex-start;text-align:left}
 
-.why-card-right .why-scrim{background:linear-gradient(to left,rgba(0,0,0,.92) 0%,rgba(0,0,0,.78) 55%,rgba(0,0,0,.35) 100%),linear-gradient(to bottom,rgba(0,0,0,.4) 0%,rgba(0,0,0,.9) 100%)}
+.why-card-right .why-scrim{background:linear-gradient(to left,rgba(6,5,10,.94) 0%,rgba(6,5,10,.82) 36%,rgba(6,5,10,.25) 65%,transparent 88%)}
 .why-card-right .why-card-body{align-items:flex-start;text-align:left}
+
+@media (max-width:600px){
+  .why-card-left .why-scrim, .why-card-right .why-scrim{
+    background:linear-gradient(to top,rgba(6,5,10,.96) 0%,rgba(6,5,10,.82) 45%,rgba(6,5,10,.2) 75%,transparent 95%);
+  }
+}
 
 /* 층 카드 세부 요소 */
 .why-f-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
