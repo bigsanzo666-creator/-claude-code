@@ -5,5 +5,6 @@ package-lock.json
 
 neulbom_standby_studio/
 .chrome-data/
+.chrome-data-capture/
 .chrome-profile/
 scripts/

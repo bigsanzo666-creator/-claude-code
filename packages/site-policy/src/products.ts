@@ -744,10 +744,10 @@ html,body{overflow-x:clip;max-width:100%}
  * 보여 주는 쪽이 사는 데로 이어진다.
  */
 .pd-yes-pic{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:12px}
-.pd-yes-row{position:relative;display:block;aspect-ratio:3/4;overflow:hidden;
+.pd-yes-row{position:relative;display:block;aspect-ratio:896/1200;overflow:hidden;
   border:1px solid var(--nb-line-soft);border-radius:13px;background:#15121a}
 .pd-yes-img{position:absolute;inset:0;display:block;
-  background:#15121a center/cover no-repeat;filter:brightness(.72)}
+  background:#15121a center top/cover no-repeat;filter:brightness(.72)}
 /* 글씨가 앉는 아래쪽만 짙게 — 그림 위쪽은 그대로 보여 준다 */
 .pd-yes-row::after{content:'';position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(to top,rgba(6,5,10,.96) 0%,rgba(6,5,10,.72) 30%,transparent 66%)}
