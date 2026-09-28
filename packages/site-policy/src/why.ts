@@ -126,7 +126,7 @@ ${layers}
 <p class="why-b">계산은 전부 규칙이 합니다. 모델은 그 결과를 읽기 쉬운 말로 옮기기만 합니다.
 그래서 <strong>같은 여덟 글자면 언제 보아도 같은 답</strong>이 나옵니다.</p>
 
-<div class="why-grid">
+<div class="why-claims">
 ${claims}
 </div>
 </section>`;
@@ -188,10 +188,21 @@ export const WHY_CSS = `
 .why-d em{display:block;font-style:normal;font-family:var(--nb-sans);font-size:18px;
   font-weight:700;color:var(--nb-ink);margin-bottom:4px;text-shadow:0 2px 12px rgba(0,0,0,.9)}
 
-/* 약속 카드 세부 요소 */
-.why-c h4{margin:0 0 10px;font-family:var(--nb-sans);font-size:18px;font-weight:700;
-  line-height:1.45;color:var(--nb-ink);word-break:keep-all;text-shadow:0 2px 12px rgba(0,0,0,.9)}
-.why-c p{margin:0;font-size:15px;line-height:1.75;color:var(--nb-ink-2);word-break:keep-all;text-shadow:0 2px 12px rgba(0,0,0,.9)}
+/* 4대 약속 큰 카드 세부 요소 — 위에서 아래로 하나씩 내려오는 큰 네모 */
+.why-claims{display:flex;flex-direction:column;gap:18px;margin-top:28px}
+.why-c{min-height:280px;border-radius:14px;border:1px solid rgba(255,255,255,.1);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.why-c .why-card-body{padding:32px 28px;max-width:680px}
+.why-c h4{margin:0 0 12px;font-family:var(--nb-sans);font-size:21px;font-weight:700;
+  line-height:1.45;color:var(--nb-ink);word-break:keep-all;text-shadow:0 2px 12px rgba(0,0,0,.95)}
+.why-c p{margin:0;font-size:16px;line-height:1.8;color:var(--nb-ink-2);word-break:keep-all;text-shadow:0 2px 12px rgba(0,0,0,.95)}
+
+@media (min-width:760px){
+  .why-claims{gap:24px}
+  .why-c{min-height:320px}
+  .why-c .why-card-body{padding:42px 38px;max-width:620px}
+  .why-c h4{font-size:23px}
+  .why-c p{font-size:16.5px}
+}
 
 @media (min-width:760px){
   .why-cat{font-size:30px}
