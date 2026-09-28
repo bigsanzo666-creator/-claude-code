@@ -339,7 +339,7 @@ export function renderSpiritPitch(
   const pitch = PITCH[productId];
   if (!pitch) return '';
   return `<aside class="sp-pitch">
-  ${face(spirit, faces, 72)}
+  ${face(spirit, faces, 96)}
   <div class="sp-said">
     <p class="sp-who">${esc(spirit.name)}<span class="sp-keeps"> · ${esc(spirit.keeps)} 담당</span></p>
     <p class="sp-line">${esc(pitch)}</p>
@@ -413,21 +413,28 @@ export const SPIRITS_CSS = `
   gap:2px;min-width:0;flex:1 1 auto}
 .sp-words{min-width:0}
 .sp-here .sp-said{padding-top:96px}
-.sp-head .sp-face{width:60px;height:60px}
-.sp-head .pr-q{margin:2px 0 6px}
+.sp-head .sp-face{width:72px;height:72px;border:2px solid rgba(212,175,55,.45);
+  box-shadow:0 0 16px rgba(212,175,55,.2)}
+.sp-head .pr-q{margin:4px 0 8px}
 .sp-place{color:var(--nb-ink-3);letter-spacing:.06em}
 /* 한글에 자간 .2em 을 주면 「도 화 / 신 령」 으로 쪼개져 내려간다.
    이름은 한 덩어리로 붙여 두고, 줄도 바꾸지 않는다 */
-.sp-who{margin:0 0 2px;font-size:14px;letter-spacing:.04em;color:var(--nb-gold);
+.sp-who{margin:0 0 4px;font-size:15px;font-weight:700;letter-spacing:.04em;color:var(--nb-gold);
   white-space:nowrap}
 .sp-keeps{color:var(--nb-ink-3);letter-spacing:0}
-.sp-line{margin:0;font-size:16px;line-height:1.85;color:var(--nb-ink-2);word-break:keep-all}
+.sp-line{margin:0;font-size:18.5px;font-weight:500;line-height:1.68;color:var(--nb-ink);word-break:keep-all;
+  letter-spacing:-0.02em}
 
 /* 상품 하나짜리 페이지에서 거는 말 */
-.sp-pitch{display:flex;align-items:flex-start;gap:14px;margin:0 0 20px;padding:16px 18px;
-  border-left:2px solid var(--nb-gold);background:var(--nb-paper-2)}
-.sp-pitch .sp-face{width:54px;height:54px}
-.sp-pitch .sp-line{font-size:16px;line-height:1.85;color:var(--nb-ink)}
+.sp-pitch{display:flex;align-items:flex-start;gap:18px;margin:0 0 28px;padding:22px 22px 24px;
+  border-radius:14px;border:1px solid rgba(212,175,55,.35);
+  background:linear-gradient(135deg,rgba(26,26,38,.92) 0%,rgba(16,15,24,.96) 100%);
+  box-shadow:0 8px 24px rgba(0,0,0,.5),0 0 20px rgba(212,175,55,.12)}
+.sp-pitch .sp-face{width:76px;height:76px;border:2px solid rgba(212,175,55,.45);
+  box-shadow:0 0 16px rgba(212,175,55,.2)}
+.sp-pitch .sp-line{font-size:19px;font-weight:500;line-height:1.68;color:var(--nb-ink);letter-spacing:-0.02em;position:relative}
+.sp-pitch .sp-line::before{content:'“';font-size:24px;color:var(--nb-gold);margin-right:4px;font-family:var(--font-serif);line-height:1}
+.sp-pitch .sp-line::after{content:'”';font-size:24px;color:var(--nb-gold);margin-left:4px;font-family:var(--font-serif);line-height:1}
 
 /* 첫 화면 소개 띠 — 폰에서는 옆으로 밀어서 본다 */
 /* 좌우 여백을 지우면 아래 띠의 「가장자리까지 밀기」가 화면 밖으로 나간다 */
@@ -445,10 +452,14 @@ export const SPIRITS_CSS = `
 .sp-intro{margin:0;font-size:14px;line-height:1.85;color:var(--nb-ink-2);word-break:keep-all}
 
 @media (min-width:760px){
-  .sp-said{gap:18px}
-  .sp-here{margin:0 0 26px;padding:34px 30px 30px;border:1px solid var(--nb-line-soft)}
-  .sp-here .sp-said{padding-top:120px}
-  .sp-head .sp-face{width:76px;height:76px}
+  .sp-said{gap:20px}
+  .sp-here{margin:0 0 32px;padding:40px 36px 34px;border:1px solid var(--nb-line-soft)}
+  .sp-here .sp-said{padding-top:130px}
+  .sp-head .sp-face{width:88px;height:88px}
+  .sp-pitch{padding:26px 28px 28px;gap:22px;margin:0 0 32px}
+  .sp-pitch .sp-face{width:88px;height:88px}
+  .sp-pitch .sp-line{font-size:21px;line-height:1.7}
+  .sp-head .sp-line{font-size:20px;line-height:1.7}
   .sp-title{font-size:28px}
   /* 넓은 화면에서는 일곱이 한눈에 들어온다. 밀지 않아도 된다 */
   .sp-row{display:grid;grid-template-columns:repeat(7,1fr);gap:18px;overflow:visible;
