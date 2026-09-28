@@ -998,6 +998,7 @@ export const STAGE_SCRIPT = `<script>(function(){
   // 카드사에서 돌아왔으면 덮개를 세우지 않는다. 손님이 볼 것은 결제 결과다
   if(backFromCard){
     stage.remove();
+    document.body.classList.remove('st-locked');
     if(typeof window.NB_SKIP_WIZARD==='function')window.NB_SKIP_WIZARD();
     return;
   }
@@ -1161,6 +1162,7 @@ export const STAGE_SCRIPT = `<script>(function(){
   if(out)out.addEventListener('click',function(){
     // 정말 나가겠다면 막지 않는다. 붙잡는 것은 한 번이면 족하다
     ask(false); back=[]; here='';
+    leave();
     history.back();
   });
 
@@ -1174,7 +1176,7 @@ export const STAGE_SCRIPT = `<script>(function(){
     if(here==='stGate'&&typeof stepBack==='function'&&stepBack()){
       history.pushState({nb:back.length},'',location.href); return;
     }
-    if(!here){ return; }          // 나가기로 한 손님은 그냥 보낸다
+    if(!here){ leave(); return; }          // 나가기로 한 손님은 그냥 보낸다
     if(back.length){
       var to=back.pop();
       here=to;
@@ -1184,6 +1186,14 @@ export const STAGE_SCRIPT = `<script>(function(){
       return;
     }
     ask(true);
+  });
+
+  stage.addEventListener('click',function(e){
+    var a=e.target.closest('a');
+    if(a&&a.href&&!a.href.startsWith('javascript:')){ leave(); }
+  });
+  window.addEventListener('pagehide',function(){
+    document.body.classList.remove('st-locked');
   });
 
   var free=$('stFree');

@@ -659,6 +659,10 @@ section('10. 들어가는 길 — 전체 화면');
   check('뒤로가기 한 번은 그 판만 닫는다',
     STAGE_SCRIPT.includes('if(peeking){ closePeek(); return; }'));
   check('덮개가 떠 있는 동안 뒤는 안 움직인다', STAGE_CSS.includes('body.st-locked{overflow:hidden}'));
+  check('신령계 화면을 열고 닫는 모든 길에서 st-locked 가 남지 않는다',
+    STAGE_SCRIPT.includes("document.body.classList.remove('st-locked')")
+    && STAGE_SCRIPT.includes('if(!here){ leave(); return; }')
+    && /stLeaveGo[\s\S]{0,250}leave\(\)/.test(STAGE_SCRIPT));
   // 폰에서 주소창이 접혔다 펴질 때 100vh 는 화면 아래가 잘린다
   // 걸어오는 영상은 첫 화면에서 바로 보인다. 자바스크립트를 기다리면
   // 그림 한 장만 보고 넘어가는 손님이 생긴다
