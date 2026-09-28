@@ -634,9 +634,9 @@ body{background:var(--nb-paper)}
 .pr-grid>*{min-width:0}
 .pr-card{margin:0}
 .pr-link{display:block;color:inherit;text-decoration:none}
-.pr-shot{display:block;aspect-ratio:3/4;overflow:hidden;
+.pr-shot{display:block;aspect-ratio:1/1;overflow:hidden;
   background:var(--nb-paper-2);border:1px solid var(--nb-line-soft)}
-.pr-thumb{width:100%;height:100%;object-fit:cover}
+.pr-thumb{width:100%;height:100%;object-fit:cover;object-position:center 20%}
 /* 그림이 아직 없는 자리. 빈 네모 대신 그 갈래를 지키는 신령의 도장이 선다 */
 .pr-seal{display:flex;align-items:center;justify-content:center;
   font-family:var(--nb-serif);font-size:38px;color:var(--nb-gold);opacity:.5;
@@ -844,8 +844,8 @@ body {
   margin: 0;
   border: none;
   object-fit: cover;
+  object-position: center 20%;
   display: block;
-  filter: brightness(0.8);
 }
 
 .pd-hero-scrim {
@@ -853,8 +853,8 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 75%;
-  background: linear-gradient(to top, rgba(0,0,0,.96) 0%, rgba(0,0,0,.82) 35%, rgba(0,0,0,.4) 70%, transparent 100%);
+  height: 45%;
+  background: linear-gradient(to top, rgba(0,0,0,.85) 0%, rgba(0,0,0,.35) 50%, transparent 100%);
   pointer-events: none;
 }
 
