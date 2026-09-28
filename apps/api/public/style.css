@@ -1057,3 +1057,126 @@ body {
 
 /* 점도 눌러서 넘길 수 있다 */
 .carousel-dots .dot { cursor: pointer; }
+
+/* ──────────────────────────────────────────────────────────────────
+ * 맛보기 — 상품 카드 밑에서 신령이 손님 사주를 조금 풀어 준다.
+ *
+ * 값을 보러 가기 전에 손님이 받아 가는 자리다. 그래서 카드와 같은 폭,
+ * 같은 금색으로 붙어 한 덩어리처럼 보이게 한다.
+ * ────────────────────────────────────────────────────────────────── */
+.taste-panel {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 4px;
+  padding: 18px 18px 20px;
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  border-radius: 12px;
+  background: rgba(12, 10, 18, 0.97);
+  color: var(--text-main);
+  font-family: var(--font-main);
+  animation: tasteIn 0.28s ease both;
+}
+@keyframes tasteIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+.taste-wait {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--gold-light);
+}
+.taste-say { margin: 0; }
+.taste-say p {
+  margin: 0 0 10px;
+  font-size: 1.02rem;
+  line-height: 1.85;
+  color: #f0ecdf;
+  word-break: keep-all;
+}
+.taste-say p:last-child { margin-bottom: 0; }
+.taste-b {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.taste-t {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--gold-primary);
+}
+.taste-b p {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: rgba(245, 245, 247, 0.9);
+  word-break: keep-all;
+}
+.taste-b p:last-child { margin-bottom: 0; }
+.taste-verdict {
+  font-size: 1.05rem !important;
+  font-weight: 700;
+  color: var(--gold-light) !important;
+}
+.taste-tb {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.taste-tb th {
+  padding: 6px 4px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  word-break: keep-all;
+}
+.taste-tb td {
+  padding: 9px 4px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.taste-pos { font-size: 0.82rem; color: var(--text-muted); }
+.taste-ch {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 1.28rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--gold-light);
+}
+/* 용어를 던지고 끝내지 않는다 — 한자 밑에 십신을 작은 글씨로 붙인다 */
+.taste-god { display: block; margin-top: 2px; font-size: 0.72rem; color: var(--text-muted); }
+.taste-cut {
+  margin: 16px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: rgba(245, 245, 247, 0.82);
+  word-break: keep-all;
+}
+.taste-go {
+  display: block;
+  margin: 18px 0 0;
+  padding: 13px 0;
+  text-align: center;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f5d77f 0%, #d4af37 100%);
+  color: #1a1206;
+  font-weight: 700;
+  font-size: 1rem;
+  text-decoration: none;
+}
+/* 큰 글씨는 쉬운 말, 옆에 작은 글씨로 명리 용어 */
+.taste-term {
+  display: inline-block;
+  margin-left: 7px;
+  font-family: var(--font-main);
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0;
+}
+.taste-tb th .taste-term { display: block; margin: 2px 0 0; font-size: 0.66rem; }

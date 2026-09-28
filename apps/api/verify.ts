@@ -1738,6 +1738,40 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     const 신령없음 = SPIRITS.filter((sp) => !home.html.includes(`"name":"${sp.name}"`));
     check(`신령 ${SPIRITS.length}분이 전부 메뉴에 선다`,
       신령없음.length === 0, 신령없음.map((sp) => sp.name).join(', '));
+
+    /*
+     * 터진 뒤에 적은 것 (2026-09-28): 맛보기 점사를 만들어 놓고 화면에는
+     * 안 붙였다. 그 칸은 손님에게 안 보이는 `legacyStageWrapper` 안에만
+     * 있었고, 보이는 화면은 카드를 누르면 곧장 상세페이지로 튕겨 보냈다.
+     * 「1:1 대면 처소로 모십니다」라는 문구만 남아 거짓말이 되어 있었다.
+     */
+    const appJs = fs.readFileSync(new URL('./public/app.js', import.meta.url), 'utf8');
+    check('상품 카드를 누르면 맛보기를 부른다', appJs.includes("'/api/taste'"));
+    check('상품 카드가 곧장 상세페이지로 튕겨 보내지 않는다',
+      !/closest\('\.product-card'\)[\s\S]{0,400}location\.href/.test(appJs));
+    check('맛보기가 룰 엔진 계산을 근거로 함께 보여준다',
+      appJs.includes('MS.freeReading') && appJs.includes('taste-tb'));
+    check('없는 처소로 모신다고 말하지 않는다',
+      !home.html.includes('1:1 대면 처소로 모십니다'));
+
+    const style = fs.readFileSync(new URL('./public/style.css', import.meta.url), 'utf8');
+    check('맛보기 칸에 생김새가 붙어 있다', style.includes('.taste-panel'));
+  }
+
+  /* 상품 서른네 개 전부에서 맛보기가 실제로 나와야 한다 */
+  {
+    const 맛보기실패: string[] = [];
+    for (const id of Object.keys(CATALOG)) {
+      const r = await api('POST', '/api/taste', {
+        product: id,
+        facts: { strong: true, topGod: '식상', lackElement: '금', timeKnown: true },
+      });
+      if (r.status !== 200) { 맛보기실패.push(`${id}(${r.status})`); continue; }
+      const body = r.body as any;
+      if (!body?.lines?.length || !body?.more) 맛보기실패.push(`${id}(빈 말)`);
+    }
+    check(`상품 ${Object.keys(CATALOG).length}개 전부 맛보기가 나온다`,
+      맛보기실패.length === 0, 맛보기실패.join(', '));
   }
 
   for (const p of testPaths) {

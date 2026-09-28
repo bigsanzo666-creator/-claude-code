@@ -694,6 +694,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
 
   let currentCategory = '전체';
+  let spiritsMenuRendered = false;
   let catalogProducts = (Array.isArray(window.__CATALOG_PRODUCTS__) && window.__CATALOG_PRODUCTS__.length > 0) ? window.__CATALOG_PRODUCTS__ : [];
   let isProductsLoading = false;
 
@@ -724,16 +725,186 @@ document.addEventListener('DOMContentLoaded', () => {
   const categoryTabsContainer = document.getElementById('spiritsCategoryTabs');
   const productCarouselTrack = document.getElementById('productCarouselTrack');
 
-  // 트랙에 클릭 이벤트 위임 (카드 클릭 시 상세페이지 이동)
+  /*
+   * ── 맛보기 ─────────────────────────────────────────────────────────
+   *
+   * 카드를 누르면 상세페이지로 튕겨 보내지 않는다. **그 자리에서** 신령이
+   * 손님의 진짜 사주를 조금 봐 준다. 값 얘기를 듣기 전에 손님이 받아 가는
+   * 것이 하나 있어야 한다.
+   *
+   * 판단은 전부 룰 엔진이 한다 — 여덟 글자·힘의 방향·올해는 window.MS 가
+   * 계산하고, 신령의 말은 /api/taste 가 그 계산 결과를 문장으로 옮긴다.
+   * 모델을 부르지 않으므로 공짜로 줘도 값이 들지 않는다.
+   */
+  function tasteBirth() {
+    const date = (userState.birthDate || '').trim();
+    if (!date) return null;
+    const raw = userState.birthTime || '';
+    const time = TIME_MAP[raw] || (raw.includes(':') ? raw : null);
+    const gender = (userState.gender === 'female' || userState.gender === '여') ? '여' : '남';
+    return { date: date, time: time, gender: gender };
+  }
+
+  /** 신령이 말할 때 쓰는 재료. 못 재면 아는 것 없이 말한다 */
+  function tasteFacts() {
+    const out = {
+      name: (userState.name || '').trim(), dayStem: '', dayElement: '', eight: '',
+      strong: false, topGod: '', lackGod: '', topElement: '', lackElement: '', timeKnown: false,
+    };
+    const b = tasteBirth();
+    if (!b || !window.MS || !MS.calculate || !MS.analyze) return out;
+    out.timeKnown = !!b.time;
+    try {
+      const ms = MS.calculate({ date: b.date, time: b.time || null });
+      const an = MS.analyze(ms);
+      out.eight = [ms.year, ms.month, ms.day, ms.hour]
+        .filter(Boolean).map((x) => x.stem + x.branch).join(' ');
+      out.dayStem = ms.day.stem;
+      out.dayElement = an.dayMaster.element;
+      out.strong = an.strength.verdict === '신강';
+      const g = an.godCounts || {};
+      const keys = Object.keys(g).sort((a, b2) => g[b2] - g[a]);
+      out.topGod = keys[0] || '';
+      out.lackGod = (an.missingGroups && an.missingGroups[0]) || keys[keys.length - 1] || '';
+      const el = (an.elements || []).slice().sort((a, b2) => b2.weight - a.weight);
+      out.topElement = (el[0] && el[0].element) || '';
+      out.lackElement = (an.missingElements && an.missingElements[0]) || '';
+    } catch (err) { /* 못 재도 칸은 열린다 */ }
+    return out;
+  }
+
+  /** 근거로 함께 보여줄 풀이. 생년월일이 없으면 null */
+  function tasteReading() {
+    const b = tasteBirth();
+    if (!b || !window.MS || !MS.calculate || !MS.analyze || !MS.freeReading) return null;
+    try {
+      const ms = MS.calculate({ date: b.date, time: b.time || null });
+      return MS.freeReading(ms, MS.analyze(ms),
+        { gender: b.gender, todayYear: new Date().getFullYear() });
+    } catch (err) { return null; }
+  }
+
+  /* 손님 이름이 그대로 들어가는 자리가 있어 innerHTML 을 쓰지 않는다 */
+  function tEl(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+  }
+
+  function drawTaste(panel, href, res) {
+    panel.textContent = '';
+
+    if (res && res.lines && res.lines.length) {
+      const say = tEl('div', 'taste-say');
+      res.lines.forEach((t) => say.appendChild(tEl('p', null, t)));
+      panel.appendChild(say);
+    }
+
+    const r = tasteReading();
+    if (r) {
+      // 어느 글자에서 나온 말인지 보여준다. 근거 없는 결론은 두지 않는다
+      const b1 = tEl('section', 'taste-b');
+      b1.appendChild(tEl('h4', 'taste-t', '손님의 여덟 글자'));
+      const tb = tEl('table', 'taste-tb');
+      const thead = tEl('thead');
+      const hr = tEl('tr');
+      // 큰 글씨는 쉬운 말, 작은 글씨로 명리 용어. 용어를 던지고 끝내지 않는다
+      [['자리', ''], ['위 글자', '천간'], ['아래 글자', '지지']].forEach((h) => {
+        const th = tEl('th', null, h[0]);
+        if (h[1]) th.appendChild(tEl('span', 'taste-term', h[1]));
+        hr.appendChild(th);
+      });
+      thead.appendChild(hr);
+      tb.appendChild(thead);
+      const tbody = tEl('tbody');
+      (r.eight || []).forEach((row) => {
+        const tr = tEl('tr');
+        tr.appendChild(tEl('td', 'taste-pos', row.position));
+        [[row.stem, row.stemGod], [row.branch, row.branchGod]].forEach((pair) => {
+          const td = tEl('td');
+          td.appendChild(tEl('span', 'taste-ch', pair[0]));
+          td.appendChild(tEl('span', 'taste-god', pair[1]));
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      tb.appendChild(tbody);
+      b1.appendChild(tb);
+      panel.appendChild(b1);
+
+      const b2 = tEl('section', 'taste-b');
+      b2.appendChild(tEl('h4', 'taste-t', '힘은 어느 쪽인가'));
+      /*
+       * 앞 문장을 굵게 올리고 명리 용어는 옆에 작게 붙인다. 「신약」만
+       * 덩그러니 띄우면 손님은 그게 나쁜 말인 줄 안다.
+       */
+      const say = r.strength.say || '';
+      const dot = say.indexOf('. ');
+      const lead = dot > 0 ? say.slice(0, dot + 1) : say;
+      const rest = dot > 0 ? say.slice(dot + 2) : '';
+      const verdict = tEl('p', 'taste-verdict', lead);
+      const TERM = { 신강: '신강(身強)', 신약: '신약(身弱)', 중화: '중화(中和)' };
+      const term = TERM[r.strength.verdict];
+      if (term) verdict.appendChild(tEl('span', 'taste-term', term));
+      b2.appendChild(verdict);
+      if (rest) b2.appendChild(tEl('p', null, rest));
+      panel.appendChild(b2);
+
+      // 올해가 안 나오면 그 칸은 통째로 뺀다. 억지로 채우지 않는다
+      const nowYear = (r.years || []).filter((y) => y.now)[0];
+      if (nowYear) {
+        const b3 = tEl('section', 'taste-b');
+        b3.appendChild(tEl('h4', 'taste-t', '올해'));
+        const y = tEl('p', 'taste-verdict', nowYear.year + '년');
+        y.appendChild(tEl('span', 'taste-term', nowYear.ganzhi + '년'));
+        b3.appendChild(y);
+        b3.appendChild(tEl('p', null, nowYear.say));
+        panel.appendChild(b3);
+      }
+    } else {
+      panel.appendChild(tEl('p', 'taste-cut',
+        '태어난 날을 밝히시면 손님의 여덟 글자까지 여기 펼쳐 드립니다.'));
+    }
+
+    // 끊는 자리를 신령이 직접 말한다. 그래야 손님이 속았다고 느끼지 않는다
+    if (res && res.more) panel.appendChild(tEl('p', 'taste-cut', res.more));
+
+    const go = tEl('a', 'taste-go', '자세히 보기 →');
+    go.href = href;
+    panel.appendChild(go);
+    panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  // 트랙에 클릭 이벤트 위임 (카드를 누르면 그 자리에서 맛보기가 펼쳐진다)
   if (productCarouselTrack && !productCarouselTrack._hasClickBound) {
     productCarouselTrack._hasClickBound = true;
     productCarouselTrack.addEventListener('click', (e) => {
       const card = e.target.closest('.product-card');
       if (!card) return;
       const productId = card.getAttribute('data-product-id');
-      if (productId) {
-        location.href = '/products/' + encodeURIComponent(productId);
-      }
+      if (!productId) return;
+      const href = '/products/' + encodeURIComponent(productId);
+
+      const open = productCarouselTrack.querySelector('.taste-panel');
+      if (open && open.dataset.of === productId) { open.remove(); return; }
+      if (open) open.remove();
+
+      // 기다리는 동안 빈 칸이면 손님은 고장 난 줄 안다
+      const panel = tEl('div', 'taste-panel');
+      panel.dataset.of = productId;
+      panel.appendChild(tEl('p', 'taste-wait', '신령이 여덟 글자를 들여다보는 중…'));
+      card.insertAdjacentElement('afterend', panel);
+      panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+      fetch('/api/taste', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ product: productId, facts: tasteFacts() }),
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((res) => { if (panel.isConnected) drawTaste(panel, href, res); })
+        .catch(() => { if (panel.isConnected) drawTaste(panel, href, null); });
     });
   }
 
@@ -834,8 +1005,17 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // 최초 진입 시 전체 탭 렌더링
-    renderCategory('전체');
+    /*
+     * 최초 진입에만 그린다.
+     *
+     * 터진 뒤에 적은 것 (2026-09-28): 입장 영상의 안전 시계가 늦게 울려
+     * setupSpiritsMenu() 가 한 번 더 돌면 목록을 통째로 다시 그렸다. 손님이
+     * 펼쳐 둔 맛보기 칸도, 골라 둔 갈래도 그때 다 날아갔다.
+     */
+    if (!spiritsMenuRendered) {
+      spiritsMenuRendered = true;
+      renderCategory('전체');
+    }
   }
 
   // DOMContentLoaded 시점에 미리 연애 탭 초기화

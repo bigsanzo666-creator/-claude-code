@@ -263,7 +263,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
           <span class="user-name-text">명식 봉인 해제</span>
         </div>
         <h2 class="spirits-menu-title">어떤 물음을 품고 오셨습니까</h2>
-        <p class="spirits-menu-desc">마음이 닿는 신령을 선택하면 1:1 대면 처소로 모십니다</p>
+        <p class="spirits-menu-desc">상품을 누르시면 그 자리에서 신령이 손님 사주를 조금 봐 드립니다</p>
       </div>
 
       <!-- 갈래 탭 11개 (가로 스크롤) -->
