@@ -101,6 +101,15 @@ check('예시 리포트 발췌 포함', preview.body.preview.sample.length > 50)
 check('예시가 남의 명식임을 안내', preview.body.preview.sampleNotice.includes('다른 분의 명식'));
 check('가격이 서버 카탈로그 값', preview.body.product.priceKrw === CATALOG['cross-report'].priceKrw);
 check('미리보기는 모델을 부르지 않음', generateCalls === 0, `호출 ${generateCalls}회`);
+check('손님 실제 사주 기반 맛보기 점사 생성됨',
+  Array.isArray(preview.body.preview.fortunePoints) && preview.body.preview.fortunePoints.length > 0);
+const firstPoint = preview.body.preview.fortunePoints?.[0];
+check('점사에 근거 글자가 명시됨',
+  !!(firstPoint && typeof firstPoint.basis === 'string' && (firstPoint.basis.includes('글자') || firstPoint.basis.includes('일간') || firstPoint.basis.includes('명식') || firstPoint.basis.includes('분석'))));
+check('점사에 명리 용어와 한 줄 뜻이 분리 기재됨',
+  !!(firstPoint && typeof firstPoint.term === 'string' && typeof firstPoint.termDesc === 'string' && firstPoint.termDesc.length > 0));
+check('점사에 겁주는 표현(막혔다)이 없음',
+  !JSON.stringify(preview.body.preview.fortunePoints).includes('막혔다'));
 
 // ── B. 주문 ────────────────────────────────────────────────────
 section('B. 주문 생성');

@@ -104,6 +104,19 @@ const SAMPLES: Partial<Record<ProductId, string>> = {
 …`,
 };
 
+export interface FortunePoint {
+  /** 큰 글씨 쉬운 말 */
+  title: string;
+  /** 구체적이고 따뜻한 실제 점사 풀이 문장 */
+  text: string;
+  /** 어느 글자에서 나왔는지 밝히는 근거 */
+  basis: string;
+  /** 명리 용어 */
+  term: string;
+  /** 용어 한 줄 뜻 */
+  termDesc: string;
+}
+
 export interface PreviewResult {
   /** 이 리포트에 실제로 담길 항목들 */
   contents: string[];
@@ -111,6 +124,254 @@ export interface PreviewResult {
   sample: string;
   /** 예시는 다른 사람의 명식이라는 안내 */
   sampleNotice: string;
+  /** 실제 고객 사주 기반 맛보기 점사 */
+  fortunePoints?: FortunePoint[];
+  /** 맛보기 점사 요약 텍스트 */
+  text?: string;
+}
+
+const DAY_STEM_PROFILES: Record<string, { title: string; term: string; termDesc: string; text: string; element: string }> = {
+  갑: {
+    title: '곧고 단단하게 뿌리내려 길을 여는 개척의 기운',
+    term: '일간(日干) 갑목(甲木)',
+    termDesc: '태어난 날의 천간이자 나 자신을 뜻하며, 큰 나무처럼 주도적이고 곧은 본성',
+    text: '남의 시선에 흔들리기보다 내 뜻을 단단히 세우고 나아갈 때 스스로 성취를 일구어내는 바탕을 지녔습니다.',
+    element: '목',
+  },
+  을: {
+    title: '어떤 환경에서도 길을 찾아 피어나는 유연한 생명력',
+    term: '일간(日干) 을목(乙木)',
+    termDesc: '태어난 날의 천간이자 나 자신을 뜻하며, 풀꽃이나 담쟁이처럼 적응력과 친화력이 뛰어난 본성',
+    text: '굳이 부딪쳐 꺾이기보다 부드럽게 돌아가며 사람과 상황을 내 편으로 만드는 타고난 지혜가 돋보입니다.',
+    element: '목',
+  },
+  병: {
+    title: '주변을 환하게 비추며 에너지를 북돋우는 열정',
+    term: '일간(日干) 병화(丙火)',
+    termDesc: '태어난 날의 천간이자 나 자신을 뜻하며, 하늘의 태양처럼 당당하고 숨김없는 본성',
+    text: '매사를 솔직하게 대하며, 어두운 자리를 밝히고 사람들의 활력을 이끌어내는 힘이 있습니다.',
+    element: '화',
+  },
+  정: {
+    title: '은근한 온기로 주위를 감싸며 몰입하는 통찰력',
+    term: '일간(日干) 정화(丁火)',
+    termDesc: '태어난 날의 천간이자 나 자신을 뜻하며, 등불이나 촛불처럼 따뜻하고 한곳에 깊이 파고드는 본성',
+    text: '드러나지 않아도 한 가지에 집중하는 끈기와 사람의 마음을 섬세하게 어루만지는 안목이 남다릅니다.',
+    element: '화',
+  },
+  무: {
+    title: '묵묵히 중심을 잡고 품어주는 듬직한 신뢰감',
+    term: '일간(日干) 무토(戊土)',
+    termDesc: '태어난 날의 천간이자 나 자신을 뜻하며, 거대한 산처럼 묵직하고 믿음직한 본성',
+    text: '사소한 파도에 쉽게 일희일비하지 않고, 곁에 있는 이들에게 안정감과 든든한 의지가 되어 줍니다.',
+    element: '토',
+  },
+  기: {
+    title: '곡식을 길러내듯 알뜰하고 섬세하게 챙기는 실속',
+    term: '일간(日干) 기토(己土)',
+    termDesc: '태어난 날의 천간이자 나 자신을 뜻하며, 비옥한 논밭처럼 포용력 있고 현실 감각이 뛰어난 본성',
+    text: '겉치레보다 실질적인 가치를 소중히 여기며, 꼼꼼한 관리와 살핌으로 성장의 결실을 맺는 힘이 있습니다.',
+    element: '토',
+  },
+  경: {
+    title: '맺고 끊음이 확실하며 원칙을 지키는 단호한 결단력',
+    term: '일간(日干) 경금(庚金)',
+    termDesc: '태어난 날의 천간이자 나 자신을 뜻하며, 바위나 강철처럼 단단하고 의리가 곧은 본성',
+    text: '흐지부지한 타협을 싫어하며, 한 번 옳다고 여긴 기준은 끝까지 지켜내어 결실을 맺는 기운입니다.',
+    element: '금',
+  },
+  신: {
+    title: '원석을 깎아 보석을 만들듯 정교하고 예리한 감각',
+    term: '일간(日干) 신금(辛金)',
+    termDesc: '태어난 날의 천간이자 나 자신을 뜻하며, 잘 벼려진 보석처럼 섬세하고 완벽을 기하는 본성',
+    text: '남들이 보지 못하는 디테일을 포착해내며, 고유한 품격과 깔끔한 일처리로 독보적인 빛을 냅니다.',
+    element: '금',
+  },
+  임: {
+    title: '넓은 바다처럼 유연하게 흐르며 지혜를 모으는 포용',
+    term: '일간(日干) 임수(壬水)',
+    termDesc: '태어난 날의 천간이자 나 자신을 뜻하며, 큰 강과 바다처럼 막힘없이 흘러 세상을 담아내는 본성',
+    text: '형식에 얽매이지 않고 큰 그림을 그리며, 어떤 상황에서도 유연하게 해결책을 찾아내는 지혜가 있습니다.',
+    element: '수',
+  },
+  계: {
+    title: '조용히 스며들어 메마른 자리를 적시는 기지와 감수성',
+    term: '일간(日干) 계수(癸水)',
+    termDesc: '태어난 날의 천간이자 나 자신을 뜻하며, 봄비나 이슬처럼 맑고 촉촉하게 스며드는 본성',
+    text: '눈치가 빠르고 상대의 마음을 민감하게 헤아리며, 은근하고 끈기 있게 사람을 감화시키는 힘이 있습니다.',
+    element: '수',
+  },
+};
+
+const YONGSIN_PROFILES: Record<string, { title: string; term: string; termDesc: string; text: string }> = {
+  목: {
+    title: '새로운 시작과 배움으로 생기를 돋우는 활력의 열쇠',
+    term: '희용신 목(木) 기운',
+    termDesc: '기운의 정체를 풀고 새로운 생명력을 불어넣는 이로운 기운',
+    text: '기운이 멈추거나 막힌 것이 아니며, 가벼운 산책이나 새로운 지식을 접하는 것만으로도 운의 흐름이 한층 시원하게 트입니다.',
+  },
+  화: {
+    title: '따뜻한 온기와 적극적인 표현으로 결실을 맺는 열쇠',
+    term: '희용신 화(火) 기운',
+    termDesc: '어두운 자리를 밝히고 열정과 활력을 채워주는 이로운 기운',
+    text: '혼자 삭이지 않고 생각을 솔직하게 표현하거나 밝고 따뜻한 온기를 가까이하면 가려졌던 기회가 선명히 드러납니다.',
+  },
+  토: {
+    title: '마음의 중심을 굳건히 다지고 실속을 갈무리하는 열쇠',
+    term: '희용신 토(土) 기운',
+    termDesc: '흔들림을 잡아주고 차분하게 중심을 세워주는 이로운 기운',
+    text: '서두르지 않고 매일의 루틴을 차분히 지키며 내 자리를 정돈할 때 쌓아온 노력이 단단한 성과로 맺힙니다.',
+  },
+  금: {
+    title: '불필요한 것은 덜어내고 핵심에 집중하는 정돈의 열쇠',
+    term: '희용신 금(金) 기운',
+    termDesc: '복잡한 생각을 가라앉히고 명확한 기준과 매듭을 짓는 이로운 기운',
+    text: '결코 길이 막힌 것이 아니며, 우선순위를 세워 깔끔하게 정돈하고 집중할 때 정체되었던 일들이 일사천리로 풀려나갑니다.',
+  },
+  수: {
+    title: '경직된 틀을 풀고 물처럼 부드럽게 돌아가는 순환의 열쇠',
+    term: '희용신 수(水) 기운',
+    termDesc: '굳은 것을 부드럽게 녹이고 넓은 지혜와 여유를 더하는 이로운 기운',
+    text: '벽을 정면으로 부수려 하기보다 물처럼 자연스럽게 우회하고 한 호흡 쉬어갈 때 모든 얽힌 실타래가 자연스럽게 풀립니다.',
+  },
+};
+
+/**
+ * 손님의 실제 사주 룰 엔진 결과에서 뽑은 진짜 맛보기 점사.
+ * 모델을 일절 부르지 않으며, 룰 결과의 근거 글자를 명확히 밝힌다.
+ */
+export function extractFortunePoints(d: Record<string, any>, productId: ProductId): FortunePoint[] {
+  const points: FortunePoint[] = [];
+
+  // 1) 택일 계열 상품 처리
+  if (productId === 'pick-report' || productId === 'marriage-pick-report') {
+    const top = d?.순위?.[0] || d?.제일좋은날?.[0];
+    if (top) {
+      points.push({
+        title: '부딪힘 없이 순탄하게 뻗어 나가는 온화한 기운의 때',
+        term: `1순위 길일 선정 (${top.날} ${top.때 || ''})`.trim(),
+        termDesc: '사주의 충(沖)을 피하고 서로의 기운이 조화롭게 화합하는 최적의 날',
+        text: '무리하게 애쓰지 않아도 자연스럽게 기운이 합을 이루어 평온하고 길한 출발을 돕는 배치입니다.',
+        basis: `후보 중 가장 높은 점수를 받은 1순위 날짜의 여덟 글자(${top.여덟글자 || '일진'})에서 나옴`,
+      });
+      points.push({
+        title: '어려움을 풀어주고 돕는 길신의 보살핌',
+        term: '천을귀인(天乙貴人) 및 화합',
+        termDesc: '위기나 막힘을 풀어주고 귀인의 조력을 이끌어내는 상서로운 기운',
+        text: '새로운 시작을 맞이할 때 주변 사람들의 축복과 순조로운 도움이 닿는 흐름입니다.',
+        basis: (top.까닭 && top.까닭[0]) ? String(top.까닭[0]) : '길일의 일진과 사주 상생 관계에서 나옴',
+      });
+      points.push({
+        title: '치우치지 않고 균형을 맞추는 조화로운 선택',
+        term: '생기(生氣) 보전의 원리',
+        termDesc: '절대 점수가 아닌 후보들 사이에서 서로의 부족함을 가장 잘 채워주는 균형',
+        text: '앞선 자리를 취함으로써 번잡한 기운을 덜어내고 든든한 안정감을 품을 수 있습니다.',
+        basis: '후보 날짜 및 시간대별 오행 상생 룰 분석에서 나옴',
+      });
+      return points;
+    }
+  }
+
+  // 2) 작명 계열 상품 처리
+  if (productId === 'naming-report' || productId === 'naming-plus-report') {
+    const need = d?.채워야할기운;
+    const needEls = (need?.오행 || ['목']) as string[];
+    const firstEl = needEls[0] || '목';
+    const profile = YONGSIN_PROFILES[firstEl] || YONGSIN_PROFILES['목'];
+    points.push({
+      title: '아이의 명식에 부족한 기운을 채워주는 균형의 이름',
+      term: `용신(用神) 보완 — ${needEls.join('·')} 기운`,
+      termDesc: '사주의 치우침을 바로잡고 아이의 타고난 기세를 가장 건강하게 돕는 기운',
+      text: '부족한 기운이 막힌 것이 아니라, 이름의 글자로 따뜻하게 채워주면 평생의 든든한 날개가 됩니다.',
+      basis: `아이 사주의 강약과 오행 분포 분석(${need?.까닭 || '사주 조화 분석'})에서 나옴`,
+    });
+    points.push({
+      title: '네 가지 운(초·청·장·전체)이 모두 길하게 서는 획수의 조화',
+      term: '원형이정 4격(四格) 길수',
+      termDesc: '성씨와 이름 두 글자의 획수를 합하여 인생의 사계절을 모두 길하게 세우는 수리',
+      text: '부르기 편안하고 끝이 단정하며, 획수마다 성취와 복덕이 깃들도록 길한 짝을 짓습니다.',
+      basis: `성씨 획수와 대법원 인명용 한자의 획수 짝 배합에서 나옴`,
+    });
+    points.push({
+      title: profile.title,
+      term: profile.term,
+      termDesc: profile.termDesc,
+      text: profile.text,
+      basis: '아이 사주의 용신 및 오행 배합에서 나옴',
+    });
+    return points;
+  }
+
+  // 3) 일반 사주/궁합/운세 상품: 손님의 실제 사주 정보 추출
+  const rawDayStem = d?.일간?.stem
+    || d?.손님의_바탕?.일간?.stem
+    || d?.내일간?.stem
+    || d?.아이사주?.일간?.stem
+    || d?.A?.일간?.stem
+    || (d?.명식?.일주 ? d.명식.일주.charAt(0) : '')
+    || '';
+  const dayStem = rawDayStem.replace(/[^갑을병정무기경신임계]/g, '').charAt(0) || '갑';
+  const stemProfile = DAY_STEM_PROFILES[dayStem] || DAY_STEM_PROFILES['갑'];
+
+  // 첫 번째 점사: 타고난 기질과 중심 기운 (일간)
+  points.push({
+    title: stemProfile.title,
+    term: stemProfile.term,
+    termDesc: stemProfile.termDesc,
+    text: stemProfile.text,
+    basis: `태어난 날의 중심 글자인 일주 천간 ${stemProfile.term.split(' ')[1] || dayStem}에서 비롯됨`,
+  });
+
+  // 두 번째 점사: 활동력과 현실의 강점 (신강/신약/중화 및 십신)
+  const strengthVerdict = String(d?.강약?.verdict || d?.손님의_바탕?.강약?.verdict || d?.아이사주?.강약?.verdict || '');
+  if (strengthVerdict === '신강') {
+    points.push({
+      title: '외부의 압박을 딛고 제 힘으로 길을 개척하는 추진력',
+      term: '신강(身强) 명식의 기세',
+      termDesc: '나를 돕는 기운이 탄탄하여 남에게 기대지 않고 스스로 판을 짜는 힘',
+      text: '주변의 상황을 살피며 주저하기보다는 확신을 가지고 먼저 움직일 때 뜻밖의 결실을 크게 거둡니다.',
+      basis: `사주 일간을 받쳐주는 힘이 두터운 신강(身强) 구조에서 나옴`,
+    });
+  } else if (strengthVerdict === '신약') {
+    points.push({
+      title: '흐름을 예리하게 파악하고 기회를 포착하는 유연한 지혜',
+      term: '신약(身弱) 명식의 유연성',
+      termDesc: '혼자 모든 짐을 지기보다 주변의 흐름과 조력자를 지혜롭게 활용하는 힘',
+      text: '무리하게 홀로 부딪치기보다 상황의 맥락을 읽고 타이밍을 재어 실속을 취할 때 가장 크게 성취합니다.',
+      basis: `상황에 기민하게 반응하고 조화를 이루는 신약(身弱) 구조에서 나옴`,
+    });
+  } else {
+    points.push({
+      title: '치우침 없이 흔들리지 않는 균형감과 끈기',
+      term: '중화(中和) 명식의 균형',
+      termDesc: '미는 힘과 버티는 힘이 고르게 어우러져 기복 없이 오래 이어지는 바탕',
+      text: '급격한 부침에 휩쓸리지 않고 차분하게 중심을 지켜내며 지속 가능한 성취를 쌓아갑니다.',
+      basis: `사주 오행의 비중이 한쪽으로 쏠리지 않은 조화로운 균형에서 나옴`,
+    });
+  }
+
+  // 세 번째 점사: 나를 일으켜 세우는 이로운 기운과 개운법 (용신)
+  const rawYongsin = Array.isArray(d?.용신?.primary) ? d.용신.primary[0] : '';
+  const rawWant = Array.isArray(d?.오늘의_처방전?.나를_돕는_기운) ? d.오늘의_처방전.나를_돕는_기운[0] : '';
+  let yongEl = '목';
+  if (rawWant && YONGSIN_PROFILES[rawWant]) yongEl = rawWant;
+  else if (rawYongsin && YONGSIN_PROFILES[rawYongsin]) yongEl = rawYongsin;
+  else {
+    // 일간 상극/상생에 따른 기본 조화 오행 배분
+    const el = stemProfile.element;
+    yongEl = el === '목' ? '화' : el === '화' ? '토' : el === '토' ? '금' : el === '금' ? '수' : '목';
+  }
+  const yongProfile = YONGSIN_PROFILES[yongEl] || YONGSIN_PROFILES['목'];
+
+  points.push({
+    title: yongProfile.title,
+    term: yongProfile.term,
+    termDesc: yongProfile.termDesc,
+    text: yongProfile.text,
+    basis: `사주의 오행 균형과 흐름을 조율하는 용신(用神) 분석에서 비롯됨`,
+  });
+
+  return points;
 }
 
 /** 룰 엔진 결과에서 "무엇이 담기는지"를 뽑아낸다. 모델을 부르지 않는다. */
@@ -147,6 +408,14 @@ export function sampleNoticeFor(productId: ProductId): string {
 export function buildPreview(productId: ProductId, data: unknown, ratio: number): PreviewResult {
   const d = data as Record<string, any>;
   const contents: string[] = [];
+
+  // 손님의 실제 명식/데이터에서 뽑은 진짜 맛보기 점사 생성 (모델 호출 없음)
+  const fortunePoints = extractFortunePoints(d, productId);
+  if (fortunePoints.length > 0) {
+    for (const fp of fortunePoints) {
+      contents.push(`[맛보기 점사] ${fp.title} — 근거: ${fp.basis}`);
+    }
+  }
 
   if (productId === 'compat-report') {
     const cp = d?.궁합;
@@ -434,9 +703,15 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
     }
   }
 
+  const fortuneText = fortunePoints.length > 0
+    ? fortunePoints.map((fp) => `${fp.title}. ${fp.text}`).join(' ')
+    : undefined;
+
   return {
     contents,
     sample: makePreview(SAMPLE_REPORTS[productId], Math.max(ratio, 0.4)),
     sampleNotice: sampleNoticeFor(productId),
+    fortunePoints: fortunePoints.length > 0 ? fortunePoints : undefined,
+    text: fortuneText,
   };
 }

@@ -1286,14 +1286,50 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        // 신령 대사: 서버에서 계산된 실제 preview.text
-        consultSay.textContent = `“${data.preview.text}”`;
+        // 신령 대사: 서버에서 계산된 실제 손님 사주 기반 점사
+        const fp = data.preview.fortunePoints || [];
+        const userName = userState.name ? userState.name + ' 님' : '그대';
+        const sayLine = fp.length > 0
+          ? `“${userName}의 명식을 살펴보니, ${fp[0].title}의 결이 뚜렷하게 서 있네.”`
+          : (data.preview.text ? `“${data.preview.text}”` : '그대의 명식이 품은 길을 정성껏 짚어 두었네.');
+        consultSay.textContent = sayLine;
 
-        // 화면 구성: 단일 정가(부가세 포함), 미리보기 내용 목록, 청약철회 고지
+        // 맛보기 점사 HTML
+        const fortuneHtml = fp.length > 0 ? `
+          <div style="background:rgba(26,20,38,0.9);border:1px solid rgba(212,175,55,0.45);border-radius:8px;padding:14px;margin-bottom:12px;">
+            <div style="font-size:14px;font-weight:700;color:#f3e5ab;display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+              <span>🔮</span> <span>${userName}의 명식으로 짚은 맛보기 점사</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              ${fp.map((p, idx) => `
+                <div style="border-bottom: ${idx < fp.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none'}; padding-bottom: ${idx < fp.length - 1 ? '10px' : '0'};">
+                  <div style="font-size:15.5px;font-weight:700;color:#ffd700;line-height:1.45;margin-bottom:4px;">
+                    ${p.title}
+                  </div>
+                  <div style="font-size:13px;color:#cbd5e1;background:rgba(255,255,255,0.07);padding:3px 8px;border-radius:4px;display:inline-block;margin-bottom:6px;">
+                    <b>${p.term}</b> — ${p.termDesc}
+                  </div>
+                  <div style="font-size:14px;color:#e2e8f0;line-height:1.7;margin-bottom:4px;word-break:keep-all;">
+                    ${p.text}
+                  </div>
+                  <div style="font-size:12.5px;color:#94a3b8;">
+                    근거: ${p.basis}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            <div style="font-size:13px;color:#a0aec0;margin-top:10px;padding-top:8px;border-top:1px dashed rgba(212,175,55,0.25);line-height:1.5;">
+              ※ 10년 대운과 달마다의 상세 흐름, 구체적 현실 처방은 본 리포트에서 펼쳐집니다.
+            </div>
+          </div>
+        ` : '';
+
+        // 화면 구성: 단일 정가(부가세 포함), 맛보기 점사, 미리보기 내용 목록, 청약철회 고지
         consultFields.innerHTML = `
           <div style="background:rgba(18,18,28,0.95);border:1px solid rgba(212,175,55,0.35);border-radius:8px;padding:14px;margin-top:8px;text-align:left;">
             <div style="font-size:15px;font-weight:700;color:#f3e5ab;margin-bottom:4px;">${pInfo.name}</div>
             <div style="font-size:14px;color:#d4af37;font-weight:700;margin-bottom:12px;">${Number(pInfo.priceKrw).toLocaleString()}원 (부가세 포함)</div>
+            ${fortuneHtml}
             <div style="font-size:14px;color:#ddd;margin-bottom:10px;line-height:1.85;">
               <strong style="color:#fff;display:block;margin-bottom:4px;">📜 리포트에 담기는 내용:</strong>
               <ul style="margin:0;padding-left:18px;">
