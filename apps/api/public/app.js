@@ -958,7 +958,8 @@ document.addEventListener('DOMContentLoaded', () => {
           return [
             '<article class="product-card" data-product-id="' + p.id + '" tabindex="0" role="button" aria-label="' + p.name + '">',
             '  <img src="/img/products/' + p.id + '" alt="' + p.name + '" class="product-card-bg" decoding="async"'
-              + (i === 0 ? ' fetchpriority="high">' : ' loading="lazy">'),
+              // 카드를 키웠으니 첫 화면에 걸치는 석 장은 미리 받는다. 까만 네모를 보여주지 않는다
+              + (i < 3 ? ' fetchpriority="high">' : ' loading="lazy">'),
             '  <div class="product-card-scrim"></div>',
             '  <div class="product-card-info">',
             '    <div class="product-card-spirit">' + spiritName + '</div>',
