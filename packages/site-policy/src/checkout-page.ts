@@ -575,6 +575,20 @@ export function renderCheckoutPage(
     }
   }catch(e){}
 
+  /*
+   * 주인 통과 — 주소에 얹어 온 암호를 이 탭에만 담아 두고 주소창에서는 지운다.
+   * 주소창에 남아 있으면 화면을 한 번만 찍혀도 남이 그대로 쓴다.
+   */
+  try{
+    var mp = location.search.match(/[?&]pass=([^&#]+)/);
+    if(mp && mp[1]){
+      sessionStorage.setItem('nb_pass', decodeURIComponent(mp[1]).slice(0, 128));
+      var clean = location.href.replace(/([?&])pass=[^&#]*(&|$)/, function(_, a, b){ return b ? a : ''; })
+        .replace(/[?&]$/, '');
+      history.replaceState(null, '', clean);
+    }
+  }catch(e){}
+
   /* ref tracking */
   try{
     var m = location.search.match(/[?&]ref=([a-zA-Z0-9_-]+)/);
@@ -818,6 +832,13 @@ export function renderCheckoutPage(
       noteEl.textContent = '소개 보답 이용권 적용 (0원)';
       return;
     }
+    var hasPass = (function(){ try { return !!sessionStorage.getItem('nb_pass'); } catch(e){ return false; } })();
+    if(hasPass){
+      pay.textContent = '0원 바로 받기 (주인 통과)';
+      var passTag = document.querySelector('.co-price b');
+      if(passTag) passTag.textContent = '0원 (주인 통과)';
+      return;
+    }
     var inv = (function(){ try { return sessionStorage.getItem('nb_invite'); } catch(e){ return null; } })();
     var discount = 0;
     var noteEl = document.getElementById('coInviteNote');
@@ -948,8 +969,10 @@ export function renderCheckoutPage(
       var agreeMkt = document.getElementById('coAgreeMarketing');
       var marketingConsent = agreeMkt ? agreeMkt.checked : false;
 
+      var ownerPass = (function(){ try { return sessionStorage.getItem('nb_pass') || undefined; } catch(e){ return undefined; } })();
+
       var created = await post('/api/orders',
-        Object.assign({}, reading, { acknowledgedNotice:true, previewShown:true, ref: adRef, email: email, invite: userInvite, marketingConsent: marketingConsent }));
+        Object.assign({}, reading, { acknowledgedNotice:true, previewShown:true, ref: adRef, email: email, invite: userInvite, pass: ownerPass, marketingConsent: marketingConsent }));
       orderId = created.order.id;
 
       if(created.order.amountKrw === 0){

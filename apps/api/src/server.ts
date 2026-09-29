@@ -1478,7 +1478,26 @@ export function createApi(deps: ApiDeps) {
         }
       }
 
-      if (!appliedRewardId && email && inviteCode && isValidInviteCode(inviteCode)) {
+      /*
+       * 주인 통과.
+       *
+       * 사장님이 손님과 똑같은 길을 걸어 **리포트까지** 실제로 받아 봐야
+       * 무엇이 어긋났는지 안다. 미리보기만으로는 결제 뒤 화면을 못 본다.
+       *
+       * 지켜야 할 것:
+       *  - `OWNER_PASS` 를 안 넣어 두면 이 길은 아예 없다. 기본이 잠김이다.
+       *  - 짧은 암호는 받지 않는다. 주소창에 실려 다니므로 찍히면 끝난다.
+       *  - 화면이 보낸 금액은 어차피 쓰지 않는다. 값은 여기서만 0이 된다.
+       *  - 기록에 「주인 통과」라고 남긴다. 판 것처럼 보이면 장부가 거짓이 된다.
+       */
+      const ownerPass = (process.env.OWNER_PASS ?? '').trim();
+      const sentPass = typeof body.pass === 'string' ? body.pass.trim() : '';
+      if (!appliedRewardId && ownerPass.length >= 16 && sentPass.length > 0 && sentPass === ownerPass) {
+        discountKrw = baseAmount;
+        rewardUsed = '주인 통과';
+      }
+
+      if (!rewardUsed && !appliedRewardId && email && inviteCode && isValidInviteCode(inviteCode)) {
         const invite = await referrals.getInvite(inviteCode);
         if (invite) {
           if (invite.ownerEmail.toLowerCase() === email.toLowerCase()) {

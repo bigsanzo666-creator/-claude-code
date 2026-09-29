@@ -217,6 +217,19 @@ check('상세 페이지도 그림이 있을 때만 크게 건다',
   check('거짓 급함을 쓰지 않는다',
     !/지금만|오늘만|마감 임박|선착순/.test(pay));
 
+  /*
+   * 주인 통과 — 사장님이 손님과 똑같은 길을 걸어 리포트까지 받아 보는 길.
+   * 암호는 주소창에 실려 오므로, 받은 즉시 주소창에서 지워야 한다.
+   * 화면을 한 번만 찍혀도 남이 그대로 쓰기 때문이다.
+   */
+  check('주인 암호를 이 탭에만 담는다', pay.includes("sessionStorage.setItem('nb_pass'"));
+  check('주인 암호를 주소창에서 지운다',
+    pay.includes('nb_pass') && pay.includes('history.replaceState'));
+  check('주인 암호를 주문에 실어 보낸다', pay.includes('pass: ownerPass'));
+  check('주인 통과일 때 값 자리에 그렇게 적는다', pay.includes('주인 통과'));
+  // 암호는 화면 어디에도 박혀 있으면 안 된다. 박히는 순간 통과가 아니라 구멍이다
+  check('화면에 암호 자체가 박혀 있지 않다', !/OWNER_PASS\s*[:=]\s*['"][^'"]/.test(pay));
+
   const photoRequiredProducts = Object.values(CATALOG).filter((p) => {
     const pPage = renderCheckoutPage({} as any, '', p, { storeId: 's', channelKey: 'c' });
     return pPage.includes('id="coPhotoSec"');

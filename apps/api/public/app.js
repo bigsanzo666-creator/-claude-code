@@ -373,6 +373,24 @@ function loadCatalogProducts() {
 }
 loadCatalogProducts();
 
+/*
+ * 주인 통과 — 주소에 얹어 온 암호를 이 탭에만 담아 두고 주소창에서는 지운다.
+ *
+ * 사장님이 손님과 똑같은 길을 걸어 리포트까지 실제로 받아 봐야 무엇이
+ * 어긋났는지 안다. 첫 화면에서 받아 두면 사는 화면까지 따라간다.
+ * 주소창에 남겨 두면 화면을 한 번만 찍혀도 남이 그대로 쓴다.
+ */
+try {
+  const mp = location.search.match(/[?&]pass=([^&#]+)/);
+  if (mp && mp[1]) {
+    sessionStorage.setItem('nb_pass', decodeURIComponent(mp[1]).slice(0, 128));
+    const clean = location.href
+      .replace(/([?&])pass=[^&#]*(&|$)/, (_, a, b) => (b ? a : ''))
+      .replace(/[?&]$/, '');
+    history.replaceState(null, '', clean);
+  }
+} catch (e) { /* 저장을 막아 둔 브라우저면 그냥 손님과 같은 길로 간다 */ }
+
 const TIME_MAP = {
   'ja': '00:30', 'chuk': '02:30', 'in': '04:30', 'myo': '06:30',
   'jin': '08:30', 'sa': '10:30', 'o': '12:30', 'mi': '14:30',

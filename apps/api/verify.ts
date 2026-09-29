@@ -887,6 +887,61 @@ section('H. 저장소 장애가 사이트를 죽이지 않는다');
 }
 
 
+// ── 주인 통과 ──────────────────────────────────────────────────
+section('주인 통과 — 사장님만 값 없이 리포트까지 받는다');
+{
+  const 통과주문 = (pass?: string) => api('POST', '/api/orders', {
+    ...reading, acknowledgedNotice: true, previewShown: true, ...(pass ? { pass } : {}),
+  });
+
+  const 원래값 = process.env.OWNER_PASS;
+
+  // 암호를 안 넣어 두면 이 길은 아예 없다. 기본이 잠김이다
+  delete process.env.OWNER_PASS;
+  const 잠김 = await 통과주문('아무거나적어본다긴암호처럼');
+  check('암호를 안 걸어 두면 통과가 없다',
+    잠김.status === 201 && 잠김.body.order.amountKrw > 0, `${잠김.body?.order?.amountKrw}원`);
+
+  // 짧은 암호는 받지 않는다. 주소창에 실려 다니므로 찍히면 끝난다
+  process.env.OWNER_PASS = '짧다';
+  const 짧음 = await 통과주문('짧다');
+  check('짧은 암호는 통과로 치지 않는다',
+    짧음.status === 201 && 짧음.body.order.amountKrw > 0, `${짧음.body?.order?.amountKrw}원`);
+
+  process.env.OWNER_PASS = 'neulbom-owner-pass-verify-only';
+  const 틀림 = await 통과주문('neulbom-owner-pass-verify-onlyX');
+  check('암호가 한 글자만 달라도 통과하지 않는다',
+    틀림.status === 201 && 틀림.body.order.amountKrw > 0, `${틀림.body?.order?.amountKrw}원`);
+
+  const 없음 = await 통과주문();
+  check('암호를 안 보낸 손님은 그대로 값을 낸다',
+    없음.status === 201 && 없음.body.order.amountKrw > 0, `${없음.body?.order?.amountKrw}원`);
+
+  const 맞음 = await 통과주문('neulbom-owner-pass-verify-only');
+  check('맞는 암호면 0원이 되어 리포트까지 간다',
+    맞음.status === 201 && 맞음.body.order.amountKrw === 0, `${맞음.body?.order?.amountKrw}원`);
+
+  // 판 것처럼 보이면 장부가 거짓이 된다. 주문에 그대로 남아야 한다
+  check('주문에 「주인 통과」라고 남는다',
+    맞음.body.order.rewardUsed === '주인 통과', String(맞음.body?.order?.rewardUsed));
+
+  /*
+   * 값이 0이 되는 것만으로는 반쪽이다. 사장님이 보려는 것은 **리포트 본문**이다.
+   * 결제창을 거치지 않고 리포트까지 실제로 나오는지 여기서 끝까지 간다.
+   */
+  const 통과확인 = await api('POST', `/api/orders/${맞음.body.order.id}/confirm`,
+    { paymentId: 맞음.body.order.id });
+  check('결제창 없이 확정된다', 통과확인.status === 200 && 통과확인.body.ready === true);
+  const 통과리포트 = await api('GET', `/api/orders/${맞음.body.order.id}/report`);
+  check('리포트 본문까지 나온다',
+    통과리포트.status === 200 && typeof 통과리포트.body.text === 'string'
+      && 통과리포트.body.text.length > 20,
+    `${String(통과리포트.body?.text ?? '').length}자`);
+
+  if (원래값 === undefined) delete process.env.OWNER_PASS;
+  else process.env.OWNER_PASS = 원래값;
+}
+
 // ── H. 묶음 사기 ────────────────────────────────────────────────
 section('H. 묶음도 살 수 있다');
 
