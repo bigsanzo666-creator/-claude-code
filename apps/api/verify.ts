@@ -1756,6 +1756,17 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
 
     const style = fs.readFileSync(new URL('./public/style.css', import.meta.url), 'utf8');
     check('맛보기 칸에 생김새가 붙어 있다', style.includes('.taste-panel'));
+
+    /*
+     * 터진 뒤에 적은 것 (2026-09-29): 갈래 칸의 신령 카드가 140px 짜리 납작한
+     * 띠였다. 신령 그림은 세로로 긴데 가로 한 줄만 보여 얼굴이 손톱만 했다.
+     * 누가 봐 주는 것인지 알아볼 수 없으면 카드가 아니다.
+     */
+    const 카드규칙 = style.slice(style.indexOf('.product-card {'));
+    const 최소높이 = /min-height:\s*(\d+)px/.exec(카드규칙.slice(0, 900));
+    check('신령 카드가 얼굴이 보일 만큼 크다',
+      !!최소높이 && Number(최소높이[1]) >= 200,
+      최소높이 ? `${최소높이[1]}px` : '높이를 못 찾음');
   }
 
   /* 상품 서른네 개 전부에서 맛보기가 실제로 나와야 한다 */

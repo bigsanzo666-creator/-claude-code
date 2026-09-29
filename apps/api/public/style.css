@@ -456,9 +456,16 @@ body {
   position: relative !important;
   width: 100% !important;
   max-width: 100% !important;
-  height: 140px !important;
-  min-height: 140px !important;
-  max-height: 140px !important;
+  /*
+   * 신령 얼굴이 보여야 카드다.
+   *
+   * 터진 뒤에 적은 것 (2026-09-29): 140px 짜리 납작한 띠라 세로로 긴 신령
+   * 그림에서 가로 한 줄만 보였다. 얼굴이 손톱만 하게 나와 누구인지 모른다.
+   * 화면 너비에 맞춰 높이를 따라가게 두고, 좁은 폰에서도 얼굴이 사는
+   * 크기까지는 반드시 확보한다.
+   */
+  height: clamp(200px, 56vw, 260px) !important;
+  min-height: 200px !important;
   flex-shrink: 0 !important;
   border-radius: 12px !important;
   overflow: hidden !important;
