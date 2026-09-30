@@ -1108,6 +1108,83 @@ section('11. 문 — 신령계 들어가는 곳');
       !/<del>|<s>|할인율|% 할인|%할인|오늘 마감|지금만|선착순|마감 임박/.test(html)));
 }
 
+// ─── 2026-09-30 다크패턴 방지 및 이어사기 버튼 검증 ─────────────────────────
+{
+  section('다크패턴 방지 — 거짓 급함 금지 및 이어사기 단추 동등성');
+
+  /*
+   * 터진 뒤에 적은 것 (2026-09-30):
+   * 1) 2024년 개정 전자상거래법상 다크패턴 방지를 위해 어디에도 「지금만」 「오늘만」 「마감 임박」 「선착순」 같은 거짓 급박성 표현이 없어야 한다.
+   * 2) 리포트 끝 이어사기 모달/영역에서 구매 단추와 나중에 보기 단추의 크기·글자크기 등이 같은 급이어야 하며, 나중에 보기를 숨기거나 흐리게 처리하는 다크패턴이 없어야 한다.
+   */
+  const { ORDER_CSS, renderOrderReportPage } = await import('./src/order-page.ts');
+  const bannedUrgency = ['지금만', '오늘만', '마감 임박', '선착순'];
+
+  // 1) 모든 화면에서 거짓 급함 단어 검사
+  const sampleOrder = {
+    id: 'ord_test_darkpattern',
+    productId: 'wealth-report' as const,
+    amountKrw: 14900,
+    status: 'viewed' as const,
+    viewedAt: '2026-09-30T10:00:00.000Z',
+    createdAt: '2026-09-30T09:50:00.000Z',
+    paidAt: '2026-09-30T09:55:00.000Z',
+    refundedAt: null,
+    paymentId: 'pay_test',
+    inputHash: 'hash',
+    noticeGiven: true,
+    previewProvided: true,
+    ref: null,
+    email: null,
+  };
+
+  const sampleUpsellData = {
+    info: {
+      singlePriceKrw: 14900,
+      regularUpgradeKrw: 8900,
+      currentPriceKrw: 5900,
+      isPromo: true,
+      expiresAt: '2026-09-30T22:00:00.000Z',
+      remainingMs: 28800000,
+      remainingFormatted: '08:00:00',
+      nextProduct: { id: 'career-report' as const, name: '출세운', priceKrw: 14900 },
+      targetPackage: { id: 'money-2' as const, name: '늘봄 돈과 일', priceKrw: 23800 },
+    },
+    reason: '관성 19.9%가 재성 17.5%보다 두껍습니다',
+    checkoutUrl: '/checkout?product=career-report&fromOrder=ord_test_darkpattern',
+  };
+
+  const orderReportHtml = renderOrderReportPage(
+    full,
+    '',
+    sampleOrder as any,
+    '전문 · 일간 경금\n\n쉽게 말하면 본문입니다.',
+    null,
+    sampleUpsellData,
+  );
+
+  const productPages = Object.values(CATALOG).map((p) => renderProductPage(p, full, true, ''));
+  const checkoutPages = Object.values(CATALOG).map((p) => renderCheckoutPage({} as any, '', p, { storeId: 's', channelKey: 'c' }));
+
+  const allRendered = [orderReportHtml, ...productPages, ...checkoutPages].join('\n');
+  const foundBanned = bannedUrgency.filter((word) => allRendered.includes(word));
+  check('어디에도 「지금만」 「오늘만」 「마감 임박」 「선착순」이 없다',
+    foundBanned.length === 0,
+    foundBanned.length === 0 ? '전체 화면 클린' : `발견된 단어: ${foundBanned.join(', ')}`);
+
+  // 2) 이어사기 단추 둘의 크기·색이 같은 급이다
+  check('이어사기 단추 둘(.od-upsell-btn, .od-later-btn)이 같은 폭·패딩·글자크기를 공유한다',
+    ORDER_CSS.includes('.od-upsell-btn, .od-later-btn{') &&
+    ORDER_CSS.includes('padding:14px 16px;') &&
+    ORDER_CSS.includes('font-size:15px;') &&
+    ORDER_CSS.includes('flex:1 1 50%;'));
+
+  check('나중에 보기 단추가 작은 글씨나 회색 숨김 다크패턴이 아니다',
+    !ORDER_CSS.includes('.od-later-btn{font-size:11px') &&
+    !ORDER_CSS.includes('.od-later-btn{display:none') &&
+    ORDER_CSS.includes('.od-later-btn{background:rgba(212,175,55,.15);color:#f3e5ab}'));
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }

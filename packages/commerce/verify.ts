@@ -8,14 +8,15 @@
 
 import {
   CATALOG, getProduct, makePreview, CATEGORIES, productsIn,
-  PACKAGES, bundleMath, packagesContaining, assertPackagesValid, needsPartner,
+  PACKAGES, bundleMath, packagesContaining, assertPackagesValid, needsPartner, type PackageId,
   ALLOWED_REFS, cleanRef, createOrder, markPending, markPaid, markFulfilled, markViewed, markRefunded,
   hasEntitlement, OrderTransitionError,
   assessRefund, addBusinessDays, WITHDRAWAL_NOTICE, WITHDRAWAL_WINDOW_DAYS, refundNotice,
   FakeGateway, confirmPayment, refundOrder, PaymentVerificationError,
   type Order,
-  orderable, isOrderable, upsellFor, upgradeCostKrw,
+  orderable, isOrderable, upsellFor, upgradeCostKrw, calculateUpsellPrice,
   priceOf, HOLIDAY_EXTRA_MEMBER_KRW, HOLIDAY_MAX_MEMBERS,
+  UPSELL_PROMO_PRICE_KRW, UPSELL_PROMO_HOURS,
 } from './src/index.ts';
 import { TOPIC_LABELS } from '../saju-rules/src/topics.ts';
 
@@ -387,6 +388,59 @@ check('어느 묶음에도 없으면 안 내민다',
     && oNoRef.amountKrw === oBadRef.amountKrw
     && oWithRef.ref === 'sidaek'
     && oBadRef.ref === null);
+}
+
+// ── H. 이어사기 12시간 한정 할인 정책 ─────────────────────────
+section('H. 이어사기 12시간 한정 할인 — 전자상거래법 및 표시광고법 준수');
+
+/*
+ * 터진 뒤에 적은 것 (2026-09-30): 리포트 끝 이어사기에서 임의로 할인율을 부풀리거나 가짜 타이머를 쓰면
+ * 전자상거래법 및 표시광고법 위반이므로, 가격 셋(단품가, 정규차액, 12시간할인가)은 catalog.ts 에서만 오고,
+ * viewedAt 기준 12시간 판정으로 5,900원/8,900원으로 엄격히 갈리며, 단품가를 절대 초과하지 않음을 검증한다.
+ */
+{
+  const baseProductId = 'wealth-report';
+  const packOffer = upsellFor(baseProductId);
+  check('돈그릇 상품의 이어사기 묶음이 존재한다', packOffer !== null && packOffer.id === 'money-2');
+
+  if (packOffer) {
+    const singlePrice = CATALOG['career-report'].priceKrw; // 14,900원
+    const regularUpgrade = upgradeCostKrw(baseProductId, packOffer.id); // 8,900원
+    const promoPrice = UPSELL_PROMO_PRICE_KRW; // 5,900원
+
+    // 1) 이어사기 값 셋이 catalog.ts 에서만 온다
+    check('이어사기 값 셋이 catalog.ts 에서만 온다',
+      singlePrice === CATALOG['career-report'].priceKrw &&
+      regularUpgrade === PACKAGES[packOffer.id as PackageId].priceKrw - CATALOG[baseProductId].priceKrw &&
+      promoPrice === UPSELL_PROMO_PRICE_KRW &&
+      singlePrice === 14900 && regularUpgrade === 8900 && promoPrice === 5900,
+      `단품: ${singlePrice}원, 정규차액: ${regularUpgrade}원, 12시간특가: ${promoPrice}원`);
+
+    const viewTime = new Date('2026-09-30T10:00:00Z');
+    const within12h = new Date('2026-09-30T18:00:00Z'); // 8시간 경과 (12시간 이내)
+    const after12h = new Date('2026-09-30T23:00:00Z'); // 13시간 경과 (12시간 초과)
+
+    const promoCalc = calculateUpsellPrice(baseProductId, packOffer.id, viewTime, within12h);
+    const expiredCalc = calculateUpsellPrice(baseProductId, packOffer.id, viewTime, after12h);
+
+    // 2) 12시간 안이면 5,900원, 지나면 8,900원으로 갈린다
+    check('12시간 안이면 5,900원으로 계산된다', promoCalc.isPromo === true && promoCalc.currentPriceKrw === 5900,
+      `현재가: ${promoCalc.currentPriceKrw}원, 남은시간: ${promoCalc.remainingFormatted}`);
+    check('12시간이 지나면 8,900원으로 갈린다', expiredCalc.isPromo === false && expiredCalc.currentPriceKrw === 8900,
+      `현재가: ${expiredCalc.currentPriceKrw}원`);
+
+    // 3) 어떤 경우에도 단품값(14,900원)보다 비싸지지 않는다
+    const allOrderables = Object.keys(CATALOG);
+    const neverExceedsSingle = allOrderables.every((pid) => {
+      const u = upsellFor(pid);
+      if (!u) return true;
+      const cWithin = calculateUpsellPrice(pid, u.id, viewTime, within12h);
+      const cAfter = calculateUpsellPrice(pid, u.id, viewTime, after12h);
+      return cWithin.currentPriceKrw <= cWithin.singlePriceKrw &&
+             cAfter.currentPriceKrw <= cAfter.singlePriceKrw;
+    });
+    check('어떤 경우에도 이어사기 금액이 단품값(14,900원 등)보다 비싸지지 않는다', neverExceedsSingle);
+  }
 }
 
 console.log(`\n${'═'.repeat(60)}`);

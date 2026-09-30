@@ -2245,6 +2245,122 @@ console.log(`\n${'═'.repeat(60)}`);
   check('mail.ts 에 외부 패키지 import 가 없다', !/import\s+.*\s+from\s+['"](?!(\.|\.\.|\/)).*['"]/.test(mailCode));
 }
 
+// ── 2026-09-30 리포트 개편 및 이어사기·상세페이지 검증 ─────────────────────────
+section('리포트 개편 — 시각 인지, 상세 가림막, 서버 계산 이어사기');
+
+/*
+ * 터진 뒤에 적은 것 (2026-09-30): 리포트 품질 개선 및 전자상거래법 준수 검증.
+ * 1) 태어난 시각을 정확히 준 주문은 payload 의 시각을_아는가 가 true, 모른다고 한 주문은 false 이고 가운데 값(12:00) 사용.
+ * 2) 상세페이지 미리보기에 결론 문장을 가린 블러 및 자물쇠 표시와 안내 문구가 실제로 들어가는지.
+ * 3) 리포트 화면의 이어사기 할인 금액이 서버가 계산한 값(12시간 내 5,900원, 이후 8,900원)과 정확히 일치하는지 검증한다.
+ */
+{
+  const { buildPayload } = await import('./src/payload.ts');
+  const { calculateUpsellPrice, upsellFor } = await import('../../packages/commerce/src/orderable.ts');
+  const { renderProductPage } = await import('../../packages/site-policy/src/products.ts');
+  const { renderOrderPage } = await import('../../packages/site-policy/src/order-page.ts');
+
+  // 1) 태어난 시각을 정확히 준 주문은 payload 의 시각을_아는가 가 true
+  const knownPayload = buildPayload({
+    productId: 'wealth-report',
+    birth: { date: '1990-05-15', time: '14:24', gender: '남', name: '홍길동', timeKnown: true },
+  } as any);
+  check('태어난 시각을 정확히 준 주문은 payload 의 시각을_아는가 가 true',
+    (knownPayload.data as any).시각을_아는가 === true);
+
+  // 모른다고 한 주문은 false 이고, 그때만 칸 가운데 값을 쓴다
+  const unknownPayload = buildPayload({
+    productId: 'wealth-report',
+    birth: { date: '1990-05-15', time: '12:00', gender: '남', name: '홍길동', timeKnown: false },
+  } as any);
+  check('모른다고 한 주문은 시각을_아는가 가 false 이고 칸 가운데 값(12:00)을 쓴다',
+    (unknownPayload.data as any).시각을_아는가 === false && (unknownPayload.data as any).계산근거.inputTime === '12:00');
+
+  // 2) 상세페이지에 가린 자리 표시가 실제로 들어간다
+  const { sampleFor, sampleNoticeFor } = await import('./src/preview.ts');
+  const wealthHtml = renderProductPage(
+    CATALOG['wealth-report'],
+    business,
+    true,
+    '',
+    undefined,
+    undefined,
+    { text: sampleFor('wealth-report'), notice: sampleNoticeFor('wealth-report') },
+  );
+  check('상세페이지에 가린 자리(pd-locked-sentence) 표시가 실제로 들어간다',
+    wealthHtml.includes('class="pd-locked-sentence"'));
+  check('상세페이지에 흐릿한 텍스트(pd-blurred-text)가 실제로 들어간다',
+    wealthHtml.includes('class="pd-blurred-text"'));
+  check('상세페이지에 자물쇠 뱃지(pd-lock-badge)가 실제로 들어간다',
+    wealthHtml.includes('class="pd-lock-badge"'));
+  check('가린 곳 아래 안내 문구가 노출된다',
+    wealthHtml.includes('가려진 곳은 손님의 실제 명식으로 채워집니다'));
+
+  // 3) 리포트 끝 이어사기 값이 서버가 계산한 값과 같다
+  const mockOrder = {
+    id: 'ord_upsell_test',
+    productId: 'wealth-report' as const,
+    amountKrw: 14900,
+    status: 'viewed' as const,
+    viewedAt: '2026-09-30T10:00:00.000Z',
+    createdAt: '2026-09-30T09:50:00.000Z',
+    paidAt: '2026-09-30T09:55:00.000Z',
+    refundedAt: null,
+    paymentId: 'pay_test',
+    inputHash: 'hash',
+    noticeGiven: true,
+    previewProvided: true,
+    ref: null,
+    email: null,
+  };
+  const wealthUpsell = upsellFor('wealth-report');
+  check('돈그릇 이어사기 묶음이 존재한다', wealthUpsell !== null);
+  if (wealthUpsell) {
+    const serverNow = new Date('2026-09-30T14:00:00.000Z'); // 4시간 경과 (12시간 이내)
+    const serverUpsellInfo = calculateUpsellPrice('wealth-report', wealthUpsell.id, mockOrder.viewedAt, serverNow);
+    const { renderOrderReportPage } = await import('../../packages/site-policy/src/order-page.ts');
+    const orderPageHtml = renderOrderReportPage(
+      business,
+      '',
+      mockOrder as any,
+      '리포트 본문 내용',
+      null,
+      {
+        info: serverUpsellInfo,
+        reason: '관성 19.9%가 재성 17.5%보다 두껍습니다',
+        checkoutUrl: `/checkout?product=${serverUpsellInfo.nextProduct?.id}&fromOrder=${mockOrder.id}`,
+      },
+    );
+
+    check('리포트 끝 이어사기 값이 서버가 계산한 값(5,900원)과 같다',
+      orderPageHtml.includes(`${serverUpsellInfo.currentPriceKrw.toLocaleString('ko-KR')}원`) &&
+      serverUpsellInfo.currentPriceKrw === 5900 &&
+      orderPageHtml.includes('따로 사면 14,900원') &&
+      orderPageHtml.includes('남은 시간'));
+
+    // 만료 후 8,900원 확인
+    const expiredNow = new Date('2026-09-30T23:00:00.000Z'); // 13시간 경과
+    const expiredUpsellInfo = calculateUpsellPrice('wealth-report', wealthUpsell.id, mockOrder.viewedAt, expiredNow);
+    const expiredHtml = renderOrderReportPage(
+      business,
+      '',
+      mockOrder as any,
+      '리포트 본문 내용',
+      null,
+      {
+        info: expiredUpsellInfo,
+        reason: '관성 19.9%가 재성 17.5%보다 두껍습니다',
+        checkoutUrl: `/checkout?product=${expiredUpsellInfo.nextProduct?.id}&fromOrder=${mockOrder.id}`,
+      },
+    );
+    check('12시간 경과 후에는 서버 계산값(8,900원)이 화면에 표기된다',
+      expiredHtml.includes(`${expiredUpsellInfo.currentPriceKrw.toLocaleString('ko-KR')}원`) &&
+      expiredUpsellInfo.currentPriceKrw === 8900 &&
+      expiredHtml.includes('할인 시간이 지났습니다'));
+  }
+}
+
+
 console.log(`통과 ${passed} / 실패 ${failed}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
 console.log('전부 통과.');

@@ -227,16 +227,17 @@ export function resolveLongitude(input?: { longitude?: number; place?: string })
   }
   return undefined;
 }
-function sajuBundle(birth: BirthInput) {
-  const longitude = resolveLongitude(birth);
-  const timeKnown = birth.timeKnown !== undefined
-    ? Boolean(birth.timeKnown)
-    : Boolean(birth.time && birth.time.trim() !== '');
+export function sajuBundle(birth?: BirthInput) {
+  const b = birth ?? { date: '1990-01-01', time: '12:00', gender: '남' as const };
+  const longitude = resolveLongitude(b);
+  const timeKnown = b.timeKnown !== undefined
+    ? Boolean(b.timeKnown)
+    : Boolean(b.time && b.time.trim() !== '');
   // 모른다고 한 주문은 칸 가운데 값(없으면 12:00)을 쓰고, 정확한 시각을 준 주문은 그대로 쓴다
-  const msTime = timeKnown ? birth.time : (birth.time || '12:00');
-  const ms = calculate({ date: birth.date, time: msTime, longitude });
+  const msTime = timeKnown ? b.time : (b.time || '12:00');
+  const ms = calculate({ date: b.date, time: msTime, longitude });
   const an = analyze(ms);
-  const daeun = calculateDaeun(ms, birth.gender ?? '남', an.yongsin);
+  const daeun = calculateDaeun(ms, b.gender ?? '남', an.yongsin);
   const year = new Date().getFullYear();
   return { ms, an, daeun, age: year - ms.meta.solarYear, year, timeKnown };
 }

@@ -843,6 +843,32 @@ console.log(`\n${'═'.repeat(60)}`);
     r1.days.every((d, i) => i === 0 || r1.days[i - 1].score >= d.score));
 }
 
+// 터진 뒤에 적은 것 (2026-09-30): 리포트에 빨간 지갑 같은 물건을 넣으려다 표가 없어 모델이 제멋대로 지어내는 사고가 났다.
+// 오행 표(ELEMENT_GUIDE)에 목화토금수가 모두 있고, 비싼 물건(부적, 개운 등) 권유 없이 룰 엔진에서만 나오는지 검증한다.
+import { ELEMENT_GUIDE, guideFor } from './src/element-guide.ts';
+import type { Element } from '../manseryeok/src/index.ts';
+
+section('오행 가이드 (ELEMENT_GUIDE)');
+{
+  const elements: Element[] = ['목', '화', '토', '금', '수'];
+  check('ELEMENT_GUIDE 에 오행 다섯이 전부 있다',
+    elements.every((el) => ELEMENT_GUIDE[el] !== undefined));
+
+  check('각각 색·방향·시간·물건이 비어 있지 않다',
+    elements.every((el) => {
+      const g = ELEMENT_GUIDE[el];
+      return Boolean(g && g.colors?.length >= 2 && g.direction && g.timeOfDay && g.items?.length >= 2 && g.meaning);
+    }));
+
+  check('guideFor() 가 용신 오행을 넣으면 그만큼 돌려준다',
+    guideFor(['목', '수']).length === 2 && guideFor(['화']).length === 1 && guideFor([]).length === 0);
+
+  const guideText = JSON.stringify(ELEMENT_GUIDE);
+  const forbiddenWords = ['부적', '개운', '구매', '돌을 사라', '보석'];
+  check('값비싼 물건을 권하는 낱말이 표에 없다',
+    forbiddenWords.every((word) => !guideText.includes(word)));
+}
+
 console.log(`통과 ${passed} / 실패 ${failed}`);
 if (failed) {
   console.log('\n실패 항목:');

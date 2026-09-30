@@ -270,4 +270,18 @@ check('약속한 이름 개수와 프롬프트가 맞는다',
   );
   check('자료와 일치하는 올바른 수치 글은 검증을 통과한다', goodReport.valid && goodReport.errors.length === 0);
 
+  // 터진 뒤에 적은 것 (2026-09-30): 리포트가 각주 혼잣말(왜 그렇게 봅니까)로 가득 차고 글이 안 읽힌다는 사장님 피드백.
+  // 전문/쉽게 말하면 2층 구조와 진태양시 해설을 의무화하고 프롬프트 버전을 v10으로 올림.
+  section('주제 갈래 및 2층 구조 검증');
+  const topicSys = buildSystemPrompt('주제');
+  check('주제 갈래 지시문에 「왜 그렇게 봅니까」가 더 이상 없다',
+    !topicSys.includes('왜 그렇게 봅니까'));
+  check('지시문에 진태양시를 설명하라는 대목이 있다',
+    topicSys.includes('진태양시') && topicSys.includes('태어난 시각을 다시 쟀습니다'));
+  check('지시문에 「쉽게 말하면」 층을 쓰라는 대목이 있다',
+    topicSys.includes('쉽게 말하면') && topicSys.includes('전문 ·'));
+  check('PROMPT_VERSION 이 v9 가 아니다',
+    PROMPT_VERSION !== 'v9' && PROMPT_VERSION === 'v10');
+
 console.log('전부 통과. (모델 호출 없음 — 이 검증은 비용이 들지 않는다)');
+

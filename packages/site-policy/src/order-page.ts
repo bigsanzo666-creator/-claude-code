@@ -11,7 +11,7 @@ function esc(s: unknown): string {
     .replace(/'/g, '&#39;');
 }
 
-const ORDER_CSS = `
+export const ORDER_CSS = `
 body{margin:0;padding:0;background:#18151f;color:#f0eaf7;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;line-height:1.6}
 .od-main{max-width:680px;margin:0 auto;padding:24px 18px 80px}
 .od-brand{display:inline-block;font-size:14px;color:#b9b2c6;text-decoration:none;margin-bottom:18px}
