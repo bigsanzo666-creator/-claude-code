@@ -211,6 +211,7 @@ export interface CheckoutKeys { storeId: string; channelKey: string }
  */
 export function renderCheckoutPage(
   info: BusinessInfo, footer: string, product: Product, keys: CheckoutKeys | null,
+  mailEnabled = false,
 ): string {
   const site = show(info, 'serviceName', '서비스 이름');
   const price = product.priceKrw.toLocaleString('ko-KR');
@@ -351,7 +352,7 @@ export function renderCheckoutPage(
       <p class="co-sec">연락받으실 곳</p>
       <div class="co-f"><label for="email">이메일</label>
         <input type="email" name="email" id="email" autocomplete="email" placeholder="example@email.com" required>
-        <span class="co-hint">주문 확인과 문의 응대에 씁니다</span></div>
+        <span class="co-hint">${mailEnabled ? '리포트 주소를 보내 드릴 주소입니다' : '주문 확인과 문의 응대에 씁니다'}</span></div>
       <div class="co-f"><label for="phone">휴대전화</label>
         <input type="tel" name="phone" id="phone" autocomplete="tel" placeholder="01012345678" required>
         <span class="co-hint">결제 확인 및 안내에 필요합니다</span></div>
@@ -360,7 +361,7 @@ export function renderCheckoutPage(
         <p>이 상품은 디지털콘텐츠입니다. 결제하시면 <b>이 화면에서 바로</b> 보실 수 있고,
         늦어도 ${DELIVERY_DUE_DAYS}일 이내에 드립니다.
         결제가 끝나면 <b>다시 볼 수 있는 주소</b>를 함께 드립니다 — 그 주소를 저장해 두시면
-        언제든 다시 보실 수 있습니다.</p>
+        언제든 다시 보실 수 있습니다.${mailEnabled ? ' 그 주소는 이메일로도 보내 드립니다.' : ''}</p>
         <p>결제 후 ${WITHDRAWAL_WINDOW_DAYS}일 이내이고 리포트를 열람하지 않으셨다면
         전액 돌려드립니다. <b>리포트 전문을 열람하신 뒤에는 청약철회가 제한됩니다.</b></p>
         <p>이름·생년월일은 리포트를 만드는 데에만 쓰고, 이메일·휴대전화는

@@ -2127,6 +2127,124 @@ console.log(`\n${'═'.repeat(60)}`);
     nodeOnly.length ? nodeOnly.join(' · ') : `${seen.size}개 파일을 훑음`);
 }
 
+/*
+ * 주문 완료 메일 발송 검증
+ */
+{
+  const { sendOrderMail, mailReady } = await import('./src/mail.ts');
+  const { readFileSync } = await import('node:fs');
+  const { join, dirname } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const { WITHDRAWAL_WINDOW_DAYS } = await import('../../packages/commerce/src/refund.ts');
+
+  // 1) 열쇠가 없을 때 sendOrderMail 이 예외를 던지지 않고 안 보냄으로 돌아온다
+  const oldKey = process.env.RESEND_API_KEY;
+  delete process.env.RESEND_API_KEY;
+  const noKeyRes = await sendOrderMail({
+    to: 'test@example.com',
+    orderId: 'ord_test_nokey',
+    productName: '사주 종합 리포트',
+  });
+  check('열쇠가 없을 때 예외 없이 안 보냄으로 돌아온다',
+    noKeyRes.sent === false && noKeyRes.reason === '열쇠 없음');
+
+  // 2) 받는 주소가 비었거나 잘못되었을 때도 예외를 던지지 않는다
+  process.env.RESEND_API_KEY = 're_test_dummy_key';
+  const emptyTo = await sendOrderMail({
+    to: '',
+    orderId: 'ord_test_empty',
+    productName: '사주 종합 리포트',
+  });
+  check('받는 주소가 비었을 때 예외 없이 안 보냄으로 돌아온다',
+    emptyTo.sent === false && emptyTo.reason === '주소 없음');
+
+  const invalidTo = await sendOrderMail({
+    to: 'invalid-email',
+    orderId: 'ord_test_invalid',
+    productName: '사주 종합 리포트',
+  });
+  check('받는 주소에 @가 없을 때 예외 없이 안 보냄으로 돌아온다',
+    invalidTo.sent === false && invalidTo.reason === '주소 없음');
+
+  // 3) 메일 보내는 쪽이 통째로 실패(예외 발생)해도 confirm 은 200 이고 리포트 본문이 나온다
+  const fakeGw = new FakeGateway();
+  const testOrders = new MemoryOrderStore();
+  const mailSrv = createServer(createApi({
+    gateway: fakeGw,
+    orders: testOrders,
+    generate: async () => ({ text: '리포트 본문 내용' }),
+    business,
+  }));
+  await new Promise<void>((r) => mailSrv.listen(0, r));
+  const mailPort = (mailSrv.address() as { port: number }).port;
+  const mailApi = async (method: string, path: string, body?: unknown) => {
+    const res = await origFetch(`http://127.0.0.1:${mailPort}${path}`, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : {},
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return { status: res.status, body: await res.json() as any };
+  };
+
+  const origFetch = globalThis.fetch;
+  process.env.RESEND_API_KEY = 're_test_dummy_key';
+  try {
+    globalThis.fetch = async (input: any, init?: any) => {
+      const url = typeof input === 'string' ? input : input?.url || '';
+      if (url.includes('api.resend.com')) {
+        throw new Error('Resend 서버 접속 불가 폭탄');
+      }
+      return origFetch(input, init);
+    };
+    const dummyOrder = await mailApi('POST', '/api/orders', {
+      productId: 'cross-report',
+      birth: BIRTH,
+      email: 'test@example.com',
+      acknowledgedNotice: true,
+      previewShown: true,
+    });
+    check('주문 생성 성공', dummyOrder.status === 201);
+    const ordId = dummyOrder.body.order.id;
+    fakeGw.put({
+      paymentId: ordId,
+      status: 'paid',
+      amountKrw: dummyOrder.body.order.amountKrw,
+      merchantOrderId: ordId,
+      method: 'card',
+      paidAt: new Date().toISOString(),
+      raw: {},
+    });
+    await mailApi('POST', `/api/orders/${ordId}/pending`);
+    const confirmRes = await mailApi('POST', `/api/orders/${ordId}/confirm`, {
+      paymentId: ordId,
+    });
+    check('메일 발송이 예외를 던져도 주문 확정은 200 성공', confirmRes.status === 200);
+    const repRes = await mailApi('GET', `/api/orders/${ordId}/report`);
+    check('메일 발송이 실패해도 리포트 본문이 온전히 조회됨', repRes.status === 200 && Boolean(repRes.body.text));
+  } finally {
+    globalThis.fetch = origFetch;
+    mailSrv.close();
+    if (oldKey !== undefined) process.env.RESEND_API_KEY = oldKey;
+    else delete process.env.RESEND_API_KEY;
+  }
+
+  // 4) 메일 소스코드 검사: WITHDRAWAL_WINDOW_DAYS 사용 여부
+  const mailCode = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'src', 'mail.ts'), 'utf8');
+  check('메일 코드에서 WITHDRAWAL_WINDOW_DAYS 를 가져다 쓴다',
+    mailCode.includes('WITHDRAWAL_WINDOW_DAYS') && mailCode.includes('${WITHDRAWAL_WINDOW_DAYS}일'));
+  check('메일 코드에 환불 일수를 7일로 하드코딩하지 않았다',
+    !/결제\s*후\s*7일/.test(mailCode));
+
+  // 5) 메일 본문에 리포트 본문이 들어가지 않는지 (주소만 들어가는지)
+  check('메일 코드에 리포트 본문 필드나 generate 결과가 들어가지 않는다',
+    !mailCode.includes('chunks') && !mailCode.includes('reportText') && mailCode.includes('/order/'));
+
+  // 6) 코드 어디에도 nodemailer 같은 새 라이브러리를 부르지 않는지
+  const apiPkg = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'package.json'), 'utf8');
+  check('package.json 에 nodemailer 가 없다', !apiPkg.includes('nodemailer'));
+  check('mail.ts 에 외부 패키지 import 가 없다', !/import\s+.*\s+from\s+['"](?!(\.|\.\.|\/)).*['"]/.test(mailCode));
+}
+
 console.log(`통과 ${passed} / 실패 ${failed}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
 console.log('전부 통과.');
