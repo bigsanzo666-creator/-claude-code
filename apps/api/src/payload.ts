@@ -35,6 +35,7 @@ export interface BirthInput {
   place?: string;
   gender?: '남' | '여';
   name?: string;
+  timeKnown?: boolean;
 }
 
 /** 택일에 넣는 것. 아직 태어나지 않았으므로 생년월일이 없다 */
@@ -228,11 +229,16 @@ export function resolveLongitude(input?: { longitude?: number; place?: string })
 }
 function sajuBundle(birth: BirthInput) {
   const longitude = resolveLongitude(birth);
-  const ms = calculate({ date: birth.date, time: birth.time, longitude });
+  const timeKnown = birth.timeKnown !== undefined
+    ? Boolean(birth.timeKnown)
+    : Boolean(birth.time && birth.time.trim() !== '');
+  // 모른다고 한 주문은 칸 가운데 값(없으면 12:00)을 쓰고, 정확한 시각을 준 주문은 그대로 쓴다
+  const msTime = timeKnown ? birth.time : (birth.time || '12:00');
+  const ms = calculate({ date: birth.date, time: msTime, longitude });
   const an = analyze(ms);
   const daeun = calculateDaeun(ms, birth.gender ?? '남', an.yongsin);
   const year = new Date().getFullYear();
-  return { ms, an, daeun, age: year - ms.meta.solarYear, year };
+  return { ms, an, daeun, age: year - ms.meta.solarYear, year, timeKnown };
 }
 
 /**
@@ -881,7 +887,7 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
     };
   }
 
-  const { ms, an, daeun, age, year } = sajuBundle(req.birth);
+  const { ms, an, daeun, age, year, timeKnown } = sajuBundle(req.birth);
 
   const base = {
     명식: {
@@ -891,6 +897,7 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
       시주: ms.hour ? `${ms.hour.stem}${ms.hour.branch}` : null,
     },
     계산근거: ms.meta,
+    시각을_아는가: timeKnown,
     일간: an.dayMaster,
     기둥별_십신: an.pillars,
     십신_비중: an.strength.scores,
@@ -1001,6 +1008,7 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
         손님이_묻는_것: scope.asks,
         명식: base.명식,
         계산근거: base.계산근거,
+        시각을_아는가: base.시각을_아는가,
         일간: base.일간,
         강약: base.강약,
         용신: base.용신,

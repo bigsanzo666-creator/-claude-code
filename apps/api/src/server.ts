@@ -337,9 +337,15 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
               <input type="date" id="inputBirth">
             </div>
             <div class="form-group flex-1">
-              <label for="inputTime">태어난 시간</label>
-              <select id="inputTime">
-                <option value="unknown">시간 모름</option>
+              <label for="inputTime">태어난 시간 (시:분)</label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="time" id="inputTime" style="flex:1 1 auto;">
+                <label for="inputTimeUnknown" style="display:flex;align-items:center;gap:4px;font-size:12px;color:#c8c2d4;cursor:pointer;white-space:nowrap;">
+                  <input type="checkbox" id="inputTimeUnknown" style="width:auto;margin:0;"> 모름
+                </label>
+              </div>
+              <select id="inputTimeSlot" style="display:none;margin-top:6px;">
+                <option value="unknown">시간 모름 (낮 12시로 계산)</option>
                 <option value="ja">자시 (23:30~01:29)</option>
                 <option value="chuk">축시 (01:30~03:29)</option>
                 <option value="in">인시 (03:30~05:29)</option>
@@ -720,8 +726,37 @@ function validateReading(body: any): ReadingRequest {
   if (body.birth) {
     const rawPlace = typeof body.birth.place === 'string' ? body.birth.place.trim() : '';
     body.birth.place = PLACES.some((p) => p.name === rawPlace) ? rawPlace : '서울';
-    if (typeof body.birth.time === 'string') {
-      body.birth.time = parseInputTime(body.birth.time);
+    const SIJIN_CENTER: Record<string, string> = {
+      자시: '00:30', 축시: '02:30', 인시: '04:30', 묘시: '06:30',
+      진시: '08:30', 사시: '10:30', 오시: '12:30', 미시: '14:30',
+      신시: '16:30', 유시: '18:30', 술시: '20:30', 해시: '22:30',
+      ja: '00:30', chuk: '02:30', in: '04:30', myo: '06:30',
+      jin: '08:30', sa: '10:30', o: '12:30', mi: '14:30',
+      sin: '16:30', yu: '18:30', sul: '20:30', hae: '22:30',
+    };
+
+    let timeKnown = body.birth.timeKnown;
+    let rawTime = body.birth.time;
+
+    if (rawTime === null || rawTime === undefined || rawTime === '' || rawTime === '모름' || rawTime === 'unknown') {
+      body.birth.timeKnown = false;
+      body.birth.time = '12:00';
+    } else if (typeof rawTime === 'string') {
+      rawTime = rawTime.trim();
+      const matchedSijin = SIJIN_CENTER[rawTime] || Object.entries(SIJIN_CENTER).find(([k]) => rawTime.includes(k) && !/^\d{1,2}:\d{2}$/.test(rawTime))?.[1];
+      if (timeKnown === false) {
+        body.birth.timeKnown = false;
+        body.birth.time = matchedSijin || parseInputTime(rawTime) || '12:00';
+      } else if (matchedSijin && timeKnown !== true) {
+        body.birth.timeKnown = false;
+        body.birth.time = matchedSijin;
+      } else {
+        body.birth.time = parseInputTime(rawTime);
+        body.birth.timeKnown = timeKnown !== false;
+      }
+    } else {
+      body.birth.timeKnown = false;
+      body.birth.time = '12:00';
     }
   }
   // 궁합이 든 묶음은 상대의 생년월일이 있어야 만들 수 있다. 결제 전에 말한다

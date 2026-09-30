@@ -421,10 +421,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputName = document.getElementById('inputName');
   const inputBirth = document.getElementById('inputBirth');
   const inputTime = document.getElementById('inputTime');
+  const inputTimeUnknown = document.getElementById('inputTimeUnknown');
+  const inputTimeSlot = document.getElementById('inputTimeSlot');
   const inputPlace = document.getElementById('inputPlace');
   const btnSubmitSaju = document.getElementById('btnSubmitSaju');
   const genderButtons = document.querySelectorAll('.gender-btn');
   let selectedGender = 'male';
+
+  if (inputTimeUnknown) {
+    inputTimeUnknown.addEventListener('change', () => {
+      const unk = inputTimeUnknown.checked;
+      if (inputTimeSlot) inputTimeSlot.style.display = unk ? 'block' : 'none';
+      if (inputTime) {
+        inputTime.disabled = unk;
+        if (unk) inputTime.value = '';
+      }
+    });
+  }
 
   /*
    * 사주 정보를 담고 꺼내는 단일 함수 (sessionStorage 'nb_reading')
@@ -457,17 +470,29 @@ document.addEventListener('DOMContentLoaded', () => {
           else btn.classList.remove('active');
         });
       }
-      if (b.time && inputTime) {
-        for (const [k, v] of Object.entries(TIME_MAP)) {
-          if (v === b.time || k === b.time) {
-            inputTime.value = k;
-            break;
+      if (inputTime) {
+        if (b.timeKnown === false || b.time === '12:00' || !b.time) {
+          if (inputTimeUnknown) {
+            inputTimeUnknown.checked = true;
+            if (inputTimeSlot) {
+              inputTimeSlot.style.display = 'block';
+              for (const [k, v] of Object.entries(TIME_MAP)) {
+                if (v === b.time || k === b.time) {
+                  inputTimeSlot.value = k;
+                  break;
+                }
+              }
+            }
+            inputTime.disabled = true;
           }
+        } else {
+          inputTime.value = b.time;
         }
       }
       userState.name = (inputName && inputName.value.trim()) || (b.name || "");
       userState.birthDate = inputBirth ? inputBirth.value : (b.date || b.birthDate || "");
-      userState.birthTime = inputTime ? inputTime.value : (b.time || "");
+      userState.birthTime = b.time || "";
+      userState.timeKnown = b.timeKnown !== false;
       userState.birthPlace = (inputPlace && inputPlace.value) || (b.place || "서울");
       userState.gender = selectedGender;
       if (userInfoDisplay && userState.name) {
@@ -657,18 +682,33 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSubmitSaju.addEventListener('click', () => {
       userState.name = (inputName && inputName.value.trim()) || "";
       userState.birthDate = inputBirth ? inputBirth.value : userState.birthDate;
-      userState.birthTime = inputTime ? inputTime.value : userState.birthTime;
       userState.birthPlace = (inputPlace && inputPlace.value) || "서울";
       userState.gender = selectedGender;
 
-      const mappedTime = TIME_MAP[userState.birthTime] || userState.birthTime || '12:00';
+      let finalTime = '12:00';
+      let timeKnown = true;
+      if (inputTimeUnknown && inputTimeUnknown.checked) {
+        timeKnown = false;
+        const slot = (inputTimeSlot && inputTimeSlot.value) || 'mi';
+        finalTime = TIME_MAP[slot] || '12:00';
+      } else if (inputTime && inputTime.value) {
+        finalTime = inputTime.value;
+        timeKnown = true;
+      } else {
+        timeKnown = false;
+        finalTime = '12:00';
+      }
+      userState.birthTime = finalTime;
+      userState.timeKnown = timeKnown;
+
       const mappedGender = (userState.gender === 'female' || userState.gender === '여') ? '여' : '남';
 
       saveReading({
         birth: {
           name: userState.name,
           date: userState.birthDate,
-          time: mappedTime,
+          time: finalTime,
+          timeKnown: timeKnown,
           place: userState.birthPlace,
           gender: mappedGender,
         }
@@ -771,7 +811,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const b = tasteBirth();
     if (!b || !window.MS || !MS.calculate || !MS.analyze) return out;
-    out.timeKnown = !!b.time;
+    out.timeKnown = b.timeKnown !== false && !!b.time;
     try {
       const ms = MS.calculate({ date: b.date, time: b.time || null });
       const an = MS.analyze(ms);

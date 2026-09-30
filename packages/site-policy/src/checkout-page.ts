@@ -106,6 +106,10 @@ export const CHECKOUT_CSS = `
 .co-f input:focus,.co-f select:focus{outline:none;border-color:rgba(212,175,55,.7)}
 .co-two{display:flex;gap:10px}
 .co-two>*{flex:1 1 0;min-width:0}
+.co-time-row{display:flex;gap:10px;align-items:center}
+.co-time-row>input{flex:1 1 auto;min-width:0}
+.co-time-unknown{display:flex;align-items:center;gap:6px;font-size:13px;color:#c8c2d4;cursor:pointer;white-space:nowrap;user-select:none;margin-bottom:0 !important}
+.co-time-unknown input{width:auto !important;margin:0}
 .co-addkin{display:block;width:100%;padding:11px;margin:0 0 14px;font-size:14px;
   border-radius:8px;border:1px dashed rgba(212,175,55,.5);background:transparent;
   color:#d4af37;cursor:pointer;font-family:inherit}
@@ -337,7 +341,19 @@ export function renderCheckoutPage(
           <div class="co-f"><label for="gender">성별</label>
             <select name="gender" id="gender"><option value="남">남</option><option value="여">여</option></select></div>
         </div>
-        <div class="co-f"><label for="birthTime">태어난 시간</label>${hourOptions('birthTime')}</div>
+        <div class="co-f">
+          <label for="birthTime">태어난 시간 (시:분 직접 입력)</label>
+          <div class="co-time-row">
+            <input type="time" name="birthTime" id="birthTime">
+            <label class="co-time-unknown" for="birthTimeUnknown">
+              <input type="checkbox" id="birthTimeUnknown"> 시각 모름
+            </label>
+          </div>
+          <div id="birthTimeSlotWrap" style="display:none;margin-top:8px;">
+            <label for="birthTimeSlot" style="font-size:13px;color:#c8c2d4;margin-bottom:4px;display:block;">대략적인 시간대 선택 (해당 시간의 한가운데로 봅니다)</label>
+            ${hourOptions('birthTimeSlot')}
+          </div>
+        </div>
         <div class="co-f"><label for="birthPlace">태어난 곳</label>${placeOptions('birthPlace')}
           <span class="co-hint">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</span></div>
         <button type="button" class="co-user-done-btn" id="coUserDoneBtn">입력 완료</button>
@@ -449,8 +465,8 @@ export function renderCheckoutPage(
     return dStr;
   }
 
-  function hourToKorean(hStr){
-    if(!hStr || hStr === '12:00') return '시간 모름';
+  function hourToKorean(hStr, isUnk){
+    if(isUnk || !hStr || hStr === '12:00') return '시간 모름 (낮 12시로 계산)';
     for(var i=0; i<HOUR_OPTIONS.length; i++){
       if(HOUR_OPTIONS[i][0] === hStr){
         return HOUR_OPTIONS[i][1].split('—')[0].trim();
@@ -463,7 +479,9 @@ export function renderCheckoutPage(
     var name = val('buyerName');
     var date = val('birthDate');
     var gender = val('gender') || '남';
-    var time = val('birthTime');
+    var unkEl = document.getElementById('birthTimeUnknown');
+    var isUnk = unkEl && unkEl.checked;
+    var time = isUnk ? (val('birthTimeSlot') || '12:00') : val('birthTime');
     var place = val('birthPlace') || '서울';
 
     var dName = document.getElementById('dispName');
@@ -475,7 +493,7 @@ export function renderCheckoutPage(
     if(dName) dName.textContent = name || '(성함 없음)';
     if(dGender) dGender.textContent = gender;
     if(dDate) dDate.textContent = formatKoreanDate(date) || '(생년월일 미입력)';
-    if(dTime) dTime.textContent = hourToKorean(time);
+    if(dTime) dTime.textContent = hourToKorean(time, isUnk);
     if(dPlace) dPlace.textContent = place;
 
     var editForm = document.getElementById('coUserEditForm');
@@ -721,7 +739,19 @@ export function renderCheckoutPage(
       var set=function(id,v){ var el=document.getElementById(id); if(el&&v) el.value=v; };
       set('buyerName', b.name);
       set('birthDate', b.date || b.birthDate);
-      set('birthTime', b.time || b.birthTime);
+      if(b.timeKnown === false || !b.time || b.time === '12:00'){
+        var unkEl = document.getElementById('birthTimeUnknown');
+        if(unkEl){
+          unkEl.checked = true;
+          var sw = document.getElementById('birthTimeSlotWrap');
+          if(sw) sw.style.display = 'block';
+          var ti = document.getElementById('birthTime');
+          if(ti) ti.disabled = true;
+          set('birthTimeSlot', b.time || '12:00');
+        }
+      } else {
+        set('birthTime', b.time || b.birthTime);
+      }
       set('birthPlace', b.place || b.birthPlace);
       set('gender', b.gender);
       set('surname', saved.name && saved.name.surname);
@@ -751,6 +781,25 @@ export function renderCheckoutPage(
     }
   }catch(e){}
 
+  var timeUnknownEl = document.getElementById('birthTimeUnknown');
+  var timeSlotWrap = document.getElementById('birthTimeSlotWrap');
+  var timeInp = document.getElementById('birthTime');
+  var timeSlot = document.getElementById('birthTimeSlot');
+  if(timeUnknownEl){
+    timeUnknownEl.addEventListener('change', function(){
+      var unk = timeUnknownEl.checked;
+      if(timeSlotWrap) timeSlotWrap.style.display = unk ? 'block' : 'none';
+      if(timeInp) {
+        timeInp.disabled = unk;
+        if(unk) timeInp.value = '';
+      }
+      updateSummaryDisplay();
+    });
+  }
+  if(timeSlot){
+    timeSlot.addEventListener('change', updateSummaryDisplay);
+  }
+
   updateSummaryDisplay();
   checkCanPay();
 
@@ -766,9 +815,11 @@ export function renderCheckoutPage(
   if(doneBtn && editForm){
     doneBtn.addEventListener('click', function(){
       var name = val('buyerName'), date = val('birthDate');
-      var gender = val('gender'), time = val('birthTime'), place = val('birthPlace');
+      var gender = val('gender'), place = val('birthPlace');
+      var isUnk = timeUnknownEl ? timeUnknownEl.checked : false;
+      var time = isUnk ? (val('birthTimeSlot') || '12:00') : val('birthTime');
       saveReading({
-        birth: { name: name, date: date, gender: gender, time: time, place: place }
+        birth: { name: name, date: date, gender: gender, time: time, timeKnown: !isUnk && Boolean(val('birthTime')), place: place }
       });
       updateSummaryDisplay();
       editForm.style.display = 'none';
@@ -776,16 +827,19 @@ export function renderCheckoutPage(
   }
 
   // 폼 입력 시 자동 세션 저장 및 요약 카드 동기화
-  ['buyerName', 'birthDate', 'gender', 'birthTime', 'birthPlace'].forEach(function(id){
+  ['buyerName', 'birthDate', 'gender', 'birthTime', 'birthTimeSlot', 'birthPlace'].forEach(function(id){
     var el = document.getElementById(id);
     if(el){
       el.addEventListener('change', function(){
+        var isUnk = timeUnknownEl ? timeUnknownEl.checked : false;
+        var time = isUnk ? (val('birthTimeSlot') || '12:00') : val('birthTime');
         saveReading({
           birth: {
             name: val('buyerName'),
             date: val('birthDate'),
             gender: val('gender'),
-            time: val('birthTime'),
+            time: time,
+            timeKnown: !isUnk && Boolean(val('birthTime')),
             place: val('birthPlace')
           }
         });
@@ -940,9 +994,26 @@ export function renderCheckoutPage(
     if(diffDays > 180) return say('기간은 최대 180일(여섯 달) 안으로 잡아 주세요.');
     ` : ''}
 
+    var isUnk = timeUnknownEl ? timeUnknownEl.checked : false;
+    var finalTime = '';
+    var finalTimeKnown = true;
+    if(isUnk){
+      finalTime = val('birthTimeSlot') || '12:00';
+      finalTimeKnown = false;
+    } else if(val('birthTime')){
+      finalTime = val('birthTime');
+      finalTimeKnown = true;
+    } else if(val('birthTimeSlot')){
+      finalTime = val('birthTimeSlot');
+      finalTimeKnown = false;
+    } else {
+      finalTime = '12:00';
+      finalTimeKnown = false;
+    }
+
     var reading = {
       productId: PRODUCT,
-      birth: { date: date, time: val('birthTime') || '12:00', place: val('birthPlace') || '서울', gender: val('gender'), name: name }
+      birth: { date: date, time: finalTime, timeKnown: finalTimeKnown, place: val('birthPlace') || '서울', gender: val('gender'), name: name }
     };
     ${product.needsName ? "reading.name = { surname: val('surname') };" : ''}
     ${product.needsPartner ? "reading.partner = { date: val('partnerDate'), time: val('partnerTime') || '12:00' };" : ''}
