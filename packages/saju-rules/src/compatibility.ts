@@ -137,7 +137,20 @@ function dayBranchAxis(a: Side, b: Side): CompatibilityAxis {
     (c) => (c.pair[0] === ab && c.pair[1] === bb) || (c.pair[1] === ab && c.pair[0] === bb));
   const triple = BRANCH_TRIPLE_COMBOS.find((t) => t.members.includes(ab) && t.members.includes(bb) && ab !== bb);
   const clash = BRANCH_CLASHES.some((c) => (c[0] === ab && c[1] === bb) || (c[1] === ab && c[0] === bb));
-  const punish = BRANCH_PUNISHMENTS.some((p) => p.members.includes(ab) && p.members.includes(bb) && p.members.length === 3);
+  /*
+   * 터진 뒤에 적은 것 (2026-09-30): 여기서 「같은 글자 둘」을 삼형으로 세고 있었다.
+   * 인사신 삼형의 글자 목록에 사가 들어 있으니, 두 사람 일지가 **둘 다 사**이면
+   * `includes` 가 양쪽 다 참이 되어 형으로 잡혔다. 사사는 형이 아니다.
+   * 축축·술술·미미·인인·신신도 같은 이유로 잘못 잡혔다.
+   *
+   * 삼형은 **서로 다른** 두 글자가 만나야 형이고, 자형은 **같은** 글자가 겹쳐야
+   * 형이다. 없는 것을 「얽힌다」고 말하면 손님을 겁주는 것이다.
+   */
+  const punish = BRANCH_PUNISHMENTS.some((p) => {
+    const selfPunish = p.members.length === 2 && p.members[0] === p.members[1];
+    if (selfPunish) return ab === bb && ab === p.members[0];
+    return ab !== bb && p.members.includes(ab) && p.members.includes(bb);
+  });
 
   let score: number, verdict: string, reasoning: string;
 
