@@ -51,6 +51,7 @@ import { buildPayload, buildPayloads, KIND_OF, type ReadingRequest } from './pay
 import { pickDays, bestPerDay, mergeHours, buildDailyPreviewData, buildMonthPreviewData, parseInputTime, luckyNumbers, analyze } from '../../../packages/saju-rules/src/index.ts';
 import { calculate } from '../../../packages/manseryeok/src/index.ts';
 import { buildPreview, sampleFor, sampleNoticeFor } from './preview.ts';
+import { sendOrderMail, mailReady } from './mail.ts';
 import { type ReferralStore, MemoryReferralStore } from '../../../packages/store/src/index.ts';
 
 /** 주문 저장소. 배포 전에 Postgres 구현체로 갈아끼운다. */
@@ -1662,6 +1663,17 @@ export function createApi(deps: ApiDeps) {
       await reports.set(id, stored.inputHash, chunks.join('\n\n---\n\n'));
 
       const buyerEmail = ((stored as any).email || (reading?.birth?.email) || '').trim().toLowerCase();
+
+      try {
+        const r = await sendOrderMail({
+          to: buyerEmail,
+          orderId: id,
+          productName: CATALOG[stored.productId].name,
+        });
+        console.log(`[메일] ${r.sent ? '보냄' : '못 보냄'} ${id}${r.reason ? ` (${r.reason})` : ''}`);
+      } catch (e) {
+        console.log(`[메일] 못 보냄 ${id}`);
+      }
       let myInviteCode: string | null = null;
       if (buyerEmail) {
         myInviteCode = generateInviteCode(buyerEmail);

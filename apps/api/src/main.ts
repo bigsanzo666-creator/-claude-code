@@ -21,6 +21,7 @@ import {
 } from './images.ts';
 import { MemoryOrderStore, startApi, type OrderStore, type ReportBox } from './server.ts';
 import { StandbyGateway, standbyGenerate } from './standby.ts';
+import { mailReady } from './mail.ts';
 
 const apiSecret = process.env.PORTONE_API_SECRET;
 const hasModelKey = Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
@@ -101,6 +102,7 @@ console.log('[api] 기동 상태');
 console.log(`  결제      ${payable ? '켜짐' : '꺼짐 (포트원 설정 없음)'}`);
 console.log(`  리포트    ${hasModelKey ? '켜짐' : '꺼짐 (API 키 없음)'}`);
 console.log(`  신령 상담  ${hasModelKey ? '모델' : '대본 (API 키 없음 — 화면은 그대로 돕니다)'}`);
+console.log(`  메일      ${mailReady() ? '켜짐' : '꺼짐 (열쇠 없음)'}`);
 console.log(`  저장소    ${storeKind}`);
 console.log(`  사업자정보 ${missing.length ? `미입력 ${missing.length}건` : '완비'}`);
 
