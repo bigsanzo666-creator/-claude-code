@@ -1124,6 +1124,46 @@ body {
   word-break: keep-all;
 }
 
+/* 가린 자리: 흐릿하게 덮고 그 위에 자물쇠 표시 (문장 길이는 유지) */
+.pd-locked-sentence {
+  position: relative;
+  display: inline-block;
+  margin: 6px 0;
+  vertical-align: middle;
+}
+
+.pd-blurred-text {
+  filter: blur(5px);
+  user-select: none;
+  opacity: 0.65;
+  display: inline;
+}
+
+.pd-lock-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(18, 14, 25, 0.92);
+  border: 1px solid rgba(212, 175, 55, 0.7);
+  color: #f3e5ab;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.pd-blurred-notice {
+  font-size: 0.92rem;
+  color: #f3e5ab;
+  margin: 14px 0 6px;
+  word-break: keep-all;
+  font-weight: 700;
+}
+
 /* 3-c. 그래서 믿어도 되는가 (2칸 비교표) */
 .pd-why table {
   width: 100%;
@@ -1907,14 +1947,25 @@ function renderSample(
     tocHtml = `    <ul class="pd-sample-toc">\n${tocItems}\n    </ul>`;
   }
 
+  let bodyHtml = esc(sample.text);
+  let hasMasked = false;
+
+  if (bodyHtml.includes('[[가림:') || /\[\[가림:[^\]]+\]\]/.test(sample.text)) {
+    hasMasked = true;
+    bodyHtml = bodyHtml.replace(/\[\[가림:(.+?)\]\]/g, (_m, content) => {
+      return `<span class="pd-locked-sentence"><span class="pd-blurred-text">${content}</span><span class="pd-lock-badge">🔒 비공개 결론</span></span>`;
+    });
+  }
+
   return `  <section class="pd-sec">
     <h3 class="pd-h">신령이 이렇게 말합니다</h3>
     ${leadLine}
     <div class="pd-sample-card">
       <div class="pd-sample-body">
-        ${esc(sample.text)}
+        ${bodyHtml}
         <div class="pd-sample-fade"></div>
       </div>
+      ${hasMasked ? '<p class="pd-blurred-notice">🔒 가려진 곳은 손님의 실제 명식으로 채워집니다</p>' : ''}
     </div>
     ${tocHtml}
     <p class="pd-samp-n">${esc(sample.notice)}</p>
