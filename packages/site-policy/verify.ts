@@ -1082,29 +1082,29 @@ section('11. 문 — 신령계 들어가는 곳');
 {
   section('가격 안내 및 표시광고법·전자상거래법 준수');
 
-  const holidayPage = renderProductPage(
-    CATALOG['family-holiday-report'],
-    full,
-    true,
-    '',
-  );
-
-  const holidayPay = renderCheckoutPage({} as any, '', CATALOG['family-holiday-report'], { storeId: 's', channelKey: 'c' });
-  check('값 안내가 명절 가족운세 결제 화면에 나온다',
-    holidayPay.includes('39,900원') && holidayPay.includes('9월 28일'));
-  check('명절 가족운세 상세페이지 본문과 고정 띠에는 값이 나오지 않는다',
-    !holidayPage.includes('39,900원') && !holidayPage.includes('9월 28일부터'));
-
-  const otherProducts = Object.values(CATALOG).filter((p) => p.id !== 'family-holiday-report');
-  const otherPages = otherProducts.map((p) =>
+  /*
+   * 터진 뒤에 적은 것 (2026-09-30): 「9월 28일부터 39,900원」을 적어 놓고
+   * 9월 30일까지 25,900원에 팔고 있었다. 손으로 올려야 하는 약속은 반드시 놓친다.
+   */
+  const allProductPages = Object.values(CATALOG).map((p) =>
     renderProductPage(p, full, true, '')
   );
+  const allCheckoutPages = Object.values(CATALOG).map((p) =>
+    renderCheckoutPage({} as any, '', p, { storeId: 's', channelKey: 'c' })
+  );
 
-  check('값 안내가 명절 가족운세 외의 다른 상품 상세페이지에 나오지 않는다',
-    otherPages.every((html) => !html.includes('39,900원으로 올라갑니다') && !html.includes('9월 28일부터 39,900원')));
+  const pastDateRegex = /\d+월\s*\d+일부터/;
+  const hasPastDatePromise = [...allProductPages, ...allCheckoutPages].some((html) =>
+    pastDateRegex.test(html)
+  );
+
+  check('지난 날짜를 약속으로 적어 놓은 곳이 없다', !hasPastDatePromise);
+
+  check('명절 가족운세 결제 화면에 지난 인상 예고 문구가 없다',
+    allCheckoutPages.every((html) => !html.includes('9월 28일') && !html.includes('39,900원으로 올라갑니다')));
 
   check('어디에도 취소선 정가·할인율·거짓 급함이 없다',
-    [holidayPage, ...otherPages].every((html) =>
+    allProductPages.every((html) =>
       !/<del>|<s>|할인율|% 할인|%할인|오늘 마감|지금만|선착순|마감 임박/.test(html)));
 }
 
@@ -1183,6 +1183,67 @@ section('11. 문 — 신령계 들어가는 곳');
     !ORDER_CSS.includes('.od-later-btn{font-size:11px') &&
     !ORDER_CSS.includes('.od-later-btn{display:none') &&
     ORDER_CSS.includes('.od-later-btn{background:rgba(212,175,55,.15);color:#f3e5ab}'));
+}
+
+{
+  // 터진 뒤에 적은 것 (2026-09-30): 결제 직후 리포트 화면이 pre-wrap으로 마크다운을 그대로 쏟아내고, XSS에 무방비했으며, 이어사기 칸과 대기 안내가 부실하여 개편 후 검증을 단다.
+  const { renderReportMarkdown } = await import('./src/report-render.ts');
+  const { CHECKOUT_CSS } = await import('./src/checkout-page.ts');
+  const sampleMarkdown = `## 대목 제목
+
+> 전문 · 일간 경금(庚金) 40.3%
+
+쉽게 말하면 무쇠 바위입니다.
+
+| 기둥 | 천간 | 지지 |
+|---|---|---|
+| 시주 | 계 | 미 |
+
+- **첫 번째 실천**: **동업하지 말 것**
+근거 · 비겁 40.3%`;
+
+  // 1) XSS 원천 차단: 본문에 태그를 적어 넣어도 글자로만 나오고 태그로 실행되지 않는다
+  const xssInput = '<img src=x onerror=alert(1)> <script>alert(2)</script>';
+  const parsedXss = renderReportMarkdown(xssInput);
+  check('리포트 본문에 태그를 적어 넣어도 글자로만 나오고 태그로 돌지 않는다',
+    !parsedXss.includes('<img') &&
+    !parsedXss.includes('<script>') &&
+    parsedXss.includes('&lt;img src=x onerror=alert(1)&gt;') &&
+    parsedXss.includes('&lt;script&gt;alert(2)&lt;/script&gt;'));
+
+  // 2) ## 제목이 <h3> 로, **굵게**가 <strong> 으로, 표가 <table> 로 바뀐다
+  const parsed = renderReportMarkdown(sampleMarkdown);
+  check('## 제목이 <h3> 로 바뀐다', parsed.includes('<h3 class="rp-h2">대목 제목</h3>'));
+  check('**굵게**가 <strong> 으로 바뀐다', parsed.includes('<strong>동업하지 말 것</strong>'));
+  check('표가 <table> 로 바뀐다', parsed.includes('<table class="rp-table">') && parsed.includes('<th>기둥</th>') && parsed.includes('<td>시주</td>'));
+
+  // 3) 「전문 ·」 줄과 「쉽게 말하면」 줄에 서로 다른 class 가 붙는다
+  check('「전문 ·」 줄과 「쉽게 말하면」 줄에 서로 다른 class 가 붙는다',
+    parsed.includes('class="rp-quote rp-quote-expert"') &&
+    parsed.includes('class="rp-plain rp-plain-lead"'));
+
+  // 4) 결제 직후 checkout 화면 생성 검사
+  const testProduct = CATALOG['wealth-report'];
+  const coHtml = renderCheckoutPage(full, '', testProduct, { storeId: 's', channelKey: 'c' });
+
+  // 기다리는 안내에 「1분」과 「3분」과 「창을 닫지」가 들어 있다
+  check('기다리는 안내에 「1분」과 「3분」과 「창을 닫지」가 들어 있다',
+    coHtml.includes('1분') && coHtml.includes('3분') && coHtml.includes('창을 닫지'));
+
+  // 가짜 진행 막대(%)가 없다
+  check('가짜 진행 막대(%)가 없다',
+    !coHtml.includes('progress-bar') && !coHtml.includes('width: 80%') && !coHtml.includes('class="co-progress"'));
+
+  // 결제 직후 화면에도 이어사기 칸 및 스크립트가 들어 있다
+  check('결제 직후 화면에도 이어사기 칸이 그려진다',
+    coHtml.includes('coUpsellSection') && coHtml.includes('od-upsell-box') && coHtml.includes('다음 이야기 이어보기'));
+
+  // 이어사기 단추 둘의 class 가 같은 급이다
+  check('이어사기 단추 둘의 class 가 같은 급이다',
+    CHECKOUT_CSS.includes('.od-upsell-btn, .od-later-btn{') &&
+    CHECKOUT_CSS.includes('flex:1 1 50%;') &&
+    coHtml.includes('class="od-upsell-btn"') &&
+    coHtml.includes('class="od-later-btn"'));
 }
 
 console.log(`\n${'═'.repeat(60)}`);

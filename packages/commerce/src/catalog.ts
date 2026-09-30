@@ -312,7 +312,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'family-holiday-report': {
     id: 'family-holiday-report',
     name: '명절 가족운세',
-    priceKrw: 25900,
+    priceKrw: 39900,
     description: '앞으로 나흘 동안 날마다의 기운과, 한 상에 앉는 사람들끼리 어디서 부딪히는지를 함께 봅니다. 본인 포함 넷까지 같은 값입니다.',
     previewRatio: 1.0,
     category: '가족',

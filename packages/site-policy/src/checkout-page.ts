@@ -31,6 +31,8 @@ import {
   HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, HOLIDAY_MAX_MEMBERS,
 } from '../../commerce/src/catalog.ts';
 import { PACKAGES } from '../../commerce/src/packages.ts';
+import { REPORT_CSS } from './report-render.ts';
+import { UPSELL_CSS } from './upsell-section.ts';
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -74,6 +76,8 @@ function hourOptions(name: string): string {
 }
 
 export const CHECKOUT_CSS = `
+${REPORT_CSS}
+${UPSELL_CSS}
 .co{max-width:560px;margin:0 auto;padding:22px 18px 60px}
 .co-back{display:inline-block;color:#b9b2c6;text-decoration:none;font-size:15px;letter-spacing:0.2px;margin-bottom:14px}
 .co-what{background:rgba(255,255,255,.04);border:1px solid rgba(212,175,55,.32);
@@ -133,8 +137,31 @@ export const CHECKOUT_CSS = `
 .co-msg.ok{color:#9fd8a8}
 .co-soon{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);
   border-radius:10px;padding:16px;font-size:15px;color:#d8d3e0;line-height:1.85}
-.co-done{white-space:pre-wrap;background:rgba(12,10,18,.75);border:1px solid rgba(212,175,55,.3);
-  border-radius:10px;padding:16px;margin-top:16px;font-size:15px;line-height:1.85;color:#efeaf4}
+.co-done{background:rgba(12,10,18,.8);border:1px solid rgba(212,175,55,.3);
+  border-radius:12px;padding:22px 20px;margin-top:20px;font-size:16px;line-height:1.9;color:#efeaf4}
+
+/* 대기 카드 및 점 3개 애니메이션 */
+.co-wait-card{background:rgba(18,14,24,.92);border:1.5px solid rgba(212,175,55,.4);
+  border-radius:14px;padding:24px 20px;margin-top:16px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.co-wait-spinner{display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:18px}
+.co-dot{width:10px;height:10px;border-radius:50%;background:#d4af37;opacity:.2;
+  animation:coDotPulse 1.4s infinite ease-in-out both}
+.co-dot:nth-child(1){animation-delay:-0.32s}
+.co-dot:nth-child(2){animation-delay:-0.16s}
+.co-dot:nth-child(3){animation-delay:0s}
+@keyframes coDotPulse{
+  0%,80%,100%{transform:scale(0.8);opacity:.2}
+  40%{transform:scale(1.2);opacity:1;box-shadow:0 0 10px rgba(212,175,55,.6)}
+}
+.co-wait-title{font-size:18px;font-weight:700;color:#f3e5ab;margin:0 0 10px}
+.co-wait-main{font-size:15.5px;color:#efeaf4;line-height:1.75;margin:0 0 14px}
+.co-wait-main strong{color:#f3e5ab}
+.co-wait-sub{font-size:14.5px;color:#d8d2e5;min-height:1.4em;margin:0 0 18px;font-weight:600}
+.co-wait-safe{border-top:1px solid rgba(255,255,255,.1);padding-top:16px;margin-top:16px;text-align:left}
+.co-wait-safe-txt{font-size:13.5px;color:#b9b2c6;margin:0 0 10px;line-height:1.6}
+.co-wait-link-box{display:flex;gap:8px}
+.co-wait-link-box input{flex:1 1 auto;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:8px 12px;color:#fff;font-size:13px}
+.co-wait-link-box button{flex:0 0 auto;background:#d4af37;color:#18151f;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer}
 
 /* 상단 사주 정보 요약 카드 및 [고치기] */
 .co-user-card{background:rgba(18,14,24,.85);border:1.5px solid rgba(212,175,55,.45);
@@ -191,21 +218,12 @@ export const CHECKOUT_CSS = `
  * 안 올리면 그 순간 거짓말이 된다.
  */
 function priceNote(product: Product): string {
-  if (product.id === 'family-holiday-report') {
-    return `<p class="co-pricenote">오픈 기념 · 추석 한정가입니다.
-    <b>${HOLIDAY_REGULAR_KRW.toLocaleString('ko-KR')}원</b>으로 올라갑니다 — ${HOLIDAY_RAISE_ON}부터</p>`;
-  }
   if ((product as any).isPackage || (product.id in PACKAGES)) {
     return `<p class="co-pricenote">묶음 가격 옆의 「따로 사면」은 <strong>구성 상품을 실제로 낱개 판매하는 가격의 합계</strong>입니다.
     판매한 적 없는 정가를 지어내 할인율을 부풀리지 않습니다.</p>`;
   }
   return '';
 }
-
-/** 연휴가 끝나면 올릴 값. 실제로 이 값으로 올려야 한다 */
-export const HOLIDAY_REGULAR_KRW = 39900;
-/** 값을 올리는 날 */
-export const HOLIDAY_RAISE_ON = '9월 28일';
 
 export interface CheckoutKeys { storeId: string; channelKey: string }
 
@@ -619,9 +637,199 @@ export function renderCheckoutPage(
     }
   }catch(e){}
 
-  function showReport(oid, reportText, inviteCode){
+  function escHtml(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function formatInline(str){
+    return str.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  }
+
+  function parseReportMarkdown(rawText){
+    if(!rawText) return '';
+    // 1. 반드시 먼저 & < > 를 막는다 (XSS 원천 차단)
+    var escaped = escHtml(rawText);
+    var lines = escaped.split(/\r?\n/);
+    var out = [];
+    var inList = false;
+    var inTable = false;
+    var tableRows = [];
+
+    function closeList(){
+      if(inList){ out.push('</ul>'); inList = false; }
+    }
+    function closeTable(){
+      if(inTable && tableRows.length > 0){
+        var tHtml = '<table class="rp-table"><tbody>';
+        for(var r=0; r<tableRows.length; r++){
+          var row = tableRows[r];
+          var isSep = true;
+          for(var c=0; c<row.length; c++){
+            if(!/^[-:\s]+$/.test(row[c])){ isSep = false; break; }
+          }
+          if(isSep) continue;
+          var tag = (r === 0) ? 'th' : 'td';
+          tHtml += '<tr>' + row.map(function(col){ return '<' + tag + '>' + formatInline(col) + '</' + tag + '>'; }).join('') + '</tr>';
+        }
+        tHtml += '</tbody></table>';
+        out.push(tHtml);
+        inTable = false;
+        tableRows = [];
+      }
+    }
+
+    for(var i=0; i<lines.length; i++){
+      var line = lines[i].trim();
+      if(!line){
+        closeList(); closeTable(); continue;
+      }
+      if(/^---[-]*$/.test(line)){
+        closeList(); closeTable();
+        out.push('<hr class="rp-rule">');
+        continue;
+      }
+      if(line.charAt(0) === '|' && line.charAt(line.length - 1) === '|'){
+        closeList();
+        if(!inTable){ inTable = true; tableRows = []; }
+        var cols = line.slice(1, -1).split('|').map(function(c){ return c.trim(); });
+        tableRows.push(cols);
+        continue;
+      } else {
+        closeTable();
+      }
+
+      if(line.indexOf('# ') === 0){
+        closeList(); out.push('<h2 class="rp-h1">' + formatInline(line.slice(2)) + '</h2>'); continue;
+      }
+      if(line.indexOf('## ') === 0){
+        closeList(); out.push('<h3 class="rp-h2">' + formatInline(line.slice(3)) + '</h3>'); continue;
+      }
+      if(line.indexOf('### ') === 0){
+        closeList(); out.push('<h4 class="rp-h3">' + formatInline(line.slice(4)) + '</h4>'); continue;
+      }
+      if(line.indexOf('&gt;') === 0 || line.indexOf('>') === 0){
+        closeList();
+        var quoteContent = line.replace(/^(&gt;|>)\s*/, '');
+        var isExpert = quoteContent.indexOf('전문 ·') === 0 || quoteContent.indexOf('전문·') === 0;
+        var cls = isExpert ? 'rp-quote rp-quote-expert' : 'rp-quote';
+        out.push('<blockquote class="' + cls + '">' + formatInline(quoteContent) + '</blockquote>');
+        continue;
+      }
+      if(line.indexOf('- ') === 0){
+        if(!inList){ inList = true; out.push('<ul class="rp-list">'); }
+        out.push('<li>' + formatInline(line.slice(2)) + '</li>');
+        continue;
+      } else {
+        closeList();
+      }
+      if(line.indexOf('근거 ·') === 0 || line.indexOf('근거·') === 0){
+        out.push('<p class="rp-evidence">' + formatInline(line) + '</p>');
+        continue;
+      }
+      if(line.indexOf('쉽게 말하면') === 0){
+        out.push('<p class="rp-plain rp-plain-lead">' + formatInline(line) + '</p>');
+        continue;
+      }
+      out.push('<p class="rp-p">' + formatInline(line) + '</p>');
+    }
+    closeList(); closeTable();
+    return out.join('\n');
+  }
+
+  var waitTimer = null;
+  function showWaiting(oid){
+    var link = location.origin + '/order/' + oid;
+    var waitHtml = '<div class="co-wait-card" id="coWaitCard">' +
+      '<div class="co-wait-spinner"><span class="co-dot"></span><span class="co-dot"></span><span class="co-dot"></span></div>' +
+      '<h3 class="co-wait-title">신령이 손님의 여덟 글자를 하나씩 짚고 있습니다.</h3>' +
+      '<p class="co-wait-main"><strong>1분에서 3분쯤</strong> 걸립니다. <strong>이 창을 닫지 마시고</strong> 잠시만 기다려 주십시오.</p>' +
+      '<p class="co-wait-sub" id="coWaitProgress"></p>' +
+      '<div class="co-wait-safe">' +
+        '<p class="co-wait-safe-txt">창을 닫아도 리포트는 만들어지고, 저장해 둔 주소로 다시 볼 수 있습니다.</p>' +
+        '<div class="co-wait-link-box">' +
+          '<input type="text" readonly value="' + link + '" id="coWaitLinkInp">' +
+          '<button type="button" id="coWaitCopyBtn">주소 복사</button>' +
+        '</div>' +
+        '<p class="co-copy-done" id="coWaitCopyDone" style="display:none">주소가 복사되었습니다.</p>' +
+      '</div>' +
+    '</div>';
+
+    if(done){
+      done.style.display = 'block';
+      done.innerHTML = waitHtml;
+    }
+    if(f) f.style.display = 'none';
+
+    var wCopyBtn = document.getElementById('coWaitCopyBtn');
+    var wCopyInp = document.getElementById('coWaitLinkInp');
+    var wCopyDone = document.getElementById('coWaitCopyDone');
+    if(wCopyBtn && wCopyInp){
+      wCopyBtn.onclick = function(){
+        try{
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            navigator.clipboard.writeText(wCopyInp.value);
+          }else{
+            wCopyInp.select(); document.execCommand('copy');
+          }
+          if(wCopyDone) wCopyDone.style.display = 'block';
+        }catch(e){}
+      };
+    }
+
+    if(waitTimer) clearInterval(waitTimer);
+    var start = Date.now();
+    waitTimer = setInterval(function(){
+      var elapsed = (Date.now() - start) / 1000;
+      var pEl = document.getElementById('coWaitProgress');
+      if(!pEl) return;
+      if(elapsed >= 90){
+        pEl.textContent = '글이 길어 조금 더 걸리고 있습니다. 창을 닫지 않으셔도 됩니다.';
+      }else if(elapsed >= 30){
+        pEl.textContent = '거의 다 됐습니다. 조금만 더 기다려 주십시오.';
+      }
+    }, 1000);
+  }
+
+  function showReport(oid, reportText, inviteCode, upsellData){
+    if(waitTimer) clearInterval(waitTimer);
     say('결제가 끝났습니다. 주문번호 ' + oid, true);
     var link = location.origin + '/order/' + oid;
+    var parsedReportHtml = parseReportMarkdown(reportText || '');
+
+    var upsellHtml = '';
+    if(upsellData && upsellData.info && upsellData.info.nextProduct){
+      var uInfo = upsellData.info;
+      var nextName = escHtml(uInfo.nextProduct.name);
+      var singlePriceStr = Number(uInfo.singlePriceKrw).toLocaleString('ko-KR');
+      var promoPriceStr = Number(uInfo.currentPriceKrw).toLocaleString('ko-KR');
+      var regularPriceStr = Number(uInfo.regularUpgradeKrw).toLocaleString('ko-KR');
+      var checkoutUrl = escHtml(upsellData.checkoutUrl || ('/checkout?product=' + encodeURIComponent(uInfo.nextProduct.id) + '&fromOrder=' + encodeURIComponent(oid)));
+
+      upsellHtml = '<section class="od-upsell-box" id="coUpsellSection">' +
+        '<div class="od-upsell-header">' +
+          '<span class="od-upsell-badge">다음 이야기 이어보기</span>' +
+          '<span class="od-upsell-timer" id="coUpsellTimer" ' + (!uInfo.isPromo ? 'style="display:none"' : '') + '>남은 시간 ' + escHtml(uInfo.remainingFormatted || '12:00:00') + '</span>' +
+        '</div>' +
+        '<h2 class="od-upsell-title">' + nextName + '</h2>' +
+        (upsellData.reason ? ('<p class="od-upsell-reason">' + escHtml(upsellData.reason) + '</p>') : '') +
+        '<div id="coUpsellPromoArea" ' + (!uInfo.isPromo ? 'style="display:none"' : '') + '>' +
+          '<p class="od-upsell-pricing">따로 사면 ' + singlePriceStr + '원 → <span class="od-price-now">12시간 한정 ' + promoPriceStr + '원</span></p>' +
+        '</div>' +
+        '<div id="coUpsellExpiredArea" ' + (uInfo.isPromo ? 'style="display:none"' : '') + '>' +
+          '<p class="od-upsell-expired">할인 시간이 지났습니다. ' + regularPriceStr + '원에 이어 보실 수 있습니다.</p>' +
+        '</div>' +
+        '<div class="od-upsell-actions">' +
+          '<a class="od-upsell-btn" id="coUpsellBtn" href="' + checkoutUrl + '">' + nextName + ' 이어보기 (<span id="coUpsellBtnPrice">' + (uInfo.isPromo ? promoPriceStr : regularPriceStr) + '</span>원)</a>' +
+          '<button type="button" class="od-later-btn" id="coLaterBtn" onclick="var el=document.getElementById(\'coUpsellSection\');if(el)el.style.display=\'none\'">나중에 보기</button>' +
+        '</div>' +
+      '</section>';
+    }
+
     var inviteHtml = inviteCode ? (
       '<div class="nb-invite-box">' +
         '<div class="nb-invite-head">벗에게 알려주게</div>' +
@@ -634,6 +842,7 @@ export function renderCheckoutPage(
         '<p class="nb-invite-toast" id="nbInviteToast" style="display:none">증표 주소가 복사되었습니다.</p>' +
       '</div>'
     ) : '';
+
     var html = '<div class="co-saved-link">' +
       '<p class="co-saved-title">이 주소를 저장해 두시면 언제든 다시 보실 수 있습니다</p>' +
       '<div class="co-copy-box">' +
@@ -642,8 +851,38 @@ export function renderCheckoutPage(
       '</div>' +
       '<p class="co-copy-done" id="coCopyDone" style="display:none">주소가 복사되었습니다.</p>' +
     '</div>' +
-    '<div class="co-done">' + (reportText || '') + '</div>' + inviteHtml;
+    '<div class="co-done rp-article">' + parsedReportHtml + '</div>' +
+    upsellHtml +
+    inviteHtml;
+
+    done.style.display = 'block';
     done.innerHTML = html;
+
+    if(upsellData && upsellData.info && upsellData.info.expiresAt && upsellData.info.isPromo){
+      var expTime = new Date(upsellData.info.expiresAt).getTime();
+      var tEl = document.getElementById('coUpsellTimer');
+      var pEl = document.getElementById('coUpsellPromoArea');
+      var eEl = document.getElementById('coUpsellExpiredArea');
+      var bPriceEl = document.getElementById('coUpsellBtnPrice');
+      var regPrice = Number(upsellData.info.regularUpgradeKrw).toLocaleString('ko-KR');
+
+      var uTimer = setInterval(function(){
+        var diff = expTime - Date.now();
+        if(diff <= 0){
+          clearInterval(uTimer);
+          if(tEl) tEl.style.display = 'none';
+          if(pEl) pEl.style.display = 'none';
+          if(eEl) eEl.style.display = 'block';
+          if(bPriceEl) bPriceEl.textContent = regPrice;
+          return;
+        }
+        var h = Math.floor(diff / 3600000);
+        var m = Math.floor((diff % 3600000) / 60000);
+        var s = Math.floor((diff % 60000) / 1000);
+        var pad = function(n){ return (n < 10 ? '0' : '') + n; };
+        if(tEl) tEl.textContent = '남은 시간 ' + pad(h) + ':' + pad(m) + ':' + pad(s);
+      }, 1000);
+    }
 
     var invCopyBtn = document.getElementById('nbCopyInviteBtn');
     var invKakaoBtn = document.getElementById('nbKakaoInviteBtn');
@@ -710,12 +949,13 @@ export function renderCheckoutPage(
             try{
               say('결제를 확인하고 있습니다…');
               var pid = q.get('paymentId') || resumeId;
-              await post('/api/orders/' + encodeURIComponent(resumeId) + '/confirm', { paymentId: pid });
-              say('풀이를 짓고 있습니다. 잠시만 기다려 주십시오…');
+              var cf = await post('/api/orders/' + encodeURIComponent(resumeId) + '/confirm', { paymentId: pid });
+              say('신령이 손님의 여덟 글자를 하나씩 짚고 있습니다. 1분에서 3분쯤 걸립니다. 이 창을 닫지 마시고 잠시만 기다려 주십시오.');
+              showWaiting(resumeId);
               var r = await fetch('/api/orders/' + encodeURIComponent(resumeId) + '/report');
               var report = await r.json();
               if(!r.ok) throw new Error(report.error || '리포트를 불러오지 못했습니다.');
-              showReport(resumeId, report.text, report.inviteCode || (report.order && report.order.inviteCode));
+              showReport(resumeId, report.text, (cf && cf.inviteCode) || (report.order && report.order.inviteCode), (cf && cf.upsell) || report.upsell);
             }catch(err){
               console.log('[결제 확인 실패]', err);
               say('결제 확인에 실패했습니다. 주문번호 ' + resumeId + ' 로 문의해 주십시오. 결제는 완료되었을 수 있습니다.');
@@ -1057,13 +1297,14 @@ export function renderCheckoutPage(
       orderId = created.order.id;
 
       if(created.order.amountKrw === 0){
-        say('이용권이 적용되었습니다. 풀이를 짓고 있습니다. 잠시만 기다려 주십시오…');
+        say('신령이 손님의 여덟 글자를 하나씩 짚고 있습니다. 1분에서 3분쯤 걸립니다. 이 창을 닫지 마시고 잠시만 기다려 주십시오.');
+        showWaiting(orderId);
         var cf = await post('/api/orders/' + orderId + '/confirm', { paymentId: orderId });
-        say('풀이를 짓고 있습니다. 잠시만 기다려 주십시오…');
+        say('신령이 손님의 여덟 글자를 하나씩 짚고 있습니다. 1분에서 3분쯤 걸립니다. 이 창을 닫지 마시고 잠시만 기다려 주십시오.');
         var r = await fetch('/api/orders/' + orderId + '/report');
         var report = await r.json();
         if(!r.ok) throw new Error(report.error || '리포트를 불러오지 못했습니다.');
-        showReport(orderId, report.text, (cf && cf.inviteCode) || (report.order && report.order.inviteCode));
+        showReport(orderId, report.text, (cf && cf.inviteCode) || (report.order && report.order.inviteCode), (cf && cf.upsell) || report.upsell);
         pay.style.display = 'none';
         return;
       }
@@ -1100,12 +1341,13 @@ export function renderCheckoutPage(
       say('결제를 확인하고 있습니다…');
       var cf = await post('/api/orders/' + orderId + '/confirm', { paymentId: (res && res.paymentId) || orderId });
 
-      say('풀이를 짓고 있습니다. 잠시만 기다려 주십시오…');
+      say('신령이 손님의 여덟 글자를 하나씩 짚고 있습니다. 1분에서 3분쯤 걸립니다. 이 창을 닫지 마시고 잠시만 기다려 주십시오.');
+      showWaiting(orderId);
       var r = await fetch('/api/orders/' + orderId + '/report');
       var report = await r.json();
       if(!r.ok) throw new Error(report.error || '리포트를 불러오지 못했습니다.');
 
-      showReport(orderId, report.text, (cf && cf.inviteCode) || (report.order && report.order.inviteCode));
+      showReport(orderId, report.text, (cf && cf.inviteCode) || (report.order && report.order.inviteCode), (cf && cf.upsell) || report.upsell);
       pay.style.display = 'none';
     }catch(err){
       console.log('[결제 실패]', err);
