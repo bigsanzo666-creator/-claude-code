@@ -1258,7 +1258,7 @@ export function createApi(deps: ApiDeps) {
         res.end();
         return;
       }
-      sendHtml(res, renderCheckoutPage(business, renderFooter(business), product, checkout));
+      sendHtml(res, renderCheckoutPage(business, renderFooter(business), product, checkout, mailReady()));
     },
 
     'GET /pick': async (_req, res) => sendHtml(res, renderPickPage(
