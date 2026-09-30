@@ -1068,18 +1068,10 @@ body {
   line-height: 1.85;
   word-break: keep-all;
   white-space: pre-wrap;
-  max-height: 150px;
-  overflow: hidden;
 }
 
 .pd-sample-fade {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 48px;
-  background: linear-gradient(to top, var(--bg-card) 20%, transparent 100%);
-  pointer-events: none;
+  display: none;
 }
 
 .pd-sample-toc {
