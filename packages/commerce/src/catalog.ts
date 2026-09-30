@@ -28,6 +28,35 @@
  * 대운·세운, 자녀 적성은 십신 주제 분리 — 새로 만드는 계산이 없다.
  */
 
+/**
+ * 서버 오픈 기념가가 끝나는 때 — 한국 시간 2026년 11월 1일 0시.
+ *
+ * 이 날 0시에 값이 저절로 정가로 돌아간다. 사람이 손대는 곳이 없어야 한다.
+ */
+const LAUNCH_END_MS = Date.UTC(2026, 9, 31, 15, 0, 0);
+
+/** 검사에서만 시각을 바꿔 끼운다. 서비스 코드에서 부르지 마라 */
+let 지금 = (): number => Date.now();
+export function 시각을바꾼다(f: (() => number) | null): void {
+  지금 = f ?? (() => Date.now());
+}
+
+/** 오픈 기념가 기간인가 */
+export function isLaunchSale(): boolean {
+  return 지금() < LAUNCH_END_MS;
+}
+
+/** 지금 파는 값 → 11월 1일부터 받을 값. 25% 올려 끝자리를 900으로 맞춘 것이다 */
+const REGULAR_BY_LAUNCH: Record<number, number> = {
+  1900: 2900, 9900: 12900, 14900: 18900, 19900: 24900,
+  24900: 31900, 29800: 37900, 34900: 43900, 39900: 49900,
+  44900: 56900, 59000: 73900, 69000: 86900, 89900: 112900,
+  149000: 186900,
+};
+
+/** 오픈 기념가에서 빼는 상품. 이미 제값을 받고 있다 */
+const NO_LAUNCH_SALE: string[] = ['family-holiday-report'];
+
 export type ProductId =
   // 연애 — 입구
   | 'charm-report' | 'single-report' | 'marriage-timing-report'
@@ -76,6 +105,8 @@ export interface Product {
   name: string;
   /** 원 단위 정수. 소수점을 쓰지 않는다 */
   priceKrw: number;
+  /** 11월 1일부터 받을 값. 지금 값과 같으면 할인 중이 아니다 */
+  regularKrw?: number;
   description: string;
   /** 결제 전에 보여줄 미리보기 분량 (전체 대비 비율) */
   previewRatio: number;
@@ -532,6 +563,28 @@ export const CATALOG: Record<ProductId, Product> = {
     '떠나야 할까, 머물러야 할까?',
     '자리를 옮기게 하는 기운으로 본 이동 운 — 이사·이직·해외를 함께 봅니다.'),
 };
+
+/*
+ * 오픈 기념가를 값에 붙인다.
+ *
+ * priceKrw 를 읽을 때마다 날짜를 본다. 그래서 11월 1일 0시가 지나는 순간
+ * 화면도 묶음 계산도 결제 금액도 전부 한꺼번에 정가로 간다.
+ * enumerable 을 켜 두어야 JSON 으로 내보낼 때도 값이 따라 나간다.
+ */
+for (const p of Object.values(CATALOG)) {
+  const launch = p.priceKrw;
+  const regular = NO_LAUNCH_SALE.includes(p.id)
+    ? launch
+    : (REGULAR_BY_LAUNCH[launch] ?? launch);
+  Object.defineProperty(p, 'priceKrw', {
+    get() { return isLaunchSale() ? launch : regular; },
+    enumerable: true, configurable: true,
+  });
+  Object.defineProperty(p, 'regularKrw', {
+    get() { return regular; },
+    enumerable: true, configurable: true,
+  });
+}
 
 /**
  * 갈래와 그 제목.

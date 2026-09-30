@@ -17,6 +17,7 @@ import {
   orderable, isOrderable, upsellFor, upgradeCostKrw, calculateUpsellPrice,
   priceOf, HOLIDAY_EXTRA_MEMBER_KRW, HOLIDAY_MAX_MEMBERS,
   UPSELL_PROMO_PRICE_KRW, UPSELL_PROMO_HOURS,
+  시각을바꾼다, isLaunchSale,
 } from './src/index.ts';
 import { TOPIC_LABELS } from '../saju-rules/src/topics.ts';
 
@@ -440,6 +441,53 @@ section('H. 이어사기 12시간 한정 할인 — 전자상거래법 및 표�
              cAfter.currentPriceKrw <= cAfter.singlePriceKrw;
     });
     check('어떤 경우에도 이어사기 금액이 단품값(14,900원 등)보다 비싸지지 않는다', neverExceedsSingle);
+  }
+}
+
+// ── I. 오픈 기념가 자동 전환 검증 ─────────────────────────
+section('I. 오픈 기념가 자동 전환 — 11월 1일 0시에 자동으로 정가로 전환');
+{
+  const oct15 = () => Date.UTC(2026, 9, 15, 0, 0, 0);
+  const nov01 = () => Date.UTC(2026, 9, 31, 15, 1, 0); // 11월 1일 0시 1분 (KST)
+
+  const REGULAR_EXPECTED: Record<number, number> = {
+    1900: 2900, 9900: 12900, 14900: 18900, 19900: 24900,
+    24900: 31900, 29800: 37900, 34900: 43900, 39900: 49900,
+    44900: 56900, 59000: 73900, 69000: 86900, 89900: 112900,
+    149000: 186900,
+  };
+
+  try {
+    // ① 10월 15일에는 모든 상품값이 지금 파는 값과 같다
+    시각을바꾼다(oct15);
+    check('10월 15일에는 오픈 기념가 기간이다', isLaunchSale() === true);
+    const oct15Prices = Object.values(CATALOG).map(p => ({ id: p.id, price: p.priceKrw }));
+    const holidayOct15 = CATALOG['family-holiday-report'].priceKrw;
+
+    // ② 11월 1일 0시 1분에는 모든 상품값이 REGULAR_BY_LAUNCH 의 값과 같다
+    시각을바꾼다(nov01);
+    check('11월 1일 0시 1분에는 오픈 기념가가 끝났다', isLaunchSale() === false);
+
+    const nov01AllRegular = Object.values(CATALOG).every(p => {
+      if (p.id === 'family-holiday-report') return p.priceKrw === 39900;
+      const launch = oct15Prices.find(x => x.id === p.id)!.price;
+      const expected = REGULAR_EXPECTED[launch] ?? launch;
+      return p.priceKrw === expected;
+    });
+    check('11월 1일 0시 1분에는 모든 상품값이 REGULAR_BY_LAUNCH 의 값과 같다', nov01AllRegular);
+
+    // ③ 명절 가족운세는 두 시각 모두 39,900원이다
+    const holidayNov01 = CATALOG['family-holiday-report'].priceKrw;
+    check('명절 가족운세는 두 시각 모두 39,900원이다', holidayOct15 === 39900 && holidayNov01 === 39900);
+
+    // ④ 11월 1일 뒤에도 모든 묶음값이 「따로 사면 합계」보다 싸다
+    const bundlesCheaper = Object.values(PACKAGES).every(pack => {
+      const math = bundleMath(pack.id);
+      return math.savedKrw > 0;
+    });
+    check('11월 1일 뒤에도 모든 묶음값이 「따로 사면 합계」보다 싸다', bundlesCheaper);
+  } finally {
+    시각을바꾼다(null);
   }
 }
 

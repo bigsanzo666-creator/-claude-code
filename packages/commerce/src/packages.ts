@@ -12,7 +12,7 @@
  * 절약액은 카탈로그에서 계산한다. 개별 가격을 고치면 절약액이 저절로 따라온다.
  */
 
-import { CATALOG, getProduct, type ProductId } from './catalog.ts';
+import { CATALOG, getProduct, isLaunchSale, type ProductId } from './catalog.ts';
 
 export type PackageId =
   // 주제마다 두 칸씩 — 단품 옆에 2종, 그 옆에 3종
@@ -30,6 +30,7 @@ export interface BundlePackage {
   name: string;
   members: ProductId[];
   priceKrw: number;
+  regularKrw?: number;
   hook: string;
   /** 화면에서 가운데를 강조한다. 극단을 피하는 심리 때문에 가운데가 제일 팔린다 */
   recommended: boolean;
@@ -142,6 +143,19 @@ export const PACKAGES: Record<PackageId, BundlePackage> = {
     priceKrw: 139900, hook: '어떤 아이로 자랄지까지', recommended: false,
   },
 };
+
+for (const pack of Object.values(PACKAGES)) {
+  const launch = pack.priceKrw;
+  const regular = Math.floor((Math.ceil(launch * 1.25) - 900) / 1000) * 1000 + 900;
+  Object.defineProperty(pack, 'priceKrw', {
+    get() { return isLaunchSale() ? launch : regular; },
+    enumerable: true, configurable: true,
+  });
+  Object.defineProperty(pack, 'regularKrw', {
+    get() { return regular; },
+    enumerable: true, configurable: true,
+  });
+}
 
 export interface BundleMath {
   /** 구성 상품을 따로 살 때의 합계. **실제 판매가의 합이므로 지어낸 값이 아니다** */
