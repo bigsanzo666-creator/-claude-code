@@ -1364,38 +1364,39 @@ export function createApi(deps: ApiDeps) {
       const buyerEmail = ((order as any).email || (order as any).reading?.birth?.email || '').trim().toLowerCase();
       const inviteCode = buyerEmail ? generateInviteCode(buyerEmail) : null;
 
-      let upsellData = null;
-      const pack = upsellFor(order.productId);
-      if (pack) {
-        const info = calculateUpsellPrice(order.productId, pack.id, viewed.viewedAt);
-        let reason = '';
-        const reading = (order as any).reading;
-        if (reading?.birth?.date) {
-          try {
-            const { an } = sajuBundle(reading.birth);
-            const gcd = (an as any).godDistribution || (an as any).godCounts;
-            if (order.productId === 'wealth-report') {
-              const gwan = (gcd && (gcd['관성']?.percent ?? gcd['관성'])) || 0;
-              const jae = (gcd && (gcd['재성']?.percent ?? gcd['재성'])) || 0;
-              if (gwan && jae) {
-                reason = `관성 ${gwan}%가 재성 ${jae}%보다 두껍습니다. 벌어들인 재물을 지키고 자리를 세우는 출세운으로 이어 보십시오.`;
-              }
-            }
-            if (!reason && (an as any).dayMaster) {
-              const dm = (an as any).dayMaster;
-              reason = `${dm.name || dm.element}의 결을 타고난 손님께 꼭 필요한 다음 흐름을 짚어 드립니다.`;
-            }
-          } catch { /* 계산 오류 시 기본 문구 사용 */ }
+function getUpsellDataForOrder(order: Order, viewedAt: string) {
+  const pack = upsellFor(order.productId);
+  if (!pack) return null;
+  const info = calculateUpsellPrice(order.productId, pack.id, viewedAt);
+  let reason = '';
+  const reading = (order as any).reading;
+  if (reading?.birth?.date) {
+    try {
+      const { an } = sajuBundle(reading.birth);
+      const gcd = (an as any).godDistribution || (an as any).godCounts;
+      if (order.productId === 'wealth-report') {
+        const gwan = (gcd && (gcd['관성']?.percent ?? gcd['관성'])) || 0;
+        const jae = (gcd && (gcd['재성']?.percent ?? gcd['재성'])) || 0;
+        if (gwan && jae) {
+          reason = `관성 ${gwan}%가 재성 ${jae}%보다 두껍습니다. 벌어들인 재물을 지키고 자리를 세우는 출세운으로 이어 보십시오.`;
         }
-        if (!reason) {
-          const hereProduct = CATALOG[order.productId as keyof typeof CATALOG];
-          reason = `이미 확인하신 ${hereProduct ? hereProduct.name : '리포트'}의 결을 완성하는 다음 이야기입니다.`;
-        }
-        const nextId = info.nextProduct ? info.nextProduct.id : order.productId;
-        const checkoutUrl = `/checkout?product=${encodeURIComponent(nextId)}&fromOrder=${encodeURIComponent(order.id)}`;
-        upsellData = { info, reason, checkoutUrl };
       }
+      if (!reason && (an as any).dayMaster) {
+        const dm = (an as any).dayMaster;
+        reason = `${dm.name || dm.element}의 결을 타고난 손님께 꼭 필요한 다음 흐름을 짚어 드립니다.`;
+      }
+    } catch { /* 계산 오류 시 기본 문구 사용 */ }
+  }
+  if (!reason) {
+    const hereProduct = CATALOG[order.productId as keyof typeof CATALOG];
+    reason = `이미 확인하신 ${hereProduct ? hereProduct.name : '리포트'}의 결을 완성하는 다음 이야기입니다.`;
+  }
+  const nextId = info.nextProduct ? info.nextProduct.id : order.productId;
+  const checkoutUrl = `/checkout?product=${encodeURIComponent(nextId)}&fromOrder=${encodeURIComponent(order.id)}`;
+  return { info, reason, checkoutUrl };
+}
 
+      const upsellData = getUpsellDataForOrder(viewed, viewed.viewedAt);
       sendHtml(res, renderOrderReportPage(business, renderFooter(business), viewed, text, inviteCode, upsellData));
     },
 
@@ -1712,7 +1713,8 @@ export function createApi(deps: ApiDeps) {
       const paymentId = String(body.paymentId ?? id);
 
       if (stored.status === 'paid' || stored.status === 'fulfilled' || stored.status === 'viewed') {
-        send(res, 200, { order: strip(stored), ready: true });
+        const upsell = getUpsellDataForOrder(stored, stored.viewedAt || new Date().toISOString());
+        send(res, 200, { order: strip(stored), ready: true, upsell });
         return;
       }
 
@@ -1779,7 +1781,8 @@ export function createApi(deps: ApiDeps) {
 
       const done = markFulfilled(paid);
       await save(stored, done);
-      send(res, 200, { order: strip(done), ready: true, inviteCode: myInviteCode });
+      const upsell = getUpsellDataForOrder(done, done.viewedAt || new Date().toISOString());
+      send(res, 200, { order: strip(done), ready: true, inviteCode: myInviteCode, upsell });
     },
 
     /**
@@ -1796,7 +1799,8 @@ export function createApi(deps: ApiDeps) {
 
       const viewed = stored.status === 'viewed' ? stored : markViewed(stored);
       await save(stored, viewed);
-      send(res, 200, { text, order: strip(viewed) });
+      const upsell = getUpsellDataForOrder(viewed, viewed.viewedAt);
+      send(res, 200, { text, order: strip(viewed), upsell });
     },
 
     /** 환불 가능 여부만 조회. 실제로 취소하지 않는다 */

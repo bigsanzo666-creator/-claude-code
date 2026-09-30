@@ -1,15 +1,8 @@
 import { CATALOG, type Order } from '../../../packages/commerce/src/index.ts';
 import { type BusinessInfo } from './business.ts';
 import { renderInviteBadge, REFERRAL_BADGE_CSS, REFERRAL_BADGE_SCRIPT } from './referral-badge.ts';
-
-function esc(s: unknown): string {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+import { esc, renderReportMarkdown, REPORT_CSS } from './report-render.ts';
+import { renderUpsellSection, UPSELL_CSS, type UpsellViewData } from './upsell-section.ts';
 
 export const ORDER_CSS = `
 body{margin:0;padding:0;background:#18151f;color:#f0eaf7;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;line-height:1.6}
@@ -24,22 +17,10 @@ body{margin:0;padding:0;background:#18151f;color:#f0eaf7;font-family:-apple-syst
 .od-copy-box input{flex:1 1 auto;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:9px 12px;color:#fff;font-size:14px}
 .od-copy-box button{flex:0 0 auto;background:#d4af37;color:#18151f;border:none;border-radius:6px;padding:9px 16px;font-size:14px;font-weight:700;cursor:pointer}
 .od-copy-done{font-size:14px;color:#4ade80;margin:6px 0 0}
-.od-report-box{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:24px 20px;margin-top:16px;white-space:pre-wrap;word-break:break-word;font-size:16px;line-height:1.85;color:#e8e2f0}
+.od-report-box{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:24px 20px;margin-top:16px;font-size:16px;line-height:1.85;color:#e8e2f0}
 .od-order-info{font-size:14px;color:#9a93a6;margin-top:8px}
-.od-upsell-box{margin-top:32px;padding:24px 20px;background:rgba(212,175,55,.05);border:1px solid rgba(212,175,55,.25);border-radius:12px}
-.od-upsell-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px}
-.od-upsell-badge{display:inline-block;padding:4px 10px;background:rgba(212,175,55,.2);color:#f3e5ab;font-size:12px;font-weight:700;border-radius:4px}
-.od-upsell-timer{font-size:14px;color:#f3e5ab;font-family:monospace;font-weight:600}
-.od-upsell-title{font-size:18px;font-weight:800;color:#fff;margin:0 0 8px}
-.od-upsell-reason{font-size:14.5px;color:#d8d2e5;margin:0 0 16px;line-height:1.6}
-.od-upsell-pricing{margin:0 0 20px;font-size:15px;color:#b9b2c6}
-.od-price-strike{text-decoration:line-through;color:#8a8398;margin-right:8px}
-.od-price-now{font-size:18px;font-weight:800;color:#f3e5ab}
-.od-upsell-expired{font-size:14px;color:#b9b2c6;margin-bottom:16px}
-.od-upsell-actions{display:flex;gap:12px;margin-top:16px}
-.od-upsell-btn, .od-later-btn{flex:1 1 50%;padding:14px 16px;font-size:15px;font-weight:700;text-align:center;border-radius:8px;text-decoration:none;box-sizing:border-box;display:inline-block;cursor:pointer;border:1px solid rgba(212,175,55,.6)}
-.od-upsell-btn{background:#d4af37;color:#18151f}
-.od-later-btn{background:rgba(212,175,55,.15);color:#f3e5ab}
+${UPSELL_CSS}
+${REPORT_CSS}
 `;
 
 export function renderOrderNotFoundPage(business: BusinessInfo, footer: string): string {
@@ -134,41 +115,7 @@ export function renderOrderReportPage(
   const product = CATALOG[order.productId as keyof typeof CATALOG];
   const title = product ? product.name : '사주 리포트';
 
-  let upsellHtml = '';
-  if (upsellData && upsellData.info && upsellData.info.nextProduct) {
-    const { info, reason, checkoutUrl } = upsellData;
-    const nextName = info.nextProduct.name;
-    const singlePriceStr = info.singlePriceKrw.toLocaleString('ko-KR');
-    const promoPriceStr = info.currentPriceKrw.toLocaleString('ko-KR');
-    const regularPriceStr = info.regularUpgradeKrw.toLocaleString('ko-KR');
-
-    upsellHtml = `
-  <section class="od-upsell-box" id="odUpsellSection">
-    <div class="od-upsell-header">
-      <span class="od-upsell-badge">다음 이야기 이어보기</span>
-      <span class="od-upsell-timer" id="odUpsellTimer" ${!info.isPromo ? 'style="display:none"' : ''}>남은 시간 ${esc(info.remainingFormatted)}</span>
-    </div>
-    <h2 class="od-upsell-title">${esc(nextName)}</h2>
-    ${reason ? `<p class="od-upsell-reason">${esc(reason)}</p>` : ''}
-
-    <div id="odUpsellPromoArea" ${!info.isPromo ? 'style="display:none"' : ''}>
-      <p class="od-upsell-pricing">
-        따로 사면 ${singlePriceStr}원 → <span class="od-price-now">12시간 한정 ${promoPriceStr}원</span>
-      </p>
-    </div>
-
-    <div id="odUpsellExpiredArea" ${info.isPromo ? 'style="display:none"' : ''}>
-      <p class="od-upsell-expired">
-        할인 시간이 지났습니다. ${regularPriceStr}원에 이어 보실 수 있습니다.
-      </p>
-    </div>
-
-    <div class="od-upsell-actions">
-      <a class="od-upsell-btn" id="odUpsellBtn" href="${esc(checkoutUrl)}">${esc(nextName)} 이어보기 (<span id="odUpsellBtnPrice">${info.isPromo ? promoPriceStr : regularPriceStr}</span>원)</a>
-      <button type="button" class="od-later-btn" id="odLaterBtn" onclick="document.getElementById('odUpsellSection').style.display='none'">나중에 보기</button>
-    </div>
-  </section>`;
-  }
+  const upsellHtml = renderUpsellSection(upsellData as any);
 
   return `<!doctype html>
 <html lang="ko">
@@ -194,7 +141,7 @@ export function renderOrderReportPage(
     <p class="od-copy-done" id="odCopyDone" style="display:none">주소가 복사되었습니다.</p>
   </div>
 
-  <article class="od-report-box">${esc(reportText)}</article>
+  <article class="od-report-box rp-article">${renderReportMarkdown(reportText)}</article>
   ${upsellHtml}
   ${inviteCode ? renderInviteBadge(inviteCode) : ''}
 </main>
