@@ -226,9 +226,25 @@ check('상세 페이지도 그림이 있을 때만 크게 건다',
   check('거짓 급함을 쓰지 않는다',
     !/지금만|오늘만|마감 임박|선착순/.test(pay));
 
-  // 메일을 보내는 기능이 없다. 보내 준다고 말하면 그 순간 거짓말이 된다
-  check('메일로 보내 준다고 말하지 않는다', !pay.includes('리포트를 보내 드릴'));
-  check('다시 볼 주소를 준다고 말한다', pay.includes('다시 볼 수 있는 주소'));
+  /*
+   * 터진 뒤에 적은 것 (2026-09-30):
+   * 결제 완료 메일 발송 기능이 추가되어, 메일 기능 켜짐(mailEnabled=true)일 때는
+   * 리포트 주소를 이메일로 보내준다고 안내하고, 꺼짐(mailEnabled=false)일 때는
+   * 실제로 보내지 않으므로 그 말을 하지 않아야 한다. 어느 쪽이든 다시 볼 수 있는
+   * 주소 안내는 반드시 남아 있어야 한다.
+   */
+  const payMailOff = renderCheckoutPage({} as any, '', CATALOG['daily-report'], { storeId: 's', channelKey: 'c' }, false);
+  const payMailOn = renderCheckoutPage({} as any, '', CATALOG['daily-report'], { storeId: 's', channelKey: 'c' }, true);
+
+  check('메일 꺼짐: 메일로 보내 준다고 말하지 않는다',
+    !payMailOff.includes('리포트 주소를 보내 드릴') && !payMailOff.includes('이메일로도 보내 드립니다'));
+  check('메일 꺼짐: 다시 볼 주소를 준다고 말한다',
+    payMailOff.includes('다시 볼 수 있는 주소'));
+
+  check('메일 켜짐: 메일로 보내 준다고 안내한다',
+    payMailOn.includes('리포트 주소를 보내 드릴') && payMailOn.includes('이메일로도 보내 드립니다'));
+  check('메일 켜짐: 다시 볼 주소를 준다고 말한다',
+    payMailOn.includes('다시 볼 수 있는 주소'));
 
   /*
    * 주인 통과 — 사장님이 손님과 똑같은 길을 걸어 리포트까지 받아 보는 길.
