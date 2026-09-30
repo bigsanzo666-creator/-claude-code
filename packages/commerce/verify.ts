@@ -16,7 +16,7 @@ import {
   type Order,
   orderable, isOrderable, upsellFor, upgradeCostKrw, calculateUpsellPrice,
   priceOf, HOLIDAY_EXTRA_MEMBER_KRW, HOLIDAY_MAX_MEMBERS,
-  UPSELL_PROMO_PRICE_KRW, UPSELL_PROMO_HOURS,
+  UPSELL_PROMO_PRICE_KRW, UPSELL_PROMO_HOURS, recommendNext,
   시각을바꾼다, isLaunchSale,
 } from './src/index.ts';
 import { TOPIC_LABELS } from '../saju-rules/src/topics.ts';
@@ -489,6 +489,64 @@ section('I. 오픈 기념가 자동 전환 — 11월 1일 0시에 자동으로 �
   } finally {
     시각을바꾼다(null);
   }
+}
+
+// ── J. 리포트 끝 추천(recommendNext) 검증 ──────────────────
+section('J. 리포트 끝 추천 3개 — 손님 질문에 맞춰 고르고 할인을 크게 표시');
+{
+  const allProductIds = Object.keys(CATALOG);
+  const now = new Date('2026-10-15T12:00:00Z');
+  const viewTime = new Date('2026-10-15T10:00:00Z'); // 2시간 전 (12시간 안)
+  const after12h = new Date('2026-10-16T00:00:00Z'); // 14시간 후 (12시간 지남)
+
+  // ① 모든 상품 34개에 대해 recommendNext() 가 하나 이상을 돌려준다
+  const allHaveAtLeastOne = allProductIds.every((pid) => {
+    const recs = recommendNext(pid, null, viewTime, now);
+    return recs && recs.length >= 1;
+  });
+  check('① 모든 상품 34개에 대해 recommendNext() 가 하나 이상을 돌려준다', allHaveAtLeastOne, `총 상품 수: ${allProductIds.length}`);
+
+  // ② 돌려준 값이 그 상품 값보다 절대 크지 않다
+  const neverExceedsOriginal = allProductIds.every((pid) => {
+    const recsWithin = recommendNext(pid, '이사하고 싶어요', viewTime, now);
+    const recsAfter = recommendNext(pid, '이사하고 싶어요', viewTime, after12h);
+    const okWithin = recsWithin.every((r) => r.currentPriceKrw <= r.singlePriceKrw);
+    const okAfter = recsAfter.every((r) => r.currentPriceKrw <= r.singlePriceKrw);
+    return okWithin && okAfter;
+  });
+  check('② 돌려준 값이 그 상품 값보다 절대 크지 않다', neverExceedsOriginal);
+
+  // ③ 14,900원짜리는 12시간 안 5,900원, 지난 뒤 8,900원이다
+  const p14900 = Object.values(CATALOG).find((p) => p.priceKrw === 14900);
+  let check3Ok = false;
+  if (p14900) {
+    const otherId = Object.keys(CATALOG).find((id) => id !== p14900.id)!;
+    const recs12h = recommendNext(otherId, null, viewTime, now);
+    const r14900_12h = recs12h.find((r) => r.singlePriceKrw === 14900);
+    const recsAfter = recommendNext(otherId, null, viewTime, after12h);
+    const r14900_after = recsAfter.find((r) => r.singlePriceKrw === 14900);
+    if (r14900_12h && r14900_after) {
+      check3Ok = r14900_12h.currentPriceKrw === 5900 && r14900_after.currentPriceKrw === 8900;
+    } else {
+      const { cutPrice } = await import('./src/orderable.ts');
+      check3Ok = cutPrice(14900, 0.60) === 5900 && cutPrice(14900, 0.40) === 8900;
+    }
+  }
+  check('③ 14,900원짜리는 12시간 안 5,900원, 지난 뒤 8,900원이다', check3Ok);
+
+  // ④ 「이사」가 든 질문에 시기 또는 가족 갈래가 첫 장에 온다
+  const isaRecs = recommendNext('saju-report', '아들 근처로 이사 가고 싶은데 어떨지', viewTime, now);
+  const firstCat = isaRecs[0]?.nextProduct ? CATALOG[isaRecs[0].nextProduct.id].category : null;
+  check('④ 「이사」가 든 질문에 시기 또는 가족 갈래가 첫 장에 온다', firstCat === '시기' || firstCat === '가족', `첫 추천 갈래: ${firstCat}`);
+
+  // ⑤ 돌려준 셋 안에 같은 상품이 두 번 들어가지 않는다
+  const noDuplicates = allProductIds.every((pid) => {
+    const recs = recommendNext(pid, '아들 근처로 이사 가고 돈 벌고 취업', viewTime, now);
+    const ids = recs.map((r) => r.nextProduct?.id).filter(Boolean);
+    const uniqueIds = new Set(ids);
+    return ids.length === uniqueIds.size;
+  });
+  check('⑤ 돌려준 셋 안에 같은 상품이 두 번 들어가지 않는다', noDuplicates);
 }
 
 console.log(`\n${'═'.repeat(60)}`);

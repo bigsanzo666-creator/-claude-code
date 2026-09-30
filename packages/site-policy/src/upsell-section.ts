@@ -11,75 +11,137 @@
 
 import { esc } from './report-render.ts';
 
-export interface UpsellViewData {
+export interface UpsellItemViewData {
   info: {
-    nextProduct?: { id: string; name: string };
+    nextProduct?: { id: string; name: string; priceKrw?: number };
     singlePriceKrw: number;
     currentPriceKrw: number;
     regularUpgradeKrw: number;
     isPromo: boolean;
     expiresAt: string;
     remainingFormatted: string;
+    isMatched?: boolean;
   };
-  reason: string;
+  reason?: string;
   checkoutUrl: string;
 }
 
+export interface UpsellViewData {
+  items?: UpsellItemViewData[];
+  info?: UpsellItemViewData['info'];
+  reason?: string;
+  checkoutUrl?: string;
+}
+
 /**
- * 이어사기 섹션 HTML을 반환한다.
+ * 이어사기(추천 3개) 섹션 HTML을 반환한다.
  */
 export function renderUpsellSection(upsellData?: UpsellViewData | null): string {
-  if (!upsellData || !upsellData.info || !upsellData.info.nextProduct) {
-    return '';
-  }
+  if (!upsellData) return '';
 
-  const { info, reason, checkoutUrl } = upsellData;
-  const nextName = info.nextProduct.name;
-  const singlePriceStr = info.singlePriceKrw.toLocaleString('ko-KR');
-  const promoPriceStr = info.currentPriceKrw.toLocaleString('ko-KR');
-  const regularPriceStr = info.regularUpgradeKrw.toLocaleString('ko-KR');
+  const items: UpsellItemViewData[] = (upsellData.items && upsellData.items.length > 0)
+    ? upsellData.items
+    : (upsellData.info && upsellData.info.nextProduct)
+      ? [{ info: upsellData.info, reason: upsellData.reason, checkoutUrl: upsellData.checkoutUrl || '' }]
+      : [];
+
+  if (items.length === 0) return '';
+
+  const first = items[0];
+  const expiresAt = first.info.expiresAt;
+  const isPromo = first.info.isPromo;
+  const remainingFormatted = first.info.remainingFormatted || '12:00:00';
+
+  const cardsHtml = items.map((item, idx) => {
+    const info = item.info;
+    const nextName = info.nextProduct?.name || '다음 점사';
+    const singlePriceStr = info.singlePriceKrw.toLocaleString('ko-KR');
+    const currentPriceStr = info.currentPriceKrw.toLocaleString('ko-KR');
+    const regularPriceStr = info.regularUpgradeKrw.toLocaleString('ko-KR');
+    const discountRate = info.isPromo ? '60%' : '40%';
+    const reason = item.reason || '';
+    const checkoutUrl = item.checkoutUrl || '#';
+
+    return `
+    <div class="od-upsell-card" data-single="${info.singlePriceKrw}" data-promo="${info.currentPriceKrw}" data-reg="${info.regularUpgradeKrw}">
+      <div class="od-upsell-circle-badge">${discountRate}<br>할인</div>
+      ${info.isMatched ? '<div class="od-upsell-match-tag">손님 물음에 맞춘 것</div>' : ''}
+      <h3 class="od-upsell-card-title">${esc(nextName)}</h3>
+      ${reason ? `<p class="od-upsell-reason">${esc(reason)}</p>` : ''}
+      ${!info.isPromo ? `<p class="od-upsell-expired-note" style="font-size:13px;color:#f0c080;margin:0 0 8px">할인 시간이 지났습니다 (40% 할인 적용)</p>` : ''}
+      <div class="od-upsell-pricing">
+        <b class="od-upsell-price-gold">${currentPriceStr}원</b>
+        <span class="od-upsell-price-orig">원래 ${singlePriceStr}원 (따로 사면 ${singlePriceStr}원)</span>
+      </div>
+      <div class="od-upsell-actions">
+        <a class="od-upsell-btn" href="${esc(checkoutUrl)}">${esc(nextName)} 이어보기</a>
+      </div>
+    </div>`;
+  }).join('');
 
   return `
   <section class="od-upsell-box" id="odUpsellSection">
     <div class="od-upsell-header">
-      <span class="od-upsell-badge">다음 이야기 이어보기</span>
-      <span class="od-upsell-timer" id="odUpsellTimer" ${!info.isPromo ? 'style="display:none"' : ''}>남은 시간 ${esc(info.remainingFormatted)}</span>
+      <span class="od-upsell-badge">${isPromo ? '다음 이야기 이어보기 · 12시간 안에만 이 값입니다' : '다음 이야기 이어보기 · 할인 시간이 지났습니다'}</span>
+      <span class="od-upsell-timer" id="odUpsellTimer" data-expires="${esc(expiresAt)}">${isPromo ? `남은 시간 ${esc(remainingFormatted)}` : '할인 시간이 지났습니다 (40% 할인 적용)'}</span>
     </div>
-    <h2 class="od-upsell-title">${esc(nextName)}</h2>
-    ${reason ? `<p class="od-upsell-reason">${esc(reason)}</p>` : ''}
+    <div class="od-upsell-cards">
+      ${cardsHtml}
+    </div>
+    <div class="od-upsell-bottom-action" style="margin-top:16px;text-align:center">
+      <button type="button" class="od-later-btn" onclick="var el=document.getElementById('odUpsellSection');if(el)el.style.display='none'">나중에 보기</button>
+    </div>
+  </section>
+  <script>
+  (function(){
+    var timerEl = document.getElementById('odUpsellTimer');
+    if(!timerEl) return;
+    var expStr = timerEl.getAttribute('data-expires');
+    if(!expStr) return;
+    var expTime = new Date(expStr).getTime();
+    var cards = document.querySelectorAll('.od-upsell-card');
 
-    <div id="odUpsellPromoArea" ${!info.isPromo ? 'style="display:none"' : ''}>
-      <p class="od-upsell-pricing">
-        따로 사면 ${singlePriceStr}원 → <span class="od-price-now">12시간 한정 ${promoPriceStr}원</span>
-      </p>
-    </div>
-
-    <div id="odUpsellExpiredArea" ${info.isPromo ? 'style="display:none"' : ''}>
-      <p class="od-upsell-expired">
-        할인 시간이 지났습니다. ${regularPriceStr}원에 이어 보실 수 있습니다.
-      </p>
-    </div>
-
-    <div class="od-upsell-actions">
-      <a class="od-upsell-btn" id="odUpsellBtn" href="${esc(checkoutUrl)}">${esc(nextName)} 이어보기 (<span id="odUpsellBtnPrice">${info.isPromo ? promoPriceStr : regularPriceStr}</span>원)</a>
-      <button type="button" class="od-later-btn" id="odLaterBtn" onclick="var el=document.getElementById('odUpsellSection');if(el)el.style.display='none'">나중에 보기</button>
-    </div>
-  </section>`;
+    var uTimer = setInterval(function(){
+      var diff = expTime - Date.now();
+      if(diff <= 0){
+        clearInterval(uTimer);
+        timerEl.textContent = '할인 시간이 지났습니다 (40% 할인 적용)';
+        cards.forEach(function(card){
+          var badge = card.querySelector('.od-upsell-circle-badge');
+          if(badge) badge.innerHTML = '40%<br>할인';
+          var goldPrice = card.querySelector('.od-upsell-price-gold');
+          var regVal = card.getAttribute('data-reg');
+          if(goldPrice && regVal) goldPrice.textContent = Number(regVal).toLocaleString('ko-KR') + '원';
+        });
+        return;
+      }
+      var h = Math.floor(diff / 3600000);
+      var m = Math.floor((diff % 3600000) / 60000);
+      var s = Math.floor((diff % 60000) / 1000);
+      var pad = function(n){ return (n < 10 ? '0' : '') + n; };
+      timerEl.textContent = '남은 시간 ' + pad(h) + ':' + pad(m) + ':' + pad(s);
+    }, 1000);
+  })();
+  </script>`;
 }
 
 export const UPSELL_CSS = `
-/* ── 이어사기 칸 ────────────────────────────────────────────── */
+/* ── 이어사기 칸 (3개 카드 세로 배치) ───────────────────────── */
 .od-upsell-box{margin-top:28px;margin-bottom:28px;padding:24px 20px;background:rgba(212,175,55,.05);border:1px solid rgba(212,175,55,.28);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
-.od-upsell-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px}
-.od-upsell-badge{display:inline-block;padding:4px 10px;background:rgba(212,175,55,.2);color:#f3e5ab;font-size:12px;font-weight:700;border-radius:4px}
+.od-upsell-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:18px;border-bottom:1px solid rgba(212,175,55,.15);padding-bottom:12px}
+.od-upsell-badge{display:inline-block;padding:5px 11px;background:rgba(212,175,55,.2);color:#f3e5ab;font-size:13px;font-weight:700;border-radius:5px}
 .od-upsell-timer{font-size:14px;color:#f3e5ab;font-family:monospace;font-weight:600}
-.od-upsell-title{font-size:19px;font-weight:800;color:#fff;margin:0 0 8px}
-.od-upsell-reason{font-size:14.5px;color:#d8d2e5;margin:0 0 16px;line-height:1.65;word-break:keep-all}
-.od-upsell-pricing{margin:0 0 18px;font-size:15px;color:#b9b2c6}
-.od-price-now{font-size:17.5px;font-weight:800;color:#f3e5ab}
-.od-upsell-expired{font-size:14px;color:#b9b2c6;margin-bottom:16px}
-.od-upsell-actions{display:flex;gap:12px;margin-top:16px}
+.od-upsell-cards{display:flex;flex-direction:column;gap:16px}
+.od-upsell-card{position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(212,175,55,.22);border-radius:10px;padding:20px 18px 18px}
+.od-upsell-circle-badge{position:absolute;top:16px;right:16px;width:48px;height:48px;border-radius:50%;background:#dc2626;color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11.5px;font-weight:800;line-height:1.15;box-shadow:0 3px 8px rgba(220,38,38,.4)}
+.od-upsell-match-tag{display:inline-block;padding:3px 8px;background:rgba(212,175,55,.18);color:#f3e5ab;font-size:11.5px;font-weight:700;border-radius:4px;margin-bottom:8px;border:1px solid rgba(212,175,55,.35)}
+.od-upsell-card-title{font-size:18px;font-weight:800;color:#fff;margin:0 0 6px;padding-right:54px}
+.od-upsell-reason{font-size:14px;color:#c8c2d4;margin:0 0 14px;line-height:1.6;word-break:keep-all}
+.od-upsell-pricing{display:flex;align-items:baseline;gap:8px;margin-bottom:16px}
+.od-upsell-price-gold{font-size:20px;font-weight:800;color:#d4af37}
+.od-upsell-price-orig{font-size:13.5px;color:#8e889b}
+.od-upsell-actions{display:flex;gap:12px}
 .od-upsell-btn, .od-later-btn{flex:1 1 50%;padding:14px 16px;font-size:15px;font-weight:700;text-align:center;border-radius:8px;text-decoration:none;box-sizing:border-box;display:inline-block;cursor:pointer;border:1px solid rgba(212,175,55,.6);line-height:1.3;font-family:inherit}
-.od-upsell-btn{background:#d4af37;color:#18151f}
+.od-upsell-btn{background:#d4af37;color:#18151f;flex:1 1 auto}
 .od-later-btn{background:rgba(212,175,55,.15);color:#f3e5ab}
 `;

@@ -18,7 +18,7 @@ import {
   generateInviteCode, isValidInviteCode, INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW, COUNT_MIN_ORDER_KRW, REWARD_TIERS,
   hasEntitlement, assessRefund, refundNotice, confirmPayment, refundOrder, failOrder,
   orderable, isOrderable, upsellFor, packagesContaining, makePreview,
-  calculateUpsellPrice, UPSELL_PROMO_PRICE_KRW, UPSELL_PROMO_HOURS,
+  calculateUpsellPrice, UPSELL_PROMO_PRICE_KRW, UPSELL_PROMO_HOURS, recommendNext,
   HOLIDAY_MAX_MEMBERS, HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, extraMemberKrw,
   WITHDRAWAL_NOTICE, CATEGORIES, isLaunchSale, type Order, type PaymentGateway, type ProductId,
 } from '../../../packages/commerce/src/index.ts';
@@ -1069,6 +1069,38 @@ export function createApi(deps: ApiDeps) {
     talkSpent += 1;
   }
 
+  function getUpsellDataForOrder(order: Order, viewedAt: string) {
+    const reading = (order as any).reading;
+    const question = (order as any).question || reading?.question || '';
+    const recs = recommendNext(order.productId, question, viewedAt);
+    if (!recs || recs.length === 0) return null;
+
+    const items = recs.map((rec) => {
+      const nextId = rec.nextProduct?.id || order.productId;
+      const checkoutUrl = `/checkout?product=${encodeURIComponent(nextId)}&fromOrder=${encodeURIComponent(order.id)}`;
+      let reason = '';
+      if (rec.isMatched) {
+        reason = '손님께서 남겨 주신 물음의 맥을 이어 다음으로 짚어 볼 점사입니다.';
+      } else {
+        const nextP = CATALOG[nextId as keyof typeof CATALOG];
+        reason = nextP ? nextP.hook : '이미 확인하신 리포트의 결을 완성하는 다음 이야기입니다.';
+      }
+      return {
+        info: rec,
+        reason,
+        checkoutUrl,
+      };
+    });
+
+    const first = items[0];
+    return {
+      items,
+      info: first.info,
+      reason: first.reason,
+      checkoutUrl: first.checkoutUrl,
+    };
+  }
+
   const routes: Record<string, (req: IncomingMessage, res: ServerResponse, id: string) => Promise<void>> = {
     /** 화면. 결제 설정을 주입해 내려준다 */
     'GET /': async (_req, res) => {
@@ -1408,38 +1440,6 @@ export function createApi(deps: ApiDeps) {
       const buyerEmail = ((order as any).email || (order as any).reading?.birth?.email || '').trim().toLowerCase();
       const inviteCode = buyerEmail ? generateInviteCode(buyerEmail) : null;
 
-function getUpsellDataForOrder(order: Order, viewedAt: string) {
-  const pack = upsellFor(order.productId);
-  if (!pack) return null;
-  const info = calculateUpsellPrice(order.productId, pack.id, viewedAt);
-  let reason = '';
-  const reading = (order as any).reading;
-  if (reading?.birth?.date) {
-    try {
-      const { an } = sajuBundle(reading.birth);
-      const gcd = (an as any).godDistribution || (an as any).godCounts;
-      if (order.productId === 'wealth-report') {
-        const gwan = (gcd && (gcd['관성']?.percent ?? gcd['관성'])) || 0;
-        const jae = (gcd && (gcd['재성']?.percent ?? gcd['재성'])) || 0;
-        if (gwan && jae) {
-          reason = `관성 ${gwan}%가 재성 ${jae}%보다 두껍습니다. 벌어들인 재물을 지키고 자리를 세우는 출세운으로 이어 보십시오.`;
-        }
-      }
-      if (!reason && (an as any).dayMaster) {
-        const dm = (an as any).dayMaster;
-        reason = `${dm.name || dm.element}의 결을 타고난 손님께 꼭 필요한 다음 흐름을 짚어 드립니다.`;
-      }
-    } catch { /* 계산 오류 시 기본 문구 사용 */ }
-  }
-  if (!reason) {
-    const hereProduct = CATALOG[order.productId as keyof typeof CATALOG];
-    reason = `이미 확인하신 ${hereProduct ? hereProduct.name : '리포트'}의 결을 완성하는 다음 이야기입니다.`;
-  }
-  const nextId = info.nextProduct ? info.nextProduct.id : order.productId;
-  const checkoutUrl = `/checkout?product=${encodeURIComponent(nextId)}&fromOrder=${encodeURIComponent(order.id)}`;
-  return { info, reason, checkoutUrl };
-}
-
       const upsellData = getUpsellDataForOrder(viewed, viewed.viewedAt);
       sendHtml(res, renderOrderReportPage(business, renderFooter(business), viewed, text, inviteCode, upsellData));
     },
@@ -1633,15 +1633,26 @@ function getUpsellDataForOrder(order: Order, viewedAt: string) {
       if (!rewardUsed && typeof body.fromOrderId === 'string' && body.fromOrderId.trim()) {
         const prevOrder = await deps.orders.get(body.fromOrderId.trim());
         if (prevOrder && (prevOrder.status === 'viewed' || prevOrder.status === 'fulfilled' || prevOrder.status === 'paid')) {
-          const pack = upsellFor(prevOrder.productId);
-          if (pack) {
-            const upsellPrice = calculateUpsellPrice(prevOrder.productId, pack.id, prevOrder.viewedAt);
-            const isTargetProduct = pack.id === reading.productId || pack.members.includes(reading.productId);
-            if (isTargetProduct) {
-              const targetAmount = upsellPrice.currentPriceKrw;
-              if (baseAmount > targetAmount) {
-                discountKrw = baseAmount - targetAmount;
-                rewardUsed = upsellPrice.isPromo ? '12시간 한정 이어사기' : '이어사기 묶음 차액';
+          const prevQ = (prevOrder as any).reading?.question || (prevOrder as any).question;
+          const recs = recommendNext(prevOrder.productId, prevQ, prevOrder.viewedAt);
+          const matchedRec = recs.find((r) => r.nextProduct?.id === reading.productId);
+          if (matchedRec) {
+            const targetAmount = matchedRec.currentPriceKrw;
+            if (baseAmount > targetAmount) {
+              discountKrw = baseAmount - targetAmount;
+              rewardUsed = matchedRec.isPromo ? '12시간 한정 이어사기' : '이어사기 특별 할인';
+            }
+          } else {
+            const pack = upsellFor(prevOrder.productId);
+            if (pack) {
+              const upsellPrice = calculateUpsellPrice(prevOrder.productId, pack.id, prevOrder.viewedAt);
+              const isTargetProduct = pack.id === reading.productId || pack.members.includes(reading.productId);
+              if (isTargetProduct) {
+                const targetAmount = upsellPrice.currentPriceKrw;
+                if (baseAmount > targetAmount) {
+                  discountKrw = baseAmount - targetAmount;
+                  rewardUsed = upsellPrice.isPromo ? '12시간 한정 이어사기' : '이어사기 묶음 차액';
+                }
               }
             }
           }

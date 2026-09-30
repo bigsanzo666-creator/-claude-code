@@ -805,29 +805,47 @@ export function renderCheckoutPage(
     var parsedReportHtml = parseReportMarkdown(reportText || '');
 
     var upsellHtml = '';
-    if(upsellData && upsellData.info && upsellData.info.nextProduct){
-      var uInfo = upsellData.info;
-      var nextName = escHtml(uInfo.nextProduct.name);
-      var singlePriceStr = Number(uInfo.singlePriceKrw).toLocaleString('ko-KR');
-      var promoPriceStr = Number(uInfo.currentPriceKrw).toLocaleString('ko-KR');
-      var regularPriceStr = Number(uInfo.regularUpgradeKrw).toLocaleString('ko-KR');
-      var checkoutUrl = escHtml(upsellData.checkoutUrl || ('/checkout?product=' + encodeURIComponent(uInfo.nextProduct.id) + '&fromOrder=' + encodeURIComponent(oid)));
+    var upsellItems = (upsellData && upsellData.items && upsellData.items.length > 0)
+      ? upsellData.items
+      : (upsellData && upsellData.info && upsellData.info.nextProduct)
+        ? [{ info: upsellData.info, reason: upsellData.reason, checkoutUrl: upsellData.checkoutUrl }]
+        : [];
+
+    if(upsellItems.length > 0){
+      var firstInfo = upsellItems[0].info;
+      var cardsHtml = upsellItems.map(function(item){
+        var uInfo = item.info;
+        var nextName = escHtml((uInfo.nextProduct && uInfo.nextProduct.name) || '다음 점사');
+        var singlePriceStr = Number(uInfo.singlePriceKrw).toLocaleString('ko-KR');
+        var currentPriceStr = Number(uInfo.currentPriceKrw).toLocaleString('ko-KR');
+        var regPriceStr = Number(uInfo.regularUpgradeKrw).toLocaleString('ko-KR');
+        var discountText = uInfo.isPromo ? '60%<br>할인' : '40%<br>할인';
+        var cUrl = escHtml(item.checkoutUrl || ('/checkout?product=' + encodeURIComponent(uInfo.nextProduct ? uInfo.nextProduct.id : '') + '&fromOrder=' + encodeURIComponent(oid)));
+        var matchTag = uInfo.isMatched ? '<div class="od-upsell-match-tag">손님 물음에 맞춘 것</div>' : '';
+        var reasonHtml = item.reason ? ('<p class="od-upsell-reason">' + escHtml(item.reason) + '</p>') : '';
+
+        return '<div class="od-upsell-card" data-single="' + uInfo.singlePriceKrw + '" data-promo="' + uInfo.currentPriceKrw + '" data-reg="' + uInfo.regularUpgradeKrw + '">' +
+          '<div class="od-upsell-circle-badge">' + discountText + '</div>' +
+          matchTag +
+          '<h3 class="od-upsell-card-title">' + nextName + '</h3>' +
+          reasonHtml +
+          '<div class="od-upsell-pricing">' +
+            '<b class="od-upsell-price-gold">' + currentPriceStr + '원</b>' +
+            '<span class="od-upsell-price-orig">원래 ' + singlePriceStr + '원</span>' +
+          '</div>' +
+          '<div class="od-upsell-actions">' +
+            '<a class="od-upsell-btn" href="' + cUrl + '">' + nextName + ' 이어보기</a>' +
+          '</div>' +
+        '</div>';
+      }).join('');
 
       upsellHtml = '<section class="od-upsell-box" id="coUpsellSection">' +
         '<div class="od-upsell-header">' +
-          '<span class="od-upsell-badge">다음 이야기 이어보기</span>' +
-          '<span class="od-upsell-timer" id="coUpsellTimer" ' + (!uInfo.isPromo ? 'style="display:none"' : '') + '>남은 시간 ' + escHtml(uInfo.remainingFormatted || '12:00:00') + '</span>' +
+          '<span class="od-upsell-badge">다음 이야기 이어보기 · 12시간 안에만 이 값입니다</span>' +
+          '<span class="od-upsell-timer" id="coUpsellTimer" data-expires="' + escHtml(firstInfo.expiresAt || '') + '">남은 시간 ' + escHtml(firstInfo.remainingFormatted || '12:00:00') + '</span>' +
         '</div>' +
-        '<h2 class="od-upsell-title">' + nextName + '</h2>' +
-        (upsellData.reason ? ('<p class="od-upsell-reason">' + escHtml(upsellData.reason) + '</p>') : '') +
-        '<div id="coUpsellPromoArea" ' + (!uInfo.isPromo ? 'style="display:none"' : '') + '>' +
-          '<p class="od-upsell-pricing">따로 사면 ' + singlePriceStr + '원 → <span class="od-price-now">12시간 한정 ' + promoPriceStr + '원</span></p>' +
-        '</div>' +
-        '<div id="coUpsellExpiredArea" ' + (uInfo.isPromo ? 'style="display:none"' : '') + '>' +
-          '<p class="od-upsell-expired">할인 시간이 지났습니다. ' + regularPriceStr + '원에 이어 보실 수 있습니다.</p>' +
-        '</div>' +
-        '<div class="od-upsell-actions">' +
-          '<a class="od-upsell-btn" id="coUpsellBtn" href="' + checkoutUrl + '">' + nextName + ' 이어보기 (<span id="coUpsellBtnPrice">' + (uInfo.isPromo ? promoPriceStr : regularPriceStr) + '</span>원)</a>' +
+        '<div class="od-upsell-cards">' + cardsHtml + '</div>' +
+        '<div style="margin-top:16px;text-align:center">' +
           '<button type="button" class="od-later-btn" id="coLaterBtn" onclick="var el=document.getElementById(\'coUpsellSection\');if(el)el.style.display=\'none\'">나중에 보기</button>' +
         '</div>' +
       '</section>';
@@ -861,22 +879,23 @@ export function renderCheckoutPage(
     done.style.display = 'block';
     done.innerHTML = html;
 
-    if(upsellData && upsellData.info && upsellData.info.expiresAt && upsellData.info.isPromo){
-      var expTime = new Date(upsellData.info.expiresAt).getTime();
+    if(upsellItems.length > 0 && upsellItems[0].info && upsellItems[0].info.expiresAt){
+      var expTime = new Date(upsellItems[0].info.expiresAt).getTime();
       var tEl = document.getElementById('coUpsellTimer');
-      var pEl = document.getElementById('coUpsellPromoArea');
-      var eEl = document.getElementById('coUpsellExpiredArea');
-      var bPriceEl = document.getElementById('coUpsellBtnPrice');
-      var regPrice = Number(upsellData.info.regularUpgradeKrw).toLocaleString('ko-KR');
+      var cards = document.querySelectorAll('#coUpsellSection .od-upsell-card');
 
       var uTimer = setInterval(function(){
         var diff = expTime - Date.now();
         if(diff <= 0){
           clearInterval(uTimer);
-          if(tEl) tEl.style.display = 'none';
-          if(pEl) pEl.style.display = 'none';
-          if(eEl) eEl.style.display = 'block';
-          if(bPriceEl) bPriceEl.textContent = regPrice;
+          if(tEl) tEl.textContent = '할인 시간이 지났습니다 (40% 할인 적용)';
+          cards.forEach(function(card){
+            var badge = card.querySelector('.od-upsell-circle-badge');
+            if(badge) badge.innerHTML = '40%<br>할인';
+            var goldPrice = card.querySelector('.od-upsell-price-gold');
+            var regVal = card.getAttribute('data-reg');
+            if(goldPrice && regVal) goldPrice.textContent = Number(regVal).toLocaleString('ko-KR') + '원';
+          });
           return;
         }
         var h = Math.floor(diff / 3600000);
