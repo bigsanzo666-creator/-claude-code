@@ -1045,9 +1045,15 @@ export function renderCheckoutPage(
       var marketingConsent = agreeMkt ? agreeMkt.checked : false;
 
       var ownerPass = (function(){ try { return sessionStorage.getItem('nb_pass') || undefined; } catch(e){ return undefined; } })();
+      var fromOrderId = (function(){
+        try {
+          var m = location.search.match(/[?&]fromOrder=([a-zA-Z0-9_-]+)/);
+          return m ? m[1] : undefined;
+        } catch(e){ return undefined; }
+      })();
 
       var created = await post('/api/orders',
-        Object.assign({}, reading, { acknowledgedNotice:true, previewShown:true, ref: adRef, email: email, invite: userInvite, pass: ownerPass, marketingConsent: marketingConsent }));
+        Object.assign({}, reading, { acknowledgedNotice:true, previewShown:true, ref: adRef, email: email, invite: userInvite, pass: ownerPass, marketingConsent: marketingConsent, fromOrderId: fromOrderId }));
       orderId = created.order.id;
 
       if(created.order.amountKrw === 0){

@@ -18,6 +18,7 @@ import {
   generateInviteCode, isValidInviteCode, INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW, COUNT_MIN_ORDER_KRW, REWARD_TIERS,
   hasEntitlement, assessRefund, refundNotice, confirmPayment, refundOrder, failOrder,
   orderable, isOrderable, upsellFor, packagesContaining, makePreview,
+  calculateUpsellPrice, UPSELL_PROMO_PRICE_KRW, UPSELL_PROMO_HOURS,
   HOLIDAY_MAX_MEMBERS, HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, extraMemberKrw,
   WITHDRAWAL_NOTICE, CATEGORIES, type Order, type PaymentGateway, type ProductId,
 } from '../../../packages/commerce/src/index.ts';
@@ -47,7 +48,7 @@ import {
   talk, opening, cleanAsk, cleanFacts, FREE_TURNS, personaOf, taste, chooseAsk,
   type TalkTurn,
 } from '../../../packages/talk/src/index.ts';
-import { buildPayload, buildPayloads, KIND_OF, type ReadingRequest } from './payload.ts';
+import { buildPayload, buildPayloads, KIND_OF, sajuBundle, type ReadingRequest } from './payload.ts';
 import { pickDays, bestPerDay, mergeHours, buildDailyPreviewData, buildMonthPreviewData, parseInputTime, luckyNumbers, analyze } from '../../../packages/saju-rules/src/index.ts';
 import { calculate } from '../../../packages/manseryeok/src/index.ts';
 import { buildPreview, sampleFor, sampleNoticeFor } from './preview.ts';
@@ -1362,7 +1363,40 @@ export function createApi(deps: ApiDeps) {
       await save(order, viewed);
       const buyerEmail = ((order as any).email || (order as any).reading?.birth?.email || '').trim().toLowerCase();
       const inviteCode = buyerEmail ? generateInviteCode(buyerEmail) : null;
-      sendHtml(res, renderOrderReportPage(business, renderFooter(business), viewed, text, inviteCode));
+
+      let upsellData = null;
+      const pack = upsellFor(order.productId);
+      if (pack) {
+        const info = calculateUpsellPrice(order.productId, pack.id, viewed.viewedAt);
+        let reason = '';
+        const reading = (order as any).reading;
+        if (reading?.birth?.date) {
+          try {
+            const { an } = sajuBundle(reading.birth);
+            const gcd = (an as any).godDistribution || (an as any).godCounts;
+            if (order.productId === 'wealth-report') {
+              const gwan = (gcd && (gcd['관성']?.percent ?? gcd['관성'])) || 0;
+              const jae = (gcd && (gcd['재성']?.percent ?? gcd['재성'])) || 0;
+              if (gwan && jae) {
+                reason = `관성 ${gwan}%가 재성 ${jae}%보다 두껍습니다. 벌어들인 재물을 지키고 자리를 세우는 출세운으로 이어 보십시오.`;
+              }
+            }
+            if (!reason && (an as any).dayMaster) {
+              const dm = (an as any).dayMaster;
+              reason = `${dm.name || dm.element}의 결을 타고난 손님께 꼭 필요한 다음 흐름을 짚어 드립니다.`;
+            }
+          } catch { /* 계산 오류 시 기본 문구 사용 */ }
+        }
+        if (!reason) {
+          const hereProduct = CATALOG[order.productId as keyof typeof CATALOG];
+          reason = `이미 확인하신 ${hereProduct ? hereProduct.name : '리포트'}의 결을 완성하는 다음 이야기입니다.`;
+        }
+        const nextId = info.nextProduct ? info.nextProduct.id : order.productId;
+        const checkoutUrl = `/checkout?product=${encodeURIComponent(nextId)}&fromOrder=${encodeURIComponent(order.id)}`;
+        upsellData = { info, reason, checkoutUrl };
+      }
+
+      sendHtml(res, renderOrderReportPage(business, renderFooter(business), viewed, text, inviteCode, upsellData));
     },
 
     'GET /robots.txt': async (_req, res) => {
@@ -1546,6 +1580,24 @@ export function createApi(deps: ApiDeps) {
             if (baseAmount >= INVITE_MIN_ORDER_KRW) {
               discountKrw = INVITE_DISCOUNT_KRW;
               appliedInviteCode = inviteCode;
+            }
+          }
+        }
+      }
+
+      if (!rewardUsed && typeof body.fromOrderId === 'string' && body.fromOrderId.trim()) {
+        const prevOrder = await deps.orders.get(body.fromOrderId.trim());
+        if (prevOrder && (prevOrder.status === 'viewed' || prevOrder.status === 'fulfilled' || prevOrder.status === 'paid')) {
+          const pack = upsellFor(prevOrder.productId);
+          if (pack) {
+            const upsellPrice = calculateUpsellPrice(prevOrder.productId, pack.id, prevOrder.viewedAt);
+            const isTargetProduct = pack.id === reading.productId || pack.members.includes(reading.productId);
+            if (isTargetProduct) {
+              const targetAmount = upsellPrice.currentPriceKrw;
+              if (baseAmount > targetAmount) {
+                discountKrw = baseAmount - targetAmount;
+                rewardUsed = upsellPrice.isPromo ? '12시간 한정 이어사기' : '이어사기 묶음 차액';
+              }
             }
           }
         }

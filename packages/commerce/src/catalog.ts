@@ -586,3 +586,16 @@ export function makePreview(fullText: string, ratio: number): string {
   }
   return out || paragraphs[0] || '';
 }
+
+/**
+ * 12시간 한정 이어사기(업셀) 특가.
+ *
+ * 돈그릇(14,900원)을 산 손님에게 묶음 「늘봄 돈과 일」(23,800원)의 남은 값(8,900원)을
+ * 리포트 처음 연 때부터 12시간 동안 5,900원으로 깎아 드린다.
+ * 값은 반드시 여기서만 온다.
+ */
+export const UPSELL_PROMO_PRICE_KRW = 5900;
+
+/** 이어사기 한정 할인 유효 시간 (12시간) */
+export const UPSELL_PROMO_HOURS = 12;
+

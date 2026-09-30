@@ -26,6 +26,20 @@ body{margin:0;padding:0;background:#18151f;color:#f0eaf7;font-family:-apple-syst
 .od-copy-done{font-size:14px;color:#4ade80;margin:6px 0 0}
 .od-report-box{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:24px 20px;margin-top:16px;white-space:pre-wrap;word-break:break-word;font-size:16px;line-height:1.85;color:#e8e2f0}
 .od-order-info{font-size:14px;color:#9a93a6;margin-top:8px}
+.od-upsell-box{margin-top:32px;padding:24px 20px;background:rgba(212,175,55,.05);border:1px solid rgba(212,175,55,.25);border-radius:12px}
+.od-upsell-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.od-upsell-badge{display:inline-block;padding:4px 10px;background:rgba(212,175,55,.2);color:#f3e5ab;font-size:12px;font-weight:700;border-radius:4px}
+.od-upsell-timer{font-size:14px;color:#f3e5ab;font-family:monospace;font-weight:600}
+.od-upsell-title{font-size:18px;font-weight:800;color:#fff;margin:0 0 8px}
+.od-upsell-reason{font-size:14.5px;color:#d8d2e5;margin:0 0 16px;line-height:1.6}
+.od-upsell-pricing{margin:0 0 20px;font-size:15px;color:#b9b2c6}
+.od-price-strike{text-decoration:line-through;color:#8a8398;margin-right:8px}
+.od-price-now{font-size:18px;font-weight:800;color:#f3e5ab}
+.od-upsell-expired{font-size:14px;color:#b9b2c6;margin-bottom:16px}
+.od-upsell-actions{display:flex;gap:12px;margin-top:16px}
+.od-upsell-btn, .od-later-btn{flex:1 1 50%;padding:14px 16px;font-size:15px;font-weight:700;text-align:center;border-radius:8px;text-decoration:none;box-sizing:border-box;display:inline-block;cursor:pointer;border:1px solid rgba(212,175,55,.6)}
+.od-upsell-btn{background:#d4af37;color:#18151f}
+.od-later-btn{background:rgba(212,175,55,.15);color:#f3e5ab}
 `;
 
 export function renderOrderNotFoundPage(business: BusinessInfo, footer: string): string {
@@ -108,12 +122,53 @@ export function renderOrderReportPage(
   order: Order,
   reportText: string,
   inviteCode?: string | null,
+  upsellData?: {
+    info: import('../../../packages/commerce/src/index.ts').UpsellPriceInfo;
+    reason: string;
+    checkoutUrl: string;
+  } | null,
 ): string {
   const site = business.SITE_NAME || '늘봄사주';
   const siteUrl = (business.SITE_URL || 'https://neulbomsaju.co.kr').replace(/\/+$/, '');
   const permalink = `${siteUrl}/order/${order.id}`;
   const product = CATALOG[order.productId as keyof typeof CATALOG];
   const title = product ? product.name : '사주 리포트';
+
+  let upsellHtml = '';
+  if (upsellData && upsellData.info && upsellData.info.nextProduct) {
+    const { info, reason, checkoutUrl } = upsellData;
+    const nextName = info.nextProduct.name;
+    const singlePriceStr = info.singlePriceKrw.toLocaleString('ko-KR');
+    const promoPriceStr = info.currentPriceKrw.toLocaleString('ko-KR');
+    const regularPriceStr = info.regularUpgradeKrw.toLocaleString('ko-KR');
+
+    upsellHtml = `
+  <section class="od-upsell-box" id="odUpsellSection">
+    <div class="od-upsell-header">
+      <span class="od-upsell-badge">다음 이야기 이어보기</span>
+      <span class="od-upsell-timer" id="odUpsellTimer" ${!info.isPromo ? 'style="display:none"' : ''}>남은 시간 ${esc(info.remainingFormatted)}</span>
+    </div>
+    <h2 class="od-upsell-title">${esc(nextName)}</h2>
+    ${reason ? `<p class="od-upsell-reason">${esc(reason)}</p>` : ''}
+
+    <div id="odUpsellPromoArea" ${!info.isPromo ? 'style="display:none"' : ''}>
+      <p class="od-upsell-pricing">
+        따로 사면 ${singlePriceStr}원 → <span class="od-price-now">12시간 한정 ${promoPriceStr}원</span>
+      </p>
+    </div>
+
+    <div id="odUpsellExpiredArea" ${info.isPromo ? 'style="display:none"' : ''}>
+      <p class="od-upsell-expired">
+        할인 시간이 지났습니다. ${regularPriceStr}원에 이어 보실 수 있습니다.
+      </p>
+    </div>
+
+    <div class="od-upsell-actions">
+      <a class="od-upsell-btn" id="odUpsellBtn" href="${esc(checkoutUrl)}">${esc(nextName)} 이어보기 (<span id="odUpsellBtnPrice">${info.isPromo ? promoPriceStr : regularPriceStr}</span>원)</a>
+      <button type="button" class="od-later-btn" id="odLaterBtn" onclick="document.getElementById('odUpsellSection').style.display='none'">나중에 보기</button>
+    </div>
+  </section>`;
+  }
 
   return `<!doctype html>
 <html lang="ko">
@@ -140,6 +195,7 @@ export function renderOrderReportPage(
   </div>
 
   <article class="od-report-box">${esc(reportText)}</article>
+  ${upsellHtml}
   ${inviteCode ? renderInviteBadge(inviteCode) : ''}
 </main>
 ${footer}
@@ -160,6 +216,37 @@ ${footer}
         if(msg) msg.style.display = 'block';
       }catch(e){}
     };
+  }
+
+  var expiresAt = ${JSON.stringify(upsellData?.info?.expiresAt || '')};
+  var isPromo = ${upsellData?.info?.isPromo ? 'true' : 'false'};
+  var regularPriceStr = ${JSON.stringify(upsellData?.info?.regularUpgradeKrw?.toLocaleString('ko-KR') || '8,900')};
+  if (expiresAt && isPromo) {
+    var timerEl = document.getElementById('odUpsellTimer');
+    var promoEl = document.getElementById('odUpsellPromoArea');
+    var expEl = document.getElementById('odUpsellExpiredArea');
+    var btnPriceEl = document.getElementById('odUpsellBtnPrice');
+    var expTime = new Date(expiresAt).getTime();
+
+    var updateTimer = function() {
+      var now = Date.now();
+      var diff = expTime - now;
+      if (diff <= 0) {
+        if (timerEl) timerEl.style.display = 'none';
+        if (promoEl) promoEl.style.display = 'none';
+        if (expEl) expEl.style.display = 'block';
+        if (btnPriceEl) btnPriceEl.textContent = regularPriceStr;
+        return;
+      }
+      var h = Math.floor(diff / 3600000);
+      var m = Math.floor((diff % 3600000) / 60000);
+      var s = Math.floor((diff % 60000) / 1000);
+      var pad = function(n) { return (n < 10 ? '0' : '') + n; };
+      if (timerEl) {
+        timerEl.textContent = '남은 시간 ' + pad(h) + ':' + pad(m) + ':' + pad(s);
+      }
+    };
+    setInterval(updateTimer, 1000);
   }
 })();
 </script>

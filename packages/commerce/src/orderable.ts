@@ -17,7 +17,7 @@
  * 정가를 지어내지 않는다.
  */
 
-import { CATALOG, type ProductId } from './catalog.ts';
+import { CATALOG, UPSELL_PROMO_PRICE_KRW, UPSELL_PROMO_HOURS, type ProductId } from './catalog.ts';
 import { PACKAGES, bundleMath, type PackageId } from './packages.ts';
 
 export interface Orderable {
@@ -108,3 +108,85 @@ export function upsellFor(productId: string): Orderable | null {
 export function upgradeCostKrw(productId: string, packageId: string): number {
   return orderable(packageId).priceKrw - orderable(productId).priceKrw;
 }
+
+export interface UpsellPriceInfo {
+  /** 다음으로 내밀 단품 원래 판매가 (예: 14,900원) */
+  singlePriceKrw: number;
+  /** 정규 묶음 차액 (예: 8,900원) */
+  regularUpgradeKrw: number;
+  /** 현재 적용가 (12시간 내 5,900원, 만료 후 8,900원) */
+  currentPriceKrw: number;
+  /** 12시간 할인 적용 중인지 */
+  isPromo: boolean;
+  /** 만료 시각 (ISO string) */
+  expiresAt: string;
+  /** 남은 밀리초 */
+  remainingMs: number;
+  /** 남은 시간 포맷: hh:mm:ss */
+  remainingFormatted: string;
+  /** 다음으로 내밀 상품 */
+  nextProduct: {
+    id: ProductId;
+    name: string;
+    priceKrw: number;
+  } | null;
+  /** 대상 묶음 */
+  targetPackage: {
+    id: PackageId;
+    name: string;
+    priceKrw: number;
+  } | null;
+}
+
+/**
+ * 리포트 첫 열람(viewedAt) 기준 12시간 한정 이어사기 가격 계산.
+ *
+ * 12시간 안이면 5,900원, 지나면 정규 묶음 차액(8,900원 등)으로 갈린다.
+ * 어떤 경우에도 단품값보다 비싸지지 않는다.
+ * 값은 반드시 catalog.ts 에서 온다.
+ */
+export function calculateUpsellPrice(
+  productId: string,
+  targetPackageId: string,
+  viewedAt: Date | string | null | undefined,
+  now: Date = new Date(),
+): UpsellPriceInfo {
+  const pack = PACKAGES[targetPackageId as PackageId];
+  const nextMemberId = pack?.members.find((m) => m !== productId) ?? (pack?.members[0] as ProductId);
+  const nextProduct = nextMemberId && CATALOG[nextMemberId] ? CATALOG[nextMemberId] : null;
+  const singlePriceKrw = nextProduct ? nextProduct.priceKrw : CATALOG[productId as ProductId]?.priceKrw ?? 14900;
+
+  const regularUpgradeKrw = upgradeCostKrw(productId, targetPackageId);
+
+  const viewedTime = viewedAt ? new Date(viewedAt).getTime() : now.getTime();
+  const expiresTime = viewedTime + UPSELL_PROMO_HOURS * 60 * 60 * 1000;
+  const nowTime = now.getTime();
+
+  const isPromo = nowTime < expiresTime;
+  const remainingMs = Math.max(0, expiresTime - nowTime);
+
+  const hours = Math.floor(remainingMs / 3600000);
+  const minutes = Math.floor((remainingMs % 3600000) / 60000);
+  const seconds = Math.floor((remainingMs % 60000) / 1000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const remainingFormatted = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+
+  let currentPriceKrw = isPromo ? UPSELL_PROMO_PRICE_KRW : regularUpgradeKrw;
+  // 어떤 경우에도 단품값보다 비싸지지 않는다
+  if (currentPriceKrw > singlePriceKrw) {
+    currentPriceKrw = singlePriceKrw;
+  }
+
+  return {
+    singlePriceKrw,
+    regularUpgradeKrw,
+    currentPriceKrw,
+    isPromo,
+    expiresAt: new Date(expiresTime).toISOString(),
+    remainingMs,
+    remainingFormatted,
+    nextProduct: nextProduct ? { id: nextProduct.id, name: nextProduct.name, priceKrw: nextProduct.priceKrw } : null,
+    targetPackage: pack ? { id: pack.id, name: pack.name, priceKrw: pack.priceKrw } : null,
+  };
+}
+
