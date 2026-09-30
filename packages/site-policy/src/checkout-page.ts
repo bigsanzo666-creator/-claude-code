@@ -348,25 +348,28 @@ export function renderCheckoutPage(
       ${family}
       ${photoSection}
 
-      <p class="co-sec">받으실 곳</p>
+      <p class="co-sec">연락받으실 곳</p>
       <div class="co-f"><label for="email">이메일</label>
         <input type="email" name="email" id="email" autocomplete="email" placeholder="example@email.com" required>
-        <span class="co-hint">리포트를 보내 드릴 주소입니다</span></div>
+        <span class="co-hint">주문 확인과 문의 응대에 씁니다</span></div>
       <div class="co-f"><label for="phone">휴대전화</label>
         <input type="tel" name="phone" id="phone" autocomplete="tel" placeholder="01012345678" required>
         <span class="co-hint">결제 확인 및 안내에 필요합니다</span></div>
 
       <div class="co-note">
-        <p>이 상품은 디지털콘텐츠입니다. 결제하시면 <b>바로</b> 보실 수 있고,
-        늦어도 ${DELIVERY_DUE_DAYS}일 이내에 드립니다.</p>
+        <p>이 상품은 디지털콘텐츠입니다. 결제하시면 <b>이 화면에서 바로</b> 보실 수 있고,
+        늦어도 ${DELIVERY_DUE_DAYS}일 이내에 드립니다.
+        결제가 끝나면 <b>다시 볼 수 있는 주소</b>를 함께 드립니다 — 그 주소를 저장해 두시면
+        언제든 다시 보실 수 있습니다.</p>
         <p>결제 후 ${WITHDRAWAL_WINDOW_DAYS}일 이내이고 리포트를 열람하지 않으셨다면
         전액 돌려드립니다. <b>리포트 전문을 열람하신 뒤에는 청약철회가 제한됩니다.</b></p>
-        <p>이름·생년월일·이메일·휴대전화는 리포트를 만들어 보내 드리는 데에만 씁니다.</p>
+        <p>이름·생년월일은 리포트를 만드는 데에만 쓰고, 이메일·휴대전화는
+        주문 확인과 문의 응대에만 씁니다.</p>
       </div>
 
       <label class="co-agree">
         <input type="checkbox" id="coAgree">
-        <span><b>[필수]</b> 위 안내를 읽었고, 리포트 결과 전달 및 전문을 열람하면 청약철회가 제한된다는 점에 동의합니다.</span>
+        <span><b>[필수]</b> 위 안내를 읽었고, 리포트 전문을 열람하면 청약철회가 제한된다는 점에 동의합니다.</span>
       </label>
       <label class="co-agree optional">
         <input type="checkbox" id="coAgreeMarketing">
