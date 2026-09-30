@@ -331,6 +331,10 @@ ${cards}
         <span class="wd-free-t">먼저, 무료로 보는 내 사주</span>
         <span class="wd-free-go">공짜로 보기 →</span>
       </button>
+      <a href="/dream" class="wd-free" id="stDream" style="margin-top:10px;text-decoration:none;box-sizing:border-box;">
+        <span class="wd-free-t">간밤에 꾼 꿈, 무료로 풀어 드립니다</span>
+        <span class="wd-free-go">공짜로 보기 →</span>
+      </a>
     </div>
 ${renderPeeks(faces, clips, clipWebms)}
   </section>`;

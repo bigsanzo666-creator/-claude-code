@@ -662,6 +662,11 @@ body{background:var(--nb-paper)}
 .pr-badge-launch{display:inline-block;padding:2px 6px;margin-left:6px;font-size:11px;font-weight:700;color:#12121c;background:#d4af37;border-radius:4px;vertical-align:middle;letter-spacing:-0.2px}
 .pr-regular-note{font-size:12px;color:rgba(243,229,171,0.7);margin-top:4px;font-weight:400}
 .pd-launch-bar{background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.35);color:#f3e5ab;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:12px;text-align:center;line-height:1.5}
+.spirits-free-duo{display:flex;gap:12px;margin:20px auto 20px;max-width:440px;width:100%;box-sizing:border-box}
+.spirits-free-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 14px;border:1.5px solid #d4af37;border-radius:10px;background:rgba(212,175,55,0.08);color:#f3e5ab;text-decoration:none;transition:background 0.2s,transform 0.15s;box-sizing:border-box}
+.spirits-free-btn:hover{background:rgba(212,175,55,0.18);transform:translateY(-1px)}
+.spirits-free-badge{font-size:16px;font-weight:800;color:#d4af37;letter-spacing:-0.3px}
+.spirits-free-text{font-size:14px;font-weight:600;color:#f5f5f7}
 .pr-soon{display:block;margin:2px 0 0;font-size:14px;color:var(--nb-ink-3);letter-spacing:0.2px}
 .pr-save{display:block;margin-top:4px;font-size:15px;color:var(--nb-ink-3);letter-spacing:0.2px}
 
@@ -1519,6 +1524,16 @@ ${cards}
 아래는 그보다 깊이 들어가는 유료 리포트입니다.`
     : `사주 명식·궁합·관상·손금 풀이는 결제 없이 보실 수 있습니다.
 아래는 신령이 한 갈래씩 깊이 들여다보는 것들입니다.`}</p>
+<div class="spirits-free-duo">
+  <a href="/#stFree" class="spirits-free-btn">
+    <span class="spirits-free-badge">무료</span>
+    <span class="spirits-free-text">내 사주 여덟 글자</span>
+  </a>
+  <a href="/dream" class="spirits-free-btn">
+    <span class="spirits-free-badge">무료</span>
+    <span class="spirits-free-text">꿈해몽</span>
+  </a>
+</div>
 <div class="pr-rule"></div>
 </div>
 ${groups}

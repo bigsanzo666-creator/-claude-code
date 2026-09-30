@@ -1135,6 +1135,16 @@ section('11. 문 — 신령계 들어가는 곳');
     !holidayPay.includes('서버 오픈 기념가입니다.'));
 }
 
+// ─── 무료 꿈해몽 노출 검증 ────────────────────────────────
+{
+  section('무료 꿈해몽 노출');
+  const homeStageHtml = renderStage(full);
+  const productsPageHtml = renderProductsPage(full, true, '');
+
+  check('꿈해몽으로 가는 길이가 맨 밑 링크 말고도 있다',
+    homeStageHtml.includes('href="/dream"') && productsPageHtml.includes('href="/dream"'));
+}
+
 // ─── 2026-09-30 다크패턴 방지 및 이어사기 버튼 검증 ─────────────────────────
 {
   section('다크패턴 방지 — 거짓 급함 금지 및 이어사기 단추 동등성');

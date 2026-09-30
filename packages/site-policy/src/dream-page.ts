@@ -74,7 +74,11 @@ function readingSection(reading: DreamReading | null): string {
     <p class="dr-head">${esc(reading.head)}</p>
 ${cards}
     <p class="dr-cut">${strong(reading.cut)}</p>
-    <a class="dr-next" href="/">여덟 글자 무료로 펼쳐 보기 →</a>
+    <div class="dr-upsell-month" style="margin-top:24px;padding:18px;background:rgba(212,175,55,0.08);border:1px solid #d4af37;border-radius:8px;text-align:center;">
+      <p style="margin:0 0 10px;font-size:15px;color:#f3e5ab;font-weight:600;">이 꿈이 어느 때를 가리키는지 사주로 마저 보기</p>
+      <a class="dr-next" href="/products/month-report" style="display:inline-block;padding:11px 20px;background:#d4af37;color:#12121c;text-decoration:none;font-weight:700;border-radius:6px;font-size:15px;">한 달 운세로 시기 짚어보기 →</a>
+    </div>
+    <a class="dr-next" href="/" style="margin-top:14px;display:inline-block;">여덟 글자 무료로 펼쳐 보기 →</a>
   </div>`;
 }
 

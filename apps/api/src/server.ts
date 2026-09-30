@@ -266,6 +266,16 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
         </div>
         <h2 class="spirits-menu-title">어떤 물음을 품고 오셨습니까</h2>
         <p class="spirits-menu-desc">상품을 누르시면 그 자리에서 신령이 손님 사주를 조금 봐 드립니다</p>
+        <div class="spirits-free-duo">
+          <a href="/#stFree" class="spirits-free-btn" id="btnFreeEightLetters">
+            <span class="spirits-free-badge">무료</span>
+            <span class="spirits-free-text">내 사주 여덟 글자</span>
+          </a>
+          <a href="/dream" class="spirits-free-btn" id="btnFreeDream">
+            <span class="spirits-free-badge">무료</span>
+            <span class="spirits-free-text">꿈해몽</span>
+          </a>
+        </div>
       </div>
 
       <!-- 갈래 탭 11개 (가로 스크롤) -->
@@ -451,6 +461,11 @@ body {
 .nb-launch-banner{width:100%;background:#2a2010;border-bottom:1px solid #d4af37;color:#f3e5ab;padding:10px 16px;box-sizing:border-box;font-size:14px;font-weight:600;z-index:9999;position:relative}
 .nb-launch-banner-content{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:center}
 .nb-launch-banner-close{background:transparent;border:none;color:#f3e5ab;font-size:16px;cursor:pointer;padding:4px 8px;line-height:1}
+.spirits-free-duo{display:flex;gap:12px;margin:16px auto 12px;max-width:440px;width:100%;box-sizing:border-box}
+.spirits-free-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 14px;border:1.5px solid #d4af37;border-radius:10px;background:rgba(212,175,55,0.08);color:#f3e5ab;text-decoration:none;transition:background 0.2s,transform 0.15s;box-sizing:border-box}
+.spirits-free-btn:hover{background:rgba(212,175,55,0.18);transform:translateY(-1px)}
+.spirits-free-badge{font-size:16px;font-weight:800;color:#d4af37;letter-spacing:-0.3px}
+.spirits-free-text{font-size:14px;font-weight:600;color:#f5f5f7}
 ${FOOTER_CSS}
 </style>
 <script>
