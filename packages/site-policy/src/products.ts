@@ -15,7 +15,7 @@ import { renderMonthReportProductPage } from './month-product-page.ts';
  *    다르면 그 자체가 사고다.
  */
 
-import { CATALOG, CATEGORIES, productsIn, type Product } from '../../commerce/src/catalog.ts';
+import { CATALOG, CATEGORIES, productsIn, isLaunchSale, type Product } from '../../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath, type BundlePackage } from '../../commerce/src/packages.ts';
 import { WITHDRAWAL_WINDOW_DAYS, DELIVERY_DUE_DAYS } from '../../commerce/src/refund.ts';
 import { type BusinessInfo, show } from './business.ts';
@@ -510,13 +510,17 @@ function productCard(
   // 21개를 낱장으로 늘어놓으면 아무도 끝까지 못 본다. 그래서 목록은 **그림 격자**다 —
   // 후킹 질문·이름·값만 싣고, 설명과 담기는 내용은 상세 페이지가 맡는다.
   // alt 를 비우는 것은 장식이기 때문이다. 바로 아래에 상품 이름이 글자로 있다.
+  const isSale = isLaunchSale() && product.regularKrw && product.regularKrw !== product.priceKrw;
+  const launchBadge = isSale ? ' <span class="pr-badge-launch">서버 오픈 기념가</span>' : '';
+  const regularNote = isSale ? `<div class="pr-regular-note">11월 1일부터 ${won(product.regularKrw!)}</div>` : '';
+
   return `<article class="pr-card">
   <a class="pr-link" href="/products/${esc(product.id)}">
     ${shot(product, images)}
     ${product.hook === groupQuestion ? '' : `<span class="pr-hook">${esc(product.hook)}</span>`}
     <h3>${esc(product.name)}</h3>
   </a>
-  ${prices ? `<p class="pr-foot"><span class="pr-price">${won(product.priceKrw)}</span><span class="pr-vat"> (부가세 포함)</span>${
+  ${prices ? `<p class="pr-foot"><span class="pr-price">${won(product.priceKrw)}</span>${launchBadge}<span class="pr-vat"> (부가세 포함)</span>${regularNote}${
     ready ? '' : '<span class="pr-soon">결제 준비 중</span>'}</p>` : ''}
 </article>`;
 }
@@ -530,6 +534,10 @@ function productCard(
  */
 function featureCard(product: Product, ready: boolean, images: ProductImages, prices = true): string {
   const items = (CONTENTS[product.id] ?? []).map((t) => `<li>${bold(t)}</li>`).join('');
+  const isSale = isLaunchSale() && product.regularKrw && product.regularKrw !== product.priceKrw;
+  const launchBadge = isSale ? ' <span class="pr-badge-launch">서버 오픈 기념가</span>' : '';
+  const regularNote = isSale ? `<div class="pr-regular-note">11월 1일부터 ${won(product.regularKrw!)}</div>` : '';
+
   return `<article class="pr-card pr-wide">
   <a class="pr-link" href="/products/${esc(product.id)}">
     ${shot(product, images)}
@@ -539,7 +547,7 @@ function featureCard(product: Product, ready: boolean, images: ProductImages, pr
       <h3>${esc(product.name)}</h3>
       <span class="pr-desc">${esc(product.description)}</span>
       ${items ? `<ul class="pr-list">${items}</ul>` : ''}
-      ${prices ? `<span class="pr-foot"><span class="pr-price">${won(product.priceKrw)}</span><span class="pr-vat"> (부가세 포함)</span>${
+      ${prices ? `<span class="pr-foot"><span class="pr-price">${won(product.priceKrw)}</span>${launchBadge}<span class="pr-vat"> (부가세 포함)</span>${regularNote}${
         ready ? '' : '<span class="pr-soon">결제 준비 중</span>'}</span>` : ''}
     </span>
   </a>
@@ -651,6 +659,9 @@ body{background:var(--nb-paper)}
 .pr-foot{display:block;margin:7px 0 0;font-size:15px;color:var(--nb-ink-2);font-variant-numeric:tabular-nums;letter-spacing:0.2px}
 .pr-price{font-size:16px;color:var(--nb-ink)}
 .pr-vat{font-size:14px;color:var(--nb-ink-3);letter-spacing:0.2px}
+.pr-badge-launch{display:inline-block;padding:2px 6px;margin-left:6px;font-size:11px;font-weight:700;color:#12121c;background:#d4af37;border-radius:4px;vertical-align:middle;letter-spacing:-0.2px}
+.pr-regular-note{font-size:12px;color:rgba(243,229,171,0.7);margin-top:4px;font-weight:400}
+.pd-launch-bar{background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.35);color:#f3e5ab;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:12px;text-align:center;line-height:1.5}
 .pr-soon{display:block;margin:2px 0 0;font-size:14px;color:var(--nb-ink-3);letter-spacing:0.2px}
 .pr-save{display:block;margin-top:4px;font-size:15px;color:var(--nb-ink-3);letter-spacing:0.2px}
 
@@ -1672,6 +1683,10 @@ export function renderProductPage(
   }
 
   const cleanHook = (product.hook || '').replace(/^[\"\'\s]+|[\"\'\s]+$/g, '');
+  const isSale = isLaunchSale() && product.regularKrw && product.regularKrw !== product.priceKrw;
+  const launchBanner = isSale
+    ? `<div class="pd-launch-bar">서버 오픈 기념 — 지금 25% 싸게 드립니다 · 11월 1일부터 ${won(product.regularKrw!)}</div>`
+    : '';
 
   return `<!doctype html>
 <html lang="ko">
@@ -1738,6 +1753,7 @@ ${product.id === 'family-holiday-report' ? renderFamilyWhy() : renderWhy()}
 ${renderGlossary(product.id)}
 
   <div class="pd-buy">
+    ${launchBanner}
     ${product.needsPartner ? '<p class="pd-also">두 사람의 생년월일이 필요합니다.</p>' : ''}
     ${product.needsRange ? '<p class="pd-also">원하시는 기간을 결제 화면에서 정하시면 됩니다.</p>' : ''}
     ${product.needsPick

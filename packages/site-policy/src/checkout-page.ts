@@ -25,7 +25,7 @@ import { PLACES } from '../../saju-rules/src/index.ts';
 import { renderSocialHead } from './social.ts';
 import { FONT_LINK, PRODUCTS_CSS } from './products.ts';
 import { renderInviteBadge, REFERRAL_BADGE_CSS } from './referral-badge.ts';
-import type { Product } from '../../commerce/src/catalog.ts';
+import { isLaunchSale, type Product } from '../../commerce/src/catalog.ts';
 import { WITHDRAWAL_WINDOW_DAYS, DELIVERY_DUE_DAYS } from '../../commerce/src/refund.ts';
 import {
   HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, HOLIDAY_MAX_MEMBERS,
@@ -218,6 +218,9 @@ ${UPSELL_CSS}
  * 안 올리면 그 순간 거짓말이 된다.
  */
 function priceNote(product: Product): string {
+  if (isLaunchSale() && product.regularKrw && product.regularKrw !== product.priceKrw) {
+    return `<p class="co-pricenote">서버 오픈 기념가입니다. 11월 1일부터 <b>${product.regularKrw.toLocaleString('ko-KR')}원</b>으로 올라갑니다.</p>`;
+  }
   if ((product as any).isPackage || (product.id in PACKAGES)) {
     return `<p class="co-pricenote">묶음 가격 옆의 「따로 사면」은 <strong>구성 상품을 실제로 낱개 판매하는 가격의 합계</strong>입니다.
     판매한 적 없는 정가를 지어내 할인율을 부풀리지 않습니다.</p>`;

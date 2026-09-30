@@ -1093,19 +1093,46 @@ section('11. 문 — 신령계 들어가는 곳');
     renderCheckoutPage({} as any, '', p, { storeId: 's', channelKey: 'c' })
   );
 
-  const pastDateRegex = /\d+월\s*\d+일부터/;
-  const hasPastDatePromise = [...allProductPages, ...allCheckoutPages].some((html) =>
-    pastDateRegex.test(html)
-  );
+  const pastDateMatches: string[] = [];
+  for (const html of [...allProductPages, ...allCheckoutPages]) {
+    const regex = /(\d+)월\s*(\d+)일부터/g;
+    let m;
+    while ((m = regex.exec(html)) !== null) {
+      const month = Number(m[1]);
+      const day = Number(m[2]);
+      // 터진 뒤에 적은 것 (2026-09-30): 「9월 28일부터 39,900원」 등 지난 날짜를 약속으로 둔 것 검출
+      if (month < 9 || (month === 9 && day <= 30)) {
+        pastDateMatches.push(m[0]);
+      }
+    }
+  }
 
-  check('지난 날짜를 약속으로 적어 놓은 곳이 없다', !hasPastDatePromise);
+  check('지난 날짜를 약속으로 적어 놓은 곳이 없다', pastDateMatches.length === 0);
 
   check('명절 가족운세 결제 화면에 지난 인상 예고 문구가 없다',
     allCheckoutPages.every((html) => !html.includes('9월 28일') && !html.includes('39,900원으로 올라갑니다')));
 
+  check('판 적 없는 값에 취소선을 긋지 않는다',
+    [...allProductPages, ...allCheckoutPages].every((html) =>
+      !/<del>|<s>|text-decoration:\s*line-through|line-through/.test(html)));
+
   check('어디에도 취소선 정가·할인율·거짓 급함이 없다',
     allProductPages.every((html) =>
-      !/<del>|<s>|할인율|% 할인|%할인|오늘 마감|지금만|선착순|마감 임박/.test(html)));
+      !/<del>|<s>|할인율|오늘 마감|지금만|선착순|마감 임박/.test(html)));
+
+  // 오픈 기념가 표시 검증
+  const samplePage = renderProductPage(CATALOG['wealth-report'], full, true, '');
+  const samplePay = renderCheckoutPage({} as any, '', CATALOG['wealth-report'], { storeId: 's', channelKey: 'c' });
+  check('상품 상세 화면에 오픈 기념가 띠가 나온다',
+    samplePage.includes('서버 오픈 기념 — 지금 25% 싸게 드립니다 · 11월 1일부터 18,900원'));
+  check('상품 결제 화면에 오픈 기념가 문구가 나온다',
+    samplePay.includes('서버 오픈 기념가입니다. 11월 1일부터 <b>18,900원</b>으로 올라갑니다.'));
+
+  const holidayPage = renderProductPage(CATALOG['family-holiday-report'], full, true, '');
+  const holidayPay = renderCheckoutPage({} as any, '', CATALOG['family-holiday-report'], { storeId: 's', channelKey: 'c' });
+  check('명절 가족운세에는 오픈 기념가 띠와 결제 문구가 나오지 않는다',
+    !holidayPage.includes('서버 오픈 기념 — 지금 25% 싸게 드립니다') &&
+    !holidayPay.includes('서버 오픈 기념가입니다.'));
 }
 
 // ─── 2026-09-30 다크패턴 방지 및 이어사기 버튼 검증 ─────────────────────────

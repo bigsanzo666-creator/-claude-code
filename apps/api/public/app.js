@@ -1013,6 +1013,9 @@ document.addEventListener('DOMContentLoaded', () => {
           const hookText = rawHook.replace(/^[\"'\s]+|[\"'\s]+$/g, '');
           const prodCat = CATEGORIES.find(c => c.name === p.category) || CATEGORIES[0];
           const spiritName = prodCat.spirit.name;
+          const isSale = window.__IS_LAUNCH_SALE__ && p.regularKrw && p.regularKrw !== p.priceKrw;
+          const priceStr = p.priceKrw ? Number(p.priceKrw).toLocaleString() + '원' : '';
+          const regularStr = isSale ? '11월 1일부터 ' + Number(p.regularKrw).toLocaleString() + '원' : '';
           return [
             '<article class="product-card" data-product-id="' + p.id + '" tabindex="0" role="button" aria-label="' + p.name + '">',
             '  <img src="/img/products/' + p.id + '" alt="' + p.name + '" class="product-card-bg" decoding="async"'
@@ -1023,6 +1026,11 @@ document.addEventListener('DOMContentLoaded', () => {
             '    <div class="product-card-spirit">' + spiritName + '</div>',
             '    <h3 class="product-card-title">' + p.name + '</h3>',
             '    <p class="product-card-hook">"' + hookText + '"</p>',
+            '    <div class="product-card-price-box" style="margin-top:6px;">',
+            (priceStr ? '      <span class="product-card-price" style="font-size:14px;color:#d4af37;font-weight:700;">' + priceStr + '</span>' : ''),
+            (isSale ? '      <span class="pr-badge-launch" style="display:inline-block;padding:2px 6px;margin-left:6px;font-size:11px;font-weight:700;color:#12121c;background:#d4af37;border-radius:4px;vertical-align:middle;">서버 오픈 기념가</span>' : ''),
+            (isSale ? '      <div class="pr-regular-note" style="font-size:12px;color:rgba(243,229,171,0.7);margin-top:2px;">' + regularStr + '</div>' : ''),
+            '    </div>',
             '  </div>',
             '</article>'
           ].join('\n');
@@ -1578,7 +1586,13 @@ document.addEventListener('DOMContentLoaded', () => {
         consultFields.innerHTML = `
           <div style="background:rgba(18,18,28,0.95);border:1px solid rgba(212,175,55,0.35);border-radius:8px;padding:14px;margin-top:8px;text-align:left;">
             <div style="font-size:15px;font-weight:700;color:#f3e5ab;margin-bottom:4px;">${pInfo.name}</div>
-            <div style="font-size:14px;color:#d4af37;font-weight:700;margin-bottom:12px;">${Number(pInfo.priceKrw).toLocaleString()}원 (부가세 포함)</div>
+            <div style="font-size:14px;color:#d4af37;font-weight:700;margin-bottom:12px;">
+              ${Number(pInfo.priceKrw).toLocaleString()}원 (부가세 포함)
+              ${(window.__IS_LAUNCH_SALE__ && pInfo.regularKrw && pInfo.regularKrw !== pInfo.priceKrw)
+                ? `<span class="pr-badge-launch" style="display:inline-block;padding:2px 6px;margin-left:6px;font-size:11px;font-weight:700;color:#12121c;background:#d4af37;border-radius:4px;vertical-align:middle;">서버 오픈 기념가</span>
+                   <div class="pr-regular-note" style="font-size:12px;color:rgba(243,229,171,0.7);margin-top:4px;font-weight:400;">11월 1일부터 ${Number(pInfo.regularKrw).toLocaleString()}원</div>`
+                : ''}
+            </div>
             ${fortuneHtml}
             <div style="font-size:14px;color:#ddd;margin-bottom:10px;line-height:1.85;">
               <strong style="color:#fff;display:block;margin-bottom:4px;">📜 리포트에 담기는 내용:</strong>
@@ -1618,7 +1632,13 @@ document.addEventListener('DOMContentLoaded', () => {
         consultFields.innerHTML = `
           <div style="text-align:center;padding:14px 0;">
             <div style="font-size:15px;color:#f3e5ab;font-weight:700;margin-bottom:6px;">${pInfo.name}</div>
-            <div style="font-size:14px;color:#d4af37;font-weight:700;margin-bottom:10px;">${Number(pInfo.priceKrw).toLocaleString()}원 (부가세 포함)</div>
+            <div style="font-size:14px;color:#d4af37;font-weight:700;margin-bottom:10px;">
+              ${Number(pInfo.priceKrw).toLocaleString()}원 (부가세 포함)
+              ${(window.__IS_LAUNCH_SALE__ && pInfo.regularKrw && pInfo.regularKrw !== pInfo.priceKrw)
+                ? `<span class="pr-badge-launch" style="display:inline-block;padding:2px 6px;margin-left:6px;font-size:11px;font-weight:700;color:#12121c;background:#d4af37;border-radius:4px;vertical-align:middle;">서버 오픈 기념가</span>
+                   <div class="pr-regular-note" style="font-size:12px;color:rgba(243,229,171,0.7);margin-top:4px;font-weight:400;">11월 1일부터 ${Number(pInfo.regularKrw).toLocaleString()}원</div>`
+                : ''}
+            </div>
           </div>
         `;
         consultCta.textContent = `${pInfo.name} 상세 확인`;

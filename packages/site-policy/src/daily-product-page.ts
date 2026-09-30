@@ -1,6 +1,6 @@
 import { HOURS } from './checkout-page.ts';
 import type { Product, BusinessInfo } from '../../commerce/src/index.ts';
-import { CATALOG, WITHDRAWAL_WINDOW_DAYS } from '../../commerce/src/index.ts';
+import { CATALOG, WITHDRAWAL_WINDOW_DAYS, isLaunchSale } from '../../commerce/src/index.ts';
 import { PLACES, buildDailyPreviewData, parseInputTime, type DailyPreviewData } from '../../saju-rules/src/index.ts';
 import { show } from './business.ts';
 import { spiritOf, renderSpiritPitch } from './spirits.ts';

@@ -20,7 +20,7 @@ import {
   orderable, isOrderable, upsellFor, packagesContaining, makePreview,
   calculateUpsellPrice, UPSELL_PROMO_PRICE_KRW, UPSELL_PROMO_HOURS,
   HOLIDAY_MAX_MEMBERS, HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, extraMemberKrw,
-  WITHDRAWAL_NOTICE, CATEGORIES, type Order, type PaymentGateway, type ProductId,
+  WITHDRAWAL_NOTICE, CATEGORIES, isLaunchSale, type Order, type PaymentGateway, type ProductId,
 } from '../../../packages/commerce/src/index.ts';
 import { cacheKey } from '../../../packages/report/src/cache.ts';
 import { cleanQuestion, QUESTION_MAX } from '../../../packages/report/src/prompt.ts';
@@ -448,16 +448,45 @@ body {
   border-top: 1px solid rgba(212, 175, 55, 0.2);
   z-index: 10;
 }
+.nb-launch-banner{width:100%;background:#2a2010;border-bottom:1px solid #d4af37;color:#f3e5ab;padding:10px 16px;box-sizing:border-box;font-size:14px;font-weight:600;z-index:9999;position:relative}
+.nb-launch-banner-content{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:center}
+.nb-launch-banner-close{background:transparent;border:none;color:#f3e5ab;font-size:16px;cursor:pointer;padding:4px 8px;line-height:1}
 ${FOOTER_CSS}
 </style>
 <script>
 window.SAJU_CONFIG = ${config};
-window.__CATALOG_PRODUCTS__ = ${JSON.stringify(Object.values(CATALOG).map(p => ({ id: p.id, name: p.name, hook: p.hook, category: p.category })))};
+window.__CATALOG_PRODUCTS__ = ${JSON.stringify(Object.values(CATALOG).map(p => ({ id: p.id, name: p.name, hook: p.hook, category: p.category, priceKrw: p.priceKrw, regularKrw: p.regularKrw })))};
 window.__CATEGORIES__ = ${JSON.stringify(CATEGORY_MENU)};
+window.__IS_LAUNCH_SALE__ = ${isLaunchSale()};
 </script>
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 </head>
 <body>
+${isLaunchSale() ? `
+<div class="nb-launch-banner" id="nbLaunchBanner" style="display:none">
+  <div class="nb-launch-banner-content">
+    <span>서버 오픈 기념 — 모든 점괘 25% 할인 중 (11월 1일까지)</span>
+    <button type="button" class="nb-launch-banner-close" id="nbCloseLaunchBanner" aria-label="닫기">✕</button>
+  </div>
+</div>
+<script>
+(function(){
+  try {
+    if (!localStorage.getItem('nb_dismiss_launch_banner')) {
+      var b = document.getElementById('nbLaunchBanner');
+      if (b) b.style.display = 'block';
+    }
+    var btn = document.getElementById('nbCloseLaunchBanner');
+    if (btn) {
+      btn.onclick = function() {
+        localStorage.setItem('nb_dismiss_launch_banner', '1');
+        var b = document.getElementById('nbLaunchBanner');
+        if (b) b.style.display = 'none';
+      };
+    }
+  } catch(e) {}
+})();
+</script>` : ''}
 ${STUDIO_CONTAINER_HTML}
 
 <div class="site-footer-wrapper">
