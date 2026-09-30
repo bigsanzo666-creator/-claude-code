@@ -14,6 +14,7 @@ import {
   luckOf, type YongsinResult,
   extractTopic, allTopics, type TopicId,
   marriageTiming, lateLife, monthlyLuck, meetingMonths, healingMonths,
+  guideFor, type Element,
 } from '../../../packages/saju-rules/src/index.ts';
 import { pickDays, mergeHours, bestPerDay, slotSpan, slotLabel, pickMarriageDays } from '../../../packages/saju-rules/src/index.ts';
 import { PLACES } from '../../../packages/saju-rules/src/index.ts';
@@ -990,6 +991,9 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
    */
   const scope = TOPIC_OF_PRODUCT[req.productId];
   if (scope) {
+    const me = an.dayMaster.element;
+    const wantElements = an.yongsin.primary.map((g) => groupElement(me, g));
+    const guides = guideFor(wantElements as Element[]);
     return {
       kind: '주제',
       subject,
@@ -1000,6 +1004,7 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
         일간: base.일간,
         강약: base.강약,
         용신: base.용신,
+        채우면좋은기운: guides,
         주제: scope.topics.map((t) => extractTopic(an, t)),
         지금_대운: { 방향: daeun.direction, 현재: currentDaeun(daeun, age) },
         세운: annualLuck(ms, an.yongsin, year, scope.years),

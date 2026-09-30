@@ -34,6 +34,7 @@ export * from './toTraits.ts';
 export * from './crossValidate.ts';
 export * from './topics.ts';
 export * from './reading.ts';
+export * from './element-guide.ts';
 
 export interface PillarAnalysis {
   position: PillarName;
