@@ -269,11 +269,21 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
         <div class="spirits-free-duo">
           <a href="/#stFree" class="spirits-free-btn" id="btnFreeEightLetters">
             <span class="spirits-free-badge">무료</span>
-            <span class="spirits-free-text">내 사주 여덟 글자</span>
+            <span class="spirits-free-icon">⛩</span>
+            <div class="spirits-free-content">
+              <div class="spirits-free-text">내 사주 여덟 글자</div>
+              <div class="spirits-free-sub">태어난 날로 보는 내 글자</div>
+            </div>
+            <span class="spirits-free-arrow">→</span>
           </a>
           <a href="/dream" class="spirits-free-btn" id="btnFreeDream">
             <span class="spirits-free-badge">무료</span>
-            <span class="spirits-free-text">꿈해몽</span>
+            <span class="spirits-free-icon">🌙</span>
+            <div class="spirits-free-content">
+              <div class="spirits-free-text">꿈해몽</div>
+              <div class="spirits-free-sub">간밤에 꾼 꿈을 풀어 드립니다</div>
+            </div>
+            <span class="spirits-free-arrow">→</span>
           </a>
         </div>
       </div>
@@ -470,11 +480,15 @@ body {
 .nb-launch-banner-hit{white-space:nowrap}
 .nb-launch-banner-until{white-space:nowrap}
 .nb-launch-banner-close{background:transparent;border:none;color:#f3e5ab;font-size:16px;cursor:pointer;padding:4px 8px;line-height:1}
-.spirits-free-duo{display:flex;gap:12px;margin:16px auto 12px;max-width:440px;width:100%;box-sizing:border-box}
-.spirits-free-btn{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:11px 8px;border:1.5px solid #d4af37;border-radius:10px;background:rgba(212,175,55,0.08);color:#f3e5ab;text-decoration:none;transition:background 0.2s,transform 0.15s;box-sizing:border-box;text-align:center}
-.spirits-free-btn:hover{background:rgba(212,175,55,0.18);transform:translateY(-1px)}
-.spirits-free-badge{font-size:12px;font-weight:800;color:#d4af37;letter-spacing:.08em;white-space:nowrap}
-.spirits-free-text{font-size:15px;font-weight:700;color:#f5f5f7;white-space:nowrap;word-break:keep-all}
+.spirits-free-duo{display:flex;gap:8px;margin:20px auto 14px;max-width:440px;width:100%;box-sizing:border-box;align-items:stretch}
+.spirits-free-btn{flex:1 1 0;min-width:0;display:flex;align-items:center;position:relative;padding:14px 6px 11px 7px;border:1.5px solid #d4af37;border-radius:12px;background:rgba(212,175,55,0.15);color:#f5f5f7;text-decoration:none;transition:background 0.2s,transform 0.15s,box-shadow 0.15s;box-sizing:border-box}
+.spirits-free-btn:hover{background:rgba(212,175,55,0.24);transform:translateY(-2px);box-shadow:0 4px 12px rgba(212,175,55,0.25)}
+.spirits-free-badge{position:absolute;top:-8px;left:8px;background:#d4af37;color:#12121c;font-size:10px;font-weight:800;padding:1px 6px;border-radius:9999px;line-height:1.2;letter-spacing:0.02em;white-space:nowrap;box-shadow:0 2px 4px rgba(0,0,0,0.35)}
+.spirits-free-icon{font-size:18px;line-height:1;flex-shrink:0;margin-right:5px}
+.spirits-free-content{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;justify-content:center;text-align:left}
+.spirits-free-text{font-size:13.5px;font-weight:700;color:#f5f5f7;white-space:nowrap;line-height:1.25;letter-spacing:-0.4px}
+.spirits-free-sub{font-size:9.5px;color:#a09eb0;white-space:nowrap;line-height:1.2;letter-spacing:-0.6px;margin-top:2px}
+.spirits-free-arrow{font-size:13px;font-weight:700;color:#d4af37;flex-shrink:0;margin-left:3px}
 ${FOOTER_CSS}
 </style>
 <script>
