@@ -13,7 +13,7 @@
 // 그쪽을 거치면 이 검증이 SDK 설치에 묶여버린다. 검증은 의존성 없이 돌아야 한다.
 import {
   buildSystemPrompt, buildUserMessage, canonicalize, cleanQuestion, PROMPT_VERSION, QUESTION_MAX,
-  type ReportInput,
+  type ReportInput, type ReportKind,
 } from './src/prompt.ts';
 import { cacheKey, MemoryReportCache, estimateCostKrw } from './src/cache.ts';
 
@@ -281,7 +281,21 @@ check('약속한 이름 개수와 프롬프트가 맞는다',
   check('지시문에 「쉽게 말하면」 층을 쓰라는 대목이 있다',
     topicSys.includes('쉽게 말하면') && topicSys.includes('전문 ·'));
   check('PROMPT_VERSION 이 v9 가 아니다',
-    PROMPT_VERSION !== 'v9' && PROMPT_VERSION === 'v10');
+    PROMPT_VERSION !== 'v9' && PROMPT_VERSION === 'v11');
+
+  // 터진 뒤에 적은 것 (2026-10-01): 사장님이 제일 좋아하시는 대목이
+  // 한 주제 상품 11개에만 있었다. 23개에는 처음부터 없었다.
+  // 지시문을 늘릴 때 한 군데만 고치고 나머지를 잊었다.
+  const ALL_KINDS: ReportKind[] = [
+    '작명', '택일', '교차검증', '궁합', '사주', '부모자식', '적성', '아이',
+    '재회', '정리', '만남', '썸', '결혼시기', '말년', '월운세', '오늘운세', '주제',
+  ];
+  const allHaveTwoTier = ALL_KINDS.every((kind) => {
+    const sys = buildSystemPrompt(kind);
+    return sys.includes('쉽게 말하면') && sys.includes('전문 ·');
+  });
+  check('열일곱 가지 리포트 지시문에 전부 두 층 형식이 들어 있다', allHaveTwoTier);
 
 console.log('전부 통과. (모델 호출 없음 — 이 검증은 비용이 들지 않는다)');
+
 
