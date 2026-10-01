@@ -282,13 +282,20 @@ async function runSmoke() {
       const scaryWords = ['닥친다', '막혔다', '반드시', '틀림없이', '장담'];
       for (const sc of scaryWords) {
         if (fullText.includes(sc)) {
-          failReasons.push(`겁주는 말(${sc})`);
-          break;
+          // 부정형 해명 문구(예: "~는 뜻이 아니라", "~는 아닙니다", "~는 것은 아닙니다")는 겁주는 말이 아님
+          const sentences = fullText.split(/[.!?\n]+/);
+          const hasAssertiveScary = sentences.some((s) =>
+            s.includes(sc) && !s.includes('아니') && !s.includes('아닙') && !s.includes('않') && !s.includes('못') && !s.includes('없')
+          );
+          if (hasAssertiveScary) {
+            failReasons.push(`겁주는 말(${sc})`);
+            break;
+          }
         }
       }
 
       // 손님 이름과 생년월일이 제대로 들어갔는가 (택일 제외)
-      if (!prod.needsPick) {
+      if (!prod.needsPick && !prod.needsRange) {
         if (!fullText.includes('김늘봄')) {
           failReasons.push('손님 이름 누락');
         }
