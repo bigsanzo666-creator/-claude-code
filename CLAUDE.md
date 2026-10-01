@@ -97,4 +97,7 @@ curl -sS https://neulbomsaju.co.kr/products | grep -o '<h3[^>]*>[^<]*</h3>'
 각 패키지에서 `node --experimental-strip-types verify.ts`.
 `packages/store` 와 `apps/api` 의 일부는 `DATABASE_URL` 이 있어야 전부 돈다.
 
+### 상품 34개 전수 점검 (smoke.ts)
+`SITE=https://neulbomsaju.co.kr PASS=주인암호 node --experimental-strip-types apps/api/smoke.ts` (확인 생략 시 `--yes`)
+
 **검증이 닿지 않는 곳에서 사고가 난다.** 위 배포 항목들이 전부 그랬다.
