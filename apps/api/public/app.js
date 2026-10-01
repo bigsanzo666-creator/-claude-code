@@ -1013,9 +1013,6 @@ document.addEventListener('DOMContentLoaded', () => {
           const hookText = rawHook.replace(/^[\"'\s]+|[\"'\s]+$/g, '');
           const prodCat = CATEGORIES.find(c => c.name === p.category) || CATEGORIES[0];
           const spiritName = prodCat.spirit.name;
-          const isSale = window.__IS_LAUNCH_SALE__ && p.regularKrw && p.regularKrw !== p.priceKrw;
-          const priceStr = p.priceKrw ? Number(p.priceKrw).toLocaleString() + '원' : '';
-          const regularStr = isSale ? '11월 1일부터 ' + Number(p.regularKrw).toLocaleString() + '원' : '';
           return [
             '<article class="product-card" data-product-id="' + p.id + '" tabindex="0" role="button" aria-label="' + p.name + '">',
             '  <img src="/img/products/' + p.id + '" alt="' + p.name + '" class="product-card-bg" decoding="async"'
@@ -1026,11 +1023,6 @@ document.addEventListener('DOMContentLoaded', () => {
             '    <div class="product-card-spirit">' + spiritName + '</div>',
             '    <h3 class="product-card-title">' + p.name + '</h3>',
             '    <p class="product-card-hook">"' + hookText + '"</p>',
-            '    <div class="product-card-price-box" style="margin-top:6px;">',
-            (priceStr ? '      <span class="product-card-price" style="font-size:14px;color:#d4af37;font-weight:700;">' + priceStr + '</span>' : ''),
-            (isSale ? '      <span class="pr-badge-launch" style="display:inline-block;padding:2px 6px;margin-left:6px;font-size:11px;font-weight:700;color:#12121c;background:#d4af37;border-radius:4px;vertical-align:middle;">서버 오픈 기념가</span>' : ''),
-            (isSale ? '      <div class="pr-regular-note" style="font-size:12px;color:rgba(243,229,171,0.7);margin-top:2px;">' + regularStr + '</div>' : ''),
-            '    </div>',
             '  </div>',
             '</article>'
           ].join('\n');
