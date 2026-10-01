@@ -1985,6 +1985,8 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     let openedOnEntry = false;
     let toggledOnEdit = false;
     let photoNoticeVisible = false;
+    let homeFreeVisible = false;
+    let productsFreeVisible = false;
 
     if (chromePath) {
       const coServer = createServer((req, res) => {
@@ -2108,6 +2110,48 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
         });
         photoNoticeVisible = Boolean(res3.result?.value?.visible && res3.result?.value?.text.includes('얼굴 사진과 손 사진을 올리셔야 결제하실 수 있습니다'));
 
+        // 1단계: 실제 브라우저로 홈의 「무료 · 내 사주 여덟 글자」를 눌러서 무료 사주 입력칸이 보이는지 확인
+        await pageSend('Page.navigate', { url: `${base}/` });
+        await new Promise((r) => setTimeout(r, 1200));
+        const resHomeFree = await pageSend('Runtime.evaluate', {
+          expression: `(function(){
+            var btn = document.getElementById('btnFreeEightLetters');
+            if(!btn) return { found: false, error: '버튼 없음' };
+            btn.click();
+            var panelA = document.getElementById('panelA');
+            var ymd = document.querySelector('.ymd') || panelA;
+            var leg = document.getElementById('legacyStageWrapper');
+            if(!panelA || !leg) return { found: false, error: 'panelA/legacy 없음' };
+            var isVis = getComputedStyle(panelA).display !== 'none' && getComputedStyle(leg).display !== 'none';
+            return { found: true, visible: isVis };
+          })()`,
+          returnByValue: true,
+        });
+        homeFreeVisible = Boolean(resHomeFree.result?.value?.visible);
+
+        // /products 에서 누른 경우도 똑같이 확인
+        await pageSend('Page.navigate', { url: `${base}/products` });
+        await new Promise((r) => setTimeout(r, 1200));
+        await pageSend('Runtime.evaluate', {
+          expression: `(function(){
+            var btn = document.getElementById('btnFreeEightLetters');
+            if(btn) location.href = btn.href;
+          })()`,
+        });
+        await new Promise((r) => setTimeout(r, 1500));
+        const resProductsFree = await pageSend('Runtime.evaluate', {
+          expression: `(function(){
+            var panelA = document.getElementById('panelA');
+            var leg = document.getElementById('legacyStageWrapper');
+            if(!panelA || !leg) return { found: false, error: 'panelA/legacy 없음', loc: location.href };
+            var isVis = getComputedStyle(panelA).display !== 'none' && getComputedStyle(leg).display !== 'none';
+            var urlClean = !location.search.includes('free=1');
+            return { found: true, visible: isVis, urlClean: urlClean };
+          })()`,
+          returnByValue: true,
+        });
+        productsFreeVisible = Boolean(resProductsFree.result?.value?.visible && resProductsFree.result?.value?.urlClean);
+
         pageWs.close();
         ws.close();
       } catch (e: any) {
@@ -2118,23 +2162,20 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
         try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
       }
     } else {
-      // Chrome 없는 환경에서의 폴백 검증
-      /*
-       * 터진 뒤에 적은 것 (2026-10-01): 여기서 page('/checkout?...') 를 썼다.
-       * 그 서버는 결제 열쇠가 없어 「결제 준비 중」 화면을 내준다 — 폼도 스크립트도
-       * 없는 화면이다. 그래서 실제로는 멀쩡한데 검사만 빨간불이 났다.
-       * 아래 사진 안내 검사처럼 화면을 **직접 그려서** 본다.
-       */
       const coDaily = renderCheckoutPage(business, '', CATALOG['daily-report'], { storeId: 't', channelKey: 't' });
       openedOnEntry = coDaily.includes('if(editForm && !date){') && coDaily.includes("editForm.style.display = 'block';");
       toggledOnEdit = coDaily.includes("getComputedStyle(editForm).display !== 'none'") && coDaily.includes('scrollIntoView');
       const crossHtml = renderCheckoutPage(business, '', CATALOG['cross-report'], { storeId: 't', channelKey: 't' });
       photoNoticeVisible = crossHtml.includes('coPayBlockReason') && crossHtml.includes('얼굴 사진과 손 사진을 올리셔야 결제하실 수 있습니다');
+      homeFreeVisible = home.html.includes('btnFreeEightLetters') && home.html.includes('openFreeSaju');
+      productsFreeVisible = (await page('/products')).html.includes('href="/?free=1"');
     }
 
     check('생년월일 없이 결제 화면에 들어오면 입력칸이 펼쳐져 있다', openedOnEntry);
     check('[고치기]를 누르면 입력칸이 열린다', toggledOnEdit);
     check('사진이 필요한 상품에서 아무것도 안 한 상태로 들어가면 위 안내 문구가 화면에 보인다', photoNoticeVisible);
+    check('실제 브라우저로 홈의 「무료 · 내 사주 여덟 글자」를 눌러서 무료 사주 입력칸이 화면에 보인다', homeFreeVisible);
+    check('/products 에서 누른 경우도 똑같이 확인된다', productsFreeVisible);
   }
 }
 

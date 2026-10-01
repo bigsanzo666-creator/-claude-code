@@ -267,7 +267,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
         <h2 class="spirits-menu-title">어떤 물음을 품고 오셨습니까</h2>
         <p class="spirits-menu-desc">상품을 누르시면 신령이 그 자리에서 사주를 조금 봐 드립니다</p>
         <div class="spirits-free-duo">
-          <a href="/#stFree" class="spirits-free-btn" id="btnFreeEightLetters">
+          <button type="button" class="spirits-free-btn" id="btnFreeEightLetters">
             <span class="spirits-free-badge">무료</span>
             <span class="spirits-free-icon">⛩</span>
             <div class="spirits-free-content">
@@ -275,7 +275,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
               <div class="spirits-free-sub">태어난 날로 보는 내 글자</div>
             </div>
             <span class="spirits-free-arrow">→</span>
-          </a>
+          </button>
           <a href="/dream" class="spirits-free-btn" id="btnFreeDream">
             <span class="spirits-free-badge">무료</span>
             <span class="spirits-free-icon">🌙</span>
@@ -481,7 +481,7 @@ body {
 .nb-launch-banner-until{white-space:nowrap}
 .nb-launch-banner-close{background:transparent;border:none;color:#f3e5ab;font-size:16px;cursor:pointer;padding:4px 8px;line-height:1}
 .spirits-free-duo{display:flex;gap:8px;margin:20px auto 14px;max-width:440px;width:100%;box-sizing:border-box;align-items:stretch}
-.spirits-free-btn{flex:1 1 0;min-width:0;display:flex;align-items:center;position:relative;padding:14px 6px 11px 7px;border:1.5px solid #d4af37;border-radius:12px;background:rgba(212,175,55,0.15);color:#f5f5f7;text-decoration:none;transition:background 0.2s,transform 0.15s,box-shadow 0.15s;box-sizing:border-box}
+.spirits-free-btn{flex:1 1 0;min-width:0;display:flex;align-items:center;position:relative;padding:14px 6px 11px 7px;border:1.5px solid #d4af37;border-radius:12px;background:rgba(212,175,55,0.15);color:#f5f5f7;text-decoration:none;transition:background 0.2s,transform 0.15s,box-shadow 0.15s;box-sizing:border-box;cursor:pointer;font:inherit;text-align:left}
 .spirits-free-btn:hover{background:rgba(212,175,55,0.24);transform:translateY(-2px);box-shadow:0 4px 12px rgba(212,175,55,0.25)}
 .spirits-free-badge{position:absolute;top:-8px;left:8px;background:#d4af37;color:#12121c;font-size:10px;font-weight:800;padding:1px 6px;border-radius:9999px;line-height:1.2;letter-spacing:0.02em;white-space:nowrap;box-shadow:0 2px 4px rgba(0,0,0,0.35)}
 .spirits-free-icon{font-size:18px;line-height:1;flex-shrink:0;margin-right:5px}
@@ -544,6 +544,46 @@ ${STAGE_SCRIPT}
 </div>
 
 <script src="/app.js?v=${assetStamp('app.js')}"></script>
+<script>
+(function(){
+  function openFreeSaju() {
+    var leg = document.getElementById('legacyStageWrapper');
+    if (leg) {
+      leg.removeAttribute('hidden');
+      leg.style.removeProperty('display');
+      leg.style.display = 'block';
+    }
+    var stF = document.getElementById('stFree');
+    if (stF) {
+      stF.click();
+    }
+    var target = document.getElementById('try') || document.getElementById('panelA') || document.getElementById('date');
+    if (target) {
+      setTimeout(function(){
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
+    }
+  }
+
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('#btnFreeEightLetters');
+    if (btn) {
+      e.preventDefault();
+      openFreeSaju();
+    }
+  });
+
+  try {
+    var q = new URLSearchParams(location.search);
+    if (q.get('free') === '1') {
+      openFreeSaju();
+      var u = new URL(location.href);
+      u.searchParams.delete('free');
+      history.replaceState(history.state, '', u.pathname + (u.search ? u.search : '') + u.hash);
+    }
+  } catch(e) {}
+})();
+</script>
 </body>
 </html>`;
 }

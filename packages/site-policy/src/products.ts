@@ -1536,7 +1536,7 @@ ${cards}
     : `사주 명식·궁합·관상·손금 풀이는 결제 없이 보실 수 있습니다.
 아래는 신령이 한 갈래씩 깊이 들여다보는 것들입니다.`}</p>
 <div class="spirits-free-duo">
-  <a href="/#stFree" class="spirits-free-btn" id="btnFreeEightLetters">
+  <a href="/?free=1" class="spirits-free-btn" id="btnFreeEightLetters">
     <span class="spirits-free-badge">무료</span>
     <span class="spirits-free-icon">⛩</span>
     <div class="spirits-free-content">
