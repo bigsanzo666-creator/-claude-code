@@ -650,14 +650,14 @@ export function renderCheckoutPage(
   }
 
   function formatInline(str){
-    return str.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    return str.replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>');
   }
 
   function parseReportMarkdown(rawText){
     if(!rawText) return '';
     // 1. 반드시 먼저 & < > 를 막는다 (XSS 원천 차단)
     var escaped = escHtml(rawText);
-    var lines = escaped.split(/\r?\n/);
+    var lines = escaped.split(/\\r?\\n/);
     var out = [];
     var inList = false;
     var inTable = false;
@@ -673,7 +673,7 @@ export function renderCheckoutPage(
           var row = tableRows[r];
           var isSep = true;
           for(var c=0; c<row.length; c++){
-            if(!/^[-:\s]+$/.test(row[c])){ isSep = false; break; }
+            if(!/^[-:\\s]+$/.test(row[c])){ isSep = false; break; }
           }
           if(isSep) continue;
           var tag = (r === 0) ? 'th' : 'td';
@@ -717,7 +717,7 @@ export function renderCheckoutPage(
       }
       if(line.indexOf('&gt;') === 0 || line.indexOf('>') === 0){
         closeList();
-        var quoteContent = line.replace(/^(&gt;|>)\s*/, '');
+        var quoteContent = line.replace(/^(&gt;|>)\\s*/, '');
         var isExpert = quoteContent.indexOf('전문 ·') === 0 || quoteContent.indexOf('전문·') === 0;
         var cls = isExpert ? 'rp-quote rp-quote-expert' : 'rp-quote';
         out.push('<blockquote class="' + cls + '">' + formatInline(quoteContent) + '</blockquote>');
@@ -741,7 +741,7 @@ export function renderCheckoutPage(
       out.push('<p class="rp-p">' + formatInline(line) + '</p>');
     }
     closeList(); closeTable();
-    return out.join('\n');
+    return out.join('\\n');
   }
 
   var waitTimer = null;
@@ -846,7 +846,7 @@ export function renderCheckoutPage(
         '</div>' +
         '<div class="od-upsell-cards">' + cardsHtml + '</div>' +
         '<div style="margin-top:16px;text-align:center">' +
-          '<button type="button" class="od-later-btn" id="coLaterBtn" onclick="var el=document.getElementById(\'coUpsellSection\');if(el)el.style.display=\'none\'">나중에 보기</button>' +
+          '<button type="button" class="od-later-btn" id="coLaterBtn" onclick="var el=document.getElementById(&quot;coUpsellSection&quot;);if(el)el.style.display=&quot;none&quot;;">나중에 보기</button>' +
         '</div>' +
       '</section>';
     }

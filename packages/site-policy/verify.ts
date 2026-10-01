@@ -1283,6 +1283,85 @@ section('11. 문 — 신령계 들어가는 곳');
     coHtml.includes('class="od-later-btn"'));
 }
 
+{
+  section('결제 화면 및 관련 화면 스크립트 문법 검사');
+
+  /*
+   * 터진 뒤에 적은 것 (2026-10-01): 결제 화면 스크립트가 문법 오류로
+   * 통째로 죽어 전 상품 결제가 막혔다. 검사 1,471개가 전부 통과였는데도
+   * 아무도 몰랐다. 글자만 맞춰 보지 말고 실제로 읽혀 봐야 한다.
+   */
+  const { renderCheckoutPage } = await import('./src/checkout-page.ts');
+  const { renderOrderReportPage } = await import('./src/order-page.ts');
+  const { STAGE_SCRIPT } = await import('./src/stage.ts');
+  const { readFileSync, existsSync } = await import('node:fs');
+  const { join, dirname } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+
+  let allCheckoutScriptsOk = true;
+  let syntaxErrorMsg = '';
+
+  for (const p of Object.values(CATALOG)) {
+    const html = renderCheckoutPage(full, '', p, { storeId: 'test_store', channelKey: 'test_channel' });
+    const scripts = [...html.matchAll(/<script[\s\S]*?>([\s\S]*?)<\/script>/gi)];
+    for (const m of scripts) {
+      const code = m[1].trim();
+      if (!code) continue;
+      try {
+        new Function(code);
+      } catch (err: any) {
+        allCheckoutScriptsOk = false;
+        syntaxErrorMsg = `${p.id}: ${err.message}`;
+        break;
+      }
+    }
+    if (!allCheckoutScriptsOk) break;
+  }
+
+  // 주문 조회 화면 스크립트 검사
+  const sampleOrder = { id: 'ord_test_syntax', productId: 'wealth-report' as const };
+  const orderHtml = renderOrderReportPage(full, '', sampleOrder as any, '리포트 본문', null, null);
+  const orderScripts = [...orderHtml.matchAll(/<script[\s\S]*?>([\s\S]*?)<\/script>/gi)];
+  for (const m of orderScripts) {
+    const code = m[1].trim();
+    if (!code) continue;
+    try {
+      new Function(code);
+    } catch (err: any) {
+      allCheckoutScriptsOk = false;
+      syntaxErrorMsg = `order-page: ${err.message}`;
+    }
+  }
+
+  // STAGE_SCRIPT 검사
+  const stageScripts = [...STAGE_SCRIPT.matchAll(/<script[\s\S]*?>([\s\S]*?)<\/script>/gi)];
+  for (const m of stageScripts) {
+    const code = m[1].trim();
+    if (!code) continue;
+    try {
+      new Function(code);
+    } catch (err: any) {
+      allCheckoutScriptsOk = false;
+      syntaxErrorMsg = `stage-script: ${err.message}`;
+    }
+  }
+
+  // 홈 app.js 스크립트 검사
+  const thisDir = dirname(fileURLToPath(import.meta.url));
+  const appJsPath = join(thisDir, '../../apps/api/public/app.js');
+  if (existsSync(appJsPath)) {
+    const appJsCode = readFileSync(appJsPath, 'utf8');
+    try {
+      new Function(appJsCode);
+    } catch (err: any) {
+      allCheckoutScriptsOk = false;
+      syntaxErrorMsg = `app.js: ${err.message}`;
+    }
+  }
+
+  check('결제 화면 스크립트에 문법 오류가 없다', allCheckoutScriptsOk, syntaxErrorMsg ? `오류: ${syntaxErrorMsg}` : '34개 전 상품 및 주문·홈 화면 스크립트 정상');
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }
