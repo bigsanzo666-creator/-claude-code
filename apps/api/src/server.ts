@@ -342,35 +342,34 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
             <input type="text" id="inputName" placeholder="성함을 입력하세요">
           </div>
 
-          <div class="form-row">
-            <div class="form-group flex-2">
-              <label for="inputBirth">생년월일</label>
-              <input type="date" id="inputBirth">
+          <div class="form-group">
+            <label for="inputBirth">생년월일</label>
+            <input type="date" id="inputBirth">
+          </div>
+
+          <div class="form-group">
+            <label for="inputTime" style="white-space:nowrap;">태어난 시간 (시:분)</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="time" id="inputTime" style="flex:1 1 auto;">
+              <label for="inputTimeUnknown" style="display:flex;align-items:center;gap:4px;font-size:12px;color:#c8c2d4;cursor:pointer;white-space:nowrap;margin-bottom:0;">
+                <input type="checkbox" id="inputTimeUnknown" style="width:auto;margin:0;"> 모름
+              </label>
             </div>
-            <div class="form-group flex-1">
-              <label for="inputTime">태어난 시간 (시:분)</label>
-              <div style="display:flex;gap:8px;align-items:center;">
-                <input type="time" id="inputTime" style="flex:1 1 auto;">
-                <label for="inputTimeUnknown" style="display:flex;align-items:center;gap:4px;font-size:12px;color:#c8c2d4;cursor:pointer;white-space:nowrap;">
-                  <input type="checkbox" id="inputTimeUnknown" style="width:auto;margin:0;"> 모름
-                </label>
-              </div>
-              <select id="inputTimeSlot" style="display:none;margin-top:6px;">
-                <option value="unknown">시간 모름 (낮 12시로 계산)</option>
-                <option value="ja">자시 (23:30~01:29)</option>
-                <option value="chuk">축시 (01:30~03:29)</option>
-                <option value="in">인시 (03:30~05:29)</option>
-                <option value="myo">묘시 (05:30~07:29)</option>
-                <option value="jin">진시 (07:30~09:29)</option>
-                <option value="sa">사시 (09:30~11:29)</option>
-                <option value="o">오시 (11:30~13:29)</option>
-                <option value="mi">미시 (13:30~15:29)</option>
-                <option value="sin">신시 (15:30~17:29)</option>
-                <option value="yu">유시 (17:30~19:29)</option>
-                <option value="sul">술시 (19:30~21:29)</option>
-                <option value="hae">해시 (21:30~23:29)</option>
-              </select>
-            </div>
+            <select id="inputTimeSlot" style="display:none;margin-top:6px;">
+              <option value="unknown">시간 모름 (낮 12시로 계산)</option>
+              <option value="ja">자시 (23:30~01:29)</option>
+              <option value="chuk">축시 (01:30~03:29)</option>
+              <option value="in">인시 (03:30~05:29)</option>
+              <option value="myo">묘시 (05:30~07:29)</option>
+              <option value="jin">진시 (07:30~09:29)</option>
+              <option value="sa">사시 (09:30~11:29)</option>
+              <option value="o">오시 (11:30~13:29)</option>
+              <option value="mi">미시 (13:30~15:29)</option>
+              <option value="sin">신시 (15:30~17:29)</option>
+              <option value="yu">유시 (17:30~19:29)</option>
+              <option value="sul">술시 (19:30~21:29)</option>
+              <option value="hae">해시 (21:30~23:29)</option>
+            </select>
           </div>
 
           <div class="form-group">
