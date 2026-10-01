@@ -1776,7 +1776,7 @@ ${renderGlossary(product.id)}
         <a href="/pick">택일 화면</a>에서 <b>의사에게 받은 후보 날짜</b>를 넣으시면
         점수를 <b>공짜로</b> 먼저 보실 수 있고, 그 뒤에 이 리포트를 고르시면 됩니다.</p>`
       : ''}
-    ${ready ? buyLink(product) : `<div class="pd-price-row" style="margin-bottom:8px"><span class="pd-price" style="font-size:24px;font-weight:700;color:var(--nb-gold,#d4af37)">${won(product.priceKrw)}</span><span style="font-size:14px;color:#9a93a6"> (부가세 포함)</span></div><p class="pd-also"><b>결제 준비 중입니다.</b> 사주 명식·궁합·관상·손금 풀이는 지금도 결제 없이 이용하실 수 있습니다.</p>`}
+    ${ready ? buyLink(product) : '<p class="pd-also"><b>결제 준비 중입니다.</b> 사주 명식·궁합·관상·손금 풀이는 지금도 결제 없이 이용하실 수 있습니다.</p>'}
     <p class="pd-guarantee-note" style="margin:14px 0 0;font-size:0.88rem;color:rgba(245,245,247,0.78);line-height:1.6;">${WITHDRAWAL_WINDOW_DAYS}일 안에 열람하지 않으셨으면 전액 돌려드립니다.</p>
     ${alsoIn}
   </div>
