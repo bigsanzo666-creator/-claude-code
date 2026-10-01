@@ -110,6 +110,13 @@ const CSS = `
    값은 상품 화면 쪽과 같은 것을 쓴다 — 한쪽만 고치면 화면이 어긋난다 */
 :root{color-scheme:dark;
   --fg:#F5F5F7;--muted:#BEBECC;--line:rgba(255,255,255,.14);--bg:#06060A;--accent:#D4AF37}
+p, li, label, h1, h2, h3, h4, h5,
+.sub-desc-original, .co-pricenote, .pd-launch-bar, .pd-guarantee-note,
+.form-hint, .spirits-menu-desc, .nb-launch-banner-text{
+  text-wrap:pretty;
+  word-break:keep-all;
+  overflow-wrap:anywhere;
+}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);
   font:17px/1.85 "Pretendard","Noto Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",system-ui,sans-serif}

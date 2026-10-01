@@ -5,6 +5,13 @@ import { esc, renderReportMarkdown, REPORT_CSS } from './report-render.ts';
 import { renderUpsellSection, UPSELL_CSS, type UpsellViewData } from './upsell-section.ts';
 
 export const ORDER_CSS = `
+p, li, label, h1, h2, h3, h4, h5,
+.sub-desc-original, .co-pricenote, .pd-launch-bar, .pd-guarantee-note,
+.form-hint, .spirits-menu-desc, .nb-launch-banner-text{
+  text-wrap:pretty;
+  word-break:keep-all;
+  overflow-wrap:anywhere;
+}
 body{margin:0;padding:0;background:#18151f;color:#f0eaf7;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;line-height:1.6}
 .od-main{max-width:680px;margin:0 auto;padding:24px 18px 80px}
 .od-brand{display:inline-block;font-size:14px;color:#b9b2c6;text-decoration:none;margin-bottom:18px}

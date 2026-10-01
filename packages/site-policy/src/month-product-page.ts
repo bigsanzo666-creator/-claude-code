@@ -81,6 +81,13 @@ ${FONT_LINK}
 <style>
 :root{color-scheme:dark}
 body{margin:0;background:var(--nb-paper)}
+p, li, label, h1, h2, h3, h4, h5,
+.sub-desc-original, .co-pricenote, .pd-launch-bar, .pd-guarantee-note,
+.form-hint, .spirits-menu-desc, .nb-launch-banner-text{
+  text-wrap:pretty;
+  word-break:keep-all;
+  overflow-wrap:anywhere;
+}
 ${PRODUCTS_CSS}
 
 /* ── 월운세 전용 스타일 ───────────────────────── */

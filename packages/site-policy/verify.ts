@@ -1362,6 +1362,35 @@ section('11. 문 — 신령계 들어가는 곳');
   check('결제 화면 스크립트에 문법 오류가 없다', allCheckoutScriptsOk, syntaxErrorMsg ? `오류: ${syntaxErrorMsg}` : '34개 전 상품 및 주문·홈 화면 스크립트 정상');
 }
 
+{
+  section('글줄 정리 규칙 검사');
+  const { renderProductsPage, renderProductPage } = await import('./src/products.ts');
+  const { renderCheckoutPage } = await import('./src/checkout-page.ts');
+  const { renderOrderNotFoundPage } = await import('./src/order-page.ts');
+  const { renderDreamPage } = await import('./src/dream-page.ts');
+  const { renderDailyReportProductPage } = await import('./src/daily-product-page.ts');
+  const { renderMonthReportProductPage } = await import('./src/month-product-page.ts');
+  const { renderTerms, renderPrivacy, renderRefund } = await import('./src/pages.ts');
+  const { STAGE_CSS } = await import('./src/stage.ts');
+
+  const pagesToCheck = [
+    renderProductsPage(full, true, ''),
+    renderProductPage(CATALOG['wealth-report'], full, true, ''),
+    renderCheckoutPage(full, '', CATALOG['wealth-report'], { storeId: 's', channelKey: 'c' }),
+    renderOrderNotFoundPage(full, ''),
+    renderDreamPage(full, ''),
+    renderDailyReportProductPage(CATALOG['daily-report'], full, true, ''),
+    renderMonthReportProductPage(CATALOG['month-report'], full, true, ''),
+    renderTerms(full),
+    renderPrivacy(full),
+    renderRefund(full),
+    STAGE_CSS,
+  ];
+
+  const allHavePretty = pagesToCheck.every(html => html.includes('text-wrap:pretty'));
+  check('손님 화면 CSS에 글줄 정리 규칙이 들어 있다', allHavePretty);
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }

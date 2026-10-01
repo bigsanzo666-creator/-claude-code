@@ -76,6 +76,13 @@ function hourOptions(name: string): string {
 }
 
 export const CHECKOUT_CSS = `
+p, li, label, h1, h2, h3, h4, h5,
+.sub-desc-original, .co-pricenote, .pd-launch-bar, .pd-guarantee-note,
+.form-hint, .spirits-menu-desc, .nb-launch-banner-text{
+  text-wrap:pretty;
+  word-break:keep-all;
+  overflow-wrap:anywhere;
+}
 ${REPORT_CSS}
 ${UPSELL_CSS}
 .co{max-width:560px;margin:0 auto;padding:22px 18px 60px}

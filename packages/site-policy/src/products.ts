@@ -618,6 +618,13 @@ export const PRODUCTS_CSS = `
   --nb-serif:"Noto Serif KR",AppleMyungjo,Batang,serif;
   --nb-sans:"Pretendard","Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;
 }
+p, li, label, h1, h2, h3, h4, h5,
+.sub-desc-original, .co-pricenote, .pd-launch-bar, .pd-guarantee-note,
+.form-hint, .spirits-menu-desc, .nb-launch-banner-text{
+  text-wrap:pretty;
+  word-break:keep-all;
+  overflow-wrap:anywhere;
+}
 body{background:var(--nb-paper)}
 .pr,.lp{width:100%;max-width:1080px;margin:0 auto;padding:0 22px;box-sizing:border-box;
   font:17px/1.85 var(--nb-sans);color:var(--nb-ink);-webkit-font-smoothing:antialiased}
@@ -1777,7 +1784,7 @@ ${renderGlossary(product.id)}
         점수를 <b>공짜로</b> 먼저 보실 수 있고, 그 뒤에 이 리포트를 고르시면 됩니다.</p>`
       : ''}
     ${ready ? buyLink(product) : '<p class="pd-also"><b>결제 준비 중입니다.</b> 사주 명식·궁합·관상·손금 풀이는 지금도 결제 없이 이용하실 수 있습니다.</p>'}
-    <p class="pd-guarantee-note" style="margin:14px 0 0;font-size:0.88rem;color:rgba(245,245,247,0.78);line-height:1.6;">${WITHDRAWAL_WINDOW_DAYS}일 안에 열람하지 않으셨으면 전액 돌려드립니다.</p>
+    <p class="pd-guarantee-note" style="margin:14px 0 0;font-size:0.88rem;color:rgba(245,245,247,0.78);line-height:1.6;">열어 보지 않으셨으면 ${WITHDRAWAL_WINDOW_DAYS}일 안에 전액 돌려드립니다</p>
     ${alsoIn}
   </div>
 

@@ -547,6 +547,13 @@ function stageFace(id: string, seal: string, faces: SpiritImages, size: number):
  * 화면 아래가 잘린다.
  */
 export const STAGE_CSS = `
+p, li, label, h1, h2, h3, h4, h5,
+.sub-desc-original, .co-pricenote, .pd-launch-bar, .pd-guarantee-note,
+.form-hint, .spirits-menu-desc, .nb-launch-banner-text{
+  text-wrap:pretty;
+  word-break:keep-all;
+  overflow-wrap:anywhere;
+}
 .stage{position:fixed;inset:0;z-index:80;background:var(--nb-paper);
   font:17px/1.85 var(--nb-sans);color:var(--nb-ink)}
 .stage[hidden]{display:none}

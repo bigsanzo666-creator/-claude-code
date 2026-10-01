@@ -265,7 +265,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
           <span class="user-name-text">명식 봉인 해제</span>
         </div>
         <h2 class="spirits-menu-title">어떤 물음을 품고 오셨습니까</h2>
-        <p class="spirits-menu-desc">상품을 누르시면 그 자리에서 신령이 손님 사주를 조금 봐 드립니다</p>
+        <p class="spirits-menu-desc">상품을 누르시면 신령이 그 자리에서 사주를 조금 봐 드립니다</p>
         <div class="spirits-free-duo">
           <a href="/#stFree" class="spirits-free-btn" id="btnFreeEightLetters">
             <span class="spirits-free-badge">무료</span>
@@ -430,6 +430,13 @@ ${renderSocialHead(business, {
   <link href="https://fonts.googleapis.com/css2?family=Song+Myung&family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css?v=${assetStamp('style.css')}">
 <style>:root{color-scheme:dark;--nb-ink:#F5F5F7;}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+p, li, label, h1, h2, h3, h4, h5,
+.sub-desc-original, .co-pricenote, .pd-launch-bar, .pd-guarantee-note,
+.form-hint, .spirits-menu-desc, .nb-launch-banner-text{
+  text-wrap:pretty;
+  word-break:keep-all;
+  overflow-wrap:anywhere;
+}
 ${LANDING_CSS}
 ${PRODUCTS_CSS}
 ${STAGE_CSS}

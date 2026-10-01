@@ -142,6 +142,13 @@ ${footer}
  * 여기서 다시 선언하면 두 군데가 다른 말을 하게 되고, 한쪽을 고칠 때 화면이 어긋난다.
  */
 export const DREAM_CSS = `
+p, li, label, h1, h2, h3, h4, h5,
+.sub-desc-original, .co-pricenote, .pd-launch-bar, .pd-guarantee-note,
+.form-hint, .spirits-menu-desc, .nb-launch-banner-text{
+  text-wrap:pretty;
+  word-break:keep-all;
+  overflow-wrap:anywhere;
+}
 .dr{max-width:720px;margin:0 auto;padding:26px 22px 40px;box-sizing:border-box}
 .dr-back{display:inline-block;margin-bottom:22px;font-size:14px;color:var(--nb-ink-3);text-decoration:none}
 .dr-back:hover{color:var(--nb-gold)}
