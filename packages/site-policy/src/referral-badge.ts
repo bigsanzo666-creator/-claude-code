@@ -62,6 +62,15 @@ export const REFERRAL_BADGE_CSS = `
   border-color: #e5cc00;
   color: #191919;
 }
+.nb-invite-btn.status {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: #d4af37;
+  color: #f5f5f7;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 .nb-invite-toast {
   font-size: 14px;
   color: #4ade80;
@@ -79,6 +88,7 @@ export function renderInviteBadge(code: string): string {
   <div class="nb-invite-actions">
     <button type="button" class="nb-invite-btn" id="nbCopyInviteBtn" data-code="${safeCode}">증표 복사하기</button>
     <button type="button" class="nb-invite-btn kakao" id="nbKakaoInviteBtn" data-code="${safeCode}">카톡으로 보내기</button>
+    <a href="/invite" class="nb-invite-btn status" id="nbStatusInviteBtn">내 소개 현황 보기</a>
   </div>
   <p class="nb-invite-toast" id="nbInviteToast" style="display:none">증표 주소가 복사되었습니다.</p>
 </div>

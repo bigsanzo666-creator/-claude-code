@@ -286,6 +286,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
             <span class="spirits-free-arrow">→</span>
           </a>
         </div>
+        <a href="/invite" class="spirits-invite-bar">벗을 데려오시면 벗도 3,000원, 그대도 보답을 받습니다 →</a>
       </div>
 
       <!-- 갈래 탭 11개 (가로 스크롤) -->
@@ -489,6 +490,11 @@ body {
 .spirits-free-text{font-size:13.5px;font-weight:700;color:#f5f5f7;white-space:nowrap;line-height:1.25;letter-spacing:-0.4px}
 .spirits-free-sub{font-size:9.5px;color:#a09eb0;white-space:nowrap;line-height:1.2;letter-spacing:-0.6px;margin-top:2px}
 .spirits-free-arrow{font-size:13px;font-weight:700;color:#d4af37;flex-shrink:0;margin-left:3px}
+.spirits-invite-bar{display:block;margin:0 auto 16px;max-width:440px;width:100%;box-sizing:border-box;padding:10px 14px;background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.25);border-radius:10px;color:#d4af37;font-size:13px;text-align:center;text-decoration:none;transition:background .2s,border-color .2s;font-weight:500;line-height:1.4}
+.spirits-invite-bar:hover{background:rgba(212,175,55,0.15);border-color:rgba(212,175,55,0.5);color:#f5f5f7}
+.nb-invite-banner{width:100%;background:rgba(20,40,25,0.95);border-bottom:1px solid #4ade80;color:#d1fae5;padding:10px 16px;box-sizing:border-box;font-size:14px;font-weight:600;z-index:9999;position:relative;text-align:center}
+.nb-invite-banner-content{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:12px;text-align:center}
+.nb-invite-banner-text{word-break:keep-all;line-height:1.45}
 ${FOOTER_CSS}
 </style>
 <script>
@@ -500,6 +506,29 @@ window.__IS_LAUNCH_SALE__ = ${isLaunchSale()};
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 </head>
 <body>
+<div class="nb-invite-banner" id="nbInviteBanner" style="display:none">
+  <div class="nb-invite-banner-content">
+    <span class="nb-invite-banner-text">벗의 증표가 담겼습니다. 2만원 이상 점사에서 3,000원을 덜 내십니다</span>
+  </div>
+</div>
+<script>
+(function(){
+  try {
+    var inv = sessionStorage.getItem('nb_invite');
+    if (!inv) {
+      var m = location.search.match(/[?&]invite=([a-zA-Z0-9]+)/);
+      if (m && m[1]) {
+        inv = m[1].toLowerCase().slice(0, 12);
+        sessionStorage.setItem('nb_invite', inv);
+      }
+    }
+    if (inv) {
+      var b = document.getElementById('nbInviteBanner');
+      if (b) b.style.display = 'block';
+    }
+  } catch(e) {}
+})();
+</script>
 ${isLaunchSale() ? `
 <div class="nb-launch-banner" id="nbLaunchBanner" style="display:none">
   <div class="nb-launch-banner-content">

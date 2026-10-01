@@ -391,6 +391,21 @@ try {
   }
 } catch (e) { /* 저장을 막아 둔 브라우저면 그냥 손님과 같은 길로 간다 */ }
 
+/*
+ * 친구 소개 — 홈으로 들어온 손님의 소개 코드를 담아 두고 주소창에서는 지운다.
+ * 결제 화면과 똑같이 맞춘다: nb_invite, 소문자 12자.
+ */
+try {
+  const mi = location.search.match(/[?&]invite=([a-zA-Z0-9]+)/);
+  if (mi && mi[1]) {
+    sessionStorage.setItem('nb_invite', mi[1].toLowerCase().slice(0, 12));
+    const clean = location.href
+      .replace(/([?&])invite=[^&#]*(&|$)/, (_, a, b) => (b ? a : ''))
+      .replace(/[?&]$/, '');
+    history.replaceState(null, '', clean);
+  }
+} catch (e) {}
+
 const TIME_MAP = {
   'ja': '00:30', 'chuk': '02:30', 'in': '04:30', 'myo': '06:30',
   'jin': '08:30', 'sa': '10:30', 'o': '12:30', 'mi': '14:30',
@@ -404,6 +419,15 @@ let currentProduct = null;
 let isAudioActive = false;
 
 document.addEventListener('DOMContentLoaded', () => {
+  const inviteBanner = document.getElementById('nbInviteBanner');
+  if (inviteBanner) {
+    try {
+      if (sessionStorage.getItem('nb_invite')) {
+        inviteBanner.style.display = 'block';
+      }
+    } catch (e) {}
+  }
+
   const gateVideo = document.getElementById('gateVideo');
   const enterVideo = document.getElementById('enterVideo');
   const soundControl = document.getElementById('soundControl');

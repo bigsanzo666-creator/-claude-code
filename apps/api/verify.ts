@@ -1987,15 +1987,31 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     let photoNoticeVisible = false;
     let homeFreeVisible = false;
     let productsFreeVisible = false;
+    let inviteDiscountOk = false;
+    let under20kNoteOk = false;
 
     if (chromePath) {
-      const coServer = createServer((req, res) => {
+      const coServer = createServer(async (req, res) => {
         const u = new URL(req.url || '/', 'http://127.0.0.1');
-        const pId = u.searchParams.get('product') || 'daily-report';
-        const p = CATALOG[pId as keyof typeof CATALOG] || CATALOG['daily-report'];
-        const coHtml = renderCheckoutPage(business, '', p, { storeId: 'test_store', channelKey: 'test_channel' });
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(coHtml);
+        if (u.pathname === '/checkout' || (u.pathname === '/' && u.searchParams.has('product'))) {
+          const pId = u.searchParams.get('product') || 'daily-report';
+          const p = CATALOG[pId as keyof typeof CATALOG] || CATALOG['daily-report'];
+          const coHtml = renderCheckoutPage(business, '', p, { storeId: 'test_store', channelKey: 'test_channel' });
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.end(coHtml);
+          return;
+        }
+        try {
+          const upstream = await fetch(`${base}${req.url}`);
+          const headers: Record<string, string> = {};
+          upstream.headers.forEach((v, k) => { headers[k] = v; });
+          res.writeHead(upstream.status, headers);
+          const buf = Buffer.from(await upstream.arrayBuffer());
+          res.end(buf);
+        } catch (e: any) {
+          res.writeHead(500);
+          res.end(e.message);
+        }
       });
       await new Promise<void>((r) => coServer.listen(0, r));
       const coPort = (coServer.address() as any).port;
@@ -2066,8 +2082,8 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
         };
 
         await pageSend('Page.enable');
-        await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/?product=daily-report` });
-        await new Promise((r) => setTimeout(r, 800));
+        await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/checkout?product=daily-report` });
+        await new Promise((r) => setTimeout(r, 1200));
 
         const res1 = await pageSend('Runtime.evaluate', {
           expression: `(function(){
@@ -2152,6 +2168,48 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
         });
         productsFreeVisible = Boolean(resProductsFree.result?.value?.visible && resProductsFree.result?.value?.urlClean);
 
+        // 소개 검증: 실제 브라우저로 /?invite=<코드> 로 들어가 상품을 고르고 결제 화면까지 가서 값이 깎였는지 본다
+        await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/?invite=friendtest12` });
+        await new Promise((r) => setTimeout(r, 1200));
+
+        // 1) 2만원 이상 상품 선택하여 결제 화면으로 이동 (saju-report: 34,900원 -> 31,900원)
+        await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/checkout?product=saju-report` });
+        await new Promise((r) => setTimeout(r, 1200));
+        const resInviteCheckout = await pageSend('Runtime.evaluate', {
+          expression: `(function(){
+            var tag = document.querySelector('.co-price b');
+            var note = document.getElementById('coInviteNote');
+            var pay = document.getElementById('coPay');
+            var text = ((tag && tag.textContent) || '') + ' ' + ((note && note.textContent) || '') + ' ' + ((pay && pay.textContent) || '');
+            var hasMinus = text.includes('3,000') || text.includes('−3,000') || text.includes('-3,000');
+            var hasBadge = text.includes('벗의 증표');
+            var isDiscounted = text.includes('31,900');
+            return {
+              ok: hasBadge && hasMinus && isDiscounted,
+              text: text,
+              session: sessionStorage.getItem('nb_invite')
+            };
+          })()`,
+          returnByValue: true,
+        });
+        inviteDiscountOk = Boolean(resInviteCheckout.result?.value?.ok);
+
+        // 2) 2만원 아래 상품(daily-report, 9,900원)
+        await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/checkout?product=daily-report` });
+        await new Promise((r) => setTimeout(r, 1200));
+        const resUnder20k = await pageSend('Runtime.evaluate', {
+          expression: `(function(){
+            var note = document.getElementById('coInviteNote');
+            var text = (note && note.textContent) || '';
+            return {
+              ok: text.includes('이 증표는 2만원 이상 점사에 쓰실 수 있습니다'),
+              text: text
+            };
+          })()`,
+          returnByValue: true,
+        });
+        under20kNoteOk = Boolean(resUnder20k.result?.value?.ok);
+
         pageWs.close();
         ws.close();
       } catch (e: any) {
@@ -2169,13 +2227,36 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
       photoNoticeVisible = crossHtml.includes('coPayBlockReason') && crossHtml.includes('얼굴 사진과 손 사진을 올리셔야 결제하실 수 있습니다');
       homeFreeVisible = home.html.includes('btnFreeEightLetters') && home.html.includes('openFreeSaju');
       productsFreeVisible = (await page('/products')).html.includes('href="/?free=1"');
+
+      const appJs = fs.readFileSync(new URL('./public/app.js', import.meta.url), 'utf8');
+      const coPageSrc = fs.readFileSync(new URL('../../packages/site-policy/src/checkout-page.ts', import.meta.url), 'utf8');
+      inviteDiscountOk = appJs.includes("sessionStorage.setItem('nb_invite'")
+        && coPageSrc.includes("sessionStorage.getItem('nb_invite')")
+        && coPageSrc.includes('discount = 3000')
+        && coPageSrc.includes('벗의 증표 −3,000원');
+      under20kNoteOk = coPageSrc.includes('이 증표는 2만원 이상 점사에 쓰실 수 있습니다');
     }
+
+    const inviteWayHome = (home.html.match(/href="\/invite"/g) ?? []).length;
+    const { renderInviteBadge: rBadge } = await import('../../packages/site-policy/src/referral-badge.ts');
+    const inviteWayBadge = rBadge('TEST1234').includes('href="/invite"');
+    const invitePathsCount = inviteWayHome + (inviteWayBadge ? 1 : 0);
+    const hasMultipleInvitePaths = invitePathsCount >= 2;
 
     check('생년월일 없이 결제 화면에 들어오면 입력칸이 펼쳐져 있다', openedOnEntry);
     check('[고치기]를 누르면 입력칸이 열린다', toggledOnEdit);
     check('사진이 필요한 상품에서 아무것도 안 한 상태로 들어가면 위 안내 문구가 화면에 보인다', photoNoticeVisible);
     check('실제 브라우저로 홈의 「무료 · 내 사주 여덟 글자」를 눌러서 무료 사주 입력칸이 화면에 보인다', homeFreeVisible);
     check('/products 에서 누른 경우도 똑같이 확인된다', productsFreeVisible);
+
+    /*
+     * 터진 뒤에 적은 것 (2026-10-01): 소개 링크는 홈을 가리키는데 코드를
+     * 받는 곳은 결제 화면뿐이었다. 할인이 한 번도 걸린 적이 없다.
+     * 만들어 두고 이어 보지 않았다.
+     */
+    check('홈에 소개 코드를 담고 들어가면 결제 화면에서 3,000원이 깎인다', inviteDiscountOk);
+    check('소개 현황 화면으로 가는 길이 두 군데 이상 있다', hasMultipleInvitePaths);
+    check('2만원 아래 상품에서는 못 쓴다고 솔직히 적는다', under20kNoteOk);
   }
 }
 

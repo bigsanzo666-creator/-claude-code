@@ -645,6 +645,9 @@ export function renderCheckoutPage(
     var mi = location.search.match(/[?&]invite=([a-zA-Z0-9]+)/);
     if(mi && mi[1]){
       sessionStorage.setItem('nb_invite', mi[1].toLowerCase().slice(0, 12));
+      var cleanInv = location.href.replace(/([?&])invite=[^&#]*(&|$)/, function(_, a, b){ return b ? a : ''; })
+        .replace(/[?&]$/, '');
+      history.replaceState(null, '', cleanInv);
     }
   }catch(e){}
 
@@ -950,6 +953,7 @@ export function renderCheckoutPage(
         '<div class="nb-invite-actions">' +
           '<button type="button" class="nb-invite-btn" id="nbCopyInviteBtn" data-code="' + inviteCode + '">증표 복사하기</button>' +
           '<button type="button" class="nb-invite-btn kakao" id="nbKakaoInviteBtn" data-code="' + inviteCode + '">카톡으로 보내기</button>' +
+          '<a href="/invite" class="nb-invite-btn status" id="nbStatusInviteBtn">내 소개 현황 보기</a>' +
         '</div>' +
         '<p class="nb-invite-toast" id="nbInviteToast" style="display:none">증표 주소가 복사되었습니다.</p>' +
       '</div>'
@@ -1262,17 +1266,25 @@ export function renderCheckoutPage(
       if(p >= 20000){
         discount = 3000;
         noteEl.style.color = '#9fd8a8';
-        noteEl.textContent = '깎는 이유: 벗의 증표 (-3,000원)';
+        noteEl.textContent = '벗의 증표 −3,000원';
       }else{
         discount = 0;
         noteEl.style.color = '#f0c080';
-        noteEl.textContent = '2만원 이상 점사에 쓸 수 있는 증표입니다';
+        noteEl.textContent = '이 증표는 2만원 이상 점사에 쓰실 수 있습니다';
       }
+    } else if(noteEl){
+      noteEl.textContent = '';
     }
     var finalP = Math.max(0, p - discount);
     pay.textContent = won(finalP) + '원 결제하기';
     var tag = document.querySelector('.co-price b');
-    if(tag) tag.textContent = won(finalP) + '원';
+    if(tag){
+      if(inv && p >= 20000){
+        tag.innerHTML = won(finalP) + '원 <span class="co-invite-tag" style="font-size:14px;color:#9fd8a8;font-weight:600;margin-left:6px">벗의 증표 −3,000원</span>';
+      }else{
+        tag.textContent = won(finalP) + '원';
+      }
+    }
     if(addKin && NEEDS_FAMILY) addKin.disabled = (1 + kinCount()) >= MAX_MEMBERS;
   }
   refreshPrice();

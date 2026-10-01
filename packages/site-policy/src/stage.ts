@@ -117,6 +117,7 @@ function renderStageBiz(info: BusinessInfo): string {
   return `<footer class="st-biz">
     <nav class="st-biz-links">
       <a href="/products">판매 상품</a>
+      <a href="/invite">친구 소개</a>
       <a href="/terms">이용약관</a>
       <a href="/privacy">개인정보처리방침</a>
       <a href="/refund">취소·환불</a>
