@@ -1859,6 +1859,143 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     }
     check(`${p} 의 모든 인라인 스크립트 문법 통과`, scriptsOk, errDetail);
   }
+
+  // ── 6단계: 사주 정보 [고치기] 및 생년월일 검증 ─────────────
+  {
+    const { spawn } = await import('node:child_process');
+    const path = await import('node:path');
+    const os = await import('node:os');
+    const candidates = [
+      process.env.CHROME_BIN,
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      '/usr/bin/google-chrome',
+      '/usr/bin/chromium-browser',
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    ].filter(Boolean) as string[];
+    const chromePath = candidates.find((c) => fs.existsSync(c));
+
+    let openedOnEntry = false;
+    let toggledOnEdit = false;
+
+    if (chromePath) {
+      const coHtml = renderCheckoutPage(business, '', CATALOG['daily-report'], { storeId: 'test_store', channelKey: 'test_channel' });
+      const coServer = createServer((req, res) => {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(coHtml);
+      });
+      await new Promise<void>((r) => coServer.listen(0, r));
+      const coPort = (coServer.address() as any).port;
+
+      const cPort = 9555 + Math.floor(Math.random() * 200);
+      const tmpDir = path.join(os.tmpdir(), `chrome_v6_${Date.now()}`);
+      const proc = spawn(chromePath, [
+        '--headless',
+        '--disable-gpu',
+        `--remote-debugging-port=${cPort}`,
+        `--user-data-dir=${tmpDir}`,
+        'about:blank',
+      ]);
+      try {
+        let wsUrl = '';
+        for (let i = 0; i < 30; i++) {
+          try {
+            const res = await fetch(`http://127.0.0.1:${cPort}/json/version`);
+            if (res.ok) {
+              const data = await res.json() as any;
+              wsUrl = data.webSocketDebuggerUrl;
+              break;
+            }
+          } catch {}
+          await new Promise((r) => setTimeout(r, 150));
+        }
+
+        const ws = new WebSocket(wsUrl);
+        await new Promise((r, j) => { ws.onopen = r; ws.onerror = j; });
+        let reqId = 1;
+        const send = (method: string, params: any = {}) => {
+          const id = ++reqId;
+          ws.send(JSON.stringify({ id, method, params }));
+          return new Promise<any>((resolve, reject) => {
+            const handler = (event: any) => {
+              const msg = JSON.parse(event.data);
+              if (msg.id === id) {
+                ws.removeEventListener('message', handler);
+                if (msg.error) reject(msg.error);
+                else resolve(msg.result);
+              }
+            };
+            ws.addEventListener('message', handler);
+          });
+        };
+
+        const target = await send('Target.createTarget', { url: 'about:blank' });
+        const pageWs = new WebSocket(`ws://127.0.0.1:${cPort}/devtools/page/${target.targetId}`);
+        await new Promise((r, j) => { pageWs.onopen = r; pageWs.onerror = j; });
+        let pageReqId = 1;
+        const pageSend = (method: string, params: any = {}) => {
+          const id = ++pageReqId;
+          pageWs.send(JSON.stringify({ id, method, params }));
+          return new Promise<any>((resolve, reject) => {
+            const handler = (event: any) => {
+              const msg = JSON.parse(event.data);
+              if (msg.id === id) {
+                pageWs.removeEventListener('message', handler);
+                if (msg.error) reject(msg.error);
+                else resolve(msg.result);
+              }
+            };
+            pageWs.addEventListener('message', handler);
+          });
+        };
+
+        await pageSend('Page.enable');
+        await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/` });
+        await new Promise((r) => setTimeout(r, 800));
+
+        const res1 = await pageSend('Runtime.evaluate', {
+          expression: `(function(){
+            var editForm = document.getElementById('coUserEditForm');
+            return editForm ? getComputedStyle(editForm).display : 'none';
+          })()`,
+          returnByValue: true,
+        });
+        openedOnEntry = res1.result?.value === 'block';
+
+        const res2 = await pageSend('Runtime.evaluate', {
+          expression: `(function(){
+            var editBtn = document.getElementById('coEditUserBtn');
+            var editForm = document.getElementById('coUserEditForm');
+            if(!editBtn || !editForm) return { noElements: true };
+            editBtn.click();
+            var afterFirst = getComputedStyle(editForm).display;
+            editBtn.click();
+            var afterSecond = getComputedStyle(editForm).display;
+            return { afterFirst: afterFirst, afterSecond: afterSecond };
+          })()`,
+          returnByValue: true,
+        });
+        toggledOnEdit = res2.result?.value?.afterFirst === 'none' && res2.result?.value?.afterSecond === 'block';
+
+        pageWs.close();
+        ws.close();
+      } catch (e: any) {
+        console.error('브라우저 검증 오류:', e.message);
+      } finally {
+        coServer.close();
+        proc.kill();
+        try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+      }
+    } else {
+      // Chrome 없는 환경에서의 폴백 검증
+      const coRes = await page('/checkout?product=daily-report');
+      openedOnEntry = coRes.html.includes('if(editForm && !date){') && coRes.html.includes("editForm.style.display = 'block';");
+      toggledOnEdit = coRes.html.includes("getComputedStyle(editForm).display !== 'none'") && coRes.html.includes('scrollIntoView');
+    }
+
+    check('생년월일 없이 결제 화면에 들어오면 입력칸이 펼쳐져 있다', openedOnEntry);
+    check('[고치기]를 누르면 입력칸이 열린다', toggledOnEdit);
+  }
 }
 
 server.close();

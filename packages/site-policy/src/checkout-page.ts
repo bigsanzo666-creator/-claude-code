@@ -1078,7 +1078,9 @@ export function renderCheckoutPage(
   var doneBtn = document.getElementById('coUserDoneBtn');
   if(editBtn && editForm){
     editBtn.addEventListener('click', function(){
-      editForm.style.display = editForm.style.display === 'none' ? 'block' : 'none';
+      var open = getComputedStyle(editForm).display !== 'none';
+      editForm.style.display = open ? 'none' : 'block';
+      if(!open) editForm.scrollIntoView({ behavior:'smooth', block:'nearest' });
     });
   }
   if(doneBtn && editForm){
