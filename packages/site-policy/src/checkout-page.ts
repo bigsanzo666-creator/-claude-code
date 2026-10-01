@@ -209,6 +209,7 @@ ${UPSELL_CSS}
 .co-photo-retake-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);
   border-radius:6px;color:#efeaf4;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit}
 .co-photo-retake-btn:hover{background:rgba(255,255,255,.15)}
+.co-pay-block-reason{color:#f97316;font-size:14px;margin:0 0 12px;font-weight:600;text-align:center;line-height:1.5}
 `;
 
 /**
@@ -421,6 +422,7 @@ export function renderCheckoutPage(
         <span><b>[선택]</b> 할인 혜택 및 절기 운세 알림을 이메일·문자로 받는 것에 동의합니다.</span>
       </label>
 
+      <p class="co-pay-block-reason" id="coPayBlockReason" style="display:none;color:#f97316;font-size:14px;margin:0 0 12px;font-weight:600;text-align:center;line-height:1.5;"></p>
       <button type="submit" class="co-pay" id="coPay" disabled>${price}원 결제하기</button>
       </div>
       <p class="co-msg" id="coMsg"></p>
@@ -534,13 +536,34 @@ export function renderCheckoutPage(
   var palmUploaded = false;
 
   function checkCanPay(){
-    var ok = agree.checked;
-    if(NEEDS_FACE && !faceUploaded) ok = false;
-    if(NEEDS_PALM && !palmUploaded) ok = false;
-    pay.disabled = !ok;
+    var reason = '';
+    var dateVal = val('birthDate');
+    var isPhotoMissing = (NEEDS_FACE && !faceUploaded) || (NEEDS_PALM && !palmUploaded);
+
+    if(isPhotoMissing){
+      reason = '얼굴 사진과 손 사진을 올리셔야 결제하실 수 있습니다';
+    } else if(!dateVal && document.getElementById('birthDate')){
+      reason = '생년월일을 적으셔야 결제하실 수 있습니다';
+    } else if(!agree.checked){
+      reason = '위 안내에 동의하셔야 결제하실 수 있습니다';
+    }
+
+    var reasonEl = document.getElementById('coPayBlockReason');
+    if(reasonEl){
+      if(reason){
+        reasonEl.textContent = reason;
+        reasonEl.style.display = 'block';
+      } else {
+        reasonEl.textContent = '';
+        reasonEl.style.display = 'none';
+      }
+    }
+
+    pay.disabled = Boolean(reason);
+
     var warn = document.getElementById('coPhotoWarn');
     if(warn){
-      if(agree.checked && ((NEEDS_FACE && !faceUploaded) || (NEEDS_PALM && !palmUploaded))){
+      if(agree.checked && isPhotoMissing){
         warn.style.display = 'block';
       } else {
         warn.style.display = 'none';
@@ -1094,6 +1117,7 @@ export function renderCheckoutPage(
       });
       updateSummaryDisplay();
       editForm.style.display = 'none';
+      checkCanPay();
     });
   }
 
@@ -1115,6 +1139,7 @@ export function renderCheckoutPage(
           }
         });
         updateSummaryDisplay();
+        checkCanPay();
       });
     }
   });

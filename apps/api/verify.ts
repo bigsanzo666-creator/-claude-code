@@ -1877,10 +1877,14 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
 
     let openedOnEntry = false;
     let toggledOnEdit = false;
+    let photoNoticeVisible = false;
 
     if (chromePath) {
-      const coHtml = renderCheckoutPage(business, '', CATALOG['daily-report'], { storeId: 'test_store', channelKey: 'test_channel' });
       const coServer = createServer((req, res) => {
+        const u = new URL(req.url || '/', 'http://127.0.0.1');
+        const pId = u.searchParams.get('product') || 'daily-report';
+        const p = CATALOG[pId as keyof typeof CATALOG] || CATALOG['daily-report'];
+        const coHtml = renderCheckoutPage(business, '', p, { storeId: 'test_store', channelKey: 'test_channel' });
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(coHtml);
       });
@@ -1950,7 +1954,7 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
         };
 
         await pageSend('Page.enable');
-        await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/` });
+        await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/?product=daily-report` });
         await new Promise((r) => setTimeout(r, 800));
 
         const res1 = await pageSend('Runtime.evaluate', {
@@ -1977,6 +1981,23 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
         });
         toggledOnEdit = res2.result?.value?.afterFirst === 'none' && res2.result?.value?.afterSecond === 'block';
 
+        // 7단계: 사진이 필요한 상품에서 아무것도 안 한 상태로 들어가면 안내 문구 노출 확인
+        await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/?product=cross-report` });
+        await new Promise((r) => setTimeout(r, 800));
+        const res3 = await pageSend('Runtime.evaluate', {
+          expression: `(function(){
+            var el = document.getElementById('coPayBlockReason');
+            if(!el) return { found: false };
+            return {
+              found: true,
+              visible: getComputedStyle(el).display !== 'none',
+              text: el.textContent || '',
+            };
+          })()`,
+          returnByValue: true,
+        });
+        photoNoticeVisible = Boolean(res3.result?.value?.visible && res3.result?.value?.text.includes('얼굴 사진과 손 사진을 올리셔야 결제하실 수 있습니다'));
+
         pageWs.close();
         ws.close();
       } catch (e: any) {
@@ -1991,10 +2012,13 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
       const coRes = await page('/checkout?product=daily-report');
       openedOnEntry = coRes.html.includes('if(editForm && !date){') && coRes.html.includes("editForm.style.display = 'block';");
       toggledOnEdit = coRes.html.includes("getComputedStyle(editForm).display !== 'none'") && coRes.html.includes('scrollIntoView');
+      const crossHtml = renderCheckoutPage(business, '', CATALOG['cross-report'], { storeId: 't', channelKey: 't' });
+      photoNoticeVisible = crossHtml.includes('coPayBlockReason') && crossHtml.includes('얼굴 사진과 손 사진을 올리셔야 결제하실 수 있습니다');
     }
 
     check('생년월일 없이 결제 화면에 들어오면 입력칸이 펼쳐져 있다', openedOnEntry);
     check('[고치기]를 누르면 입력칸이 열린다', toggledOnEdit);
+    check('사진이 필요한 상품에서 아무것도 안 한 상태로 들어가면 위 안내 문구가 화면에 보인다', photoNoticeVisible);
   }
 }
 
