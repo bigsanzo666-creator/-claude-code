@@ -234,9 +234,9 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
       </div>
 
       <div class="gate-content">
-        <span class="badge-tag">⛩️ 10대 신령의 성지</span>
+        <span class="badge-tag">⛩️ 신령들의 성지</span>
         <h1 class="main-title">천 년을 이어온 <span class="gold-text">신령계의 문</span>이<br>당신 앞에서 열립니다</h1>
-        <p class="sub-desc-original">문 너머에는 <span class="gold-highlight">10대 신령</span>이 기다리고 있습니다.<br>지금 문을 두드리면 당신의 명식이
+        <p class="sub-desc-original">문 너머에는 <span class="gold-highlight">신령들</span>이 기다리고 있습니다.<br>문을 두드리면 당신의 명식이
           봉인 해제됩니다.</p>
         <div class="enter-actions">
           <button type="button" id="btnKnockGate" class="btn-primary pulse-gold">🚪 신령계 문 두드리기</button>
