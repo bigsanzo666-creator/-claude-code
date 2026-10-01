@@ -22,6 +22,7 @@ const head = (t: string) => console.log(`\n${t}\n${'─'.repeat(60)}`);
 // ── 표 자체 ────────────────────────────────────────────────
 head('표');
 
+check('낱말이 120개 이상이다', symbolCount() >= 120, `${symbolCount()}가지`);
 check('낱말이 넉넉히 있다', symbolCount() >= 30, `${symbolCount()}가지`);
 
 const ids = SYMBOLS.map((s) => s.id);
@@ -32,8 +33,8 @@ const shortWords = SYMBOLS.flatMap((s) => s.words.filter((w) => w.replace(/\s/g,
 check('한 글자짜리 낱말이 없다', shortWords.length === 0,
   shortWords.length ? shortWords.join(', ') : '「소」 한 글자면 「소식」에도 걸린다');
 
-const emptyish = SYMBOLS.filter((s) => !s.say.trim() || !s.more.trim() || !s.words.length);
-check('빈 칸으로 둔 낱말이 없다', emptyish.length === 0, emptyish.map((s) => s.id).join(', '));
+const emptyish = SYMBOLS.filter((s) => !s.say.trim() || !s.more.trim() || s.words.length < 5);
+check('빈 칸으로 둔 낱말이 없고 같이 쓰는 말이 5개 이상이다', emptyish.length === 0, emptyish.map((s) => s.id).join(', '));
 
 check('좋고 나쁨에 이름표가 다 있다',
   SYMBOLS.every((s) => Boolean(TONE_LABEL[s.tone])));
@@ -73,6 +74,19 @@ for (const [text, want] of cases) {
   check(`「${text}」`, ok, `걸린 것: ${got.join(', ') || '없음'}`);
 }
 
+// 2단계 핵심 검증: 사장님이 넣은 그 글
+const bossText = '친한 언니가 휴대폰을 좋은 거로 교체하고 좋은 집으로 이사가는 꿈';
+const bossReading = readDream(bossText);
+const bossHits = bossReading.hits.map((h) => h.id);
+const bossTargets = ['집', '휴대전화', '이사', '바꾸다', '언니'];
+const bossMatched = bossTargets.filter((t) => bossHits.includes(t));
+check('사장님이 넣은 그 글에서 넷 이상이 걸린다', bossMatched.length >= 4,
+  `걸린 것 (${bossMatched.length}개): ${bossMatched.join(', ')}`);
+
+// 둘 이상 걸렸을 때 묶은 풀이가 나오는가
+check('둘 이상 걸렸을 때 한데 묶은 풀이가 맨 위에 나온다',
+  Boolean(bossReading.combined && bossReading.combined.includes('함께 나왔습니다')));
+
 // ── 지어내지 않는가 ────────────────────────────────────────
 head('지어내지 않는가');
 
@@ -80,6 +94,13 @@ for (const text of ['그냥 회사에 갔어요', '아무것도 기억 안 나�
   const r = readDream(text);
   check(`「${text || '(빈 글)'}」 → 모른다고 말한다`, r.hits.length === 0 && Boolean(r.miss));
 }
+
+const emptyResult = readDream('그냥 잠만 잤어요');
+check('하나도 못 찾아도 빈손으로 돌려보내지 않는다',
+  emptyResult.hits.length === 0 &&
+  Boolean(emptyResult.miss) &&
+  emptyResult.miss.includes('적어 주신 글에서 전해 내려오는 해몽에 있는 낱말을 찾지 못했습니다') &&
+  emptyResult.topWords.length >= 10);
 
 const known = readDream('돼지꿈을 꿨어요');
 check('찾았을 때는 지어낸 말을 붙이지 않는다', known.miss === null);
@@ -99,9 +120,13 @@ check('근거로 적은 낱말이 실제로 손님 글에 있다',
 head('겁주지 않는가');
 
 /** 이런 말이 화면에 나가면 안 된다 */
-const SCARY = ['흉몽', '불행', '재앙', '화를 입', '죽게', '큰일 납', '부적', '액운을 막', '반드시 나쁜'];
+const SCARY = [
+  '흉몽', '불행', '재앙', '화를 입', '죽게', '큰일 납', '부적', '액운을 막', '반드시 나쁜',
+  '닥친다', '막혔다', '흉하다', '조심하지 않으면',
+];
 const scaryFound = SYMBOLS.flatMap((s) =>
   SCARY.filter((w) => (s.say + s.more).includes(w)).map((w) => `${s.id}:${w}`));
+check('겁주는 말이 한 군데도 없다', scaryFound.length === 0, scaryFound.join(', '));
 check('겁주는 말을 쓰지 않는다', scaryFound.length === 0, scaryFound.join(', '));
 
 // 놀라기 쉬운 꿈은 전통 해몽대로 좋게 본다. 손님이 제일 무서워하는 자리다
@@ -119,7 +144,7 @@ check('놀랄 꿈이라도 먼저 안심시킨다',
 head('늘어놓지 않는가');
 
 const many = readDream('돼지 뱀 용 호랑이 물고기 소 돈 불 아기 똥이 다 나왔어요');
-check('한 번에 넉 줄까지만 보여 준다', many.hits.length <= 4, `${many.hits.length}줄`);
+check('한 번에 여섯 줄까지만 보여 준다', many.hits.length <= 6, `${many.hits.length}줄`);
 check('좋게 보는 것을 앞에 둔다',
   many.hits.every((h, i) => i === 0 || !(many.hits[i - 1].tone !== '길' && h.tone === '길')));
 

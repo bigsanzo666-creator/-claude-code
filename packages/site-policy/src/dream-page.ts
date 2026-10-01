@@ -57,11 +57,27 @@ function readingSection(reading: DreamReading | null): string {
   if (!reading) return '';
 
   if (!reading.hits.length) {
+    const topButtons = (reading.topWords || []).map((w) =>
+      `<button type="button" class="dr-top-word" onclick="var t=document.getElementById('dreamText');if(t){t.value='${esc(w)}';t.form.submit();}">${esc(w)}</button>`
+    ).join(' ');
+
     return `  <div class="dr-out">
     <p class="dr-head">${esc(reading.head)}</p>
     <p class="dr-miss">${strong(reading.miss ?? '')}</p>
+    ${topButtons ? `
+    <div class="dr-top-box" style="margin-top:16px;padding:14px;background:rgba(212,175,55,0.06);border:1px solid rgba(212,175,55,0.3);border-radius:8px;">
+      <p style="margin:0 0 10px;font-size:14px;color:#f3e5ab;font-weight:600;">많이 찾는 대표 꿈 10가지 (누르면 바로 풀이)</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">${topButtons}</div>
+    </div>` : ''}
   </div>`;
   }
+
+  const combinedHtml = reading.combined
+    ? `  <div class="dr-combined" style="margin:0 0 16px;padding:16px;background:rgba(212,175,55,0.12);border:1.5px solid #d4af37;border-radius:10px;line-height:1.75;font-size:15px;color:#f5f5f7;">
+    <strong style="display:block;margin-bottom:6px;color:#d4af37;font-size:16px;">함께 나온 낱말 묶은 풀이</strong>
+    ${strong(reading.combined)}
+  </div>`
+    : '';
 
   const cards = reading.hits.map((h) => `    <article class="dr-card dr-${h.tone}">
       <p class="dr-c-top"><b class="dr-c-id">${esc(h.id)}</b><span class="dr-c-tone">${esc(h.toneLabel)}</span></p>
@@ -72,6 +88,7 @@ function readingSection(reading: DreamReading | null): string {
 
   return `  <div class="dr-out">
     <p class="dr-head">${esc(reading.head)}</p>
+${combinedHtml}
 ${cards}
     <p class="dr-cut">${strong(reading.cut)}</p>
     <div class="dr-upsell-month" style="margin-top:24px;padding:18px;background:rgba(212,175,55,0.08);border:1px solid #d4af37;border-radius:8px;text-align:center;">
@@ -194,6 +211,8 @@ p, li, label, h1, h2, h3, h4, h5,
   border:1px solid var(--nb-gold);background:var(--nb-gold);color:var(--nb-paper);
   font:500 15.5px var(--nb-sans)}
 .dr-next:hover{background:transparent;color:var(--nb-gold)}
+.dr-top-word{background:rgba(212,175,55,0.15);border:1px solid #d4af37;color:#f5f5f7;padding:6px 12px;border-radius:6px;font-size:13px;cursor:pointer;transition:background .2s}
+.dr-top-word:hover{background:rgba(212,175,55,0.3);color:#fff}
 
 /* 아는 낱말 */
 .dr-sub{margin:34px 0 12px;font-family:var(--nb-sans);font-weight:600;font-size:19px}
