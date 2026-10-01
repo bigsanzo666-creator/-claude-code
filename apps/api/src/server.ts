@@ -1186,14 +1186,13 @@ export function createApi(deps: ApiDeps) {
         return fullText;
       } catch (err: any) {
         reportErrors.set(id, err);
-        throw err;
+        return null as any;
       } finally {
         inFlightReports.delete(id);
       }
     })();
 
     inFlightReports.set(id, task);
-    task.catch(() => {});
     return task;
   }
 
