@@ -1871,6 +1871,7 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
       'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
       '/usr/bin/google-chrome',
       '/usr/bin/chromium-browser',
+      '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
       '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     ].filter(Boolean) as string[];
     const chromePath = candidates.find((c) => fs.existsSync(c));
@@ -1896,6 +1897,9 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
       const proc = spawn(chromePath, [
         '--headless',
         '--disable-gpu',
+        // 관리자 권한으로 도는 자리(도커·CI)에서는 이게 없으면 크롬이 아예 안 뜬다
+        '--no-sandbox',
+        '--disable-dev-shm-usage',
         `--remote-debugging-port=${cPort}`,
         `--user-data-dir=${tmpDir}`,
         'about:blank',
@@ -2009,9 +2013,15 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
       }
     } else {
       // Chrome 없는 환경에서의 폴백 검증
-      const coRes = await page('/checkout?product=daily-report');
-      openedOnEntry = coRes.html.includes('if(editForm && !date){') && coRes.html.includes("editForm.style.display = 'block';");
-      toggledOnEdit = coRes.html.includes("getComputedStyle(editForm).display !== 'none'") && coRes.html.includes('scrollIntoView');
+      /*
+       * 터진 뒤에 적은 것 (2026-10-01): 여기서 page('/checkout?...') 를 썼다.
+       * 그 서버는 결제 열쇠가 없어 「결제 준비 중」 화면을 내준다 — 폼도 스크립트도
+       * 없는 화면이다. 그래서 실제로는 멀쩡한데 검사만 빨간불이 났다.
+       * 아래 사진 안내 검사처럼 화면을 **직접 그려서** 본다.
+       */
+      const coDaily = renderCheckoutPage(business, '', CATALOG['daily-report'], { storeId: 't', channelKey: 't' });
+      openedOnEntry = coDaily.includes('if(editForm && !date){') && coDaily.includes("editForm.style.display = 'block';");
+      toggledOnEdit = coDaily.includes("getComputedStyle(editForm).display !== 'none'") && coDaily.includes('scrollIntoView');
       const crossHtml = renderCheckoutPage(business, '', CATALOG['cross-report'], { storeId: 't', channelKey: 't' });
       photoNoticeVisible = crossHtml.includes('coPayBlockReason') && crossHtml.includes('얼굴 사진과 손 사진을 올리셔야 결제하실 수 있습니다');
     }
