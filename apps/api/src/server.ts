@@ -460,12 +460,15 @@ body {
 }
 .nb-launch-banner{width:100%;background:#2a2010;border-bottom:1px solid #d4af37;color:#f3e5ab;padding:10px 16px;box-sizing:border-box;font-size:14px;font-weight:600;z-index:9999;position:relative}
 .nb-launch-banner-content{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:center}
+.nb-launch-banner-text{word-break:keep-all;line-height:1.45}
+.nb-launch-banner-hit{white-space:nowrap}
+.nb-launch-banner-until{white-space:nowrap}
 .nb-launch-banner-close{background:transparent;border:none;color:#f3e5ab;font-size:16px;cursor:pointer;padding:4px 8px;line-height:1}
 .spirits-free-duo{display:flex;gap:12px;margin:16px auto 12px;max-width:440px;width:100%;box-sizing:border-box}
-.spirits-free-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 14px;border:1.5px solid #d4af37;border-radius:10px;background:rgba(212,175,55,0.08);color:#f3e5ab;text-decoration:none;transition:background 0.2s,transform 0.15s;box-sizing:border-box}
+.spirits-free-btn{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:11px 8px;border:1.5px solid #d4af37;border-radius:10px;background:rgba(212,175,55,0.08);color:#f3e5ab;text-decoration:none;transition:background 0.2s,transform 0.15s;box-sizing:border-box;text-align:center}
 .spirits-free-btn:hover{background:rgba(212,175,55,0.18);transform:translateY(-1px)}
-.spirits-free-badge{font-size:16px;font-weight:800;color:#d4af37;letter-spacing:-0.3px}
-.spirits-free-text{font-size:14px;font-weight:600;color:#f5f5f7}
+.spirits-free-badge{font-size:12px;font-weight:800;color:#d4af37;letter-spacing:.08em;white-space:nowrap}
+.spirits-free-text{font-size:15px;font-weight:700;color:#f5f5f7;white-space:nowrap;word-break:keep-all}
 ${FOOTER_CSS}
 </style>
 <script>
@@ -480,7 +483,7 @@ window.__IS_LAUNCH_SALE__ = ${isLaunchSale()};
 ${isLaunchSale() ? `
 <div class="nb-launch-banner" id="nbLaunchBanner" style="display:none">
   <div class="nb-launch-banner-content">
-    <span>서버 오픈 기념 — 모든 점괘 25% 할인 중 (11월 1일까지)</span>
+    <span class="nb-launch-banner-text">서버 오픈 기념 — 모든 점괘 <b class="nb-launch-banner-hit">25% 할인 중</b><span class="nb-launch-banner-until"> · 11월 1일까지</span></span>
     <button type="button" class="nb-launch-banner-close" id="nbCloseLaunchBanner" aria-label="닫기">✕</button>
   </div>
 </div>

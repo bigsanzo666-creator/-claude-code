@@ -663,10 +663,10 @@ body{background:var(--nb-paper)}
 .pr-regular-note{font-size:12px;color:rgba(243,229,171,0.7);margin-top:4px;font-weight:400}
 .pd-launch-bar{background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.35);color:#f3e5ab;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:12px;text-align:center;line-height:1.5}
 .spirits-free-duo{display:flex;gap:12px;margin:20px auto 20px;max-width:440px;width:100%;box-sizing:border-box}
-.spirits-free-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 14px;border:1.5px solid #d4af37;border-radius:10px;background:rgba(212,175,55,0.08);color:#f3e5ab;text-decoration:none;transition:background 0.2s,transform 0.15s;box-sizing:border-box}
+.spirits-free-btn{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:11px 8px;border:1.5px solid #d4af37;border-radius:10px;background:rgba(212,175,55,0.08);color:#f3e5ab;text-decoration:none;transition:background 0.2s,transform 0.15s;box-sizing:border-box;text-align:center}
 .spirits-free-btn:hover{background:rgba(212,175,55,0.18);transform:translateY(-1px)}
-.spirits-free-badge{font-size:16px;font-weight:800;color:#d4af37;letter-spacing:-0.3px}
-.spirits-free-text{font-size:14px;font-weight:600;color:#f5f5f7}
+.spirits-free-badge{font-size:12px;font-weight:800;color:#d4af37;letter-spacing:.08em;white-space:nowrap}
+.spirits-free-text{font-size:15px;font-weight:700;color:#f5f5f7;white-space:nowrap;word-break:keep-all}
 .pr-soon{display:block;margin:2px 0 0;font-size:14px;color:var(--nb-ink-3);letter-spacing:0.2px}
 .pr-save{display:block;margin-top:4px;font-size:15px;color:var(--nb-ink-3);letter-spacing:0.2px}
 
