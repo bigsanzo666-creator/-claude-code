@@ -271,7 +271,7 @@ async function runSmoke() {
           break;
         }
       }
-      if (/\|\s*\|/.test(fullText)) {
+      if (/\|[ \t]*\|/.test(fullText)) {
         failReasons.push('빈 표 칸');
       }
       if (fullText.includes('님은 님은') || fullText.includes('님이 님이') || fullText.includes('님은님은')) {

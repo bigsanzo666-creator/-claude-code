@@ -281,7 +281,7 @@ check('약속한 이름 개수와 프롬프트가 맞는다',
   check('지시문에 「쉽게 말하면」 층을 쓰라는 대목이 있다',
     topicSys.includes('쉽게 말하면') && topicSys.includes('전문 ·'));
   check('PROMPT_VERSION 이 v9 가 아니다',
-    PROMPT_VERSION !== 'v9' && PROMPT_VERSION === 'v11');
+    PROMPT_VERSION !== 'v9' && PROMPT_VERSION === 'v12');
 
   // 터진 뒤에 적은 것 (2026-10-01): 사장님이 제일 좋아하시는 대목이
   // 한 주제 상품 11개에만 있었다. 23개에는 처음부터 없었다.
