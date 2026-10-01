@@ -1050,6 +1050,84 @@ export function createApi(deps: ApiDeps) {
   const reports: ReportBox = deps.reportStore ?? new MemoryReportBox();
   const referrals: ReferralStore = deps.referrals ?? new MemoryReferralStore();
 
+  const inFlightReports = new Map<string, Promise<string>>();
+  const reportErrors = new Map<string, Error>();
+
+  async function ensureReportBuilding(stored: Order): Promise<string> {
+    const id = stored.id;
+    const existing = await reports.get(id);
+    if (existing) return existing;
+
+    const inFlight = inFlightReports.get(id);
+    if (inFlight) return inFlight;
+
+    reportErrors.delete(id);
+    const task = (async () => {
+      try {
+        const reading = (stored as any).reading as ReadingRequest;
+        const parts = buildPayloads(reading);
+        const chunks: string[] = [];
+        for (const part of parts) {
+          const made = await deps.generate({
+            kind: part.kind, data: part.data, subject: part.subject, question: part.question,
+          });
+          chunks.push(parts.length === 1
+            ? made.text
+            : `# ${CATALOG[part.productId].name}\n\n${made.text}`);
+        }
+        const fullText = chunks.join('\n\n---\n\n');
+        await reports.set(id, stored.inputHash, fullText);
+
+        const current = await mustGet(id);
+        if (current.status === 'paid') {
+          const done = markFulfilled(current);
+          await save(current, done);
+        }
+
+        const buyerEmail = ((stored as any).email || (reading?.birth?.email) || '').trim().toLowerCase();
+        if (buyerEmail) {
+          try {
+            const r = await sendOrderMail({
+              to: buyerEmail,
+              orderId: id,
+              productName: CATALOG[stored.productId].name,
+            });
+            console.log(`[메일] ${r.sent ? '보냄' : '못 보냄'} ${id}${r.reason ? ` (${r.reason})` : ''}`);
+          } catch (e) {
+            console.log(`[메일] 못 보냄 ${id}`);
+          }
+          try {
+            const myInviteCode = generateInviteCode(buyerEmail);
+            await referrals.createInvite(myInviteCode, buyerEmail);
+          } catch (e) {}
+        }
+        if (stored.inviteCode && buyerEmail) {
+          try {
+            const baseAmount = stored.amountKrw + ((stored as any).discountKrw ?? stored.discountKrw ?? 0);
+            await referrals.recordInviteUse({
+              id: `use_${randomUUID()}`,
+              code: stored.inviteCode,
+              invitedEmail: buyerEmail,
+              orderId: stored.id,
+              amountKrw: baseAmount,
+            });
+          } catch (e) {}
+        }
+
+        return fullText;
+      } catch (err: any) {
+        reportErrors.set(id, err);
+        throw err;
+      } finally {
+        inFlightReports.delete(id);
+      }
+    })();
+
+    inFlightReports.set(id, task);
+    task.catch(() => {});
+    return task;
+  }
+
   const checkout = deps.checkout ?? null;
   const business = deps.business ?? loadBusinessInfo();
   // 기동할 때 한 번만 훑는다. 그림은 배포로만 바뀐다
@@ -1785,6 +1863,10 @@ export function createApi(deps: ApiDeps) {
      * 결제 확인 → 리포트 생성.
      * PG에 직접 물어보고, 금액과 주문번호를 대조한 뒤에만 리포트를 만든다.
      */
+    /**
+     * 결제 확인 → 바로 응답. 풀이 짓는 일은 백그라운드 시작.
+     * PG에 직접 물어보고, 금액과 주문번호를 대조한 뒤 즉시 200 { order, ready: false } 응답.
+     */
     'POST /api/orders/:id/confirm': async (req, res, id) => {
       const body = await readJson(req);
       const stored = await mustGet(id);
@@ -1792,7 +1874,8 @@ export function createApi(deps: ApiDeps) {
 
       if (stored.status === 'paid' || stored.status === 'fulfilled' || stored.status === 'viewed') {
         const upsell = getUpsellDataForOrder(stored, stored.viewedAt || new Date().toISOString());
-        send(res, 200, { order: strip(stored), ready: true, upsell });
+        ensureReportBuilding(stored);
+        send(res, 200, { order: strip(stored), ready: false, upsell });
         return;
       }
 
@@ -1812,73 +1895,48 @@ export function createApi(deps: ApiDeps) {
         }
       }
 
-      const reading = (stored as any).reading as ReadingRequest;
-      const parts = buildPayloads(reading);
-      /*
-       * 묶음이라도 주문은 한 건, 이용권도 하나다. 편마다 만들어 한 벌로 붙인다.
-       * 한꺼번에 부르지 않고 차례로 부른다 — 세 편을 동시에 던지면 한도에 걸린다.
-       */
-      const chunks: string[] = [];
-      for (const part of parts) {
-        const made = await deps.generate({
-          kind: part.kind, data: part.data, subject: part.subject, question: part.question,
-        });
-        chunks.push(parts.length === 1
-          ? made.text
-          : `# ${CATALOG[part.productId].name}\n\n${made.text}`);
-      }
-      await reports.set(id, stored.inputHash, chunks.join('\n\n---\n\n'));
+      await save(stored, paid);
 
-      const buyerEmail = ((stored as any).email || (reading?.birth?.email) || '').trim().toLowerCase();
+      // 풀이 짓는 일은 뒤에서 시작만 시킨다 (메일·증표도 이 안에서 답을 보낸 뒤 처리됨)
+      ensureReportBuilding(paid);
 
-      try {
-        const r = await sendOrderMail({
-          to: buyerEmail,
-          orderId: id,
-          productName: CATALOG[stored.productId].name,
-        });
-        console.log(`[메일] ${r.sent ? '보냄' : '못 보냄'} ${id}${r.reason ? ` (${r.reason})` : ''}`);
-      } catch (e) {
-        console.log(`[메일] 못 보냄 ${id}`);
-      }
-      let myInviteCode: string | null = null;
-      if (buyerEmail) {
-        myInviteCode = generateInviteCode(buyerEmail);
-        await referrals.createInvite(myInviteCode, buyerEmail);
-      }
-      if (stored.inviteCode && buyerEmail) {
-        const baseAmount = stored.amountKrw + ((stored as any).discountKrw ?? stored.discountKrw ?? 0);
-        await referrals.recordInviteUse({
-          id: `use_${randomUUID()}`,
-          code: stored.inviteCode,
-          invitedEmail: buyerEmail,
-          orderId: stored.id,
-          amountKrw: baseAmount,
-        });
-      }
-
-      const done = markFulfilled(paid);
-      await save(stored, done);
-      const upsell = getUpsellDataForOrder(done, done.viewedAt || new Date().toISOString());
-      send(res, 200, { order: strip(done), ready: true, inviteCode: myInviteCode, upsell });
+      const upsell = getUpsellDataForOrder(paid, new Date().toISOString());
+      send(res, 200, { order: strip(paid), ready: false, upsell });
     },
 
     /**
      * 리포트 전문.
-     * 이용권을 확인하고, 열람 시점을 기록한다 — 청약철회 제한의 기준점이다.
+     * 풀이가 없으면 여기서 짓는다.
+     * 아직 안 됐으면 202 { ready: false } 로 답한다.
+     * 다 됐으면 200 과 글을 준다.
+     * 짓다가 실패하면 500 { ready: false, retryable: true } 로 답한다.
      */
     'GET /api/orders/:id/report': async (_req, res, id) => {
       const stored = await mustGet(id);
       if (!hasEntitlement(stored, stored.inputHash)) {
         throw new HttpError(403, '결제가 확인되지 않았거나 환불된 주문입니다.');
       }
-      const text = await reports.get(id);
-      if (!text) throw new HttpError(409, '리포트가 아직 준비되지 않았습니다.');
+
+      // 짓다가 실패한 경우
+      const lastErr = reportErrors.get(id);
+      if (lastErr && !inFlightReports.has(id)) {
+        reportErrors.delete(id);
+        send(res, 500, { ready: false, retryable: true, error: lastErr.message || '풀이 생성 실패' });
+        return;
+      }
+
+      let text = await reports.get(id);
+      if (!text) {
+        // 풀이가 없으면 여기서 짓는다 (이미 짓고 있으면 같은 프로미스 대기/확인)
+        ensureReportBuilding(stored);
+        send(res, 202, { ready: false });
+        return;
+      }
 
       const viewed = stored.status === 'viewed' ? stored : markViewed(stored);
       await save(stored, viewed);
       const upsell = getUpsellDataForOrder(viewed, viewed.viewedAt);
-      send(res, 200, { text, order: strip(viewed), upsell });
+      send(res, 200, { text, order: strip(viewed), ready: true, upsell });
     },
 
     /** 환불 가능 여부만 조회. 실제로 취소하지 않는다 */

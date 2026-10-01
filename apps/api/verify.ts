@@ -166,7 +166,10 @@ await orders.save({ ...markPending({ ...stored!, status: 'failed' }, orderId), .
 gateway.put({ paymentId: orderId, status: 'paid', amountKrw: CATALOG['cross-report'].priceKrw, merchantOrderId: orderId, method: 'card', paidAt: new Date().toISOString(), raw: {} });
 
 const confirmed = await api('POST', `/api/orders/${orderId}/confirm`, { paymentId: orderId });
-check('정상 금액이면 확정', confirmed.status === 200 && confirmed.body.order.status === 'fulfilled');
+check('정상 금액이면 확정', confirmed.status === 200 && (confirmed.body.order.status === 'paid' || confirmed.body.order.status === 'fulfilled'));
+for (let i = 0; i < 20 && generateCalls === 0; i++) {
+  await new Promise(r => setTimeout(r, 20));
+}
 check('이때 비로소 리포트를 만듦', generateCalls === 1, `호출 ${generateCalls}회`);
 
 // ── D. 이용권과 열람 ───────────────────────────────────────────
@@ -821,7 +824,12 @@ if (process.env.DATABASE_URL) {
     orderName: '교차검증', raw: {},
   });
   const confirmed = await first.call('POST', `/api/orders/${pgId}/confirm`, { paymentId: pgId });
-  check('결제 확인·리포트 생성', confirmed.status === 200 && confirmed.body.ready === true);
+  check('결제 확인·리포트 생성', confirmed.status === 200 && (confirmed.body.ready === false || confirmed.body.ready === true));
+  for (let i = 0; i < 20; i++) {
+    const r = await first.call('GET', `/api/orders/${pgId}/report`);
+    if (r.status === 200) break;
+    await new Promise(r => setTimeout(r, 20));
+  }
 
   // 여기서 서버가 죽는다. 손님은 아직 리포트를 안 열었다
   first.close();
@@ -931,8 +939,12 @@ section('주인 통과 — 사장님만 값 없이 리포트까지 받는다');
    */
   const 통과확인 = await api('POST', `/api/orders/${맞음.body.order.id}/confirm`,
     { paymentId: 맞음.body.order.id });
-  check('결제창 없이 확정된다', 통과확인.status === 200 && 통과확인.body.ready === true);
-  const 통과리포트 = await api('GET', `/api/orders/${맞음.body.order.id}/report`);
+  check('결제창 없이 확정된다', 통과확인.status === 200 && 통과확인.body.ready === false);
+  let 통과리포트 = await api('GET', `/api/orders/${맞음.body.order.id}/report`);
+  for (let i = 0; i < 20 && 통과리포트.status === 202; i++) {
+    await new Promise(r => setTimeout(r, 20));
+    통과리포트 = await api('GET', `/api/orders/${맞음.body.order.id}/report`);
+  }
   check('리포트 본문까지 나온다',
     통과리포트.status === 200 && typeof 통과리포트.body.text === 'string'
       && 통과리포트.body.text.length > 20,
@@ -1006,12 +1018,16 @@ await api('POST', `/api/orders/${packId}/pending`);
 gateway.put({ paymentId: packId, status: 'paid', amountKrw: packMath.bundleKrw,
   merchantOrderId: packId, method: 'card', paidAt: new Date().toISOString(), raw: {} });
 const packDone = await api('POST', `/api/orders/${packId}/confirm`, { paymentId: packId });
-check('묶음 결제가 확정된다', packDone.status === 200 && packDone.body.order.status === 'fulfilled',
+check('묶음 결제가 확정된다', packDone.status === 200 && (packDone.body.order.status === 'paid' || packDone.body.order.status === 'fulfilled'),
   packDone.body.error);
+let packReport = await api('GET', `/api/orders/${packId}/report`);
+for (let i = 0; i < 20 && packReport.status === 202; i++) {
+  await new Promise(r => setTimeout(r, 20));
+  packReport = await api('GET', `/api/orders/${packId}/report`);
+}
 check('편 수만큼 만든다', generateCalls === before + pack.members.length,
   `${generateCalls - before}편`);
 
-const packReport = await api('GET', `/api/orders/${packId}/report`);
 check('한 벌로 붙여 준다', packReport.status === 200);
 check('편마다 제목이 붙는다',
   pack.members.every((m) => packReport.body.text.includes(`# ${CATALOG[m].name}`)));
@@ -1378,16 +1394,106 @@ const doubleId = doubleOrder.body.order.id;
 await api('POST', `/api/orders/${doubleId}/pending`);
 gateway.put({ paymentId: doubleId, status: 'paid', amountKrw: CATALOG['cross-report'].priceKrw, merchantOrderId: doubleId, method: 'card', paidAt: new Date().toISOString(), raw: {} });
 const firstConfirm = await api('POST', `/api/orders/${doubleId}/confirm`, { paymentId: doubleId });
-check('첫 번째 확정 성공', firstConfirm.status === 200 && firstConfirm.body.ready === true);
+check('첫 번째 확정 성공', firstConfirm.status === 200 && firstConfirm.body.ready === false);
 const secondConfirm = await api('POST', `/api/orders/${doubleId}/confirm`, { paymentId: doubleId });
-check('확정을 두 번 불러도 탈이 없다', secondConfirm.status === 200 && secondConfirm.body.ready === true);
+check('확정을 두 번 불러도 탈이 없다', secondConfirm.status === 200 && secondConfirm.body.ready === false);
 
-// 4. 결제 완료된 주문의 /order/:id 조회 시 리포트 노출 확인
+// 4. 결제 완료된 주문의 백그라운드 리포트 생성 완료 대기 및 /order/:id 조회 시 리포트 노출 확인
+for (let i = 0; i < 30; i++) {
+  const r = await api('GET', `/api/orders/${doubleId}/report`);
+  if (r.status === 200) break;
+  await new Promise(r => setTimeout(r, 50));
+}
 const orderPage = await page(`/order/${doubleId}`);
 check('/order/<진짜 주문번호> 는 리포트를 보여준다',
   orderPage.status === 200 &&
   orderPage.html.includes('이 주소를 저장해 두시면 언제든 다시 보실 수 있습니다') &&
   orderPage.html.includes(doubleId));
+
+// 터진 뒤에 적은 것 (2026-10-01): 풀이를 다 만들어 놓고도 화면은
+// 「결제 확인에 실패했습니다」라고 말했다. 처음 사는 손님만 당했다.
+// 통로 하나에 모델 호출을 매달면 안 된다.
+{
+  const slowGateway = new FakeGateway();
+  const slowOrders = new MemoryOrderStore();
+  let slowResolve: ((val: any) => void) | null = null;
+  const slowHandler = createApi({
+    gateway: slowGateway,
+    orders: slowOrders,
+    business,
+    referrals: new MemoryReferralStore(),
+    generate: async () => {
+      return new Promise((resolve) => {
+        slowResolve = resolve;
+        setTimeout(() => resolve({ text: '[60초 뒤 풀이]' }), 60_000);
+      });
+    },
+  });
+  const slowServer = createServer(slowHandler);
+  await new Promise<void>((r) => slowServer.listen(0, r));
+  const slowPort = (slowServer.address() as { port: number }).port;
+  const slowBase = `http://127.0.0.1:${slowPort}`;
+
+  const slowOrderRes = await fetch(`${slowBase}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...reading, acknowledgedNotice: true, previewShown: true }),
+  });
+  const slowOrderId = (await slowOrderRes.json() as any).order.id;
+  await fetch(`${slowBase}/api/orders/${slowOrderId}/pending`, { method: 'POST' });
+  slowGateway.put({
+    paymentId: slowOrderId,
+    status: 'paid',
+    amountKrw: CATALOG['cross-report'].priceKrw,
+    merchantOrderId: slowOrderId,
+    method: 'card',
+    paidAt: new Date().toISOString(),
+    raw: {},
+  });
+
+  const confirmStart = Date.now();
+  const slowConfirmRes = await fetch(`${slowBase}/api/orders/${slowOrderId}/confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ paymentId: slowOrderId }),
+  });
+  const confirmElapsed = Date.now() - confirmStart;
+  const slowConfirmBody = await slowConfirmRes.json() as any;
+
+  check('풀이 짓는 데 오래 걸려도 결제 확인은 곧바로 답한다',
+    slowConfirmRes.status === 200 && confirmElapsed < 3000 && slowConfirmBody.ready === false,
+    `응답 ${confirmElapsed}ms`);
+
+  const pollBeforeReady = await fetch(`${slowBase}/api/orders/${slowOrderId}/report`);
+  const pollBeforeReadyBody = await pollBeforeReady.json() as any;
+  const is202 = pollBeforeReady.status === 202 && pollBeforeReadyBody.ready === false;
+
+  if (slowResolve) {
+    (slowResolve as (val: any) => void)({ text: '드디어 완성된 풀이' });
+  }
+
+  let is200 = false;
+  for (let i = 0; i < 30; i++) {
+    await new Promise((r) => setTimeout(r, 50));
+    const pollAfter = await fetch(`${slowBase}/api/orders/${slowOrderId}/report`);
+    if (pollAfter.status === 200) {
+      const afterBody = await pollAfter.json() as any;
+      if (afterBody.ready === true && afterBody.text?.includes('드디어 완성된 풀이')) {
+        is200 = true;
+        break;
+      }
+    }
+  }
+  check('풀이가 아직이면 202 로 답하고, 되면 200 으로 답한다', is202 && is200);
+
+  slowServer.close();
+
+  const checkoutHtmlRes = renderCheckoutPage(business, '', CATALOG['cross-report']);
+  check('결제 확인이 실패해도 화면이 풀이 기다리기로 넘어간다',
+    checkoutHtmlRes.includes('waitForReport') &&
+    checkoutHtmlRes.includes('/report') &&
+    checkoutHtmlRes.includes('catch'));
+}
 
 
   // ─── 오늘의 운세(daily-report) 상세페이지 및 무료 미리보기 검증 ──

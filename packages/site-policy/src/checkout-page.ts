@@ -817,15 +817,76 @@ export function renderCheckoutPage(
     if(waitTimer) clearInterval(waitTimer);
     var start = Date.now();
     waitTimer = setInterval(function(){
-      var elapsed = (Date.now() - start) / 1000;
+      var elapsed = Math.floor((Date.now() - start) / 1000);
       var pEl = document.getElementById('coWaitProgress');
       if(!pEl) return;
+      var msg = elapsed + '초 지남 · ';
       if(elapsed >= 90){
-        pEl.textContent = '글이 길어 조금 더 걸리고 있습니다. 창을 닫지 않으셔도 됩니다.';
+        msg += '글이 길어 조금 더 걸리고 있습니다. 창을 닫지 않으셔도 됩니다.';
       }else if(elapsed >= 30){
-        pEl.textContent = '거의 다 됐습니다. 조금만 더 기다려 주십시오.';
+        msg += '거의 다 됐습니다. 조금만 더 기다려 주십시오.';
+      }else{
+        msg += '풀이를 정성껏 짓고 있습니다.';
       }
+      pEl.textContent = msg;
     }, 1000);
+  }
+
+  async function waitForReport(oid, cf){
+    showWaiting(oid);
+    say('신령이 손님의 여덟 글자를 하나씩 짚고 있습니다. 1분에서 3분쯤 걸립니다. 이 창을 닫지 마시고 잠시만 기다려 주십시오.');
+    var pollStart = Date.now();
+    var maxWaitMs = 5 * 60 * 1000; // 5분
+    while(Date.now() - pollStart < maxWaitMs){
+      try{
+        var r = await fetch('/api/orders/' + encodeURIComponent(oid) + '/report');
+        if(r.status === 200){
+          var report = await r.json();
+          if(report && report.text){
+            showReport(oid, report.text, (cf && cf.inviteCode) || (report.order && report.order.inviteCode), (cf && cf.upsell) || report.upsell);
+            return;
+          }
+        }
+      }catch(e){
+        console.log('[풀이 대기 중 일시적 오류]', e);
+      }
+      await new Promise(function(resolve){ setTimeout(resolve, 3000); });
+    }
+
+    if(waitTimer) clearInterval(waitTimer);
+    var link = location.origin + '/order/' + oid;
+    var timeoutHtml = '<div class="co-wait-card" id="coTimeoutCard">' +
+      '<h3 class="co-wait-title">풀이가 아직 지어지는 중입니다.</h3>' +
+      '<p class="co-wait-main">이 주소를 저장해 두셨다가 잠시 뒤 다시 열어 보십시오 — 풀이는 계속 지어집니다.</p>' +
+      '<div class="co-wait-safe" style="margin-top:20px;">' +
+        '<p class="co-wait-safe-txt" style="font-size:16px;font-weight:bold;color:#f6d28b;">손님의 주문 주소</p>' +
+        '<div class="co-wait-link-box" style="margin:12px 0;">' +
+          '<input type="text" readonly value="' + link + '" id="coTimeoutLinkInp" style="font-size:15px;padding:10px;">' +
+          '<button type="button" id="coTimeoutCopyBtn" style="padding:10px 16px;">주소 복사</button>' +
+        '</div>' +
+        '<p class="co-copy-done" id="coTimeoutCopyDone" style="display:none">주소가 복사되었습니다.</p>' +
+        '<div style="margin-top:16px;"><a href="' + link + '" class="od-btn" style="display:inline-block;text-decoration:none;">주문 페이지 바로 가기</a></div>' +
+      '</div>' +
+    '</div>';
+    if(done){
+      done.style.display = 'block';
+      done.innerHTML = timeoutHtml;
+    }
+    var tCopyBtn = document.getElementById('coTimeoutCopyBtn');
+    var tCopyInp = document.getElementById('coTimeoutLinkInp');
+    var tCopyDone = document.getElementById('coTimeoutCopyDone');
+    if(tCopyBtn && tCopyInp){
+      tCopyBtn.onclick = function(){
+        try{
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            navigator.clipboard.writeText(tCopyInp.value);
+          }else{
+            tCopyInp.select(); document.execCommand('copy');
+          }
+          if(tCopyDone) tCopyDone.style.display = 'block';
+        }catch(e){}
+      };
+    }
   }
 
   function showReport(oid, reportText, inviteCode, upsellData){
@@ -998,22 +1059,15 @@ export function renderCheckoutPage(
           if(retry) retry.style.display = 'block';
         }else{
           (async function(){
+            var cf = null;
             try{
               say('결제를 확인하고 있습니다…');
               var pid = q.get('paymentId') || resumeId;
-              var cf = await post('/api/orders/' + encodeURIComponent(resumeId) + '/confirm', { paymentId: pid });
-              say('신령이 손님의 여덟 글자를 하나씩 짚고 있습니다. 1분에서 3분쯤 걸립니다. 이 창을 닫지 마시고 잠시만 기다려 주십시오.');
-              showWaiting(resumeId);
-              var r = await fetch('/api/orders/' + encodeURIComponent(resumeId) + '/report');
-              var report = await r.json();
-              if(!r.ok) throw new Error(report.error || '리포트를 불러오지 못했습니다.');
-              showReport(resumeId, report.text, (cf && cf.inviteCode) || (report.order && report.order.inviteCode), (cf && cf.upsell) || report.upsell);
-            }catch(err){
-              console.log('[결제 확인 실패]', err);
-              say('결제 확인에 실패했습니다. 주문번호 ' + resumeId + ' 로 문의해 주십시오. 결제는 완료되었을 수 있습니다.');
-              var retry = document.getElementById('coRetry');
-              if(retry) retry.style.display = 'block';
+              cf = await post('/api/orders/' + encodeURIComponent(resumeId) + '/confirm', { paymentId: pid });
+            }catch(confirmErr){
+              console.log('[결제 확인 통신 오류, 풀이 확인 시도]', confirmErr);
             }
+            await waitForReport(resumeId, cf);
           })();
         }
       }
@@ -1353,15 +1407,14 @@ export function renderCheckoutPage(
       orderId = created.order.id;
 
       if(created.order.amountKrw === 0){
-        say('신령이 손님의 여덟 글자를 하나씩 짚고 있습니다. 1분에서 3분쯤 걸립니다. 이 창을 닫지 마시고 잠시만 기다려 주십시오.');
-        showWaiting(orderId);
-        var cf = await post('/api/orders/' + orderId + '/confirm', { paymentId: orderId });
-        say('신령이 손님의 여덟 글자를 하나씩 짚고 있습니다. 1분에서 3분쯤 걸립니다. 이 창을 닫지 마시고 잠시만 기다려 주십시오.');
-        var r = await fetch('/api/orders/' + orderId + '/report');
-        var report = await r.json();
-        if(!r.ok) throw new Error(report.error || '리포트를 불러오지 못했습니다.');
-        showReport(orderId, report.text, (cf && cf.inviteCode) || (report.order && report.order.inviteCode), (cf && cf.upsell) || report.upsell);
-        pay.style.display = 'none';
+        var cf = null;
+        try{
+          cf = await post('/api/orders/' + orderId + '/confirm', { paymentId: orderId });
+        }catch(e){
+          console.log('[무료 주문 확인 통신 오류, 풀이 확인 계속]', e);
+        }
+        await waitForReport(orderId, cf);
+        if(pay) pay.style.display = 'none';
         return;
       }
 
@@ -1395,24 +1448,21 @@ export function renderCheckoutPage(
       }
 
       say('결제를 확인하고 있습니다…');
-      var cf = await post('/api/orders/' + orderId + '/confirm', { paymentId: (res && res.paymentId) || orderId });
+      var cf = null;
+      try{
+        cf = await post('/api/orders/' + orderId + '/confirm', { paymentId: (res && res.paymentId) || orderId });
+      }catch(confirmErr){
+        console.log('[결제 확인 통신 오류, 풀이 확인 계속]', confirmErr);
+      }
 
-      say('신령이 손님의 여덟 글자를 하나씩 짚고 있습니다. 1분에서 3분쯤 걸립니다. 이 창을 닫지 마시고 잠시만 기다려 주십시오.');
-      showWaiting(orderId);
-      var r = await fetch('/api/orders/' + orderId + '/report');
-      var report = await r.json();
-      if(!r.ok) throw new Error(report.error || '리포트를 불러오지 못했습니다.');
-
-      showReport(orderId, report.text, (cf && cf.inviteCode) || (report.order && report.order.inviteCode), (cf && cf.upsell) || report.upsell);
-      pay.style.display = 'none';
+      await waitForReport(orderId, cf);
+      if(pay) pay.style.display = 'none';
     }catch(err){
       console.log('[결제 실패]', err);
       if(err && (err.message === '결제가 완료되지 않았습니다. 다시 눌러 주십시오.' || err.message === '결제창을 여는 데 실패했습니다. 잠시 뒤 다시 눌러 주십시오.')){
         say(err.message);
-      }else if(orderId){
-        say('결제 확인에 실패했습니다. 주문번호 ' + orderId + ' 로 문의해 주십시오. 결제는 완료되었을 수 있습니다.');
       }else{
-        say('결제에 실패했습니다. 잠시 뒤 다시 시도해 주십시오.');
+        say((err && err.message) || '결제에 실패했습니다. 잠시 뒤 다시 시도해 주십시오.');
       }
       pay.disabled = false;
     }

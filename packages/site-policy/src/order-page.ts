@@ -99,6 +99,22 @@ export function renderOrderPendingReportPage(business: BusinessInfo, footer: str
   <p class="od-desc">결제가 정상 확인되었습니다. 리포트를 정성껏 작성하고 있으니 잠시만 기다려 주십시오. (3초마다 자동으로 확인합니다)</p>
   <p class="od-order-info">주문번호: ${esc(order.id)}</p>
 </main>
+<script>
+(function(){
+  var orderId = ${JSON.stringify(order.id)};
+  var poll = async function(){
+    try {
+      var r = await fetch('/api/orders/' + encodeURIComponent(orderId) + '/report');
+      if (r.status === 200) {
+        location.reload();
+        return;
+      }
+    } catch(e){}
+    setTimeout(poll, 3000);
+  };
+  setTimeout(poll, 3000);
+})();
+</script>
 ${footer}
 </body>
 </html>`;
