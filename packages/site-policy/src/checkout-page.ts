@@ -1060,30 +1060,41 @@ export function renderCheckoutPage(
    * 빈 화면으로 끝나는 길이 하나라도 있으면 안 된다.
    */
   (function 빈화면파수꾼(){
+    /*
+     * 처음 쓴 것은 「안내 글 한 줄이라도 있으면 가만히 둔다」였다. 그런데 그
+     * 한 줄은 늘 깔려 있어서 파수꾼이 한 번도 깨어나지 않았다.
+     * 이제는 **손님이 실제로 볼 것**만 센다 — 풀이·기다림 카드·다시 시도 단추.
+     * 그것이 없으면 입력칸을 힘으로 꺼낸다.
+     */
     var 본횟수 = 0;
     var 지킴 = setInterval(function(){
       try{
-        if(++본횟수 > 30){ clearInterval(지킴); return; }
+        if(++본횟수 > 40){ clearInterval(지킴); return; }
+        var r = document.getElementById('coRetry');
+        var 보일것 = document.getElementById('coWaitCard')
+          || document.getElementById('coTimeoutCard')
+          || document.querySelector('.co-done')
+          || document.querySelector('.od-upsell-box')
+          || (r && r.offsetHeight > 0 ? r : null);
+        if(보일것){ clearInterval(지킴); return; }
         var form = document.getElementById('coForm');
         var fields = document.getElementById('coFields');
-        var 살수있나 = (form && form.offsetHeight > 0) || (fields && fields.offsetHeight > 0);
+        var 살수있나 = (form && form.offsetHeight > 40) || (fields && fields.offsetHeight > 40);
         if(살수있나){ clearInterval(지킴); return; }
-
-        var d = document.getElementById('coDone');
-        var 뭔가보이나 = (d && d.offsetHeight > 0 && (d.innerHTML || '').trim())
-          || document.getElementById('coWaitCard')
-          || document.getElementById('coTimeoutCard')
-          || (function(){ var r = document.getElementById('coRetry'); return r && r.offsetHeight > 0; })()
-          || (function(){ var m = document.getElementById('coMsg'); return m && (m.textContent || '').trim(); })();
-        if(뭔가보이나) return;
-
-        if(form) form.style.display = '';
-        if(fields) fields.style.display = '';
-        var m = document.getElementById('coMsg');
-        if(m) m.textContent = '화면을 다시 불러왔습니다. 아래에서 그대로 진행해 주십시오.';
-        clearInterval(지킴);
+        if(form){
+          form.style.setProperty('display', 'block', 'important');
+          form.style.setProperty('visibility', 'visible', 'important');
+          form.removeAttribute('hidden');
+        }
+        if(fields){
+          fields.style.setProperty('display', 'block', 'important');
+          fields.style.setProperty('visibility', 'visible', 'important');
+          fields.removeAttribute('hidden');
+        }
+        var payBtn = document.getElementById('coPay');
+        if(payBtn) payBtn.style.setProperty('display', 'block', 'important');
       }catch(e){ clearInterval(지킴); }
-    }, 2000);
+    }, 1500);
   })();
 
   /* resume handling for mobile redirect */
