@@ -90,6 +90,33 @@ export const NEUTRAL_PALM_FEATURES: PalmFeatures = {
 };
 
 /**
+ * 바깥에서 들어온 값을 **믿지 않고** 손금 특징으로 바꾼다.
+ *
+ * 터진 뒤에 적은 것 (2026-10-02): 화면이 { headLine, lifeLine, heartLine, fateLine }
+ * 을 보내고 있었다. 여기서 쓰는 이름과 하나도 맞지 않아 handShape 가 비었고,
+ * 「HAND_SHAPE_RULES[f.handShape] is not iterable」로 리포트가 통째로 죽었다.
+ * 손님이 값을 치르고도 아무것도 못 받는다. **모르는 값은 가운데로 두고 던지지 않는다.**
+ */
+export function sanitizePalmFeatures(input: unknown): PalmFeatures {
+  const o = (input ?? {}) as Record<string, unknown>;
+  const lv = (v: unknown, fallback: Level): Level =>
+    v === 'low' || v === 'mid' || v === 'high' ? v : fallback;
+  const sh = o.handShape;
+  return {
+    lifeLength: lv(o.lifeLength ?? o.lifeLine, NEUTRAL_PALM_FEATURES.lifeLength),
+    lifeDepth: lv(o.lifeDepth, NEUTRAL_PALM_FEATURES.lifeDepth),
+    headLength: lv(o.headLength ?? o.headLine, NEUTRAL_PALM_FEATURES.headLength),
+    headDepth: lv(o.headDepth, NEUTRAL_PALM_FEATURES.headDepth),
+    heartLength: lv(o.heartLength ?? o.heartLine, NEUTRAL_PALM_FEATURES.heartLength),
+    heartDepth: lv(o.heartDepth, NEUTRAL_PALM_FEATURES.heartDepth),
+    fateClarity: lv(o.fateClarity ?? o.fateLine, NEUTRAL_PALM_FEATURES.fateClarity),
+    handShape: sh === '목형' || sh === '화형' || sh === '토형' || sh === '금형' || sh === '수형'
+      ? sh : NEUTRAL_PALM_FEATURES.handShape,
+    simianLine: o.simianLine === true,
+  };
+}
+
+/**
  * 어느 손을 볼 것인가에 대한 안내.
  *
  * 유파에 따라 갈리는 영역이라 우리가 정하지 않고 사용자에게 알린다.

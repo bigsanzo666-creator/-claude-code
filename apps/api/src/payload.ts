@@ -18,8 +18,8 @@ import {
 } from '../../../packages/saju-rules/src/index.ts';
 import { pickDays, mergeHours, bestPerDay, slotSpan, slotLabel, pickMarriageDays } from '../../../packages/saju-rules/src/index.ts';
 import { PLACES } from '../../../packages/saju-rules/src/index.ts';
-import { readFace, NEUTRAL_FEATURES } from '../../../packages/physiognomy/src/index.ts';
-import { readPalm, NEUTRAL_PALM_FEATURES } from '../../../packages/palmistry/src/index.ts';
+import { readFace, NEUTRAL_FEATURES, sanitizeFaceFeatures } from '../../../packages/physiognomy/src/index.ts';
+import { readPalm, NEUTRAL_PALM_FEATURES, sanitizePalmFeatures } from '../../../packages/palmistry/src/index.ts';
 import {
   nameField, popularList, popularitySource, popularYears, type NameWish,
 } from '../../../packages/naming/src/index.ts';
@@ -1232,8 +1232,15 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
    * 나가게 된다. 상품 설명과 글이 다른 말을 하면 그 자체가 위반이다.
    */
   const uses = CROSS_SOURCES[req.productId] ?? { 사주: true, 관상: true, 손금: true };
-  const face = uses.관상 ? readFace(req.face ?? NEUTRAL_FEATURES) : null;
-  const palm = uses.손금 ? readPalm(req.palm ?? NEUTRAL_PALM_FEATURES) : null;
+  /*
+   * 화면이 보낸 값은 **믿지 않는다.**
+   *
+   * 터진 뒤에 적은 것 (2026-10-02): 화면이 보내던 이름이 여기서 쓰는 이름과
+   * 전혀 달라 손금 규칙에서 터졌다 — 손님이 값을 치르고도 아무것도 못 받았다.
+   * 모자라거나 틀린 값은 가운데로 메우고, 리포트는 반드시 나오게 한다.
+   */
+  const face = uses.관상 ? readFace(sanitizeFaceFeatures(req.face)) : null;
+  const palm = uses.손금 ? readPalm(sanitizePalmFeatures(req.palm)) : null;
   const profiles = [
     ...(uses.사주 ? [sajuToTraits(an)] : []),
     ...(face ? [face.profile] : []),

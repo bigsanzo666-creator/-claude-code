@@ -80,3 +80,32 @@ export const NEUTRAL_FEATURES: FaceFeatures = {
   lipThickness: 'mid', jawDevelopment: 'mid', cheekbone: 'mid',
   faceShape: 'oval',
 };
+
+/**
+ * 바깥에서 들어온 값을 **믿지 않고** 얼굴 특징으로 바꾼다.
+ *
+ * 터진 뒤에 적은 것 (2026-10-02): 화면이 보내는 이름(forehead, brow, eye …)과
+ * 여기서 쓰는 이름(foreheadWidth, browThickness, eyeSize …)이 서로 달랐다.
+ * 손금 쪽은 아예 터져서 「HAND_SHAPE_RULES[f.handShape] is not iterable」로
+ * 리포트가 안 나왔다. **화면이 보낸 값은 늘 모자라거나 틀릴 수 있다.**
+ * 모르는 값은 가운데(mid)로 두고, 절대 던지지 않는다.
+ */
+export function sanitizeFaceFeatures(input: unknown): FaceFeatures {
+  const o = (input ?? {}) as Record<string, unknown>;
+  const lv = (v: unknown, fallback: Level): Level =>
+    v === 'low' || v === 'mid' || v === 'high' ? v : fallback;
+  const shape = o.faceShape;
+  return {
+    foreheadWidth: lv(o.foreheadWidth ?? o.forehead, NEUTRAL_FEATURES.foreheadWidth),
+    browThickness: lv(o.browThickness ?? o.brow, NEUTRAL_FEATURES.browThickness),
+    eyeSize: lv(o.eyeSize ?? o.eye, NEUTRAL_FEATURES.eyeSize),
+    noseBridge: lv(o.noseBridge, NEUTRAL_FEATURES.noseBridge),
+    noseWing: lv(o.noseWing, NEUTRAL_FEATURES.noseWing),
+    mouthSize: lv(o.mouthSize ?? o.mouth, NEUTRAL_FEATURES.mouthSize),
+    lipThickness: lv(o.lipThickness ?? o.lip, NEUTRAL_FEATURES.lipThickness),
+    jawDevelopment: lv(o.jawDevelopment ?? o.jaw, NEUTRAL_FEATURES.jawDevelopment),
+    cheekbone: lv(o.cheekbone ?? o.cheek, NEUTRAL_FEATURES.cheekbone),
+    faceShape: shape === 'round' || shape === 'square' || shape === 'oval'
+      || shape === 'long' || shape === 'heart' ? shape : NEUTRAL_FEATURES.faceShape,
+  };
+}

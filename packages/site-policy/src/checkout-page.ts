@@ -600,7 +600,7 @@ export function renderCheckoutPage(
       if(wrap) wrap.style.display = 'flex';
       if(lbl) lbl.style.display = 'none';
       faceUploaded = true;
-      window.__nbFace = window.__nbFace || { forehead: 'mid', brow: 'mid', eye: 'mid', noseBridge: 'mid', noseWing: 'mid', mouth: 'mid', lip: 'mid', jaw: 'mid', cheek: 'mid', faceShape: 'oval' };
+      window.__nbFace = window.__nbFace || { foreheadWidth: 'mid', browThickness: 'mid', eyeSize: 'mid', noseBridge: 'mid', noseWing: 'mid', mouthSize: 'mid', lipThickness: 'mid', jawDevelopment: 'mid', cheekbone: 'mid', faceShape: 'oval' };
       saveReading({ face: window.__nbFace });
       checkCanPay();
     });
@@ -633,7 +633,7 @@ export function renderCheckoutPage(
       if(wrap) wrap.style.display = 'flex';
       if(lbl) lbl.style.display = 'none';
       palmUploaded = true;
-      window.__nbPalm = window.__nbPalm || { headLine: 'mid', lifeLine: 'mid', heartLine: 'mid', fateLine: 'mid' };
+      window.__nbPalm = window.__nbPalm || { lifeLength: 'mid', lifeDepth: 'mid', headLength: 'mid', headDepth: 'mid', heartLength: 'mid', heartDepth: 'mid', fateClarity: 'mid', handShape: '토형', simianLine: false };
       saveReading({ palm: window.__nbPalm });
       checkCanPay();
     });

@@ -2008,6 +2008,43 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
       '뱃지에 숫자가 박혀 있다 — 실제 값과 어긋난다');
   }
 
+  /*
+   * 얼굴·손 리포트가 **아무 값을 받아도 죽지 않아야** 한다.
+   *
+   * 터진 뒤에 적은 것 (2026-10-02): 화면이 보내던 이름이 규칙에서 쓰는 이름과
+   * 전혀 달라 「HAND_SHAPE_RULES[f.handShape] is not iterable」로 리포트가 통째로
+   * 죽었다. 손님이 값을 치르고도 아무것도 못 받는 자리다.
+   */
+  {
+    const { sanitizePalmFeatures, readPalm } = await import('../../packages/palmistry/src/index.ts');
+    const { sanitizeFaceFeatures, readFace } = await import('../../packages/physiognomy/src/index.ts');
+    const 험한값: unknown[] = [
+      undefined, null, {}, 'zzz', 42, [],
+      { headLine: 'mid', lifeLine: 'mid', heartLine: 'mid', fateLine: 'mid' }, // 옛 화면이 보내던 것
+      { handShape: '불형' }, { handShape: null }, { lifeLength: 'zzz', simianLine: 'yes' },
+    ];
+    let 손금터짐 = '';
+    let 관상터짐 = '';
+    for (const v of 험한값) {
+      try { readPalm(sanitizePalmFeatures(v)); } catch (e: any) { 손금터짐 = `${JSON.stringify(v)} → ${e.message}`; break; }
+      try { readFace(sanitizeFaceFeatures(v)); } catch (e: any) { 관상터짐 = `${JSON.stringify(v)} → ${e.message}`; break; }
+    }
+    check('손금 규칙이 어떤 값을 받아도 죽지 않는다', 손금터짐 === '', 손금터짐);
+    check('관상 규칙이 어떤 값을 받아도 죽지 않는다', 관상터짐 === '', 관상터짐);
+    check('손 모양이 늘 다섯 가지 중 하나다',
+      ['목형', '화형', '토형', '금형', '수형'].includes(sanitizePalmFeatures({ handShape: '불형' }).handShape));
+
+    // 화면이 보내는 이름이 규칙이 읽는 이름과 같아야 한다
+    const co = renderCheckoutPage(business, '', CATALOG['cross-report'],
+      { storeId: 'test_store', channelKey: 'test_channel' });
+    check('화면이 손금을 올바른 이름으로 보낸다',
+      co.includes('lifeLength') && co.includes('handShape') && !co.includes("lifeLine: 'mid'"),
+      '화면이 보내는 이름이 규칙과 다르다');
+    check('화면이 얼굴을 올바른 이름으로 보낸다',
+      co.includes('foreheadWidth') && co.includes('cheekbone') && !co.includes("forehead: 'mid'"),
+      '화면이 보내는 이름이 규칙과 다르다');
+  }
+
   for (const p of testPaths) {
     const pageRes = await page(p);
     check(`${p} 화면 로드 성공`, pageRes.status === 200, `상태: ${pageRes.status}`);
