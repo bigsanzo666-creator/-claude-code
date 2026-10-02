@@ -1048,6 +1048,44 @@ export function renderCheckoutPage(
     }
   }
 
+  /*
+   * 빈 화면 파수꾼.
+   *
+   * 터진 뒤에 적은 것 (2026-10-02): 결제 화면이 **아무것도 없는 검은 화면**으로
+   * 끝난 일이 있었다. 입력칸은 서버가 보낸 글에 멀쩡히 들어 있었는데 화면에서
+   * 사라졌고, 그 자리에 아무 안내도 뜨지 않았다. 사는 길이 통째로 막힌다.
+   *
+   * 어디서 숨겼는지 따지지 않는다. **결과만 본다** — 살 수 있는 것도, 기다리는
+   * 안내도, 풀이도 없으면 입력칸을 도로 꺼낸다. 2초마다, 1분 동안 지켜본다.
+   * 빈 화면으로 끝나는 길이 하나라도 있으면 안 된다.
+   */
+  (function 빈화면파수꾼(){
+    var 본횟수 = 0;
+    var 지킴 = setInterval(function(){
+      try{
+        if(++본횟수 > 30){ clearInterval(지킴); return; }
+        var form = document.getElementById('coForm');
+        var fields = document.getElementById('coFields');
+        var 살수있나 = (form && form.offsetHeight > 0) || (fields && fields.offsetHeight > 0);
+        if(살수있나){ clearInterval(지킴); return; }
+
+        var d = document.getElementById('coDone');
+        var 뭔가보이나 = (d && d.offsetHeight > 0 && (d.innerHTML || '').trim())
+          || document.getElementById('coWaitCard')
+          || document.getElementById('coTimeoutCard')
+          || (function(){ var r = document.getElementById('coRetry'); return r && r.offsetHeight > 0; })()
+          || (function(){ var m = document.getElementById('coMsg'); return m && (m.textContent || '').trim(); })();
+        if(뭔가보이나) return;
+
+        if(form) form.style.display = '';
+        if(fields) fields.style.display = '';
+        var m = document.getElementById('coMsg');
+        if(m) m.textContent = '화면을 다시 불러왔습니다. 아래에서 그대로 진행해 주십시오.';
+        clearInterval(지킴);
+      }catch(e){ clearInterval(지킴); }
+    }, 2000);
+  })();
+
   /* resume handling for mobile redirect */
   (function checkResume(){
     try{
@@ -1057,25 +1095,6 @@ export function renderCheckoutPage(
       if(resumeId){
         var fields = document.getElementById('coFields');
         if(fields) fields.style.display = 'none';
-        /*
-         * 터진 뒤에 적은 것 (2026-10-02): 입력칸을 숨겨 놓고 아무것도 안 띄우면
-         * 손님은 **빈 화면**을 본다. 결제창을 닫았거나 통신이 끊기면 그렇게 된다.
-         * 그래서 10초 안에 아무것도 안 나오면 입력칸을 도로 꺼낸다.
-         * 빈 화면으로 끝나는 길이 하나라도 있으면 안 된다.
-         */
-        setTimeout(function(){
-          try{
-            var f = document.getElementById('coFields');
-            if(!f || f.style.display !== 'none') return;
-            var d = document.getElementById('coDone');
-            var shown = (d && d.style.display === 'block' && (d.innerHTML || '').trim())
-              || (document.getElementById('coWaitCard'))
-              || (document.getElementById('coRetry') && document.getElementById('coRetry').style.display === 'block');
-            if(shown) return;
-            f.style.display = '';
-            say('화면을 다시 불러왔습니다. 아래에서 다시 진행해 주십시오.');
-          }catch(e){}
-        }, 10000);
         if(portoneCode){
           say('결제가 완료되지 않았습니다. 다시 시도해 주십시오.');
           var retry = document.getElementById('coRetry');
