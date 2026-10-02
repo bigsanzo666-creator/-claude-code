@@ -1946,6 +1946,33 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
       맛보기실패.length === 0, 맛보기실패.join(', '));
   }
 
+  /*
+   * 결제 뒤 결과 카드가 **보이는지**.
+   *
+   * 터진 뒤에 적은 것 (2026-10-02): 결과·기다림 카드가 들어가는 #coDone 이
+   * <form id="coForm"> 안에 있는데, 결제 뒤 그 form 을 숨겨서 카드까지
+   * 사라졌다. 글자는 화면 안에 다 있었으니 글자만 세는 검사는 전부 통과했다.
+   * 그래서 **틀 관계와 숨기는 대상**을 직접 본다.
+   */
+  {
+    const co = renderCheckoutPage(business, '', CATALOG['charm-report'],
+      { storeId: 'test_store', channelKey: 'test_channel' });
+    const 입력칸시작 = co.indexOf('id="coFields"');
+    const 입력칸끝 = co.indexOf('<p class="co-msg"', 입력칸시작);
+    const 결과칸 = co.indexOf('id="coDone"');
+    check('결과 카드(#coDone)가 입력칸(#coFields) 밖에 있다',
+      입력칸시작 > 0 && 결과칸 > 0 && 결과칸 > 입력칸끝 && 입력칸끝 > 0,
+      `입력칸 ${입력칸시작}~${입력칸끝}, 결과칸 ${결과칸}`);
+    check('결제 뒤에 form 전체를 숨기지 않는다',
+      !/\bf\.style\.display\s*=\s*'none'/.test(co),
+      'f.style.display = \'none\' 이 남아 있다 — 결과 카드가 같이 사라진다');
+    check('풀이가 막히면 화면이 그 말을 한다 (500 을 삼키지 않는다)',
+      co.includes('coStuckCard') && /r\.status\s*>=\s*500/.test(co),
+      '막힘 카드나 500 처리가 없다');
+    check('파수꾼이 높이 0인 카드를 「보이는 것」으로 세지 않는다',
+      co.includes('키있나'), '파수꾼이 카드 존재만 보고 잠든다');
+  }
+
   for (const p of testPaths) {
     const pageRes = await page(p);
     check(`${p} 화면 로드 성공`, pageRes.status === 200, `상태: ${pageRes.status}`);

@@ -453,6 +453,18 @@ export function renderCheckoutPage(
   var agreeMarketing = document.getElementById('coAgreeMarketing');
   var msg = document.getElementById('coMsg');
   var done = document.getElementById('coDone');
+  /*
+   * 입력칸 틀.
+   *
+   * 터진 뒤에 적은 것 (2026-10-02): 결과·기다림 카드가 들어가는 #coDone 이
+   * <form id="coForm"> **안에** 있다. 그래서 결제 뒤에 form 을 숨기면 카드까지
+   * 같이 사라져, 손님은 아무것도 없는 화면을 봤다. 0원 주문에서 결과가 안
+   * 나온다는 신고가 이것이었다. **숨길 것은 form 이 아니라 입력칸뿐이다.**
+   */
+  var fieldsBox = document.getElementById('coFields');
+  function 입력칸을숨긴다(){
+    if(fieldsBox) fieldsBox.style.display = 'none';
+  }
   if(!f) return;
 
   function say(t, ok){
@@ -799,7 +811,7 @@ export function renderCheckoutPage(
       done.style.display = 'block';
       done.innerHTML = waitHtml;
     }
-    if(f) f.style.display = 'none';
+    입력칸을숨긴다();
 
     var wCopyBtn = document.getElementById('coWaitCopyBtn');
     var wCopyInp = document.getElementById('coWaitLinkInp');
@@ -835,11 +847,66 @@ export function renderCheckoutPage(
     }, 1000);
   }
 
+  /*
+   * 풀이 짓기가 막혔을 때 보여 줄 카드.
+   *
+   * 터진 뒤에 적은 것 (2026-10-02): 서버는 풀이가 막히면 500과 사유를 돌려주는데
+   * 화면은 200만 보고 있었다. 그래서 손님은 「1분에서 3분쯤 걸립니다」를 5분 동안
+   * 보다가 시간 초과 카드를 받았다. 0원 주문에서 결과가 안 나온다는 신고가
+   * 전부 이것이었다. **막혔으면 막혔다고 말해야 한다.**
+   */
+  function showStuck(oid, reason, retry){
+    if(waitTimer) clearInterval(waitTimer);
+    var link = location.origin + '/order/' + oid;
+    var 주인인가 = (function(){ try { return !!sessionStorage.getItem('nb_pass'); } catch(e){ return false; } })();
+    var html = '<div class="co-wait-card" id="coStuckCard">' +
+      '<h3 class="co-wait-title">풀이를 짓다가 막혔습니다.</h3>' +
+      '<p class="co-wait-main">주문과 결제는 그대로 남아 있습니다. 아래 <strong>다시 짓기</strong>를 눌러 주십시오.</p>' +
+      '<div style="margin-top:18px;"><button type="button" class="od-btn" id="coStuckRetry">다시 짓기</button></div>' +
+      '<div class="co-wait-safe" style="margin-top:20px;">' +
+        '<p class="co-wait-safe-txt">이 주소를 저장해 두시면 나중에 다시 열어 보실 수 있습니다.</p>' +
+        '<div class="co-wait-link-box">' +
+          '<input type="text" readonly value="' + link + '" id="coStuckLinkInp">' +
+          '<button type="button" id="coStuckCopyBtn">주소 복사</button>' +
+        '</div>' +
+        '<p class="co-copy-done" id="coStuckCopyDone" style="display:none">주소가 복사되었습니다.</p>' +
+      '</div>' +
+      (주인인가 && reason && String(reason).trim() ? '<p class="co-wait-sub" style="margin-top:16px;opacity:.75">주인에게만 보입니다 — ' + String(reason).replace(/</g, '&lt;').slice(0, 300) + '</p>' : '') +
+    '</div>';
+    if(done){
+      done.style.display = 'block';
+      done.innerHTML = html;
+    }
+    입력칸을숨긴다();
+    say('풀이를 짓다가 막혔습니다. 다시 짓기를 눌러 주십시오.');
+    var sRetry = document.getElementById('coStuckRetry');
+    if(sRetry && retry){
+      sRetry.onclick = function(){ sRetry.disabled = true; retry(); };
+    }
+    var sCopyBtn = document.getElementById('coStuckCopyBtn');
+    var sCopyInp = document.getElementById('coStuckLinkInp');
+    var sCopyDone = document.getElementById('coStuckCopyDone');
+    if(sCopyBtn && sCopyInp){
+      sCopyBtn.onclick = function(){
+        try{
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            navigator.clipboard.writeText(sCopyInp.value);
+          }else{
+            sCopyInp.select(); document.execCommand('copy');
+          }
+          if(sCopyDone) sCopyDone.style.display = 'block';
+        }catch(e){}
+      };
+    }
+  }
+
   async function waitForReport(oid, cf){
     showWaiting(oid);
     say('신령이 손님의 여덟 글자를 하나씩 짚고 있습니다. 1분에서 3분쯤 걸립니다. 이 창을 닫지 마시고 잠시만 기다려 주십시오.');
     var pollStart = Date.now();
     var maxWaitMs = 5 * 60 * 1000; // 5분
+    var 막힌횟수 = 0;
+    var 막힌사유 = '';
     while(Date.now() - pollStart < maxWaitMs){
       try{
         var r = await fetch('/api/orders/' + encodeURIComponent(oid) + '/report');
@@ -847,6 +914,17 @@ export function renderCheckoutPage(
           var report = await r.json();
           if(report && report.text){
             showReport(oid, report.text, (cf && cf.inviteCode) || (report.order && report.order.inviteCode), (cf && cf.upsell) || report.upsell);
+            return;
+          }
+        }else if(r.status >= 500){
+          // 서버가 「막혔다」고 답한 것이다. 세 번 막히면 그대로 말한다.
+          막힌횟수 = 막힌횟수 + 1;
+          try{
+            var 막힘 = await r.json();
+            if(막힘 && 막힘.error) 막힌사유 = String(막힘.error);
+          }catch(e){}
+          if(막힌횟수 >= 3){
+            showStuck(oid, 막힌사유, function(){ waitForReport(oid, cf); });
             return;
           }
         }
@@ -1071,11 +1149,19 @@ export function renderCheckoutPage(
       try{
         if(++본횟수 > 40){ clearInterval(지킴); return; }
         var r = document.getElementById('coRetry');
-        var 보일것 = document.getElementById('coWaitCard')
-          || document.getElementById('coTimeoutCard')
-          || document.querySelector('.co-done')
-          || document.querySelector('.od-upsell-box')
-          || (r && r.offsetHeight > 0 ? r : null);
+        /*
+         * 터진 뒤에 적은 것 (2026-10-02): 전에는 카드가 **있기만 하면** 보이는
+         * 것으로 세었다. 그런데 카드는 숨겨진 form 안에 있어서 높이가 0이었다.
+         * 파수꾼이 그걸 보고 잠들어 빈 화면이 그대로 남았다.
+         * **높이가 있어야 보이는 것이다.**
+         */
+        var 키있나 = function(e){ return e && e.offsetHeight > 0 ? e : null; };
+        var 보일것 = 키있나(document.getElementById('coWaitCard'))
+          || 키있나(document.getElementById('coTimeoutCard'))
+          || 키있나(document.getElementById('coStuckCard'))
+          || 키있나(document.querySelector('.co-done'))
+          || 키있나(document.querySelector('.od-upsell-box'))
+          || 키있나(r);
         if(보일것){ clearInterval(지킴); return; }
         var form = document.getElementById('coForm');
         var fields = document.getElementById('coFields');
