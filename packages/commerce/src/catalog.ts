@@ -48,10 +48,20 @@ export function isLaunchSale(): boolean {
 
 /** 지금 파는 값 → 11월 1일부터 받을 값. 25% 올려 끝자리를 900으로 맞춘 것이다 */
 const REGULAR_BY_LAUNCH: Record<number, number> = {
-  1900: 2900, 9900: 12900, 14900: 18900, 19900: 24900,
-  24900: 31900, 29800: 37900, 34900: 43900, 39900: 49900,
-  44900: 56900, 59000: 73900, 69000: 86900, 89900: 112900,
-  149000: 186900,
+  1900: 2900,
+  9900: 13900,
+  14900: 26900,
+  19900: 26900,
+  24900: 33900,
+  29900: 39900,
+  34900: 46900,
+  37900: 49900,
+  39900: 53900,
+  44900: 59900,
+  59000: 78900,
+  69000: 92900,
+  89900: 119900,
+  149000: 198900,
 };
 
 /** 오픈 기념가에서 빼는 상품. 이미 제값을 받고 있다 */
@@ -251,7 +261,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'reunion-report': {
     id: 'reunion-report',
     name: '재회 가능성',
-    priceKrw: 29800,
+    priceKrw: 37900,
     description: '두 사람 여덟 글자가 묶이는 자리와 부딪히는 자리, 그리고 올해 흐름을 견주어 다시 이어질 여지와 조건을 씁니다.',
     previewRatio: 1.0,
     category: '재회',
@@ -282,7 +292,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'compat-report': {
     id: 'compat-report',
     name: '궁합 리포트',
-    priceKrw: 29800,
+    priceKrw: 37900,
     description: '두 사람의 여덟 글자를 다섯 가지로 견주어, 맞는 부분과 부딪히는 부분을 함께 씁니다.',
     previewRatio: 1.0,
     category: '궁합',
@@ -292,7 +302,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'crush-compat-report': {
     id: 'crush-compat-report',
     name: '썸 궁합',
-    priceKrw: 19900,
+    priceKrw: 29900,
     description: '아직 시작하지 않은 관계를, 두 사람의 첫 끌림만 뽑아 가볍게 봅니다.',
     previewRatio: 1.0,
     category: '궁합',
@@ -315,7 +325,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'child-report': {
     id: 'child-report',
     name: '우리 아이 사주',
-    priceKrw: 29800,
+    priceKrw: 37900,
     description: '아이의 여덟 글자를 부모가 읽을 수 있게 풀어, 타고난 기질과 키울 때 볼 것을 씁니다.',
     previewRatio: 1.0,
     category: '가족',
@@ -324,7 +334,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'child-aptitude-report': {
     id: 'child-aptitude-report',
     name: '자녀 진로·적성',
-    priceKrw: 29800,
+    priceKrw: 37900,
     description: '아이가 밖으로 내놓는 힘과 배우는 힘, 자리를 얻는 힘을 견주어 잘 쓰는 쪽과 안 맞는 길을 가려 씁니다.',
     previewRatio: 1.0,
     category: '가족',
@@ -353,7 +363,7 @@ export const CATALOG: Record<ProductId, Product> = {
   'parent-child-report': {
     id: 'parent-child-report',
     name: '부모·자식 궁합',
-    priceKrw: 29800,
+    priceKrw: 37900,
     description: '부모와 자녀의 여덟 글자를 견주어, 왜 부딪히는지와 어떻게 물러서면 되는지를 씁니다.',
     previewRatio: 1.0,
     category: '가족',
