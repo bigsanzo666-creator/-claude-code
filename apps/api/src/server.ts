@@ -1529,6 +1529,61 @@ export function createApi(deps: ApiDeps) {
      * 결제가 아직 안 켜졌으면 열쇠 대신 `null` 을 넘긴다. 화면은 그대로 뜨고
      * 「결제 준비 중」이라고만 적힌다. 심사자가 값과 고지를 볼 수 있어야 한다.
      */
+    /*
+     * 들여다보는 화면. 손님에게는 어디에도 걸려 있지 않다.
+     *
+     * 사장님 화면에서만 결제 입력칸이 사라지는 일이 있는데, 여기서는 아무리
+     * 해도 그 일이 안 난다. 그래서 **그 브라우저 안을 직접 보고 적어 주는**
+     * 화면을 둔다. 결제 화면을 그대로 그리고, 그 위에 지금 상태를 큰 글씨로
+     * 얹는다. 사장님은 한 장 찍어서 보내 주시면 된다.
+     *
+     * 다 잡고 나면 지운다.
+     */
+    'GET /jindan': async (req, res) => {
+      const want = new URL(req.url ?? '/', 'http://x').searchParams.get('product') ?? 'charm-report';
+      const product = CATALOG[(isOrderable(want) ? want : 'charm-report') as keyof typeof CATALOG];
+      const page = renderCheckoutPage(business, renderFooter(business), product, checkout, mailReady());
+      const probe = `
+<div id="jindanBox" style="position:fixed!important;top:0;left:0;right:0;z-index:2147483647;background:#111;color:#0f0;font:13px/1.5 monospace;padding:10px;border-bottom:2px solid #0f0;max-height:52vh;overflow:auto;white-space:pre-wrap"></div>
+<script>
+(function(){
+  var 줄 = [];
+  function 적는다(k, v){ 줄.push(k + ' = ' + v); }
+  window.addEventListener('error', function(e){ 줄.push('!! 오류: ' + (e.message||'') + ' @' + (e.lineno||'?')); 그린다(); });
+  function 본다(id){
+    var el = document.getElementById(id);
+    if(!el) return '없음';
+    var cs = getComputedStyle(el);
+    return cs.display + ' / vis:' + cs.visibility + ' / h:' + Math.round(el.getBoundingClientRect().height) + ' / op:' + cs.opacity;
+  }
+  function 그린다(){
+    var box = document.getElementById('jindanBox');
+    if(box) box.textContent = 줄.join('\n');
+  }
+  function 모은다(){
+    줄 = [];
+    적는다('브라우저', navigator.userAgent.slice(0, 90));
+    적는다('주소', location.href.slice(0, 90));
+    try { 적는다('세션열쇠', Object.keys(sessionStorage).join(',') || '(빈칸)'); }
+    catch(e){ 적는다('세션열쇠', '못읽음 ' + e.message); }
+    try { 적는다('통과', sessionStorage.getItem('nb_pass') ? '있음' : '없음'); } catch(e){}
+    try { 적는다('저장된명식', (sessionStorage.getItem('nb_reading')||'(없음)').slice(0,70)); } catch(e){}
+    적는다('coForm', 본다('coForm'));
+    적는다('coFields', 본다('coFields'));
+    적는다('coPay', 본다('coPay'));
+    적는다('coDone', 본다('coDone'));
+    적는다('coMsg', '"' + ((document.getElementById('coMsg')||{}).textContent||'').trim().slice(0,40) + '"');
+    적는다('파수꾼있나', document.documentElement.innerHTML.indexOf('빈화면파수꾼') >= 0 ? '있음' : '없음(옛날화면)');
+    그린다();
+  }
+  모은다();
+  var n = 0;
+  var t = setInterval(function(){ 모은다(); if(++n > 20) clearInterval(t); }, 1000);
+})();
+</script>`;
+      sendHtml(res, page.replace('</body>', probe + '</body>'));
+    },
+
     'GET /checkout': async (req, res) => {
       const want = new URL(req.url ?? '/', 'http://x').searchParams.get('product') ?? '';
       if (!isOrderable(want)) throw new HttpError(404, `없는 상품입니다: ${want}`);
