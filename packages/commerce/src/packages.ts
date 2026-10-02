@@ -63,39 +63,39 @@ export const PACKAGES: Record<PackageId, BundlePackage> = {
   },
   'love-3': {
     id: 'love-3', name: '늘봄 연애 · 전부', members: ['charm-report', 'single-report', 'compat-report'],
-    priceKrw: 62900, hook: '그 사람과 맞는지까지 한 번에', recommended: false,
+    priceKrw: 68900, hook: '그 사람과 맞는지까지 한 번에', recommended: false,
   },
 
   // ── 재회 ─────────────────────────────────────────────────
   'reunion-2': {
     id: 'reunion-2', name: '늘봄 재회', members: ['reunion-report', 'letgo-report'],
-    priceKrw: 43700, hook: '다시 만날 자리와, 아니라면 정리하는 법', recommended: true,
+    priceKrw: 49900, hook: '다시 만날 자리와, 아니라면 정리하는 법', recommended: true,
   },
   'reunion-3': {
     id: 'reunion-3', name: '늘봄 재회 · 전부', members: ['reunion-report', 'letgo-report', 'compat-report'],
-    priceKrw: 66900, hook: '애초에 맞는 사람이었는지까지', recommended: false,
+    priceKrw: 78900, hook: '애초에 맞는 사람이었는지까지', recommended: false,
   },
 
   // ── 결혼 ─────────────────────────────────────────────────
   'marry-2': {
     id: 'marry-2', name: '늘봄 결혼', members: ['marriage-timing-report', 'compat-report'],
-    priceKrw: 43700, hook: '언제, 그리고 이 사람과', recommended: true,
+    priceKrw: 49900, hook: '언제, 그리고 이 사람과', recommended: true,
   },
   'marry-3': {
     id: 'marry-3', name: '늘봄 결혼 · 전부',
     members: ['marriage-timing-report', 'compat-report', 'saju-report'],
-    priceKrw: 70900, hook: '내가 어떤 사람인지부터 보고 정한다', recommended: false,
+    priceKrw: 76900, hook: '내가 어떤 사람인지부터 보고 정한다', recommended: false,
   },
 
   // ── 자녀 ─────────────────────────────────────────────────
   'child-2': {
     id: 'child-2', name: '늘봄 아이', members: ['child-report', 'child-aptitude-report'],
-    priceKrw: 46900, hook: '어떤 아이인지, 뭘 시켜야 할지', recommended: true,
+    priceKrw: 58900, hook: '어떤 아이인지, 뭘 시켜야 할지', recommended: true,
   },
   'child-3': {
     id: 'child-3', name: '늘봄 아이 · 전부',
     members: ['child-report', 'child-aptitude-report', 'parent-child-report'],
-    priceKrw: 69900, hook: '왜 나와 부딪히는지까지', recommended: false,
+    priceKrw: 87900, hook: '왜 나와 부딪히는지까지', recommended: false,
   },
 
   // ── 나 ───────────────────────────────────────────────────
@@ -140,13 +140,15 @@ export const PACKAGES: Record<PackageId, BundlePackage> = {
   'birth-3': {
     id: 'birth-3', name: '늘봄 출산 · 전부',
     members: ['pick-report', 'naming-report', 'child-report'],
-    priceKrw: 139900, hook: '어떤 아이로 자랄지까지', recommended: false,
+    priceKrw: 145900, hook: '어떤 아이로 자랄지까지', recommended: false,
   },
 };
 
 for (const pack of Object.values(PACKAGES)) {
   const launch = pack.priceKrw;
-  const regular = Math.floor((Math.ceil(launch * 1.25) - 900) / 1000) * 1000 + 900;
+  const 정가합 = pack.members.reduce(
+    (s, m) => s + (CATALOG[m].regularKrw ?? CATALOG[m].priceKrw), 0);
+  const regular = Math.floor((Math.ceil(정가합 * 0.75) - 900) / 1000) * 1000 + 900;
   Object.defineProperty(pack, 'priceKrw', {
     get() { return isLaunchSale() ? launch : regular; },
     enumerable: true, configurable: true,
