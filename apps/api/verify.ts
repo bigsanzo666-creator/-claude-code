@@ -2285,6 +2285,37 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     check('소개 현황 화면으로 가는 길이 두 군데 이상 있다', hasMultipleInvitePaths);
     check('2만원 아래 상품에서는 못 쓴다고 솔직히 적는다', under20kNoteOk);
   }
+
+  section('소개 보답 — 오늘의 운세 30일 소개당 지급');
+  {
+    const testEmail = 'two_refs@example.kr';
+    await referrals.createInvite('nb_two_refs', testEmail);
+    await referrals.recordInviteUse({
+      id: 'use_t1',
+      code: 'nb_two_refs',
+      invitedEmail: 'friend1@example.kr',
+      orderId: 'ord_f1',
+      amountKrw: 24900,
+    });
+    await referrals.recordInviteUse({
+      id: 'use_t2',
+      code: 'nb_two_refs',
+      invitedEmail: 'friend2@example.kr',
+      orderId: 'ord_f2',
+      amountKrw: 24900,
+    });
+
+    const c1 = await api('POST', '/api/invite/reward/claim', { email: testEmail, tier: 1 });
+    const c2 = await api('POST', '/api/invite/reward/claim', { email: testEmail, tier: 1 });
+    const c3 = await api('POST', '/api/invite/reward/claim', { email: testEmail, tier: 1 });
+
+    check('소개 2명인 사람이 30일 받기를 두 번 성공, 세 번째는 400',
+      c1.status === 200 && c2.status === 200 && c3.status === 400);
+
+    const expMs = new Date(c2.body.reward.expiresAt).getTime();
+    const days = Math.round((expMs - Date.now()) / (24 * 60 * 60 * 1000));
+    check('그 사람 만료일이 60일 뒤', c2.body.reward.grantCount === 2 && days >= 59 && days <= 61, `${days}일 뒤`);
+  }
 }
 
 server.close();
@@ -2786,7 +2817,7 @@ section('리포트 개편 — 시각 인지, 상세 가림막, 서버 계산 이
   }
 }
 
-
 console.log(`통과 ${passed} / 실패 ${failed}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
 console.log('전부 통과.');
+process.exit(0);

@@ -1124,9 +1124,9 @@ section('11. 문 — 신령계 들어가는 곳');
   const samplePage = renderProductPage(CATALOG['wealth-report'], full, true, '');
   const samplePay = renderCheckoutPage({} as any, '', CATALOG['wealth-report'], { storeId: 's', channelKey: 'c' });
   check('상품 상세 화면에 오픈 기념가 띠가 나온다',
-    samplePage.includes('서버 오픈 기념 — 지금 25% 싸게 드립니다 · 11월 1일부터 18,900원'));
+    samplePage.includes('서버 오픈 기념 — 지금 25% 싸게 드립니다 · 11월 1일부터 26,900원'));
   check('상품 결제 화면에 오픈 기념가 문구가 나온다',
-    samplePay.includes('서버 오픈 기념가입니다. 11월 1일부터 <b>18,900원</b>으로 올라갑니다.'));
+    samplePay.includes('서버 오픈 기념가입니다. 11월 1일부터 <b>26,900원</b>으로 올라갑니다.'));
 
   const holidayPage = renderProductPage(CATALOG['family-holiday-report'], full, true, '');
   const holidayPay = renderCheckoutPage({} as any, '', CATALOG['family-holiday-report'], { storeId: 's', channelKey: 'c' });

@@ -47,7 +47,7 @@ export function isLaunchSale(): boolean {
 }
 
 /** 지금 파는 값 → 11월 1일부터 받을 값. 25% 올려 끝자리를 900으로 맞춘 것이다 */
-const REGULAR_BY_LAUNCH: Record<number, number> = {
+export const REGULAR_BY_LAUNCH: Record<number, number> = {
   1900: 2900,
   9900: 13900,
   14900: 26900,

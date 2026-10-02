@@ -17,7 +17,7 @@ import {
   orderable, isOrderable, upsellFor, upgradeCostKrw, calculateUpsellPrice,
   priceOf, HOLIDAY_EXTRA_MEMBER_KRW, HOLIDAY_MAX_MEMBERS,
   UPSELL_PROMO_PRICE_KRW, UPSELL_PROMO_HOURS, recommendNext,
-  시각을바꾼다, isLaunchSale,
+  시각을바꾼다, isLaunchSale, REGULAR_BY_LAUNCH,
 } from './src/index.ts';
 import { TOPIC_LABELS } from '../saju-rules/src/topics.ts';
 
@@ -449,12 +449,23 @@ section('I. 오픈 기념가 자동 전환 — 11월 1일 0시에 자동으로 �
 {
   const oct15 = () => Date.UTC(2026, 9, 15, 0, 0, 0);
   const nov01 = () => Date.UTC(2026, 9, 31, 15, 1, 0); // 11월 1일 0시 1분 (KST)
+  const nov02 = () => Date.UTC(2026, 10, 2, 0, 0, 0); // 11월 2일
 
   const REGULAR_EXPECTED: Record<number, number> = {
-    1900: 2900, 9900: 12900, 14900: 18900, 19900: 24900,
-    24900: 31900, 29800: 37900, 34900: 43900, 39900: 49900,
-    44900: 56900, 59000: 73900, 69000: 86900, 89900: 112900,
-    149000: 186900,
+    1900: 2900,
+    9900: 13900,
+    14900: 26900,
+    19900: 26900,
+    24900: 33900,
+    29900: 39900,
+    34900: 46900,
+    37900: 49900,
+    39900: 53900,
+    44900: 59900,
+    59000: 78900,
+    69000: 92900,
+    89900: 119900,
+    149000: 198900,
   };
 
   try {
@@ -463,6 +474,31 @@ section('I. 오픈 기념가 자동 전환 — 11월 1일 0시에 자동으로 �
     check('10월 15일에는 오픈 기념가 기간이다', isLaunchSale() === true);
     const oct15Prices = Object.values(CATALOG).map(p => ({ id: p.id, price: p.priceKrw }));
     const holidayOct15 = CATALOG['family-holiday-report'].priceKrw;
+
+    // 오픈가가 전부 REGULAR_BY_LAUNCH 에 키가 있다 (없는 값이 하나라도 있으면 실패)
+    const openKeysValid = Object.values(CATALOG).every(p => {
+      return p.priceKrw in REGULAR_BY_LAUNCH;
+    });
+    check('오픈가가 전부 REGULAR_BY_LAUNCH 에 키가 있다', openKeysValid);
+
+    // 상품 34개의 정가가 오픈가보다 반드시 크거나 같다
+    const productCount = Object.keys(CATALOG).length;
+    const regularGteLaunch = Object.values(CATALOG).every(p => {
+      const reg = p.regularKrw ?? p.priceKrw;
+      return reg >= p.priceKrw;
+    });
+    check('상품 34개의 정가가 오픈가보다 반드시 크거나 같다', productCount === 34 && regularGteLaunch, `총 상품 수: ${productCount}`);
+
+    // 썸 궁합 29900 / 궁합 계열 37900 / 정가 39900·49900 을 숫자로 못 박아라
+    const crushOk = CATALOG['crush-compat-report'].priceKrw === 29900 && CATALOG['crush-compat-report'].regularKrw === 39900;
+    const compatGroupIds = ['reunion-report', 'compat-report', 'child-report', 'child-aptitude-report', 'parent-child-report'] as const;
+    const compatGroupOk = compatGroupIds.every(id => CATALOG[id].priceKrw === 37900 && CATALOG[id].regularKrw === 49900);
+    check('썸 궁합 29900 / 궁합 계열 37900 / 정가 39900·49900 을 숫자로 못 박음', crushOk && compatGroupOk);
+
+    // 묶음 16개의 정가가 그 묶음 오픈가보다 크다 (11월 1일에 값이 내려가면 안 된다)
+    const packageCount = Object.keys(PACKAGES).length;
+    const bundlesRegularGtLaunch = Object.values(PACKAGES).every(pack => pack.regularKrw > pack.priceKrw);
+    check('묶음 16개의 정가가 그 묶음 오픈가보다 크다', packageCount === 16 && bundlesRegularGtLaunch, `총 묶음 수: ${packageCount}`);
 
     // ② 11월 1일 0시 1분에는 모든 상품값이 REGULAR_BY_LAUNCH 의 값과 같다
     시각을바꾼다(nov01);
@@ -480,12 +516,13 @@ section('I. 오픈 기념가 자동 전환 — 11월 1일 0시에 자동으로 �
     const holidayNov01 = CATALOG['family-holiday-report'].priceKrw;
     check('명절 가족운세는 두 시각 모두 39,900원이다', holidayOct15 === 39900 && holidayNov01 === 39900);
 
-    // ④ 11월 1일 뒤에도 모든 묶음값이 「따로 사면 합계」보다 싸다
-    const bundlesCheaper = Object.values(PACKAGES).every(pack => {
+    // ④ 시각을바꾼다() 로 11월 2일로 돌려 놓고도 묶음 16개가 전부 「따로 사면」보다 싸다
+    시각을바꾼다(nov02);
+    const bundlesCheaperNov02 = Object.values(PACKAGES).every(pack => {
       const math = bundleMath(pack.id);
       return math.savedKrw > 0;
     });
-    check('11월 1일 뒤에도 모든 묶음값이 「따로 사면 합계」보다 싸다', bundlesCheaper);
+    check('시각을바꾼다() 로 11월 2일로 돌려 놓고도 묶음 16개가 전부 「따로 사면」보다 싸다', packageCount === 16 && bundlesCheaperNov02);
   } finally {
     시각을바꾼다(null);
   }

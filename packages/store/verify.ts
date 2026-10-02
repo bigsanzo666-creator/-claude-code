@@ -233,6 +233,25 @@ await referrals.recordRewardUse(claimed5.id);
 const updated5 = (await referrals.getRewards('tester1@example.kr')).find(r => r.tier === 5);
 check('보답 recordRewardUse 사용 횟수 증가', updated5?.usedCount === 1 && updated5?.lastUsedAt !== null);
 
+// extendDailyPass 를 두 번 부르면 grantCount 가 2, 만료가 60일 뒤
+const extEmail = 'ext_tester@example.kr';
+const ext1 = await referrals.extendDailyPass(extEmail, 30);
+const ext2 = await referrals.extendDailyPass(extEmail, 30);
+const nowMs = Date.now();
+const exp2Ms = new Date(ext2.expiresAt!).getTime();
+const daysDiff2 = Math.round((exp2Ms - nowMs) / (24 * 60 * 60 * 1000));
+check('extendDailyPass 를 두 번 부르면 grantCount 가 2', ext2.grantCount === 2);
+check('extendDailyPass 를 두 번 부르면 만료가 60일 뒤', daysDiff2 >= 59 && daysDiff2 <= 61, `${daysDiff2}일 뒤`);
+
+// 만료가 지난 줄에 extendDailyPass 를 부르면 지금부터 30일 (지난 날짜에 붙어서 이미 만료된 상태로 나오면 실패다)
+const expiredEmail = 'expired_tester@example.kr';
+const pastDate = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+await referrals.claimReward(expiredEmail, 1, '오늘의 운세 30일', '내줌', pastDate);
+const extPast = await referrals.extendDailyPass(expiredEmail, 30);
+const expPastMs = new Date(extPast.expiresAt!).getTime();
+const daysDiffPast = Math.round((expPastMs - Date.now()) / (24 * 60 * 60 * 1000));
+check('만료가 지난 줄에 extendDailyPass 를 부르면 지금부터 30일', daysDiffPast >= 29 && daysDiffPast <= 31, `${daysDiffPast}일 뒤`);
+
 await pool.end(); await pool2.end();
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}  ·  진짜 Postgres에 대고 검증`);
