@@ -2034,15 +2034,33 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     check('손 모양이 늘 다섯 가지 중 하나다',
       ['목형', '화형', '토형', '금형', '수형'].includes(sanitizePalmFeatures({ handShape: '불형' }).handShape));
 
-    // 화면이 보내는 이름이 규칙이 읽는 이름과 같아야 한다
+    /*
+     * 결제 화면은 얼굴·손 값을 **지어내지 않는다.**
+     *
+     * 터진 뒤에 적은 것 (2026-10-02): 결제 화면에 사진 올리는 칸이 있었는데
+     * 받기만 하고 아무것도 재지 않았다. 값은 전부 「보통」으로 채워져서
+     * 어떤 사진을 올려도 리포트가 똑같이 나왔다. 사진을 본다고 해 놓고
+     * 안 보는 것은 손님을 속이는 것이다. 값은 첫 화면이 **실제로 잰 것만** 쓴다.
+     */
     const co = renderCheckoutPage(business, '', CATALOG['cross-report'],
       { storeId: 'test_store', channelKey: 'test_channel' });
-    check('화면이 손금을 올바른 이름으로 보낸다',
-      co.includes('lifeLength') && co.includes('handShape') && !co.includes("lifeLine: 'mid'"),
-      '화면이 보내는 이름이 규칙과 다르다');
-    check('화면이 얼굴을 올바른 이름으로 보낸다',
-      co.includes('foreheadWidth') && co.includes('cheekbone') && !co.includes("forehead: 'mid'"),
-      '화면이 보내는 이름이 규칙과 다르다');
+    check('결제 화면이 얼굴·손 값을 지어내지 않는다',
+      !/foreheadWidth:\s*'mid'/.test(co) && !/lifeLength:\s*'mid'/.test(co)
+      && !co.includes("forehead: 'mid'") && !co.includes("lifeLine: 'mid'"),
+      '결제 화면이 재지도 않은 값을 채워 넣는다');
+    check('결제 화면에 사진 올리는 칸이 없다',
+      !co.includes('id="coFaceInput"') && !co.includes('id="coPalmInput"'),
+      '재지 않으면서 사진을 받는 칸이 남아 있다');
+    check('결제 화면이 재러 가는 길을 알려 준다',
+      co.includes('#panelF') || co.includes('#panelP'), '첫 화면으로 보내는 길이 없다');
+
+    const viewer = fs.readFileSync(new URL('../../apps/manse-viewer/index.html', import.meta.url), 'utf8');
+    check('첫 화면이 잰 값을 결제 화면에 넘긴다',
+      viewer.includes('nb_reading') && viewer.includes('잰값을둔다'),
+      '첫 화면이 잰 값을 저장하지 않는다 — 결제 화면이 못 가져간다');
+    check('첫 화면이 쓰는 이름이 규칙이 읽는 이름과 같다',
+      viewer.includes('foreheadWidth') && viewer.includes('lifeLength') && viewer.includes('handShape'),
+      '첫 화면이 다른 이름을 쓴다');
   }
 
   for (const p of testPaths) {

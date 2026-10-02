@@ -787,6 +787,23 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
     return handPicker;
   }
 
+
+  /*
+   * 여기서 잰 값을 결제 화면이 가져다 쓸 수 있게 둔다.
+   *
+   * 터진 뒤에 적은 것 (2026-10-02): 얼굴·손을 여기서 제대로 재고도 그 값이
+   * 결제 화면으로 넘어가지 않았다. 그래서 결제 화면은 사진을 다시 받아 놓고
+   * 아무것도 재지 않은 「보통」 값으로 리포트를 만들었다 — 사진을 보는 척만 한 것이다.
+   */
+  function 잰값을둔다() {
+    try {
+      var saved = JSON.parse(sessionStorage.getItem('nb_reading') || '{}') || {};
+      if (faceState) saved.face = faceState;
+      if (palmState) saved.palm = palmState;
+      sessionStorage.setItem('nb_reading', JSON.stringify(saved));
+    } catch (e) {}
+  }
+
   function syncPalmForm() {
     var host = $('palmForm');
     var all = host.querySelectorAll('button[data-k]');
@@ -796,6 +813,7 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
       if (b.dataset.k === 'simianLine') want = want ? 'yes' : 'no';
       b.classList.toggle('on', want === b.dataset.v);
     }
+    잰값을둔다();
   }
 
   function wirePalmPhoto() {
@@ -948,6 +966,7 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
       var b = all[i];
       b.classList.toggle('on', faceState[b.dataset.k] === b.dataset.v);
     }
+    잰값을둔다();
   }
 
   function wireFacePhoto() {

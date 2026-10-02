@@ -292,46 +292,42 @@ export function renderCheckoutPage(
     <div class="co-f"><label for="surname">아이의 성 (예: 김)</label>
       <input type="text" name="surname" id="surname" maxlength="4" required></div>` : '';
 
+  /*
+   * 얼굴·손은 **첫 화면에서 잰 값**을 가져다 쓴다.
+   *
+   * 터진 뒤에 적은 것 (2026-10-02): 여기에도 사진 올리는 칸이 있었는데,
+   * 그 칸은 사진을 받아 보여만 주고 **아무것도 재지 않았다.** 값은 전부
+   * 「보통」으로 채워져서, 어떤 사진을 올려도 리포트가 똑같이 나왔다.
+   * 사진을 본다고 해 놓고 안 보는 것은 손님을 속이는 것이다.
+   *
+   * 첫 화면(/#panelF, /#panelP)은 실제로 재고, 못 재는 것은 못 잰다고 밝히고
+   * 손님이 직접 고르게 한다. 그 값만 쓴다.
+   */
+  const 재는곳 = needsFace && !needsPalm ? '/#panelF' : needsPalm && !needsFace ? '/#panelP' : '/#panelF';
+  const 무엇 = needsFace && needsPalm ? '얼굴과 손' : needsFace ? '얼굴' : '손';
   const photoSection = isPhotoProduct ? `
     <div class="co-photo-sec" id="coPhotoSec">
-      <p class="co-sec">얼굴·손 사진 등록 (필수)</p>
+      <p class="co-sec">${무엇} 잰 값</p>
       <div class="co-photo-promise">
         <span class="co-promise-icon">🔒</span>
-        <p><strong>사진은 브라우저 안에서만 재고 곧바로 지웁니다.</strong><br>서버로 보내지 않고, 저장하지도 않습니다.</p>
+        <p><strong>사진은 손님 기기 안에서만 봅니다.</strong><br>서버로 보내지 않고, 저장하지도 않습니다.</p>
       </div>
 
-      ${needsFace ? `
-      <div class="co-photo-box" id="coFaceBox">
-        <div class="co-photo-guide">
-          <strong>얼굴</strong> — 정면으로, 밝은 데서
-        </div>
-        <div class="co-photo-preview-wrap" id="coFacePreviewWrap" style="display:none;">
-          <img id="coFaceImg" class="co-photo-thumb" alt="얼굴 사진 미리보기">
-          <button type="button" class="co-photo-retake-btn" id="coFaceRetakeBtn">다시 찍기</button>
-        </div>
-        <label class="co-photo-btn" id="coFaceLabel">
-          <input type="file" accept="image/*" capture="environment" id="coFaceInput" class="co-file-input">
-          <span>📷 얼굴 사진 촬영 / 올리기</span>
-        </label>
-      </div>` : ''}
+      <div class="co-photo-box" id="coMeasuredOk" style="display:none;">
+        <div class="co-photo-guide">✓ 첫 화면에서 잰 <strong>${무엇}</strong> 값이 담겨 있습니다.</div>
+        <a class="co-photo-btn" href="${재는곳}" style="text-align:center;text-decoration:none;">다시 재러 가기</a>
+      </div>
 
-      ${needsPalm ? `
-      <div class="co-photo-box" id="coPalmBox">
+      <div class="co-photo-box" id="coMeasuredNone">
         <div class="co-photo-guide">
-          <strong>손</strong> — 손바닥을 펴고, 손금이 보이게
+          이 점사는 <strong>${무엇}을 먼저 재야</strong> 합니다.
+          첫 화면에서 사진 한 장이면 잽니다. 재고 오시면 이 칸이 저절로 채워집니다.
         </div>
-        <div class="co-photo-preview-wrap" id="coPalmPreviewWrap" style="display:none;">
-          <img id="coPalmImg" class="co-photo-thumb" alt="손 사진 미리보기">
-          <button type="button" class="co-photo-retake-btn" id="coPalmRetakeBtn">다시 찍기</button>
-        </div>
-        <label class="co-photo-btn" id="coPalmLabel">
-          <input type="file" accept="image/*" capture="environment" id="coPalmInput" class="co-file-input">
-          <span>✋ 손바닥 사진 촬영 / 올리기</span>
-        </label>
-      </div>` : ''}
+        <a class="co-photo-btn" href="${재는곳}" style="text-align:center;text-decoration:none;">${무엇} 재러 가기 →</a>
+      </div>
 
       <p class="co-photo-warn" id="coPhotoWarn" style="display:none;color:#ffb8b8;font-size:13px;margin:8px 0 0;">
-        사진을 등록하셔야 결제하실 수 있습니다.
+        ${무엇}을 먼저 재셔야 결제하실 수 있습니다.
       </p>
     </div>` : '';
 
@@ -586,71 +582,19 @@ export function renderCheckoutPage(
 
   agree.addEventListener('change', checkCanPay);
 
-  /* 사진 촬영 / 업로드 처리 */
-  var faceInp = document.getElementById('coFaceInput');
-  if(faceInp){
-    faceInp.addEventListener('change', function(){
-      var file = faceInp.files && faceInp.files[0];
-      if(!file) return;
-      var url = URL.createObjectURL(file);
-      var img = document.getElementById('coFaceImg');
-      if(img) img.src = url;
-      var wrap = document.getElementById('coFacePreviewWrap');
-      var lbl = document.getElementById('coFaceLabel');
-      if(wrap) wrap.style.display = 'flex';
-      if(lbl) lbl.style.display = 'none';
-      faceUploaded = true;
-      window.__nbFace = window.__nbFace || { foreheadWidth: 'mid', browThickness: 'mid', eyeSize: 'mid', noseBridge: 'mid', noseWing: 'mid', mouthSize: 'mid', lipThickness: 'mid', jawDevelopment: 'mid', cheekbone: 'mid', faceShape: 'oval' };
-      saveReading({ face: window.__nbFace });
-      checkCanPay();
-    });
-  }
-  var faceRetake = document.getElementById('coFaceRetakeBtn');
-  if(faceRetake){
-    faceRetake.addEventListener('click', function(){
-      if(faceInp) faceInp.value = '';
-      window.__nbFace = null;
-      faceUploaded = false;
-      var wrap = document.getElementById('coFacePreviewWrap');
-      var lbl = document.getElementById('coFaceLabel');
-      if(wrap) wrap.style.display = 'none';
-      if(lbl) lbl.style.display = 'block';
-      saveReading({ face: null });
-      checkCanPay();
-    });
-  }
-
-  var palmInp = document.getElementById('coPalmInput');
-  if(palmInp){
-    palmInp.addEventListener('change', function(){
-      var file = palmInp.files && palmInp.files[0];
-      if(!file) return;
-      var url = URL.createObjectURL(file);
-      var img = document.getElementById('coPalmImg');
-      if(img) img.src = url;
-      var wrap = document.getElementById('coPalmPreviewWrap');
-      var lbl = document.getElementById('coPalmLabel');
-      if(wrap) wrap.style.display = 'flex';
-      if(lbl) lbl.style.display = 'none';
-      palmUploaded = true;
-      window.__nbPalm = window.__nbPalm || { lifeLength: 'mid', lifeDepth: 'mid', headLength: 'mid', headDepth: 'mid', heartLength: 'mid', heartDepth: 'mid', fateClarity: 'mid', handShape: '토형', simianLine: false };
-      saveReading({ palm: window.__nbPalm });
-      checkCanPay();
-    });
-  }
-  var palmRetake = document.getElementById('coPalmRetakeBtn');
-  if(palmRetake){
-    palmRetake.addEventListener('click', function(){
-      if(palmInp) palmInp.value = '';
-      window.__nbPalm = null;
-      palmUploaded = false;
-      var wrap = document.getElementById('coPalmPreviewWrap');
-      var lbl = document.getElementById('coPalmLabel');
-      if(wrap) wrap.style.display = 'none';
-      if(lbl) lbl.style.display = 'block';
-      saveReading({ palm: null });
-      checkCanPay();
-    });
+  /*
+   * 첫 화면에서 잰 얼굴·손 값이 담겼는지 본다.
+   *
+   * 여기서는 사진을 받지 않는다 — 재지도 않으면서 받으면 속이는 것이다.
+   * 값은 첫 화면이 sessionStorage('nb_reading') 에 넣어 둔 것만 쓴다.
+   */
+  function 잰값을본다(){
+    var okBox = document.getElementById('coMeasuredOk');
+    var noneBox = document.getElementById('coMeasuredNone');
+    if(!okBox && !noneBox) return;
+    var 다있나 = (!NEEDS_FACE || faceUploaded) && (!NEEDS_PALM || palmUploaded);
+    if(okBox) okBox.style.display = 다있나 ? 'block' : 'none';
+    if(noneBox) noneBox.style.display = 다있나 ? 'none' : 'block';
   }
 
   /* invite tracking */
@@ -1250,26 +1194,9 @@ export function renderCheckoutPage(
       set('partnerDate', saved.partner && saved.partner.date);
       set('partnerTime', saved.partner && saved.partner.time);
 
-      if(saved.face){
-        window.__nbFace = saved.face;
-        faceUploaded = true;
-        var faceWrap = document.getElementById('coFacePreviewWrap');
-        var faceLbl = document.getElementById('coFaceLabel');
-        if(faceWrap) faceWrap.style.display = 'flex';
-        if(faceLbl) faceLbl.style.display = 'none';
-        var fImg = document.getElementById('coFaceImg');
-        if(fImg && !fImg.src) fImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="%23221c30"/><text x="40" y="44" fill="%23d4af37" font-size="12" text-anchor="middle">얼굴 등록됨</text></svg>';
-      }
-      if(saved.palm){
-        window.__nbPalm = saved.palm;
-        palmUploaded = true;
-        var palmWrap = document.getElementById('coPalmPreviewWrap');
-        var palmLbl = document.getElementById('coPalmLabel');
-        if(palmWrap) palmWrap.style.display = 'flex';
-        if(palmLbl) palmLbl.style.display = 'none';
-        var pImg = document.getElementById('coPalmImg');
-        if(pImg && !pImg.src) pImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="%23221c30"/><text x="40" y="44" fill="%23d4af37" font-size="12" text-anchor="middle">손금 등록됨</text></svg>';
-      }
+      if(saved.face){ window.__nbFace = saved.face; faceUploaded = true; }
+      if(saved.palm){ window.__nbPalm = saved.palm; palmUploaded = true; }
+      잰값을본다();
     }
   }catch(e){}
 
@@ -1485,8 +1412,8 @@ export function renderCheckoutPage(
     if(!date) return say('생년월일을 적어 주십시오.');
     if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) return say('이메일을 다시 확인해 주십시오.');
     if(phone.length < 10) return say('휴대전화 번호를 다시 확인해 주십시오.');
-    if(NEEDS_FACE && !faceUploaded) return say('얼굴 사진을 등록해 주십시오.');
-    if(NEEDS_PALM && !palmUploaded) return say('손바닥 사진을 등록해 주십시오.');
+    if(NEEDS_FACE && !faceUploaded) return say('먼저 첫 화면에서 얼굴을 재고 와 주십시오.');
+    if(NEEDS_PALM && !palmUploaded) return say('먼저 첫 화면에서 손을 재고 와 주십시오.');
     ${product.needsName ? "if(!val('surname')) return say('아이의 성을 적어 주십시오.');" : ''}
     ${product.needsPartner ? "if(!val('partnerDate')) return say('상대의 생년월일을 적어 주십시오.');" : ''}
     ${product.needsRange ? `
