@@ -9,6 +9,7 @@ import {
   renderFit,
   FONT_LINK,
   PRODUCTS_CSS,
+  launchBarHtmlFor,
   type ProductImages,
   type SpiritImages,
 } from './products.ts';
@@ -35,6 +36,16 @@ export function renderDailyReportProductPage(
   const site = show(info, 'serviceName', '늘봄사주');
   const spirit = spiritOf(product.category);
   const cleanHook = (product.hook || '').replace(/^[\"\'\s]+|[\"\'\s]+$/g, '');
+
+  /*
+   * 오픈 할인 띠.
+   *
+   * 터진 뒤에 적은 것 (2026-10-02): 다른 상품 화면에는 전부 있는데 오늘의 운세와
+   * 한 달 운세 두 화면에만 빠져 있었다. 11월 1일에 값이 오른다는 안내가 그 둘에만
+   * 없었던 것이다. 비율은 그 상품의 실제 값에서 만든다 — 손으로 적지 않는다.
+   */
+  const launchBarHtml = launchBarHtmlFor(product);
+
 
   let initialPreviewData: DailyPreviewData | null = null;
   if (initialQuery?.date) {
@@ -1058,6 +1069,7 @@ ${footer}
     '</section>' +
 
     '<section class="dp-section dp-price-card">' +
+      '${launchBarHtml}' +
       '<div class="dp-price-tag">' +
         '<span class="dp-price-amount">' + priceWon + '</span>' +
         '<span class="dp-price-vat"> (부가세 포함)</span>' +
@@ -1079,6 +1091,7 @@ ${footer}
 }
 
 export function renderDailyPreviewHtml(p: DailyPreviewData, product: Product): string {
+  const launchBarHtml = launchBarHtmlFor(product);
   const pillarsHtml = p.myeongsik.pillars.map((col) => {
     return `<div class="dp-pillar-col">
       <div class="dp-pillar-hanja">${col.stemHanja}</div>
@@ -1211,6 +1224,7 @@ export function renderDailyPreviewHtml(p: DailyPreviewData, product: Product): s
   </section>
 
   <section class="dp-section dp-price-card">
+    ${launchBarHtml}
     <a id="dpBuyBtn" href="/checkout?product=daily-report" class="dp-btn-buy">
       더욱 자세한 내용 받기
     </a>

@@ -1,4 +1,22 @@
 import { INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW } from '../../commerce/src/referral.ts';
+
+/**
+ * 오픈 할인 띠.
+ *
+ * 터진 뒤에 적은 것 (2026-10-02): 상세 화면마다 「지금 25% 싸게」라고 손으로
+ * 적혀 있었다. 실제로는 24%인 상품이 다섯(적은 것보다 **덜** 깎인다)이고
+ * 돈그릇 쪽 아홉은 44%였다. 그리고 오늘의 운세·한 달 운세 두 화면에는 띠가
+ * 아예 없어 11월 1일 인상 안내가 빠져 있었다.
+ *
+ * **띠를 만드는 자리는 여기 하나다.** 비율은 그 상품의 실제 값에서 만들고,
+ * 내림한다 — 23.4%를 24%로 올려 적으면 그만큼이 과장이다.
+ */
+export function launchBarHtmlFor(product: Product): string {
+  if (!isLaunchSale() || !product.regularKrw || product.regularKrw === product.priceKrw) return '';
+  const pct = Math.floor((1 - product.priceKrw / product.regularKrw) * 100);
+  const reg = product.regularKrw.toLocaleString('ko-KR');
+  return `<div class="pd-launch-bar">서버 오픈 기념 — 지금 ${pct}% 싸게 드립니다 · 11월 1일부터 ${reg}원</div>`;
+}
 import { renderDailyReportProductPage } from './daily-product-page.ts';
 import { renderMonthReportProductPage } from './month-product-page.ts';
 /**
@@ -1724,9 +1742,7 @@ export function renderProductPage(
 
   const cleanHook = (product.hook || '').replace(/^[\"\'\s]+|[\"\'\s]+$/g, '');
   const isSale = isLaunchSale() && product.regularKrw && product.regularKrw !== product.priceKrw;
-  const launchBanner = isSale
-    ? `<div class="pd-launch-bar">서버 오픈 기념 — 지금 ${Math.floor((1 - product.priceKrw / product.regularKrw!) * 100)}% 싸게 드립니다 · 11월 1일부터 ${won(product.regularKrw!)}</div>`
-    : '';
+  const launchBanner = launchBarHtmlFor(product);
 
   return `<!doctype html>
 <html lang="ko">

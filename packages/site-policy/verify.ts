@@ -1140,8 +1140,7 @@ section('11. 문 — 신령계 들어가는 곳');
       if (reg === p.priceKrw) continue;
       const 진짜 = Math.floor((1 - p.priceKrw / reg) * 100);
       const html = renderProductPage(p, full, true, '');
-      // 띠가 없는 화면(오늘의 운세·한 달 운세는 전용 화면이다)은 거짓말을 하지 않으므로 넘어간다
-      if (!html.includes('서버 오픈 기념 — 지금')) continue;
+      // 할인 중인 상품은 **빠짐없이** 띠가 있어야 한다 (오늘의 운세·한 달 운세도)
       if (!html.includes(`지금 ${진짜}% 싸게 드립니다`)) 어긋난것.push(`${p.name}(${진짜}%)`);
     }
     check('상세 띠의 할인율이 상품마다 실제 비율과 같다', 어긋난것.length === 0, 어긋난것.join(', '));

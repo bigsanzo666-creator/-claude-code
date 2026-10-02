@@ -1,4 +1,5 @@
 import type { Product, BusinessInfo } from '../../commerce/src/index.ts';
+import { isLaunchSale } from '../../commerce/src/catalog.ts';
 import { PLACES, buildMonthPreviewData, parseInputTime, type MonthPreviewData } from '../../saju-rules/src/index.ts';
 import { WITHDRAWAL_WINDOW_DAYS } from '../../commerce/src/refund.ts';
 import { show } from './business.ts';
@@ -9,6 +10,7 @@ import {
   renderFit,
   FONT_LINK,
   PRODUCTS_CSS,
+  launchBarHtmlFor,
   type ProductImages,
   type SpiritImages,
 } from './products.ts';
@@ -35,6 +37,16 @@ export function renderMonthReportProductPage(
   const site = show(info, 'serviceName', '늘봄사주');
   const spirit = spiritOf(product.category);
   const cleanHook = (product.hook || '').replace(/^[\"\'\s]+|[\"\'\s]+$/g, '');
+
+  /*
+   * 오픈 할인 띠.
+   *
+   * 터진 뒤에 적은 것 (2026-10-02): 다른 상품 화면에는 전부 있는데 오늘의 운세와
+   * 한 달 운세 두 화면에만 빠져 있었다. 11월 1일에 값이 오른다는 안내가 그 둘에만
+   * 없었던 것이다. 비율은 그 상품의 실제 값에서 만든다 — 손으로 적지 않는다.
+   */
+  const launchBarHtml = launchBarHtmlFor(product);
+
 
   let initialPreviewData: MonthPreviewData | null = null;
   if (initialQuery?.date) {
@@ -924,6 +936,7 @@ ${footer}
     '</section>' +
 
     '<section class="mp-section mp-price-card">' +
+      '${launchBarHtml}' +
       '<div class="mp-price-tag">' +
         '<span class="mp-price-amount">' + priceWon + '</span>' +
         '<span class="mp-price-vat"> (부가세 포함)</span>' +
@@ -945,6 +958,7 @@ ${footer}
 }
 
 function renderMonthPreviewHtml(p: MonthPreviewData, prod: Product): string {
+  const launchBarHtml = launchBarHtmlFor(prod);
   const pillarsHtml = p.myeongsik.pillars.map((col) => {
     return `<div class="mp-pillar-col">
       <div class="mp-pillar-hanja">${col.stemHanja}</div>
@@ -1042,6 +1056,7 @@ function renderMonthPreviewHtml(p: MonthPreviewData, prod: Product): string {
   </section>
 
   <section class="mp-section mp-price-card">
+    ${launchBarHtml}
     <a id="mpBuyBtn" href="/checkout?product=month-report" class="mp-btn-buy">
       더욱 자세한 내용 받기
     </a>
