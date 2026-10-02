@@ -1,4 +1,3 @@
-import { HOURS } from './checkout-page.ts';
 import type { Product, BusinessInfo } from '../../commerce/src/index.ts';
 import { CATALOG, WITHDRAWAL_WINDOW_DAYS, isLaunchSale } from '../../commerce/src/index.ts';
 import { PLACES, buildDailyPreviewData, parseInputTime, type DailyPreviewData } from '../../saju-rules/src/index.ts';
@@ -57,16 +56,9 @@ export function renderDailyReportProductPage(
     return `<option value="${esc(p.name)}"${selected}>${esc(p.name)}</option>`;
   }).join('');
 
-  // 태어난 시간 옵션: 결제 화면(HOURS)과 똑같은 값·표를 쓴다
-  const timeOptions = HOURS.map(([val, label]) => {
-    let sel = false;
-    if (initialQuery?.time !== undefined) {
-      if (initialQuery.time === val) sel = true;
-      else if (val && initialQuery.time.includes(label.slice(0, 2))) sel = true;
-      else if (val === '14:30' && (initialQuery.time.includes('14:') || initialQuery.time.includes('2시'))) sel = true;
-    }
-    return `<option value="${val}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
-  }).join('');
+  const isInitialTimeUnknown = initialQuery?.time === '모름' || initialQuery?.time === 'unknown';
+  const initialTimeVal = (initialQuery?.time && !isInitialTimeUnknown && /^\d{1,2}:\d{2}$/.test(initialQuery.time)) ? initialQuery.time : '';
+  const initialTimeSlotVal = isInitialTimeUnknown ? (initialQuery?.time || 'unknown') : 'unknown';
 
   // SSR 결과 HTML (만약 쿼리가 들어왔을 때)
   const initialResultHtml = initialPreviewData ? renderDailyPreviewHtml(initialPreviewData, product) : '';
@@ -700,9 +692,27 @@ ${PRODUCTS_CSS}
       <input type="date" id="dpDate" class="dp-input" required value="${initialQuery?.date || ''}">
     </div>
     <div class="dp-form-row">
-      <label for="dpTime" class="dp-label">태어난 시간</label>
-      <select id="dpTime" class="dp-select">
-        ${timeOptions}
+      <label for="dpTime" class="dp-label" style="white-space:nowrap;">태어난 시간 (시:분)</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="time" id="dpTime" class="dp-input" style="flex:1 1 auto;" value="${initialTimeVal}"${isInitialTimeUnknown ? ' disabled' : ''}>
+        <label for="dpTimeUnknown" style="display:flex;align-items:center;gap:4px;font-size:12px;color:#c8c2d4;cursor:pointer;white-space:nowrap;margin-bottom:0;">
+          <input type="checkbox" id="dpTimeUnknown" style="width:auto;margin:0;"${isInitialTimeUnknown ? ' checked' : ''}> 모름
+        </label>
+      </div>
+      <select id="dpTimeSlot" class="dp-select" style="display:${isInitialTimeUnknown ? 'block' : 'none'};margin-top:6px;">
+        <option value="unknown"${initialTimeSlotVal === 'unknown' ? ' selected' : ''}>시간 모름 (낮 12시로 계산)</option>
+        <option value="ja"${initialTimeSlotVal === 'ja' ? ' selected' : ''}>자시 (23:30~01:29)</option>
+        <option value="chuk"${initialTimeSlotVal === 'chuk' ? ' selected' : ''}>축시 (01:30~03:29)</option>
+        <option value="in"${initialTimeSlotVal === 'in' ? ' selected' : ''}>인시 (03:30~05:29)</option>
+        <option value="myo"${initialTimeSlotVal === 'myo' ? ' selected' : ''}>묘시 (05:30~07:29)</option>
+        <option value="jin"${initialTimeSlotVal === 'jin' ? ' selected' : ''}>진시 (07:30~09:29)</option>
+        <option value="sa"${initialTimeSlotVal === 'sa' ? ' selected' : ''}>사시 (09:30~11:29)</option>
+        <option value="o"${initialTimeSlotVal === 'o' ? ' selected' : ''}>오시 (11:30~13:29)</option>
+        <option value="mi"${initialTimeSlotVal === 'mi' ? ' selected' : ''}>미시 (13:30~15:29)</option>
+        <option value="sin"${initialTimeSlotVal === 'sin' ? ' selected' : ''}>신시 (15:30~17:29)</option>
+        <option value="yu"${initialTimeSlotVal === 'yu' ? ' selected' : ''}>유시 (17:30~19:29)</option>
+        <option value="sul"${initialTimeSlotVal === 'sul' ? ' selected' : ''}>술시 (19:30~21:29)</option>
+        <option value="hae"${initialTimeSlotVal === 'hae' ? ' selected' : ''}>해시 (21:30~23:29)</option>
       </select>
     </div>
     <div class="dp-form-row">
@@ -774,20 +784,59 @@ ${footer}
   }
   updateCheckoutLinks();
 
+  const TIME_MAP = {
+    'ja': '00:30', 'chuk': '02:30', 'in': '04:30', 'myo': '06:30',
+    'jin': '08:30', 'sa': '10:30', 'o': '12:30', 'mi': '14:30',
+    'sin': '16:30', 'yu': '18:30', 'sul': '20:30', 'hae': '22:30',
+    'unknown': '12:00'
+  };
+
+  const timeInput = document.getElementById('dpTime');
+  const timeUnknown = document.getElementById('dpTimeUnknown');
+  const timeSlot = document.getElementById('dpTimeSlot');
+
+  if (timeUnknown) {
+    timeUnknown.addEventListener('change', function() {
+      const unk = timeUnknown.checked;
+      if (timeSlot) timeSlot.style.display = unk ? 'block' : 'none';
+      if (timeInput) {
+        timeInput.disabled = unk;
+        if (unk) timeInput.value = '';
+      }
+    });
+  }
+
   // 저장된 세션 읽기
   try {
     const saved = JSON.parse(sessionStorage.getItem('nb_reading') || '{}');
     if (saved && saved.birth) {
       if (saved.birth.name && document.getElementById('dpName')) document.getElementById('dpName').value = saved.birth.name;
       if (saved.birth.date && document.getElementById('dpDate') && !document.getElementById('dpDate').value) document.getElementById('dpDate').value = saved.birth.date;
-      if (saved.birth.time && document.getElementById('dpTime')) {
-        const tSel = document.getElementById('dpTime');
-        const st = saved.birth.time;
-        for (let i = 0; i < tSel.options.length; i++) {
-          if (tSel.options[i].value === st) {
-            tSel.selectedIndex = i;
-            break;
+      if (timeInput) {
+        const b = saved.birth;
+        if (b.timeKnown === false || b.time === '모름' || b.time === 'unknown' || !b.time) {
+          if (timeUnknown) {
+            timeUnknown.checked = true;
+            if (timeSlot) {
+              timeSlot.style.display = 'block';
+              let matched = false;
+              for (const [k, v] of Object.entries(TIME_MAP)) {
+                if (v === b.time || k === b.time) {
+                  timeSlot.value = k;
+                  matched = true;
+                  break;
+                }
+              }
+              if (!matched) timeSlot.value = 'unknown';
+            }
+            timeInput.disabled = true;
+            timeInput.value = '';
           }
+        } else {
+          if (timeUnknown) timeUnknown.checked = false;
+          if (timeSlot) timeSlot.style.display = 'none';
+          timeInput.disabled = false;
+          timeInput.value = b.time;
         }
       }
       if (saved.birth.place && document.getElementById('dpPlace')) document.getElementById('dpPlace').value = saved.birth.place;
@@ -815,9 +864,22 @@ ${footer}
     e.preventDefault();
     const name = (document.getElementById('dpName').value || '').trim();
     const date = (document.getElementById('dpDate').value || '').trim();
-    const timeSelect = document.getElementById('dpTime');
-    const rawTime = (timeSelect ? timeSelect.value : '').trim();
-    const time = rawTime ? rawTime : null;
+    const isUnk = timeUnknown ? timeUnknown.checked : false;
+    let finalTime = '12:00';
+    let timeKnown = true;
+
+    if (isUnk) {
+      timeKnown = false;
+      const slot = (timeSlot && timeSlot.value) || 'unknown';
+      finalTime = TIME_MAP[slot] || '12:00';
+    } else if (timeInput && timeInput.value) {
+      finalTime = timeInput.value;
+      timeKnown = true;
+    } else {
+      timeKnown = false;
+      finalTime = '12:00';
+    }
+
     const place = document.getElementById('dpPlace').value;
     const genderRad = document.querySelector('input[name="dpGender"]:checked');
     const gender = genderRad ? genderRad.value : '남';
@@ -831,7 +893,7 @@ ${footer}
     // 이름은 세션 스토리지에만 저장하고 서버 미리보기로는 생년월일/시간/장소/성별만 보낸다
     const readingData = {
       productId: 'daily-report',
-      birth: { name, date, time: time === '모름' ? null : time, place, gender }
+      birth: { name, date, time: finalTime, timeKnown, place, gender }
     };
     try {
       sessionStorage.setItem('nb_reading', JSON.stringify(readingData));
@@ -846,7 +908,7 @@ ${footer}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productId: 'daily-report',
-          birth: { date, time: time === '모름' ? null : time, place, gender }
+          birth: { date, time: finalTime, timeKnown, place, gender }
         })
       });
 
@@ -861,7 +923,7 @@ ${footer}
         resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else {
         // 백업: SSR 파라미터로 이동
-        const qs = new URLSearchParams({ date, time, place, gender }).toString();
+        const qs = new URLSearchParams({ date, time: finalTime, place, gender }).toString();
         window.location.search = qs;
       }
     } catch (err) {

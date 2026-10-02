@@ -1391,6 +1391,89 @@ section('11. 문 — 신령계 들어가는 곳');
   check('손님 화면 CSS에 글줄 정리 규칙이 들어 있다', allHavePretty);
 }
 
+{
+  section('오늘·한 달 운세 상세페이지 시:분 직접 입력 및 timeKnown 검사');
+
+  /*
+   * 터진 뒤에 적은 것 (2026-10-02): 시:분 직접 입력으로 바꿀 때 이 두 상세
+   * 페이지를 빠뜨렸다. 손님이 14시 40분이라 적었는데 풀이에 14시 30분으로
+   * 나갔다. 한 군데를 고치면 같은 일을 하는 다른 곳도 같이 찾아야 한다.
+   */
+  const { renderDailyReportProductPage } = await import('./src/daily-product-page.ts');
+  const { renderMonthReportProductPage } = await import('./src/month-product-page.ts');
+
+  const dailyHtml = renderDailyReportProductPage(CATALOG['daily-report'], full, true, '');
+  const monthHtml = renderMonthReportProductPage(CATALOG['month-report'], full, true, '');
+
+  const hasDailyDirectInput = dailyHtml.includes('type="time"') &&
+    dailyHtml.includes('id="dpTime"') &&
+    dailyHtml.includes('id="dpTimeUnknown"') &&
+    dailyHtml.includes('id="dpTimeSlot"');
+
+  const hasMonthDirectInput = monthHtml.includes('type="time"') &&
+    monthHtml.includes('id="mpTime"') &&
+    monthHtml.includes('id="mpTimeUnknown"') &&
+    monthHtml.includes('id="mpTimeSlot"');
+
+  check('오늘·한 달 운세 상세페이지에 시:분 직접 넣는 칸이 있다', hasDailyDirectInput && hasMonthDirectInput);
+
+  const dailySavesTimeKnown = dailyHtml.includes('timeKnown') &&
+    dailyHtml.includes("productId: 'daily-report'") &&
+    dailyHtml.includes('birth: { name, date, time: finalTime, timeKnown, place, gender }');
+
+  const monthSavesTimeKnown = monthHtml.includes('timeKnown') &&
+    monthHtml.includes("productId: 'month-report'") &&
+    monthHtml.includes('birth: { name, date, time: finalTime, timeKnown, place, gender }');
+
+  check('두 상세페이지가 timeKnown 을 함께 저장한다', dailySavesTimeKnown && monthSavesTimeKnown);
+
+  // 14:40을 넣었을 때 시각이 한가운데 값(14:30)으로 바뀌지 않고 14:40 그대로 유지되는지 검증
+  function simulateTimeResolution(isUnknown: boolean, rawVal: string, slotVal: string) {
+    const TIME_MAP: Record<string, string> = {
+      'ja': '00:30', 'chuk': '02:30', 'in': '04:30', 'myo': '06:30',
+      'jin': '08:30', 'sa': '10:30', 'o': '12:30', 'mi': '14:30',
+      'sin': '16:30', 'yu': '18:30', 'sul': '20:30', 'hae': '22:30',
+      'unknown': '12:00'
+    };
+    let finalTime = '12:00';
+    let timeKnown = true;
+    if (isUnknown) {
+      timeKnown = false;
+      const slot = slotVal || 'unknown';
+      finalTime = TIME_MAP[slot] || '12:00';
+    } else if (rawVal) {
+      finalTime = rawVal;
+      timeKnown = true;
+    } else {
+      timeKnown = false;
+      finalTime = '12:00';
+    }
+    return { finalTime, timeKnown };
+  }
+
+  const entered = simulateTimeResolution(false, '14:40', 'mi');
+  const unknownEntered = simulateTimeResolution(true, '', 'mi');
+
+  // SSR 및 풀이 계산 시에도 14:40이 14:30으로 뭉개지지 않는지 확인
+  const dailySSR = renderDailyReportProductPage(CATALOG['daily-report'], full, true, '', undefined, undefined, null, {
+    date: '1990-05-15',
+    time: '14:40',
+    place: '서울',
+    gender: '남',
+  });
+
+  const preservesExactTime = entered.finalTime === '14:40' &&
+    entered.timeKnown === true &&
+    entered.finalTime !== '14:30' &&
+    unknownEntered.finalTime === '14:30' &&
+    unknownEntered.timeKnown === false &&
+    dailySSR.includes('낮 2시 40분') &&
+    !dailySSR.includes('낮 2시 30분');
+
+  check('적어 준 시각이 칸 한가운데 값으로 바뀌지 않는다', preservesExactTime,
+    entered.finalTime === '14:40' ? '14:40 보존 확인' : `실패: ${entered.finalTime}`);
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }

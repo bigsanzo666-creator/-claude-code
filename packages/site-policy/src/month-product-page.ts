@@ -1,4 +1,3 @@
-import { HOURS } from './checkout-page.ts';
 import type { Product, BusinessInfo } from '../../commerce/src/index.ts';
 import { PLACES, buildMonthPreviewData, parseInputTime, type MonthPreviewData } from '../../saju-rules/src/index.ts';
 import { show } from './business.ts';
@@ -55,15 +54,9 @@ export function renderMonthReportProductPage(
     return `<option value="${esc(p.name)}"${selected}>${esc(p.name)}</option>`;
   }).join('');
 
-  const timeOptions = HOURS.map(([val, label]) => {
-    let sel = false;
-    if (initialQuery?.time !== undefined) {
-      if (initialQuery.time === val) sel = true;
-      else if (val && initialQuery.time.includes(label.slice(0, 2))) sel = true;
-      else if (val === '14:30' && (initialQuery.time.includes('14:') || initialQuery.time.includes('2시'))) sel = true;
-    }
-    return `<option value="${val}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
-  }).join('');
+  const isInitialTimeUnknown = initialQuery?.time === '모름' || initialQuery?.time === 'unknown';
+  const initialTimeVal = (initialQuery?.time && !isInitialTimeUnknown && /^\d{1,2}:\d{2}$/.test(initialQuery.time)) ? initialQuery.time : '';
+  const initialTimeSlotVal = isInitialTimeUnknown ? (initialQuery?.time || 'unknown') : 'unknown';
 
   const initialResultHtml = initialPreviewData ? renderMonthPreviewHtml(initialPreviewData, product) : '';
 
@@ -594,9 +587,27 @@ ${PRODUCTS_CSS}
       <input type="date" id="mpDate" class="mp-input" required value="${initialQuery?.date || ''}">
     </div>
     <div class="mp-form-row">
-      <label for="mpTime" class="mp-label">태어난 시간</label>
-      <select id="mpTime" class="mp-select">
-        ${timeOptions}
+      <label for="mpTime" class="mp-label" style="white-space:nowrap;">태어난 시간 (시:분)</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="time" id="mpTime" class="mp-input" style="flex:1 1 auto;" value="${initialTimeVal}"${isInitialTimeUnknown ? ' disabled' : ''}>
+        <label for="mpTimeUnknown" style="display:flex;align-items:center;gap:4px;font-size:12px;color:#c8c2d4;cursor:pointer;white-space:nowrap;margin-bottom:0;">
+          <input type="checkbox" id="mpTimeUnknown" style="width:auto;margin:0;"${isInitialTimeUnknown ? ' checked' : ''}> 모름
+        </label>
+      </div>
+      <select id="mpTimeSlot" class="mp-select" style="display:${isInitialTimeUnknown ? 'block' : 'none'};margin-top:6px;">
+        <option value="unknown"${initialTimeSlotVal === 'unknown' ? ' selected' : ''}>시간 모름 (낮 12시로 계산)</option>
+        <option value="ja"${initialTimeSlotVal === 'ja' ? ' selected' : ''}>자시 (23:30~01:29)</option>
+        <option value="chuk"${initialTimeSlotVal === 'chuk' ? ' selected' : ''}>축시 (01:30~03:29)</option>
+        <option value="in"${initialTimeSlotVal === 'in' ? ' selected' : ''}>인시 (03:30~05:29)</option>
+        <option value="myo"${initialTimeSlotVal === 'myo' ? ' selected' : ''}>묘시 (05:30~07:29)</option>
+        <option value="jin"${initialTimeSlotVal === 'jin' ? ' selected' : ''}>진시 (07:30~09:29)</option>
+        <option value="sa"${initialTimeSlotVal === 'sa' ? ' selected' : ''}>사시 (09:30~11:29)</option>
+        <option value="o"${initialTimeSlotVal === 'o' ? ' selected' : ''}>오시 (11:30~13:29)</option>
+        <option value="mi"${initialTimeSlotVal === 'mi' ? ' selected' : ''}>미시 (13:30~15:29)</option>
+        <option value="sin"${initialTimeSlotVal === 'sin' ? ' selected' : ''}>신시 (15:30~17:29)</option>
+        <option value="yu"${initialTimeSlotVal === 'yu' ? ' selected' : ''}>유시 (17:30~19:29)</option>
+        <option value="sul"${initialTimeSlotVal === 'sul' ? ' selected' : ''}>술시 (19:30~21:29)</option>
+        <option value="hae"${initialTimeSlotVal === 'hae' ? ' selected' : ''}>해시 (21:30~23:29)</option>
       </select>
     </div>
     <div class="mp-form-row">
@@ -668,19 +679,58 @@ ${footer}
   }
   updateCheckoutLinks();
 
+  const TIME_MAP = {
+    'ja': '00:30', 'chuk': '02:30', 'in': '04:30', 'myo': '06:30',
+    'jin': '08:30', 'sa': '10:30', 'o': '12:30', 'mi': '14:30',
+    'sin': '16:30', 'yu': '18:30', 'sul': '20:30', 'hae': '22:30',
+    'unknown': '12:00'
+  };
+
+  const timeInput = document.getElementById('mpTime');
+  const timeUnknown = document.getElementById('mpTimeUnknown');
+  const timeSlot = document.getElementById('mpTimeSlot');
+
+  if (timeUnknown) {
+    timeUnknown.addEventListener('change', function() {
+      const unk = timeUnknown.checked;
+      if (timeSlot) timeSlot.style.display = unk ? 'block' : 'none';
+      if (timeInput) {
+        timeInput.disabled = unk;
+        if (unk) timeInput.value = '';
+      }
+    });
+  }
+
   try {
     const saved = JSON.parse(sessionStorage.getItem('nb_reading') || '{}');
     if (saved && saved.birth) {
       if (saved.birth.name && document.getElementById('mpName')) document.getElementById('mpName').value = saved.birth.name;
       if (saved.birth.date && document.getElementById('mpDate') && !document.getElementById('mpDate').value) document.getElementById('mpDate').value = saved.birth.date;
-      if (saved.birth.time && document.getElementById('mpTime')) {
-        const tSel = document.getElementById('mpTime');
-        const st = saved.birth.time;
-        for (let i = 0; i < tSel.options.length; i++) {
-          if (tSel.options[i].value === st) {
-            tSel.selectedIndex = i;
-            break;
+      if (timeInput) {
+        const b = saved.birth;
+        if (b.timeKnown === false || b.time === '모름' || b.time === 'unknown' || !b.time) {
+          if (timeUnknown) {
+            timeUnknown.checked = true;
+            if (timeSlot) {
+              timeSlot.style.display = 'block';
+              let matched = false;
+              for (const [k, v] of Object.entries(TIME_MAP)) {
+                if (v === b.time || k === b.time) {
+                  timeSlot.value = k;
+                  matched = true;
+                  break;
+                }
+              }
+              if (!matched) timeSlot.value = 'unknown';
+            }
+            timeInput.disabled = true;
+            timeInput.value = '';
           }
+        } else {
+          if (timeUnknown) timeUnknown.checked = false;
+          if (timeSlot) timeSlot.style.display = 'none';
+          timeInput.disabled = false;
+          timeInput.value = b.time;
         }
       }
       if (saved.birth.place && document.getElementById('mpPlace')) document.getElementById('mpPlace').value = saved.birth.place;
@@ -707,9 +757,22 @@ ${footer}
     e.preventDefault();
     const name = (document.getElementById('mpName').value || '').trim();
     const date = (document.getElementById('mpDate').value || '').trim();
-    const timeSelect = document.getElementById('mpTime');
-    const rawTime = (timeSelect ? timeSelect.value : '').trim();
-    const time = rawTime ? rawTime : null;
+    const isUnk = timeUnknown ? timeUnknown.checked : false;
+    let finalTime = '12:00';
+    let timeKnown = true;
+
+    if (isUnk) {
+      timeKnown = false;
+      const slot = (timeSlot && timeSlot.value) || 'unknown';
+      finalTime = TIME_MAP[slot] || '12:00';
+    } else if (timeInput && timeInput.value) {
+      finalTime = timeInput.value;
+      timeKnown = true;
+    } else {
+      timeKnown = false;
+      finalTime = '12:00';
+    }
+
     const place = document.getElementById('mpPlace').value;
     const genderRad = document.querySelector('input[name="mpGender"]:checked');
     const gender = genderRad ? genderRad.value : '남';
@@ -722,7 +785,7 @@ ${footer}
 
     const readingData = {
       productId: 'month-report',
-      birth: { name, date, time: time === '모름' ? null : time, place, gender }
+      birth: { name, date, time: finalTime, timeKnown, place, gender }
     };
     try {
       sessionStorage.setItem('nb_reading', JSON.stringify(readingData));
@@ -737,7 +800,7 @@ ${footer}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productId: 'month-report',
-          birth: { date, time: time === '모름' ? null : time, place, gender }
+          birth: { date, time: finalTime, timeKnown, place, gender }
         })
       });
 
@@ -751,7 +814,7 @@ ${footer}
         resultDiv.innerHTML = renderMonthPreviewHtmlClient(data.monthPreview, data.product || { priceKrw: 9900 });
         resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else {
-        const qs = new URLSearchParams({ date, time, place, gender }).toString();
+        const qs = new URLSearchParams({ date, time: finalTime, place, gender }).toString();
         window.location.search = qs;
       }
     } catch (err) {
