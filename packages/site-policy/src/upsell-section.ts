@@ -10,7 +10,6 @@
  */
 
 import { esc } from './report-render.ts';
-import { UPSELL_PROMO_PERCENT, UPSELL_AFTER_PERCENT } from '../../commerce/src/catalog.ts';
 
 export interface UpsellItemViewData {
   info: {
@@ -59,7 +58,15 @@ export function renderUpsellSection(upsellData?: UpsellViewData | null): string 
     const singlePriceStr = info.singlePriceKrw.toLocaleString('ko-KR');
     const currentPriceStr = info.currentPriceKrw.toLocaleString('ko-KR');
     const regularPriceStr = info.regularUpgradeKrw.toLocaleString('ko-KR');
-    const discountRate = info.isPromo ? `${UPSELL_PROMO_PERCENT}%` : `${UPSELL_AFTER_PERCENT}%`;
+    /*
+     * 터진 뒤에 적은 것 (2026-10-02): 「30% 할인」이라고 손으로 적어 두었는데
+     * 값이 끝자리 900원으로 내려가느라 실제로는 30~34%였다. 적은 숫자와 실제가
+     * 다르면 그 자체가 위반이다. **카드마다 실제 비율을 계산해서 적는다.**
+     * 내림한다 — 31.7%를 32%로 올려 적으면 그만큼이 과장이다.
+     */
+    const discountRate = info.singlePriceKrw > 0
+      ? `${Math.floor((1 - info.currentPriceKrw / info.singlePriceKrw) * 100)}%`
+      : '';
     const reason = item.reason || '';
     const checkoutUrl = item.checkoutUrl || '#';
 
@@ -69,7 +76,7 @@ export function renderUpsellSection(upsellData?: UpsellViewData | null): string 
       ${info.isMatched ? '<div class="od-upsell-match-tag">손님 물음에 맞춘 것</div>' : ''}
       <h3 class="od-upsell-card-title">${esc(nextName)}</h3>
       ${reason ? `<p class="od-upsell-reason">${esc(reason)}</p>` : ''}
-      ${!info.isPromo ? `<p class="od-upsell-expired-note" style="font-size:13px;color:#f0c080;margin:0 0 8px">할인 시간이 지났습니다 (${UPSELL_AFTER_PERCENT}% 할인 적용)</p>` : ''}
+      ${!info.isPromo ? `<p class="od-upsell-expired-note" style="font-size:13px;color:#f0c080;margin:0 0 8px">할인 시간이 지났습니다</p>` : ''}
       <div class="od-upsell-pricing">
         <b class="od-upsell-price-gold">${currentPriceStr}원</b>
         <span class="od-upsell-price-orig">원래 ${singlePriceStr}원 (따로 사면 ${singlePriceStr}원)</span>
@@ -84,7 +91,7 @@ export function renderUpsellSection(upsellData?: UpsellViewData | null): string 
   <section class="od-upsell-box" id="odUpsellSection">
     <div class="od-upsell-header">
       <span class="od-upsell-badge">${isPromo ? '다음 이야기 이어보기 · 12시간 안에만 이 값입니다' : '다음 이야기 이어보기 · 할인 시간이 지났습니다'}</span>
-      <span class="od-upsell-timer" id="odUpsellTimer" data-expires="${esc(expiresAt)}">${isPromo ? `남은 시간 ${esc(remainingFormatted)}` : `할인 시간이 지났습니다 (${UPSELL_AFTER_PERCENT}% 할인 적용)`}</span>
+      <span class="od-upsell-timer" id="odUpsellTimer" data-expires="${esc(expiresAt)}">${isPromo ? `남은 시간 ${esc(remainingFormatted)}` : '할인 시간이 지났습니다'}</span>
     </div>
     <div class="od-upsell-cards">
       ${cardsHtml}
@@ -106,12 +113,15 @@ export function renderUpsellSection(upsellData?: UpsellViewData | null): string 
       var diff = expTime - Date.now();
       if(diff <= 0){
         clearInterval(uTimer);
-        timerEl.textContent = '할인 시간이 지났습니다 (' + ${UPSELL_AFTER_PERCENT} + '% 할인 적용)';
+        timerEl.textContent = '할인 시간이 지났습니다';
         cards.forEach(function(card){
           var badge = card.querySelector('.od-upsell-circle-badge');
-          if(badge) badge.innerHTML = '${UPSELL_AFTER_PERCENT}%<br>할인';
           var goldPrice = card.querySelector('.od-upsell-price-gold');
           var regVal = card.getAttribute('data-reg');
+          var singleVal = card.getAttribute('data-single');
+          if(badge && regVal && singleVal && Number(singleVal) > 0){
+            badge.innerHTML = Math.floor((1 - Number(regVal) / Number(singleVal)) * 100) + '%<br>할인';
+          }
           if(goldPrice && regVal) goldPrice.textContent = Number(regVal).toLocaleString('ko-KR') + '원';
         });
         return;

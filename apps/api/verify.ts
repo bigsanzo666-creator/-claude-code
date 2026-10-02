@@ -12,7 +12,7 @@ import {
   PACKAGES, bundleMath, orderable, upsellFor,
 } from '../../packages/commerce/src/index.ts';
 import { loadBusinessInfo, SPIRITS, CONTENTS_FOR, renderCheckoutPage } from '../../packages/site-policy/src/index.ts';
-import { CATEGORIES } from '../../packages/commerce/src/catalog.ts';
+import { CATEGORIES, maxLaunchDiscountPercent, isLaunchSale } from '../../packages/commerce/src/catalog.ts';
 import { findSpiritVideos } from './src/images.ts';
 import { createApi, MemoryOrderStore } from './src/server.ts';
 import { buildPayload } from './src/payload.ts';
@@ -1971,6 +1971,41 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
       '막힘 카드나 500 처리가 없다');
     check('파수꾼이 높이 0인 카드를 「보이는 것」으로 세지 않는다',
       co.includes('키있나'), '파수꾼이 카드 존재만 보고 잠든다');
+  }
+
+  /*
+   * 화면에 적는 할인율이 **실제보다 크면 안 된다.**
+   *
+   * 터진 뒤에 적은 것 (2026-10-02): 배너에 「모든 점괘 25% 할인 중」이라고 손으로
+   * 적어 두었는데 실제로는 24%인 상품이 다섯이었고(적은 것보다 덜 깎인다),
+   * 명절 가족운세는 할인이 아예 없었다. 이어보기 뱃지의 「30%」도 실제는
+   * 30~34%였다. 숫자를 손으로 적으면 반드시 실제와 어긋난다.
+   */
+  {
+    const 최대 = maxLaunchDiscountPercent();
+    const 실제들 = Object.values(CATALOG).map((p) => {
+      const r = (p as any).regularKrw ?? p.priceKrw;
+      return r > 0 ? Math.floor((1 - p.priceKrw / r) * 100) : 0;
+    });
+    check('배너 숫자가 실제 최대 할인율과 같다',
+      최대 === Math.max(...실제들), `배너 ${최대}% vs 실제 최대 ${Math.max(...실제들)}%`);
+    check('배너가 실제보다 큰 할인율을 적지 않는다',
+      실제들.every((n) => n <= 최대), `${실제들.filter((n) => n > 최대).join(', ')}`);
+
+    const home = await page('/');
+    if (isLaunchSale()) {
+      check('배너에 「모든 점괘」처럼 전부라고 적지 않는다',
+        !home.html.includes('모든 점괘'),
+        '할인이 없는 상품이 하나라도 있으면 「모든」은 거짓이다');
+      check(`배너가 「최대 ${최대}%」로 적힌다`,
+        home.html.includes(`최대 ${최대}% 할인 중`), '배너 문구가 값에서 오지 않는다');
+    }
+
+    const co = renderCheckoutPage(business, '', CATALOG['charm-report'],
+      { storeId: 'test_store', channelKey: 'test_channel' });
+    check('이어보기 뱃지 숫자를 손으로 적지 않는다',
+      !/'[0-9]+%<br>할인'/.test(co),
+      '뱃지에 숫자가 박혀 있다 — 실제 값과 어긋난다');
   }
 
   for (const p of testPaths) {

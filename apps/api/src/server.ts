@@ -20,7 +20,7 @@ import {
   orderable, isOrderable, upsellFor, packagesContaining, makePreview,
   calculateUpsellPrice, UPSELL_PROMO_HOURS, recommendNext,
   HOLIDAY_MAX_MEMBERS, HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, extraMemberKrw,
-  WITHDRAWAL_NOTICE, CATEGORIES, isLaunchSale, type Order, type PaymentGateway, type ProductId,
+  WITHDRAWAL_NOTICE, CATEGORIES, isLaunchSale, maxLaunchDiscountPercent, type Order, type PaymentGateway, type ProductId,
 } from '../../../packages/commerce/src/index.ts';
 import { cacheKey } from '../../../packages/report/src/cache.ts';
 import { cleanQuestion, QUESTION_MAX } from '../../../packages/report/src/prompt.ts';
@@ -532,7 +532,7 @@ window.__IS_LAUNCH_SALE__ = ${isLaunchSale()};
 ${isLaunchSale() ? `
 <div class="nb-launch-banner" id="nbLaunchBanner" style="display:none">
   <div class="nb-launch-banner-content">
-    <span class="nb-launch-banner-text">서버 오픈 기념 — 모든 점괘 <b class="nb-launch-banner-hit">25% 할인 중</b><span class="nb-launch-banner-until"> · 11월 1일까지</span></span>
+    <span class="nb-launch-banner-text">서버 오픈 기념 — <b class="nb-launch-banner-hit">최대 ${maxLaunchDiscountPercent()}% 할인 중</b><span class="nb-launch-banner-until"> · 11월 1일까지</span></span>
     <button type="button" class="nb-launch-banner-close" id="nbCloseLaunchBanner" aria-label="닫기">✕</button>
   </div>
 </div>

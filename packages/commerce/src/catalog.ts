@@ -651,6 +651,24 @@ export function makePreview(fullText: string, ratio: number): string {
 }
 
 
+/**
+ * 오픈 할인의 **실제 최대 폭**.
+ *
+ * 터진 뒤에 적은 것 (2026-10-02): 배너에 「모든 점괘 25% 할인 중」이라고
+ * 손으로 적어 두었는데, 실제로는 24%인 상품이 다섯이고(적은 것보다 **덜**
+ * 깎인다 — 표시광고법 위반이다) 명절 가족운세는 아예 할인이 없었다.
+ * 「모든」도 「25%」도 거짓이 된 것이다. **숫자는 값에서 만든다.**
+ */
+export function maxLaunchDiscountPercent(): number {
+  let max = 0;
+  for (const p of Object.values(CATALOG)) {
+    const regular = p.regularKrw ?? p.priceKrw;
+    if (regular <= 0) continue;
+    max = Math.max(max, Math.floor((1 - p.priceKrw / regular) * 100));
+  }
+  return max;
+}
+
 /** 이어사기 한정 할인 유효 시간 (12시간) */
 export const UPSELL_PROMO_HOURS = 12;
 
