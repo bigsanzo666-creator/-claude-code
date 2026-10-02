@@ -650,15 +650,25 @@ export function makePreview(fullText: string, ratio: number): string {
   return out || paragraphs[0] || '';
 }
 
-/**
- * 12시간 한정 이어사기(업셀) 특가.
- *
- * 돈그릇(14,900원)을 산 손님에게 묶음 「늘봄 돈과 일」(23,800원)의 남은 값(8,900원)을
- * 리포트 처음 연 때부터 12시간 동안 5,900원으로 깎아 드린다.
- * 값은 반드시 여기서만 온다.
- */
-export const UPSELL_PROMO_PRICE_KRW = 5900;
 
 /** 이어사기 한정 할인 유효 시간 (12시간) */
 export const UPSELL_PROMO_HOURS = 12;
+
+/**
+ * 이어보기(업셀) 할인율.
+ *
+ * 60%·40%였다. 신년운세(24,900원)가 9,900원까지 내려가, 한 번 이어보기를 본
+ * 손님에게는 그게 그 상품의 값이 되어 버린다. 깎는 것은 **한 번 더 사게 하는
+ * 값**이지 제값을 지우는 것이 아니다. 30%·20%로 둔다.
+ *
+ * **값은 반드시 여기서만 온다.** 화면에 적는 「30% 할인」 글자도 이 숫자에서 만든다.
+ */
+export const UPSELL_PROMO_RATE = 0.30;
+
+/** 12시간이 지난 뒤의 이어보기 할인율 */
+export const UPSELL_AFTER_RATE = 0.20;
+
+/** 화면에 적을 할인율 (예: 30) */
+export const UPSELL_PROMO_PERCENT = Math.round(UPSELL_PROMO_RATE * 100);
+export const UPSELL_AFTER_PERCENT = Math.round(UPSELL_AFTER_RATE * 100);
 

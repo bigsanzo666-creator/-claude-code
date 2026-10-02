@@ -25,7 +25,7 @@ import { PLACES } from '../../saju-rules/src/index.ts';
 import { renderSocialHead } from './social.ts';
 import { FONT_LINK, PRODUCTS_CSS } from './products.ts';
 import { renderInviteBadge, REFERRAL_BADGE_CSS } from './referral-badge.ts';
-import { isLaunchSale, type Product } from '../../commerce/src/catalog.ts';
+import { isLaunchSale, UPSELL_PROMO_PERCENT, UPSELL_AFTER_PERCENT, type Product } from '../../commerce/src/catalog.ts';
 import { WITHDRAWAL_WINDOW_DAYS, DELIVERY_DUE_DAYS } from '../../commerce/src/refund.ts';
 import {
   HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, HOLIDAY_MAX_MEMBERS,
@@ -991,7 +991,7 @@ export function renderCheckoutPage(
         var singlePriceStr = Number(uInfo.singlePriceKrw).toLocaleString('ko-KR');
         var currentPriceStr = Number(uInfo.currentPriceKrw).toLocaleString('ko-KR');
         var regPriceStr = Number(uInfo.regularUpgradeKrw).toLocaleString('ko-KR');
-        var discountText = uInfo.isPromo ? '60%<br>할인' : '40%<br>할인';
+        var discountText = uInfo.isPromo ? '${UPSELL_PROMO_PERCENT}%<br>할인' : '${UPSELL_AFTER_PERCENT}%<br>할인';
         var cUrl = escHtml(item.checkoutUrl || ('/checkout?product=' + encodeURIComponent(uInfo.nextProduct ? uInfo.nextProduct.id : '') + '&fromOrder=' + encodeURIComponent(oid)));
         var matchTag = uInfo.isMatched ? '<div class="od-upsell-match-tag">손님 물음에 맞춘 것</div>' : '';
         var reasonHtml = item.reason ? ('<p class="od-upsell-reason">' + escHtml(item.reason) + '</p>') : '';
@@ -1061,10 +1061,10 @@ export function renderCheckoutPage(
         var diff = expTime - Date.now();
         if(diff <= 0){
           clearInterval(uTimer);
-          if(tEl) tEl.textContent = '할인 시간이 지났습니다 (40% 할인 적용)';
+          if(tEl) tEl.textContent = '할인 시간이 지났습니다 (${UPSELL_AFTER_PERCENT}% 할인 적용)';
           cards.forEach(function(card){
             var badge = card.querySelector('.od-upsell-circle-badge');
-            if(badge) badge.innerHTML = '40%<br>할인';
+            if(badge) badge.innerHTML = '${UPSELL_AFTER_PERCENT}%<br>할인';
             var goldPrice = card.querySelector('.od-upsell-price-gold');
             var regVal = card.getAttribute('data-reg');
             if(goldPrice && regVal) goldPrice.textContent = Number(regVal).toLocaleString('ko-KR') + '원';

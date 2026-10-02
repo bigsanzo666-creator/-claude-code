@@ -18,7 +18,7 @@ import {
   generateInviteCode, isValidInviteCode, INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW, COUNT_MIN_ORDER_KRW, REWARD_TIERS,
   hasEntitlement, assessRefund, refundNotice, confirmPayment, refundOrder, failOrder,
   orderable, isOrderable, upsellFor, packagesContaining, makePreview,
-  calculateUpsellPrice, UPSELL_PROMO_PRICE_KRW, UPSELL_PROMO_HOURS, recommendNext,
+  calculateUpsellPrice, UPSELL_PROMO_HOURS, recommendNext,
   HOLIDAY_MAX_MEMBERS, HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, extraMemberKrw,
   WITHDRAWAL_NOTICE, CATEGORIES, isLaunchSale, type Order, type PaymentGateway, type ProductId,
 } from '../../../packages/commerce/src/index.ts';

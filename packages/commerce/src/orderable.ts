@@ -17,7 +17,7 @@
  * 정가를 지어내지 않는다.
  */
 
-import { CATALOG, UPSELL_PROMO_PRICE_KRW, UPSELL_PROMO_HOURS, type ProductId, type Product, type Category } from './catalog.ts';
+import { CATALOG, UPSELL_PROMO_HOURS, UPSELL_PROMO_RATE, UPSELL_AFTER_RATE, type ProductId, type Product, type Category } from './catalog.ts';
 import { PACKAGES, bundleMath, type PackageId } from './packages.ts';
 
 export interface Orderable {
@@ -114,7 +114,7 @@ export interface UpsellPriceInfo {
   singlePriceKrw: number;
   /** 정규 묶음 차액 또는 12시간 경과 후 가격 (예: 8,900원) */
   regularUpgradeKrw: number;
-  /** 현재 적용가 (12시간 내 60% 할인, 만료 후 40% 할인) */
+  /** 현재 적용가 (12시간 내 UPSELL_PROMO_RATE, 만료 후 UPSELL_AFTER_RATE) */
   currentPriceKrw: number;
   /** 12시간 할인 적용 중인지 */
   isPromo: boolean;
@@ -249,7 +249,7 @@ export function recommendNext(
     }
   }
 
-  // 5) 시간 및 할인 가격 계산 (12시간 내 60%, 12시간 후 40%)
+  // 5) 시간 및 할인 가격 계산 (12시간 내 UPSELL_PROMO_RATE, 지난 뒤 UPSELL_AFTER_RATE)
   const viewedTime = viewedAt ? new Date(viewedAt).getTime() : now.getTime();
   const expiresTime = viewedTime + UPSELL_PROMO_HOURS * 60 * 60 * 1000;
   const nowTime = now.getTime();
@@ -264,8 +264,8 @@ export function recommendNext(
 
   return selectedProducts.map((p, idx) => {
     const singlePriceKrw = p.priceKrw;
-    const promoPriceKrw = cutPrice(singlePriceKrw, 0.60);
-    const expiredPriceKrw = cutPrice(singlePriceKrw, 0.40);
+    const promoPriceKrw = cutPrice(singlePriceKrw, UPSELL_PROMO_RATE);
+    const expiredPriceKrw = cutPrice(singlePriceKrw, UPSELL_AFTER_RATE);
 
     return {
       singlePriceKrw,
@@ -316,7 +316,14 @@ export function calculateUpsellPrice(
   const pad = (n: number) => String(n).padStart(2, '0');
   const remainingFormatted = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 
-  const promoPrice = cutPrice(singlePriceKrw, 0.60);
+  /*
+   * 묶음 이어사기 특가는 **묶음 차액**에서 깎는다.
+   *
+   * 터진 뒤에 적은 것 (2026-10-02): 할인율을 낮추면서 이걸 단품값에서 깎았더니
+   * 12시간 「특가」가 9,900원, 시간이 지난 뒤가 8,900원이 되어 **특가가 더 비쌌다.**
+   * 깎을 대상은 손님이 실제로 더 내야 하는 값, 곧 차액이다.
+   */
+  const promoPrice = Math.min(cutPrice(regularUpgradeKrw, UPSELL_PROMO_RATE), regularUpgradeKrw);
   let currentPriceKrw = isPromo ? promoPrice : regularUpgradeKrw;
   if (currentPriceKrw > singlePriceKrw) {
     currentPriceKrw = singlePriceKrw;

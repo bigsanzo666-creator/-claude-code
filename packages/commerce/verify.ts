@@ -16,7 +16,7 @@ import {
   type Order,
   orderable, isOrderable, upsellFor, upgradeCostKrw, calculateUpsellPrice,
   priceOf, HOLIDAY_EXTRA_MEMBER_KRW, HOLIDAY_MAX_MEMBERS,
-  UPSELL_PROMO_PRICE_KRW, UPSELL_PROMO_HOURS, recommendNext,
+  UPSELL_PROMO_HOURS, UPSELL_PROMO_RATE, UPSELL_AFTER_RATE, recommendNext, cutPrice,
   시각을바꾼다, isLaunchSale, REGULAR_BY_LAUNCH,
 } from './src/index.ts';
 import { TOPIC_LABELS } from '../saju-rules/src/topics.ts';
@@ -407,13 +407,12 @@ section('H. 이어사기 12시간 한정 할인 — 전자상거래법 및 표�
   if (packOffer) {
     const singlePrice = CATALOG['career-report'].priceKrw; // 14,900원
     const regularUpgrade = upgradeCostKrw(baseProductId, packOffer.id); // 8,900원
-    const promoPrice = UPSELL_PROMO_PRICE_KRW; // 5,900원
+    const promoPrice = cutPrice(regularUpgrade, UPSELL_PROMO_RATE); // 5,900원
 
     // 1) 이어사기 값 셋이 catalog.ts 에서만 온다
     check('이어사기 값 셋이 catalog.ts 에서만 온다',
       singlePrice === CATALOG['career-report'].priceKrw &&
       regularUpgrade === PACKAGES[packOffer.id as PackageId].priceKrw - CATALOG[baseProductId].priceKrw &&
-      promoPrice === UPSELL_PROMO_PRICE_KRW &&
       singlePrice === 14900 && regularUpgrade === 8900 && promoPrice === 5900,
       `단품: ${singlePrice}원, 정규차액: ${regularUpgrade}원, 12시간특가: ${promoPrice}원`);
 
@@ -425,7 +424,7 @@ section('H. 이어사기 12시간 한정 할인 — 전자상거래법 및 표�
     const expiredCalc = calculateUpsellPrice(baseProductId, packOffer.id, viewTime, after12h);
 
     // 2) 12시간 안이면 5,900원, 지나면 8,900원으로 갈린다
-    check('12시간 안이면 5,900원으로 계산된다', promoCalc.isPromo === true && promoCalc.currentPriceKrw === 5900,
+    check('12시간 안이면 5,900원으로 계산된다 (차액 8,900원에서 깎음)', promoCalc.isPromo === true && promoCalc.currentPriceKrw === 5900,
       `현재가: ${promoCalc.currentPriceKrw}원, 남은시간: ${promoCalc.remainingFormatted}`);
     check('12시간이 지나면 8,900원으로 갈린다', expiredCalc.isPromo === false && expiredCalc.currentPriceKrw === 8900,
       `현재가: ${expiredCalc.currentPriceKrw}원`);
@@ -563,13 +562,48 @@ section('J. 리포트 끝 추천 3개 — 손님 질문에 맞춰 고르고 할�
     const recsAfter = recommendNext(otherId, null, viewTime, after12h);
     const r14900_after = recsAfter.find((r) => r.singlePriceKrw === 14900);
     if (r14900_12h && r14900_after) {
-      check3Ok = r14900_12h.currentPriceKrw === 5900 && r14900_after.currentPriceKrw === 8900;
+      check3Ok = r14900_12h.currentPriceKrw === 9900 && r14900_after.currentPriceKrw === 11900;
     } else {
       const { cutPrice } = await import('./src/orderable.ts');
-      check3Ok = cutPrice(14900, 0.60) === 5900 && cutPrice(14900, 0.40) === 8900;
+      check3Ok = cutPrice(14900, UPSELL_PROMO_RATE) === 9900 && cutPrice(14900, UPSELL_AFTER_RATE) === 11900;
     }
   }
-  check('③ 14,900원짜리는 12시간 안 5,900원, 지난 뒤 8,900원이다', check3Ok);
+  check('③ 14,900원짜리는 12시간 안 9,900원, 지난 뒤 11,900원이다', check3Ok);
+
+  /*
+   * 이어보기 값이 제값의 절반 아래로 내려가면 안 된다.
+   *
+   * 터진 뒤에 적은 것 (2026-10-02): 60% 할인이라 신년운세(24,900원)가
+   * 9,900원까지 내려갔다. 한 번 그 값을 본 손님에게는 그게 그 상품의 값이 된다.
+   * 깎는 것은 한 번 더 사게 하는 값이지 제값을 지우는 것이 아니다.
+   */
+  {
+    const { cutPrice: cp } = await import('./src/orderable.ts');
+    const 너무싼것: string[] = [];
+    for (const p of Object.values(CATALOG)) {
+      const 깎은값 = cp(p.priceKrw, UPSELL_PROMO_RATE);
+      if (p.priceKrw >= 9900 && 깎은값 < p.priceKrw * 0.5) 너무싼것.push(`${p.name} ${p.priceKrw}→${깎은값}`);
+    }
+    check('이어보기 값이 제값의 절반 아래로 내려가지 않는다', 너무싼것.length === 0, 너무싼것.join(', '));
+    /*
+     * 터진 뒤에 적은 것 (2026-10-02): 묶음 이어사기의 12시간 「특가」가
+     * 시간이 지난 뒤 값보다 비싼 적이 있었다. 특가는 늘 더 싸야 한다.
+     */
+    for (const base of ['wealth-report', 'career-report'] as const) {
+      const pack = upsellFor(base);
+      if (!pack) continue;
+      const v = new Date('2026-09-30T10:00:00Z');
+      const 안 = calculateUpsellPrice(base, pack.id as PackageId, v.toISOString(), new Date('2026-09-30T14:00:00Z'));
+      const 밖 = calculateUpsellPrice(base, pack.id as PackageId, v.toISOString(), new Date('2026-09-30T23:00:00Z'));
+      check(`${base} 묶음 이어사기 특가가 시간 지난 뒤보다 싸다`,
+        안.currentPriceKrw < 밖.currentPriceKrw, `특가 ${안.currentPriceKrw} vs 지난뒤 ${밖.currentPriceKrw}`);
+    }
+    check('이어보기 할인율이 한 곳에서만 온다 (30% / 20%)',
+      UPSELL_PROMO_RATE === 0.30 && UPSELL_AFTER_RATE === 0.20,
+      `지금 ${UPSELL_PROMO_RATE} / ${UPSELL_AFTER_RATE}`);
+    check('12시간이 지나면 값이 더 비싸진다 (깎이는 폭이 줄어든다)',
+      UPSELL_AFTER_RATE < UPSELL_PROMO_RATE);
+  }
 
   // ④ 「이사」가 든 질문에 시기 또는 가족 갈래가 첫 장에 온다
   const isaRecs = recommendNext('saju-report', '아들 근처로 이사 가고 싶은데 어떨지', viewTime, now);
