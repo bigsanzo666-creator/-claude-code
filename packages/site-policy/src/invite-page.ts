@@ -209,6 +209,41 @@ ${footer}
       var div = document.createElement('div');
       div.className = 'iv-ladder-item' + (achieved ? ' active' : '');
 
+      if(item.tier === 1){
+        var grantCount = (rew && rew.grantCount != null) ? rew.grantCount : (rew ? 1 : 0);
+        var canGrantMore = count > grantCount;
+        var expText = '';
+        if(rew && rew.expiresAt){
+          var expD = new Date(rew.expiresAt);
+          expText = (expD.getMonth() + 1) + '월 ' + expD.getDate() + '일까지';
+        }
+        var statusText = '';
+        if(grantCount > 0 && expText){
+          statusText = '지금까지 ' + grantCount + '번 받음 · ' + expText;
+        }
+
+        var tier1Desc = '소개 한 분마다 오늘의 운세 30일이 더 붙습니다. 끊기지 않게 한 달에 한 분씩 소개해 주십시오.';
+
+        var btnHtml = '';
+        if(canGrantMore){
+          btnHtml = '<button type="button" class="iv-act-btn" data-act="claim-daily" data-tier="1">30일 더 받기</button>';
+        }else{
+          btnHtml = '<button type="button" class="iv-act-btn" disabled>한 분 더 소개하시면 30일이 더 붙습니다</button>';
+        }
+
+        div.innerHTML =
+          '<div class="iv-ladder-info">' +
+            '<div class="iv-ladder-tier">' + item.tier + '명 달성 보답 (' + item.type + ')</div>' +
+            '<div class="iv-ladder-name">' + item.kind + '</div>' +
+            '<div class="iv-ladder-desc">' + tier1Desc + '</div>' +
+            (statusText ? '<div class="iv-ladder-status">' + statusText + '</div>' : '') +
+          '</div>' +
+          '<div>' + btnHtml + '</div>';
+
+        ladderListEl.appendChild(div);
+        return;
+      }
+
       var statusText = '';
       var isExpired = false;
       var isExhausted = false;
@@ -300,6 +335,26 @@ ${footer}
     });
 
     // Wire action buttons
+    ladderListEl.querySelectorAll('[data-act="claim-daily"]').forEach(function(b){
+      b.onclick = async function(){
+        b.disabled = true;
+        b.textContent = '받는 중…';
+        try{
+          var res = await postJson('/api/invite/reward/claim', { email: currentEmail, tier: 1 });
+          try{
+            sessionStorage.setItem('nb_reward_email', currentEmail);
+            sessionStorage.setItem('nb_email', currentEmail);
+          }catch(e){}
+          if(res.message) alert(res.message);
+          loadStatus(currentEmail, currentBirth);
+        }catch(e){
+          alert(e.message);
+          b.disabled = false;
+          b.textContent = '30일 더 받기';
+        }
+      };
+    });
+
     ladderListEl.querySelectorAll('[data-act="apply"]').forEach(function(b){
       b.onclick = async function(){
         var tier = parseInt(b.getAttribute('data-tier'), 10);

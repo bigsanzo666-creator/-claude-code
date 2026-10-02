@@ -2116,11 +2116,17 @@ export function createApi(deps: ApiDeps) {
       let maxUses: number | null = null;
 
       if (tier === 1) {
-        kind = '오늘의 운세 30일';
-        const d = new Date();
-        d.setDate(d.getDate() + 30);
-        expiresAt = d.toISOString();
-        maxUses = null;
+        const rewardsList = await referrals.getRewards(email);
+        const tier1Rew = rewardsList.find((r) => r.tier === 1);
+        const grantCount = tier1Rew?.grantCount ?? 0;
+        if (grantCount >= count) {
+          throw new HttpError(400, `이번 소개 몫은 이미 받으셨네. 한 분 더 소개하시면 30일이 더 붙네. (소개 ${count}명 · 받은 30일 ${grantCount}번)`);
+        }
+        const rew = await referrals.extendDailyPass(email, 30);
+        const exp = new Date(rew.expiresAt!);
+        const msg = `오늘의 운세 30일이 더 붙었네. ${exp.getMonth() + 1}월 ${exp.getDate()}일까지 보실 수 있네.`;
+        send(res, 200, { ok: true, reward: rew, message: msg });
+        return;
       } else if (tier === 5) {
         kind = '월운세 6달';
         const d = new Date();
@@ -2152,10 +2158,16 @@ export function createApi(deps: ApiDeps) {
       if (!tierItem) throw new HttpError(400, '알 수 없는 보답 단계입니다.');
 
       if (tier === 1) {
-        const d = new Date();
-        d.setDate(d.getDate() + 30);
-        const rew = await referrals.claimReward(email, 1, '오늘의 운세 30일', '내줌', d.toISOString(), null);
-        send(res, 200, { ok: true, reward: rew, message: '이용권이 지급되었습니다.' });
+        const rewardsList = await referrals.getRewards(email);
+        const tier1Rew = rewardsList.find((r) => r.tier === 1);
+        const grantCount = tier1Rew?.grantCount ?? 0;
+        if (grantCount >= count) {
+          throw new HttpError(400, `이번 소개 몫은 이미 받으셨네. 한 분 더 소개하시면 30일이 더 붙네. (소개 ${count}명 · 받은 30일 ${grantCount}번)`);
+        }
+        const rew = await referrals.extendDailyPass(email, 30);
+        const exp = new Date(rew.expiresAt!);
+        const msg = `오늘의 운세 30일이 더 붙었네. ${exp.getMonth() + 1}월 ${exp.getDate()}일까지 보실 수 있네.`;
+        send(res, 200, { ok: true, reward: rew, message: msg });
         return;
       } else if (tier === 5) {
         const d = new Date();

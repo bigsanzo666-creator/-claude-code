@@ -28,6 +28,7 @@ export interface RewardRecord {
   usedCount: number;
   maxUses: number | null;
   lastUsedAt: string | null;
+  grantCount: number;
 }
 
 export interface ReferralStore {
@@ -41,6 +42,7 @@ export interface ReferralStore {
   getRewards(ownerEmail: string): Promise<RewardRecord[]>;
   claimReward(ownerEmail: string, tier: number, kind: string, status?: '신청' | '내줌' | '거절', expiresAt?: string | null, maxUses?: number | null): Promise<RewardRecord>;
   applyReward(ownerEmail: string, tier: number, kind: string, status?: '신청' | '내줌' | '거절', expiresAt?: string | null, maxUses?: number | null): Promise<RewardRecord>;
+  extendDailyPass(ownerEmail: string, days: number): Promise<RewardRecord>;
   recordRewardUse(id: string, usedAt?: Date): Promise<void>;
   listRewardRequests(): Promise<RewardRecord[]>;
   reviewReward(id: string, status: '내줌' | '거절'): Promise<void>;
@@ -132,7 +134,8 @@ export class PostgresReferralStore implements ReferralStore {
               expires_at::text AS "expiresAt", created_at::text AS "createdAt", granted_at::text AS "grantedAt",
               COALESCE(used_count, 0)::int AS "usedCount",
               max_uses AS "maxUses",
-              last_used_at::text AS "lastUsedAt"
+              last_used_at::text AS "lastUsedAt",
+              COALESCE(grant_count, 0)::int AS "grantCount"
        FROM rewards WHERE owner_email = $1 ORDER BY tier ASC`,
       [norm]
     );
@@ -151,8 +154,8 @@ export class PostgresReferralStore implements ReferralStore {
     const id = `rew_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const grantedAt = status === '내줌' ? new Date().toISOString() : null;
     await this.pool.query(
-      `INSERT INTO rewards (id, owner_email, tier, kind, status, expires_at, created_at, granted_at, used_count, max_uses)
-       VALUES ($1, $2, $3, $4, $5, $6, now(), $7, 0, $8)
+      `INSERT INTO rewards (id, owner_email, tier, kind, status, expires_at, created_at, granted_at, used_count, max_uses, grant_count)
+       VALUES ($1, $2, $3, $4, $5, $6, now(), $7, 0, $8, 1)
        ON CONFLICT (owner_email, tier) DO NOTHING`,
       [id, norm, tier, kind, status, expiresAt, grantedAt, maxUses]
     );
@@ -161,7 +164,8 @@ export class PostgresReferralStore implements ReferralStore {
               expires_at::text AS "expiresAt", created_at::text AS "createdAt", granted_at::text AS "grantedAt",
               COALESCE(used_count, 0)::int AS "usedCount",
               max_uses AS "maxUses",
-              last_used_at::text AS "lastUsedAt"
+              last_used_at::text AS "lastUsedAt",
+              COALESCE(grant_count, 0)::int AS "grantCount"
        FROM rewards WHERE owner_email = $1 AND tier = $2`,
       [norm, tier]
     );
@@ -177,6 +181,28 @@ export class PostgresReferralStore implements ReferralStore {
     maxUses: number | null = null
   ): Promise<RewardRecord> {
     return this.claimReward(ownerEmail, tier, kind, status, expiresAt, maxUses);
+  }
+
+  async extendDailyPass(ownerEmail: string, days: number): Promise<RewardRecord> {
+    const norm = ownerEmail.trim().toLowerCase();
+    const id = `rew_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const { rows } = await this.pool.query(
+      `INSERT INTO rewards (id, owner_email, tier, kind, status, expires_at, created_at, granted_at, used_count, max_uses, grant_count)
+       VALUES ($1, $2, 1, '오늘의 운세 30일 (소개 한 분마다 30일 더)', '내줌', now() + ($3 || ' days')::interval, now(), now(), 0, NULL, 1)
+       ON CONFLICT (owner_email, tier) DO UPDATE
+       SET expires_at = GREATEST(COALESCE(rewards.expires_at, now()), now()) + ($3 || ' days')::interval,
+           grant_count = COALESCE(rewards.grant_count, 0) + 1,
+           status = '내줌',
+           granted_at = now()
+       RETURNING id, owner_email AS "ownerEmail", tier, kind, status,
+                 expires_at::text AS "expiresAt", created_at::text AS "createdAt", granted_at::text AS "grantedAt",
+                 COALESCE(used_count, 0)::int AS "usedCount",
+                 max_uses AS "maxUses",
+                 last_used_at::text AS "lastUsedAt",
+                 COALESCE(grant_count, 0)::int AS "grantCount"`,
+      [id, norm, days]
+    );
+    return rows[0];
   }
 
   async recordRewardUse(id: string, usedAt: Date = new Date()): Promise<void> {
@@ -195,7 +221,8 @@ export class PostgresReferralStore implements ReferralStore {
               expires_at::text AS "expiresAt", created_at::text AS "createdAt", granted_at::text AS "grantedAt",
               COALESCE(used_count, 0)::int AS "usedCount",
               max_uses AS "maxUses",
-              last_used_at::text AS "lastUsedAt"
+              last_used_at::text AS "lastUsedAt",
+              COALESCE(grant_count, 0)::int AS "grantCount"
        FROM rewards WHERE status = '신청' ORDER BY created_at ASC`
     );
     return rows;
@@ -338,6 +365,7 @@ export class MemoryReferralStore implements ReferralStore {
       usedCount: 0,
       maxUses,
       lastUsedAt: null,
+      grantCount: 1,
     };
     this.rewards.set(key, rec);
     return rec;
@@ -352,6 +380,46 @@ export class MemoryReferralStore implements ReferralStore {
     maxUses: number | null = null
   ): Promise<RewardRecord> {
     return this.claimReward(ownerEmail, tier, kind, status, expiresAt, maxUses);
+  }
+
+  async extendDailyPass(ownerEmail: string, days: number): Promise<RewardRecord> {
+    const norm = ownerEmail.trim().toLowerCase();
+    const key = `${norm}:1`;
+    const now = new Date();
+    const msToAdd = days * 24 * 60 * 60 * 1000;
+    const existing = this.rewards.get(key);
+
+    if (!existing) {
+      const expiresAt = new Date(now.getTime() + msToAdd).toISOString();
+      const id = `rew_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      const rec: RewardRecord = {
+        id,
+        ownerEmail: norm,
+        tier: 1,
+        kind: '오늘의 운세 30일 (소개 한 분마다 30일 더)',
+        status: '내줌',
+        expiresAt,
+        createdAt: now.toISOString(),
+        grantedAt: now.toISOString(),
+        usedCount: 0,
+        maxUses: null,
+        lastUsedAt: null,
+        grantCount: 1,
+      };
+      this.rewards.set(key, rec);
+      return rec;
+    }
+
+    const currentExpiry = existing.expiresAt ? new Date(existing.expiresAt) : now;
+    const baseTime = currentExpiry.getTime() > now.getTime() ? currentExpiry.getTime() : now.getTime();
+    const newExpiresAt = new Date(baseTime + msToAdd).toISOString();
+
+    existing.expiresAt = newExpiresAt;
+    existing.grantCount = (existing.grantCount || 0) + 1;
+    existing.status = '내줌';
+    existing.grantedAt = now.toISOString();
+
+    return existing;
   }
 
   async recordRewardUse(id: string, usedAt: Date = new Date()): Promise<void> {
