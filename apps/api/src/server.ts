@@ -286,7 +286,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
             <span class="spirits-free-arrow">→</span>
           </a>
         </div>
-        <a href="/invite" class="spirits-invite-bar">벗을 데려오시면 벗도 3,000원, 그대도 보답을 받습니다 →</a>
+        <a href="/invite" class="spirits-invite-bar">벗을 데려오시면 벗도 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원, 그대도 보답을 받습니다 →</a>
       </div>
 
       <!-- 갈래 탭 11개 (가로 스크롤) -->
@@ -508,7 +508,7 @@ window.__IS_LAUNCH_SALE__ = ${isLaunchSale()};
 <body>
 <div class="nb-invite-banner" id="nbInviteBanner" style="display:none">
   <div class="nb-invite-banner-content">
-    <span class="nb-invite-banner-text">벗의 증표가 담겼습니다. 2만원 이상 점사에서 3,000원을 덜 내십니다</span>
+    <span class="nb-invite-banner-text">벗의 증표가 담겼습니다. ${(INVITE_MIN_ORDER_KRW / 10000)}만원 이상 점사에서 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원을 덜 내십니다</span>
   </div>
 </div>
 <script>

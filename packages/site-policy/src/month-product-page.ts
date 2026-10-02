@@ -1,5 +1,6 @@
 import type { Product, BusinessInfo } from '../../commerce/src/index.ts';
 import { PLACES, buildMonthPreviewData, parseInputTime, type MonthPreviewData } from '../../saju-rules/src/index.ts';
+import { WITHDRAWAL_WINDOW_DAYS } from '../../commerce/src/refund.ts';
 import { show } from './business.ts';
 import { spiritOf } from './spirits.ts';
 import { renderSocialHead } from './social.ts';
@@ -932,7 +933,7 @@ ${footer}
       '</a>' +
       '<p class="mp-guarantee-text">' +
         '결제하시면 바로 보실 수 있습니다.<br>' +
-        '7일 안에 열람하지 않으셨으면 전액 돌려드립니다.' +
+        '${WITHDRAWAL_WINDOW_DAYS}일 안에 열람하지 않으셨으면 전액 돌려드립니다.' +
       '</p>' +
     '</section>';
     updateCheckoutLinks();
@@ -1046,7 +1047,7 @@ function renderMonthPreviewHtml(p: MonthPreviewData, prod: Product): string {
     </a>
     <p class="mp-guarantee-text">
       결제하시면 바로 보실 수 있습니다.<br>
-      7일 안에 열람하지 않으셨으면 전액 돌려드립니다.
+      ${WITHDRAWAL_WINDOW_DAYS}일 안에 열람하지 않으셨으면 전액 돌려드립니다.
     </p>
   </section>`;
 }

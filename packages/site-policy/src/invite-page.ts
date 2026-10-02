@@ -5,6 +5,7 @@
  * 로그인은 없으며, 이메일과 생년월일로 연다.
  */
 
+import { INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW } from '../../commerce/src/referral.ts';
 import { type BusinessInfo, show } from './business.ts';
 import { renderSocialHead } from './social.ts';
 import { FONT_LINK, PRODUCTS_CSS } from './products.ts';
@@ -116,8 +117,8 @@ ${INVITE_PAGE_CSS}
       <div class="iv-badge-head">그대의 고유 증표</div>
       <div class="iv-badge-code" id="ivMyCode">—</div>
       <p style="font-size:14px;color:#c8c2d4;margin:0 0 12px;line-height:1.85;">
-        이 증표로 들어온 벗은 <b>3,000원을 덜 낸다네.</b><br>
-        벗이 첫 점사(2만원 이상)를 받으면 그대에게도 보답이 쌓인다네.
+        이 증표로 들어온 벗은 <b>${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원을 덜 낸다네.</b><br>
+        벗이 첫 점사(${(INVITE_MIN_ORDER_KRW / 10000)}만원 이상)를 받으면 그대에게도 보답이 쌓인다네.
       </p>
       <div class="iv-badge-actions">
         <button type="button" class="iv-badge-btn" id="ivCopyBtn">증표 복사하기</button>
@@ -127,7 +128,7 @@ ${INVITE_PAGE_CSS}
       <div class="iv-stats">
         <div>
           <div class="iv-stat-num" id="ivCountVal">0명</div>
-          <div class="iv-stat-label">소개 완료 (2만원 이상)</div>
+          <div class="iv-stat-label">소개 완료 (${(INVITE_MIN_ORDER_KRW / 10000)}만원 이상)</div>
         </div>
         <div>
           <div class="iv-stat-num" id="ivNextGoalVal">—</div>
@@ -142,7 +143,7 @@ ${INVITE_PAGE_CSS}
     <div class="iv-law-note">
       <p style="margin:0 0 6px;font-weight:700;color:#e4dfea">보답 이용 안내</p>
       <ul style="margin:0;padding-left:18px">
-        <li>소개받은 분이 2만원 이상 결제를 완료해야 1명으로 집계됩니다.</li>
+        <li>소개받은 분이 ${(INVITE_MIN_ORDER_KRW / 10000)}만원 이상 결제를 완료해야 1명으로 집계됩니다.</li>
         <li>1명·3명·5명 보답은 달성 즉시 [바로 쓰기]로 이용하실 수 있습니다.</li>
         <li>7명 이상 보답은 [신청하기]를 누르시면 확인 후 정성껏 내어 드립니다.</li>
         <li>5명 월운세는 평생이 아니며 여섯 달 동안 제공됩니다.</li>
@@ -497,7 +498,7 @@ ${footer}
     var text = [
       '벗에게 알려주게',
       '그대의 증표 — ' + currentCode,
-      '이 증표로 들어온 벗은 3,000원을 덜 낸다네.',
+      '이 증표로 들어온 벗은 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원을 덜 낸다네.',
       '벗이 첫 점사를 받으면, 그대에게도 보답이 있을 것이야.',
       link
     ].join(String.fromCharCode(10));

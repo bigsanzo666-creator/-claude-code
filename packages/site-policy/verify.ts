@@ -1124,14 +1124,47 @@ section('11. 문 — 신령계 들어가는 곳');
   const samplePage = renderProductPage(CATALOG['wealth-report'], full, true, '');
   const samplePay = renderCheckoutPage({} as any, '', CATALOG['wealth-report'], { storeId: 's', channelKey: 'c' });
   check('상품 상세 화면에 오픈 기념가 띠가 나온다',
-    samplePage.includes('서버 오픈 기념 — 지금 25% 싸게 드립니다 · 11월 1일부터 26,900원'));
+    samplePage.includes('서버 오픈 기념 — 지금 44% 싸게 드립니다 · 11월 1일부터 26,900원'));
+
+  /*
+   * 상세 띠의 할인율이 **그 상품의 진짜 비율**이어야 한다.
+   *
+   * 터진 뒤에 적은 것 (2026-10-02): 모든 상세페이지에 「지금 25% 싸게」라고
+   * 손으로 적혀 있었다. 실제로는 24%인 상품이 다섯(적은 것보다 덜 깎인다)이고
+   * 돈그릇 쪽 아홉은 44%였다. 상품마다 값에서 만들어야 한다.
+   */
+  {
+    const 어긋난것: string[] = [];
+    for (const p of Object.values(CATALOG)) {
+      const reg = (p as any).regularKrw ?? p.priceKrw;
+      if (reg === p.priceKrw) continue;
+      const 진짜 = Math.floor((1 - p.priceKrw / reg) * 100);
+      const html = renderProductPage(p, full, true, '');
+      // 띠가 없는 화면(오늘의 운세·한 달 운세는 전용 화면이다)은 거짓말을 하지 않으므로 넘어간다
+      if (!html.includes('서버 오픈 기념 — 지금')) continue;
+      if (!html.includes(`지금 ${진짜}% 싸게 드립니다`)) 어긋난것.push(`${p.name}(${진짜}%)`);
+    }
+    check('상세 띠의 할인율이 상품마다 실제 비율과 같다', 어긋난것.length === 0, 어긋난것.join(', '));
+
+    // 손으로 적은 할인율이 어느 화면에도 남아 있으면 안 된다
+    const 손으로적힌: string[] = [];
+    for (const p of Object.values(CATALOG)) {
+      const html = renderProductPage(p, full, true, '');
+      const m = html.match(/지금 (\d+)% 싸게 드립니다/);
+      if (!m) continue;
+      const reg = (p as any).regularKrw ?? p.priceKrw;
+      const 진짜 = Math.floor((1 - p.priceKrw / reg) * 100);
+      if (Number(m[1]) > 진짜) 손으로적힌.push(`${p.name}: 적힘 ${m[1]}% vs 실제 ${진짜}%`);
+    }
+    check('화면에 적힌 할인율이 실제보다 크지 않다', 손으로적힌.length === 0, 손으로적힌.join(', '));
+  }
   check('상품 결제 화면에 오픈 기념가 문구가 나온다',
     samplePay.includes('서버 오픈 기념가입니다. 11월 1일부터 <b>26,900원</b>으로 올라갑니다.'));
 
   const holidayPage = renderProductPage(CATALOG['family-holiday-report'], full, true, '');
   const holidayPay = renderCheckoutPage({} as any, '', CATALOG['family-holiday-report'], { storeId: 's', channelKey: 'c' });
   check('명절 가족운세에는 오픈 기념가 띠와 결제 문구가 나오지 않는다',
-    !holidayPage.includes('서버 오픈 기념 — 지금 25% 싸게 드립니다') &&
+    !holidayPage.includes('서버 오픈 기념 — 지금') &&
     !holidayPay.includes('서버 오픈 기념가입니다.'));
 }
 

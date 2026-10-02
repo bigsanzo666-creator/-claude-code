@@ -20,6 +20,7 @@
  * - 거짓 급함("지금만")을 쓰지 않는다. 2024년 개정 전자상거래법
  */
 
+import { INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW } from '../../commerce/src/referral.ts';
 import { type BusinessInfo, show } from './business.ts';
 import { PLACES } from '../../saju-rules/src/index.ts';
 import { renderSocialHead } from './social.ts';
@@ -1030,7 +1031,7 @@ export function renderCheckoutPage(
       '<div class="nb-invite-box">' +
         '<div class="nb-invite-head">벗에게 알려주게</div>' +
         '<div class="nb-invite-code">그대의 증표 — <b>' + inviteCode + '</b></div>' +
-        '<p class="nb-invite-desc">이 증표로 들어온 벗은 3,000원을 덜 낸다네.<br>벗이 첫 점사를 받으면, 그대에게도 보답이 있을 것이야.</p>' +
+        '<p class="nb-invite-desc">이 증표로 들어온 벗은 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원을 덜 낸다네.<br>벗이 첫 점사를 받으면, 그대에게도 보답이 있을 것이야.</p>' +
         '<div class="nb-invite-actions">' +
           '<button type="button" class="nb-invite-btn" id="nbCopyInviteBtn" data-code="' + inviteCode + '">증표 복사하기</button>' +
           '<button type="button" class="nb-invite-btn kakao" id="nbKakaoInviteBtn" data-code="' + inviteCode + '">카톡으로 보내기</button>' +
@@ -1105,7 +1106,7 @@ export function renderCheckoutPage(
           var text = [
             '벗에게 알려주게',
             '그대의 증표 — ' + inviteCode,
-            '이 증표로 들어온 벗은 3,000원을 덜 낸다네.',
+            '이 증표로 들어온 벗은 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원을 덜 낸다네.',
             '벗이 첫 점사를 받으면, 그대에게도 보답이 있을 것이야.',
             invLink
           ].join(String.fromCharCode(10));
@@ -1407,11 +1408,11 @@ export function renderCheckoutPage(
       if(p >= 20000){
         discount = 3000;
         noteEl.style.color = '#9fd8a8';
-        noteEl.textContent = '벗의 증표 −3,000원';
+        noteEl.textContent = '벗의 증표 −${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원';
       }else{
         discount = 0;
         noteEl.style.color = '#f0c080';
-        noteEl.textContent = '이 증표는 2만원 이상 점사에 쓰실 수 있습니다';
+        noteEl.textContent = '이 증표는 ${(INVITE_MIN_ORDER_KRW / 10000)}만원 이상 점사에 쓰실 수 있습니다';
       }
     } else if(noteEl){
       noteEl.textContent = '';
@@ -1421,7 +1422,7 @@ export function renderCheckoutPage(
     var tag = document.querySelector('.co-price b');
     if(tag){
       if(inv && p >= 20000){
-        tag.innerHTML = won(finalP) + '원 <span class="co-invite-tag" style="font-size:14px;color:#9fd8a8;font-weight:600;margin-left:6px">벗의 증표 −3,000원</span>';
+        tag.innerHTML = won(finalP) + '원 <span class="co-invite-tag" style="font-size:14px;color:#9fd8a8;font-weight:600;margin-left:6px">벗의 증표 −${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원</span>';
       }else{
         tag.textContent = won(finalP) + '원';
       }

@@ -1067,7 +1067,7 @@ ${footer}
       '</a>' +
       '<p class="dp-guarantee-text">' +
         '결제하시면 바로 보실 수 있습니다.<br>' +
-        '7일 안에 열람하지 않으셨으면 전액 돌려드립니다.' +
+        '${WITHDRAWAL_WINDOW_DAYS}일 안에 열람하지 않으셨으면 전액 돌려드립니다.' +
       '</p>' +
     '</section>';
     updateCheckoutLinks();

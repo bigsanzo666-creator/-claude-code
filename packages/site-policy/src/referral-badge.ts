@@ -1,3 +1,4 @@
+import { INVITE_DISCOUNT_KRW } from '../../commerce/src/referral.ts';
 /**
  * 벗의 증표 (친구 추천) 배지 및 공유 UI.
  */
@@ -84,7 +85,7 @@ export function renderInviteBadge(code: string): string {
 <div class="nb-invite-box">
   <div class="nb-invite-head">벗에게 알려주게</div>
   <div class="nb-invite-code">그대의 증표 — <b>${safeCode}</b></div>
-  <p class="nb-invite-desc">이 증표로 들어온 벗은 3,000원을 덜 낸다네.<br>벗이 첫 점사를 받으면, 그대에게도 보답이 있을 것이야.</p>
+  <p class="nb-invite-desc">이 증표로 들어온 벗은 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원을 덜 낸다네.<br>벗이 첫 점사를 받으면, 그대에게도 보답이 있을 것이야.</p>
   <div class="nb-invite-actions">
     <button type="button" class="nb-invite-btn" id="nbCopyInviteBtn" data-code="${safeCode}">증표 복사하기</button>
     <button type="button" class="nb-invite-btn kakao" id="nbKakaoInviteBtn" data-code="${safeCode}">카톡으로 보내기</button>
@@ -131,7 +132,7 @@ export const REFERRAL_BADGE_SCRIPT = `
         var text = [
           '벗에게 알려주게',
           '그대의 증표 — ' + code,
-          '이 증표로 들어온 벗은 3,000원을 덜 낸다네.',
+          '이 증표로 들어온 벗은 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원을 덜 낸다네.',
           '벗이 첫 점사를 받으면, 그대에게도 보답이 있을 것이야.',
           link
         ].join(String.fromCharCode(10));

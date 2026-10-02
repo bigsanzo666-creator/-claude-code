@@ -18,6 +18,7 @@
  */
 
 import { type BusinessInfo, show } from './business.ts';
+import { CATALOG } from '../../commerce/src/catalog.ts';
 import { renderSocialHead } from './social.ts';
 import { FONT_LINK, PRODUCTS_CSS } from './products.ts';
 import { type PickGroup, slotLabel, slotSpan, PLACES } from '../../saju-rules/src/pick.ts';
@@ -157,7 +158,12 @@ function nextSection(best: PickGroup, form: PickForm, count: number): string {
   읽기 쉬운 글로 적어 드립니다. 병원과 이야기할 때 무엇을 물으면 되는지까지요.</p>
   <p class="pk-nd">지금 넣으신 <b>${esc(best.date)} (${weekday(best.date)}) ${esc(span(best))}</b>
   같은 후보들이 그대로 넘어갑니다. 다시 적지 않으셔도 됩니다.</p>
-  <a class="pk-buy" href="/products/pick-report?${esc(q.toString())}">제왕절개 택일 리포트 · 29,000원</a>
+  <!--
+    터진 뒤에 적은 것 (2026-10-02): 여기에 29,000원이라고 손으로 적혀 있었다.
+    실제로 받는 값은 59,000원이다. 적은 값보다 두 배를 받으면 표시광고법 위반이고,
+    손님에게는 속임수로 보인다. **값은 표에서만 온다.**
+  -->
+  <a class="pk-buy" href="/products/pick-report?${esc(q.toString())}">제왕절개 택일 리포트 · ${CATALOG['pick-report'].priceKrw.toLocaleString('ko-KR')}원</a>
   <p class="pk-nh">날 고르는 것은 계속 공짜입니다. 몇 번이든 다시 돌려 보세요.
   아이가 태어난 뒤의 <a href="/products/child-report">우리 아이 사주</a>는 따로 있습니다.</p>
 </section>`;

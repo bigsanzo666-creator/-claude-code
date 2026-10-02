@@ -1,3 +1,4 @@
+import { INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW } from '../../commerce/src/referral.ts';
 import { renderDailyReportProductPage } from './daily-product-page.ts';
 import { renderMonthReportProductPage } from './month-product-page.ts';
 /**
@@ -1557,7 +1558,7 @@ ${cards}
     <span class="spirits-free-arrow">→</span>
   </a>
 </div>
-<a href="/invite" class="spirits-invite-bar">벗을 데려오시면 벗도 3,000원, 그대도 보답을 받습니다 →</a>
+<a href="/invite" class="spirits-invite-bar">벗을 데려오시면 벗도 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원, 그대도 보답을 받습니다 →</a>
 <div class="pr-rule"></div>
 </div>
 ${groups}
@@ -1724,7 +1725,7 @@ export function renderProductPage(
   const cleanHook = (product.hook || '').replace(/^[\"\'\s]+|[\"\'\s]+$/g, '');
   const isSale = isLaunchSale() && product.regularKrw && product.regularKrw !== product.priceKrw;
   const launchBanner = isSale
-    ? `<div class="pd-launch-bar">서버 오픈 기념 — 지금 25% 싸게 드립니다 · 11월 1일부터 ${won(product.regularKrw!)}</div>`
+    ? `<div class="pd-launch-bar">서버 오픈 기념 — 지금 ${Math.floor((1 - product.priceKrw / product.regularKrw!) * 100)}% 싸게 드립니다 · 11월 1일부터 ${won(product.regularKrw!)}</div>`
     : '';
 
   return `<!doctype html>
