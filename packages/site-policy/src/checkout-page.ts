@@ -1057,6 +1057,25 @@ export function renderCheckoutPage(
       if(resumeId){
         var fields = document.getElementById('coFields');
         if(fields) fields.style.display = 'none';
+        /*
+         * 터진 뒤에 적은 것 (2026-10-02): 입력칸을 숨겨 놓고 아무것도 안 띄우면
+         * 손님은 **빈 화면**을 본다. 결제창을 닫았거나 통신이 끊기면 그렇게 된다.
+         * 그래서 10초 안에 아무것도 안 나오면 입력칸을 도로 꺼낸다.
+         * 빈 화면으로 끝나는 길이 하나라도 있으면 안 된다.
+         */
+        setTimeout(function(){
+          try{
+            var f = document.getElementById('coFields');
+            if(!f || f.style.display !== 'none') return;
+            var d = document.getElementById('coDone');
+            var shown = (d && d.style.display === 'block' && (d.innerHTML || '').trim())
+              || (document.getElementById('coWaitCard'))
+              || (document.getElementById('coRetry') && document.getElementById('coRetry').style.display === 'block');
+            if(shown) return;
+            f.style.display = '';
+            say('화면을 다시 불러왔습니다. 아래에서 다시 진행해 주십시오.');
+          }catch(e){}
+        }, 10000);
         if(portoneCode){
           say('결제가 완료되지 않았습니다. 다시 시도해 주십시오.');
           var retry = document.getElementById('coRetry');
