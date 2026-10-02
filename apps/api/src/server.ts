@@ -52,7 +52,7 @@ import { buildPayload, buildPayloads, KIND_OF, sajuBundle, type ReadingRequest }
 import { pickDays, bestPerDay, mergeHours, buildDailyPreviewData, buildMonthPreviewData, parseInputTime, luckyNumbers, analyze } from '../../../packages/saju-rules/src/index.ts';
 import { calculate } from '../../../packages/manseryeok/src/index.ts';
 import { buildPreview, sampleFor, sampleNoticeFor } from './preview.ts';
-import { sendOrderMail, mailReady } from './mail.ts';
+import { sendOrderMail, sendReportMail, mailReady } from './mail.ts';
 import { type ReferralStore, MemoryReferralStore } from '../../../packages/store/src/index.ts';
 
 /** 주문 저장소. 배포 전에 Postgres 구현체로 갈아끼운다. */
@@ -2056,10 +2056,33 @@ export function createApi(deps: ApiDeps) {
         return;
       }
 
-      const viewed = stored.status === 'viewed' ? stored : markViewed(stored);
+      const 처음연다 = stored.status !== 'viewed';
+      const viewed = 처음연다 ? markViewed(stored) : stored;
       await save(stored, viewed);
       const upsell = getUpsellDataForOrder(viewed, viewed.viewedAt);
       send(res, 200, { text, order: strip(viewed), ready: true, upsell });
+
+      /*
+       * 리포트 **전문**을 메일로도 보낸다.
+       *
+       * 결제 직후가 아니라 **처음 연 뒤에** 보낸다. 결제 직후에 전문을 보내면
+       * 「열람하지 않으면 환불」이라는 약속과 어긋난다 — 메일로 글이 나간 순간
+       * 열람을 안 했다고 할 수 없기 때문이다. 연 뒤라면 이미 환불이 제한된
+       * 시점이라 약속과 어긋나지 않는다.
+       *
+       * 답을 보낸 **뒤에** 돌린다. 메일이 늦거나 실패해도 손님 화면은 기다리지
+       * 않는다. 메일은 어떤 경우에도 리포트를 막아선 안 된다.
+       */
+      if (처음연다 && viewed.email) {
+        void sendReportMail({
+          to: viewed.email,
+          orderId: viewed.id,
+          productName: CATALOG[viewed.productId as keyof typeof CATALOG]?.name ?? viewed.productId,
+          reportText: text,
+        }).then((r) => {
+          if (!r.sent) console.log(`[메일] 리포트 전문 못 보냄 ${viewed.id} (${r.reason})`);
+        }).catch(() => {});
+      }
     },
 
     /** 환불 가능 여부만 조회. 실제로 취소하지 않는다 */

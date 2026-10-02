@@ -65,6 +65,79 @@ async function sendOnce(
   }
 }
 
+export interface SendReportMailArgs extends SendOrderMailArgs {
+  /** 리포트 전문. **열람한 뒤에만** 넘긴다 */
+  reportText: string;
+}
+
+/**
+ * 리포트 **전문**을 메일로 보낸다.
+ *
+ * 결제 직후가 아니라 **손님이 리포트를 연 뒤에만** 부른다. 결제 직후에 전문을
+ * 보내면 「열람하지 않으면 환불」이라는 약속과 어긋난다 — 메일로 글이 나간
+ * 순간 열람을 안 했다고 할 수 없기 때문이다. 연 뒤라면 이미 환불이 제한된
+ * 시점이라 약속과 어긋나지 않고, 손님은 메일함에 글을 그대로 갖게 된다.
+ *
+ * 절대 예외를 throw 하지 않는다. 메일이 실패해도 리포트는 이미 보여 준 뒤다.
+ */
+export async function sendReportMail(args: SendReportMailArgs): Promise<SendOrderMailResult> {
+  try {
+    const apiKey = (process.env.RESEND_API_KEY || '').trim();
+    if (!apiKey) return { sent: false, reason: '열쇠 없음' };
+
+    const to = (args?.to || '').trim();
+    if (!to || !to.includes('@')) return { sent: false, reason: '주소 없음' };
+
+    const orderId = (args?.orderId || '').trim();
+    const productName = (args?.productName || '').trim();
+    const reportText = (args?.reportText || '').trim();
+    if (!orderId || !productName || !reportText) return { sent: false, reason: '주문 정보 부족' };
+
+    const from = (process.env.MAIL_FROM || '').trim() || '늘봄사주 <no-reply@neulbomsaju.co.kr>';
+    const siteUrl = (process.env.SITE_URL || '').trim().replace(/\/+$/, '') || 'https://neulbomsaju.co.kr';
+    const orderUrl = `${siteUrl}/order/${encodeURIComponent(orderId)}`;
+    const biz = loadBusinessInfo();
+    const contact = biz.landline || biz.phone || biz.email || '';
+
+    // 글을 그대로 옮긴다. 「[[가림:…]]」 같은 표시는 메일에 나가지 않게 벗긴다
+    const 본문 = reportText
+      .replace(/\[\[가림:([\s\S]*?)\]\]/g, '$1')
+      .split(/\n{2,}/)
+      .map((para) => `<p style="margin:0 0 16px;font-size:15px;line-height:1.85;color:#1d1d1f;white-space:pre-wrap;">${esc(para.trim())}</p>`)
+      .join('');
+
+    const subject = `[늘봄사주] ${productName} 리포트입니다`;
+    const html = `<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>[늘봄사주] ${esc(productName)}</title></head>
+<body style="margin:0;padding:24px 16px;background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Pretendard',sans-serif;color:#1d1d1f;line-height:1.7;">
+  <div style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e5e5ea;border-radius:12px;padding:32px 24px;">
+    <h1 style="font-size:20px;font-weight:700;margin:0 0 6px;color:#111111;">${esc(productName)}</h1>
+    <p style="margin:0 0 24px;font-size:13px;color:#86868b;">주문 번호 ${esc(orderId)}</p>
+    ${본문}
+    <div style="border-top:1px solid #e5e5ea;padding-top:16px;margin:24px 0 0;font-size:13px;color:#86868b;line-height:1.6;">
+      <p style="margin:0 0 12px;">사이트에서도 언제든 다시 보실 수 있습니다 — <a href="${orderUrl}" style="color:#0066cc;">${orderUrl}</a></p>
+      <p style="margin:0 0 12px;">리포트 전문을 열람하신 뒤에는 청약철회가 제한됩니다.</p>
+      <p style="margin:0;font-size:12px;color:#a1a1a6;">
+        ${esc(biz.companyName)} | 대표: ${esc(biz.representative)} | 사업자등록번호: ${esc(biz.registrationNumber)}${contact ? ` | 연락처: ${esc(contact)}` : ''}
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const payload = { from, to: [to], subject, html };
+    const firstTry = await sendOnce(payload, apiKey);
+    if (firstTry.ok) return { sent: true };
+    if (firstTry.status >= 400 && firstTry.status < 500) return { sent: false, reason: firstTry.reason };
+    const secondTry = await sendOnce(payload, apiKey);
+    if (secondTry.ok) return { sent: true };
+    return { sent: false, reason: secondTry.reason || firstTry.reason };
+  } catch {
+    return { sent: false, reason: '예기치 못한 발송 실패' };
+  }
+}
+
 /**
  * 결제 완료 후 손님에게 리포트 열람 주소를 메일로 발송한다.
  * 절대 예외를 throw하지 않는다.

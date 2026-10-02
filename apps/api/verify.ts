@@ -2782,9 +2782,28 @@ console.log(`\n${'═'.repeat(60)}`);
   check('메일 코드에 환불 일수를 7일로 하드코딩하지 않았다',
     !/결제\s*후\s*7일/.test(mailCode));
 
-  // 5) 메일 본문에 리포트 본문이 들어가지 않는지 (주소만 들어가는지)
-  check('메일 코드에 리포트 본문 필드나 generate 결과가 들어가지 않는다',
-    !mailCode.includes('chunks') && !mailCode.includes('reportText') && mailCode.includes('/order/'));
+  /*
+   * 5) 리포트 전문이 **언제** 메일로 나가는지.
+   *
+   * 결제 직후 메일(sendOrderMail)에는 주소만 들어간다. 전문은 손님이 리포트를
+   * **처음 연 뒤에만**(sendReportMail) 나간다. 결제 직후에 전문을 보내면
+   * 「열람하지 않으면 환불」이라는 약속과 어긋난다 — 메일로 글이 나간 순간
+   * 열람을 안 했다고 할 수 없기 때문이다.
+   */
+  const 결제직후메일 = mailCode.slice(mailCode.indexOf('export async function sendOrderMail'));
+  check('결제 직후 메일에는 주소만 들어간다',
+    !결제직후메일.includes('reportText') && !결제직후메일.includes('chunks') && mailCode.includes('/order/'),
+    '결제하자마자 전문이 나가면 환불 약속과 어긋난다');
+  check('리포트 전문을 보내는 자리가 따로 있다',
+    mailCode.includes('export async function sendReportMail'));
+
+  const serverCode = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'src', 'server.ts'), 'utf8');
+  check('전문 메일은 처음 연 뒤에만 보낸다',
+    /처음연다 && viewed\.email/.test(serverCode) && serverCode.includes('sendReportMail'),
+    '연 적 없는 주문에도 전문이 나간다');
+  check('전문 메일이 리포트 보여 주는 길을 막지 않는다',
+    /send\(res, 200, \{ text[\s\S]{0,900}?void sendReportMail/.test(serverCode),
+    '메일을 기다린 뒤에 화면을 주면 메일이 늦을 때 손님이 기다린다');
 
   // 6) 코드 어디에도 nodemailer 같은 새 라이브러리를 부르지 않는지
   const apiPkg = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'package.json'), 'utf8');

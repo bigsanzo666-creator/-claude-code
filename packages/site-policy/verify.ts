@@ -237,12 +237,15 @@ check('상세 페이지도 그림이 있을 때만 크게 건다',
   const payMailOn = renderCheckoutPage({} as any, '', CATALOG['daily-report'], { storeId: 's', channelKey: 'c' }, true);
 
   check('메일 꺼짐: 메일로 보내 준다고 말하지 않는다',
-    !payMailOff.includes('리포트 주소를 보내 드릴') && !payMailOff.includes('이메일로도 보내 드립니다'));
+    !payMailOff.includes('리포트 주소를 보내 드릴') && !payMailOff.includes('이메일로 보내 드립니다'));
   check('메일 꺼짐: 다시 볼 주소를 준다고 말한다',
     payMailOff.includes('다시 볼 수 있는 주소'));
 
   check('메일 켜짐: 메일로 보내 준다고 안내한다',
-    payMailOn.includes('리포트 주소를 보내 드릴') && payMailOn.includes('이메일로도 보내 드립니다'));
+    payMailOn.includes('리포트 주소를 보내 드릴') && payMailOn.includes('이메일로 보내 드립니다'));
+  // 전문이 메일로 간다는 것도 결제 전에 말해야 한다 (약관과 화면이 다른 말을 하면 그 자체가 위반)
+  check('메일 켜짐: 리포트 전문도 메일로 간다고 미리 말한다',
+    payMailOn.includes('글 전문'), '전문을 보내면서 말하지 않으면 안 된다');
   check('메일 켜짐: 다시 볼 주소를 준다고 말한다',
     payMailOn.includes('다시 볼 수 있는 주소'));
 
