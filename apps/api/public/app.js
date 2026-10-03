@@ -1365,6 +1365,21 @@ document.addEventListener('DOMContentLoaded', () => {
         label.className = 'consult-photo-label';
         label.textContent = `＋ ${field.label || '사진 올리기'}`;
 
+        /*
+         * 사진을 **실제로 잰다.**
+         *
+         * 터진 뒤에 적은 것 (2026-10-03): 여기서 사진 이름만 적어 두고 아무것도
+         * 재지 않았다. 그래서 맛보기가 누가 어떤 사진을 올려도 똑같이 나왔다 —
+         * 손님은 「내 사진을 안 봤네」 하고 나간다. 재는 자리는 만세력 화면 하나뿐이라
+         * 거기 함수를 부른다. 사진은 이 기기 밖으로 나가지 않는다.
+         */
+        const msg = document.createElement('span');
+        msg.className = 'consult-photo-msg';
+        msg.setAttribute('role', 'status');
+
+        const 잰다 = field.id === 'facePhoto' ? 'NB_얼굴잰다'
+          : field.id === 'palmPhoto' ? 'NB_손잰다' : null;
+
         input.addEventListener('change', () => {
           const file = input.files && input.files[0];
           if (!file) return;
@@ -1373,12 +1388,32 @@ document.addEventListener('DOMContentLoaded', () => {
           thumb.hidden = false;
           label.textContent = '사진 바꾸기';
           box.classList.add('has-photo');
+
+          if (!잰다 || typeof window[잰다] !== 'function') return;
+          msg.classList.remove('bad');
+          msg.textContent = field.id === 'facePhoto'
+            ? '얼굴을 찾고 있습니다… 처음 한 번은 조금 걸립니다.'
+            : '손을 찾고 있습니다… 처음 한 번은 조금 걸립니다.';
+          window[잰다](file).then((잰값) => {
+            msg.classList.remove('bad');
+            msg.textContent = field.id === 'facePhoto'
+              ? '얼굴을 다 재었습니다. 풀이에 그대로 씁니다.'
+              : `손 모양을 다 재었습니다 — ${(잰값 && 잰값.handShape) || ''}. 풀이에 그대로 씁니다.`;
+          }).catch((err) => {
+            // 못 재어도 막지 않는다. 재지 못했다고만 밝힌다
+            msg.classList.add('bad');
+            const t = (err && err.message) || '';
+            msg.textContent = (!t || /import|fetch|network|Failed|module/i.test(t))
+              ? '지금은 사진을 재지 못했습니다. 그대로 두셔도 풀이는 나옵니다.'
+              : t;
+          });
         });
 
         box.appendChild(input);
         box.appendChild(thumb);
         box.appendChild(label);
         consultFields.appendChild(box);
+        consultFields.appendChild(msg);
       }
 
       if (field.type === 'text') {

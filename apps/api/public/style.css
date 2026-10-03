@@ -949,6 +949,16 @@ body {
   justify-content: flex-start;
 }
 
+/* 사진을 잰 결과를 한 줄로 알려 준다 */
+.consult-photo-msg {
+  display: block;
+  margin: 6px 2px 2px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #cfc7da;
+}
+.consult-photo-msg.bad { color: #ffb8b8; }
+
 .consult-photo-thumb {
   width: 52px;
   height: 52px;
