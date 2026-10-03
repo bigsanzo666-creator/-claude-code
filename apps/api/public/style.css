@@ -1324,3 +1324,11 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+
+/* 맛보기에서 가린 자리 뒤에 붙이는 한 줄 */
+.taste-preview-more {
+  margin: 10px 2px 0;
+  font-size: 13px;
+  color: #a79fb5;
+  line-height: 1.6;
+}

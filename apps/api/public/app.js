@@ -1014,15 +1014,37 @@ document.addEventListener('DOMContentLoaded', () => {
             previewBox.appendChild(lead);
 
             const contentDiv = tEl('div', 'taste-preview-content');
-            const safeHtml = String(text)
-              .replace(/&/g, '&amp;')
-              .replace(/</g, '&lt;')
-              .replace(/>/g, '&gt;')
-              .replace(/\[\[가림:([\s\S]+?)\]\]/g,
-                '<span class="pd-locked-sentence"><span class="pd-blurred-text">$1</span><span class="pd-lock-badge">🔒 비공개 결론</span></span>')
-              .replace(/\n{2,}/g, '</p><p>');
-            contentDiv.innerHTML = '<p>' + safeHtml + '</p>';
+            const 막는다 = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const 가린다 = (t) => '<span class="pd-locked-sentence">'
+              + '<span class="pd-blurred-text">' + 막는다(t) + '</span>'
+              + '<span class="pd-lock-badge">🔒 리포트에서 풀어 드립니다</span></span>';
+
+            /*
+             * 뒷부분은 **가린다.**
+             *
+             * 터진 뒤에 적은 것 (2026-10-03): 손님 것으로 지은 글을 **통째로** 보여 주고
+             * 있었다. 다 보여 주면 더 궁금할 것이 없어 결제할 까닭이 사라진다.
+             * 맛보기는 맛만 보여야 한다.
+             *
+             * 가리는 것은 **진짜 그 손님의 글**이다. 흐릿한 가짜 글을 깔면 그건 속이는 것이다.
+             */
+            let 안쪽;
+            if (/\[\[가림:/.test(text)) {
+              // 서버가 가릴 곳을 짚어 주면 그대로 따른다
+              안쪽 = 막는다(text).replace(/\[\[가림:([\s\S]+?)\]\]/g, (m, c) => 가린다(c));
+            } else {
+              const 문장 = String(text).split(/(?<=[.!?。])\s+/).filter((x) => x.trim());
+              const 보일수 = Math.max(1, Math.ceil(문장.length * 0.55));
+              const 앞 = 문장.slice(0, 보일수).join(' ');
+              const 뒤 = 문장.slice(보일수).join(' ');
+              안쪽 = 막는다(앞) + (뒤 ? ' ' + 가린다(뒤) : '');
+            }
+            contentDiv.innerHTML = '<p>' + 안쪽.replace(/\n{2,}/g, '</p><p>') + '</p>';
             previewBox.appendChild(contentDiv);
+            if (!/\[\[가림:/.test(text)) {
+              previewBox.appendChild(tEl('p', 'taste-preview-more',
+                '가려진 자리는 리포트에서 끝까지 풀어 드립니다.'));
+            }
           })
           .catch(() => {
             loadingPreview = false;
