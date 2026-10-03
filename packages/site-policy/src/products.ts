@@ -94,6 +94,7 @@ function 사진재기대본(product: Product): string {
         적는다(msgId, 어느쪽 === '얼굴'
           ? '얼굴을 다 재었습니다. 풀이에 그대로 씁니다.'
           : '손 모양을 다 재었습니다 — ' + ((값 && 값.handShape) || '') + '. 풀이에 그대로 씁니다.');
+        결제문을연다();
         미리보기를바꾼다();
       }).catch(function(err){
         // 못 재어도 막지 않는다. 사지 못하게 되는 것이 더 나쁘다
@@ -144,11 +145,41 @@ function 사진재기대본(product: Product): string {
     });
   }
 
+  function 결제문을연다(){
+    var saved = window.NB재기.담긴값();
+    var 다있나 = (!NEEDS_FACE || saved.face) && (!NEEDS_PALM || saved.palm);
+    ['pdGo','pdStickyGo'].forEach(function(id){
+      var go = document.getElementById(id);
+      if(!go) return;
+      if(다있나){
+        go.classList.remove('pd-go-locked');
+        go.classList.add('pd-go-ready');
+        go.removeAttribute('aria-disabled');
+        go.textContent = '더욱 자세한 내용 받기';
+        var dest = go.getAttribute('data-go');
+        if(dest) go.setAttribute('href', dest);
+      }
+    });
+  }
+
+  /* 잠겨 있을 때 누르면 사진 칸으로 데려간다. 막기만 하면 손님은 왜 막혔는지 모른다 */
+  ['pdGo','pdStickyGo'].forEach(function(id){
+    var go = document.getElementById(id);
+    if(!go) return;
+    go.addEventListener('click', function(e){
+      if(!go.classList.contains('pd-go-locked')) return;
+      e.preventDefault();
+      var box = document.getElementById('pdJaegi');
+      if(box) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+
   // 이미 보여 주신 적이 있으면 그대로 이어 간다
   try{
     var 담긴 = window.NB재기.담긴값();
     if(NEEDS_FACE && 담긴.face){ 다됨('pdFaceLabel'); 적는다('pdFaceMsg','이미 보여 주신 얼굴을 씁니다.'); }
     if(NEEDS_PALM && 담긴.palm){ 다됨('pdPalmLabel'); 적는다('pdPalmMsg','이미 보여 주신 손을 씁니다.'); }
+    결제문을연다();
     미리보기를바꾼다();
   }catch(e){}
 })();
@@ -1320,6 +1351,9 @@ body {
 }
 
 /* 가린 자리: 흐릿하게 덮고 그 위에 자물쇠 표시 (문장 길이는 유지) */
+.pd-go-locked { opacity: .62; }
+.pd-go-ready { opacity: 1; pointer-events: auto; }
+
 /* 얼굴·손 보여 주는 칸 */
 .pd-jaegi { border: 1px solid rgba(212,175,55,.35); border-radius: 12px; }
 .pd-jaegi-promise { font-size: 13px; color: #dcdce6; line-height: 1.6; margin: 0 0 14px;
@@ -1824,7 +1858,20 @@ ${footer}
 function buyLink(product: Product): string {
   if (product.needsPick) return '';
   const go = `/checkout?product=${encodeURIComponent(product.id)}`;
-  return `<a class="pd-go" href="${go}">더욱 자세한 내용 받기</a>`;
+  /*
+   * 얼굴·손이 필요한 상품은 **보여 주시기 전에는 결제로 보내지 않는다.**
+   *
+   * 터진 뒤에 적은 것 (2026-10-03): 사진 받는 칸은 화면 한참 아래(3,027픽셀)에
+   * 있었는데 결제 버튼은 위(787픽셀)에 있었다. 손님은 사진 칸을 볼 일이 없이
+   * 결제로 갔다. 사장님이 직접 그렇게 되셨다.
+   * 이제 사진 칸을 결제 자리 바로 위에 두고, 다 보여 주시기 전에는 잠가 둔다.
+   */
+  const 사진필요 = 얼굴이필요한가(product.id) || 손이필요한가(product.id);
+  if (!사진필요) return `<a class="pd-go" href="${go}">더욱 자세한 내용 받기</a>`;
+  const 무엇 = 얼굴이필요한가(product.id) && 손이필요한가(product.id) ? '얼굴과 손'
+    : 얼굴이필요한가(product.id) ? '얼굴' : '손';
+  return `<a class="pd-go pd-go-locked" id="pdGo" href="${go}" aria-disabled="true"
+    data-go="${go}">${무엇}을 먼저 보여 주십시오 ↑</a>`;
 }
 
 /**
@@ -1956,6 +2003,8 @@ ${PRODUCTS_CSS}
   ${product.topic ? `<p class="pd-term">명리에서는 <b>${esc(TERM_OF[product.topic] ?? '')}</b>이라 부르는 자리입니다.</p>` : ''}
   <p class="pr-desc">${esc(product.description)}</p>
 
+${사진받는칸(product)}
+
 ${renderFit(product.id)}
 
   ${rawContents.length > 0 ? `<section class="pd-sec">
@@ -1966,7 +2015,6 @@ ${renderFit(product.id)}
     </div>
   </section>` : ''}
 
-${사진받는칸(product)}
 ${renderSample(sample, product.id)}
 
   <section class="pd-sec pd-why">
@@ -2041,6 +2089,20 @@ ${사진재기대본(product)}
  */
 function stickyBuy(product: Product, ready: boolean): string {
   if (!ready || product.needsPick) return '';
+  /*
+   * 터진 뒤에 적은 것 (2026-10-03): 이 단추는 화면 아래에 **늘 붙어 다닌다.**
+   * 그래서 손님은 사진 칸을 보기 전에 이것부터 누른다 — 사장님이 그러셨다.
+   * 사진이 필요한 상품은 보여 주시기 전까지 잠가 두고, 누르면 사진 칸으로 데려간다.
+   */
+  const 사진필요 = 얼굴이필요한가(product.id) || 손이필요한가(product.id);
+  const 무엇 = 얼굴이필요한가(product.id) && 손이필요한가(product.id) ? '얼굴과 손'
+    : 얼굴이필요한가(product.id) ? '얼굴' : '손';
+  if (사진필요) {
+    return `<div class="pd-sticky">
+    <a class="pd-sticky-go pd-go-locked" id="pdStickyGo" href="#pdJaegi"
+      data-go="/checkout?product=${encodeURIComponent(product.id)}">${무엇}을 먼저 보여 주십시오 ↑</a>
+  </div>`;
+  }
   return `<div class="pd-sticky">
     <a class="pd-sticky-go" href="/checkout?product=${encodeURIComponent(product.id)}">더욱 자세한 내용 받기</a>
   </div>`;

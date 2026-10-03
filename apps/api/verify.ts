@@ -2428,6 +2428,26 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
         const h = 상세(CATALOG[id as keyof typeof CATALOG], business, true, '');
         return h.includes('id="pdJaegi"') && h.includes('/jaegi.js') && h.includes('/engine.js');
       }), '상세페이지에 사진 받는 칸이 없다');
+    /*
+     * 사진 칸이 **결제 단추보다 먼저** 보여야 한다.
+     *
+     * 터진 뒤에 적은 것 (2026-10-03): 사진 칸은 화면 3,000픽셀 아래에 있었는데
+     * 결제 단추는 화면 아래에 늘 붙어 다녔다. 사장님이 사진 칸을 보지도 못하고
+     * 결제로 가셨다. 칸을 위로 올리고, 보여 주시기 전에는 단추를 잠근다.
+     */
+    for (const id of ['cross-report', 'face-palm-report', 'saju-face-report', 'saju-palm-report']) {
+      const h = 상세(CATALOG[id as keyof typeof CATALOG], business, true, '');
+      const 칸 = h.indexOf('id="pdJaegi"');
+      const 살자리 = h.indexOf('class="pd-buy"');
+      check(`${id}: 사진 칸이 사는 자리보다 먼저 나온다`, 칸 > 0 && 살자리 > 0 && 칸 < 살자리,
+        `사진 칸 ${칸}, 사는 자리 ${살자리}`);
+      check(`${id}: 보여 주시기 전에는 결제 단추가 잠겨 있다`,
+        h.includes('pd-go-locked') && h.includes('먼저 보여 주십시오'),
+        '사진을 못 보고 결제로 갈 수 있다');
+      check(`${id}: 늘 붙어 다니는 단추도 잠근다`,
+        h.includes('id="pdStickyGo"'), '아래 단추로 빠져나갈 수 있다');
+    }
+
     check('사진이 필요 없는 상품에는 그 칸이 없다',
       !상세(CATALOG['charm-report'], business, true, '').includes('id="pdJaegi"'));
     check('사진을 보여 주면 미리보기를 손님 것으로 바꾼다',
