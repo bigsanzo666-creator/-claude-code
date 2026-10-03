@@ -20,6 +20,7 @@ type Row = {
   input_hash: string; payment_id: string | null;
   notice_given: boolean; preview_provided: boolean;
   ref?: string | null;
+  email?: string | null;
   created_at: Date; paid_at: Date | null; viewed_at: Date | null;
   refunded_at: Date | null; failure_reason: string | null; reading: unknown;
 };
@@ -37,6 +38,7 @@ function toOrder(row: Row): StoredOrder {
     noticeGiven: row.notice_given,
     previewProvided: row.preview_provided,
     ref: row.ref ?? null,
+    email: row.email ?? null,
     createdAt: row.created_at.toISOString(),
     paidAt: iso(row.paid_at),
     viewedAt: iso(row.viewed_at),
@@ -76,8 +78,8 @@ export class PostgresOrderStore implements OrderStore {
       `INSERT INTO orders (
          id, product_id, amount_krw, status, input_hash, payment_id,
          notice_given, preview_provided, ref, created_at, paid_at, viewed_at,
-         refunded_at, failure_reason, reading
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+         refunded_at, failure_reason, reading, email
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
        ON CONFLICT (id) DO UPDATE SET
          status = EXCLUDED.status,
          payment_id = EXCLUDED.payment_id,
@@ -86,13 +88,15 @@ export class PostgresOrderStore implements OrderStore {
          refunded_at = EXCLUDED.refunded_at,
          failure_reason = EXCLUDED.failure_reason,
          ref = COALESCE(EXCLUDED.ref, orders.ref),
-         reading = COALESCE(EXCLUDED.reading, orders.reading)
+         reading = COALESCE(EXCLUDED.reading, orders.reading),
+         email = COALESCE(EXCLUDED.email, orders.email)
        WHERE orders.status <> 'refunded' OR EXCLUDED.status = 'refunded'`,
       [
         order.id, order.productId, order.amountKrw, order.status, order.inputHash,
         order.paymentId, order.noticeGiven, order.previewProvided, order.ref ?? null,
         order.createdAt, order.paidAt, order.viewedAt, order.refundedAt,
         order.failureReason, order.reading == null ? null : JSON.stringify(order.reading),
+        order.email ?? null,
       ],
     );
   }

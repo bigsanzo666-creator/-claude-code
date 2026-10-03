@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS orders (
   notice_given      BOOLEAN     NOT NULL,
   preview_provided  BOOLEAN     NOT NULL,
   ref               TEXT,
+  email             TEXT,
   created_at        TIMESTAMPTZ NOT NULL,
   paid_at           TIMESTAMPTZ,
   viewed_at         TIMESTAMPTZ,
@@ -31,8 +32,9 @@ CREATE TABLE IF NOT EXISTS orders (
 
 -- 결제 확인은 PG가 준 결제 식별자로 주문을 되찾는 일이 잦다
 
--- 기존 테이블에 ref 컬럼이 없을 때 안전하게 추가
+-- 기존 테이블에 ref, email 컬럼이 없을 때 안전하게 추가
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS ref TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS email TEXT;
 CREATE INDEX IF NOT EXISTS orders_payment_id_idx ON orders (payment_id);
 -- 정산·분쟁 대응에서 기간으로 훑는다
 CREATE INDEX IF NOT EXISTS orders_created_at_idx ON orders (created_at);

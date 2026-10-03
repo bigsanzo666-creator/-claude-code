@@ -3023,9 +3023,6 @@ console.log(`\n${'═'.repeat(60)}`);
     check('메일 발송이 실패해도 리포트 본문이 온전히 조회됨', repRes.status === 200 && Boolean(repRes.body.text));
   } finally {
     globalThis.fetch = origFetch;
-    mailSrv.close();
-    if (oldKey !== undefined) process.env.RESEND_API_KEY = oldKey;
-    else delete process.env.RESEND_API_KEY;
   }
 
   // 4) 메일 소스코드 검사: WITHDRAWAL_WINDOW_DAYS 사용 여부
@@ -3062,6 +3059,70 @@ console.log(`\n${'═'.repeat(60)}`);
   const apiPkg = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'package.json'), 'utf8');
   check('package.json 에 nodemailer 가 없다', !apiPkg.includes('nodemailer'));
   check('mail.ts 에 외부 패키지 import 가 없다', !/import\s+.*\s+from\s+['"](?!(\.|\.\.|\/)).*['"]/.test(mailCode));
+
+  // 7) 메일 코드가 보내기 전과 후에 기록을 남긴다 & 기록에 열쇠(re_...)가 절대 안 찍힌다
+  const { sendTestMail } = await import('./src/mail.ts');
+  const capturedLogs: string[] = [];
+  const origLog = console.log;
+  console.log = (...args: any[]) => {
+    capturedLogs.push(args.map(String).join(' '));
+    origLog(...args);
+  };
+
+  const testApiKey = 're_testsecretkey1234567890abcdef';
+  process.env.RESEND_API_KEY = testApiKey;
+
+  try {
+    globalThis.fetch = async (input: any, init?: any) => {
+      const url = typeof input === 'string' ? input : input?.url || '';
+      if (url.includes('api.resend.com')) {
+        return new Response(JSON.stringify({ id: 'email_test_123', status: 'ok', debug: testApiKey }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return origFetch(input, init);
+    };
+
+    const testRes = await sendTestMail({ to: 'admin@example.com' });
+    check('sendTestMail 성공 반환', testRes.sent && testRes.status === 200);
+
+    const hasPreLog = capturedLogs.some((l) => l.includes('[메일] 보내려 함') && l.includes('admin@example.com'));
+    const hasPostLog = capturedLogs.some((l) => l.includes('[메일] 답 200') && l.includes('email_test_123'));
+    check('메일 코드가 보내기 전과 후에 기록을 남긴다', hasPreLog && hasPostLog);
+
+    const leakedKey = capturedLogs.some((l) => l.includes(testApiKey));
+    const redactedKeySeen = capturedLogs.some((l) => l.includes('[REDACTED]'));
+    check('기록에 열쇠(re_...)가 절대 안 찍힌다', !leakedKey && redactedKeySeen);
+
+    // 8) /admin/mail-check 가 암호 없이는 안 열린다 (404) & 암호/토큰으로 열린다 (200)
+    process.env.ADMIN_TOKEN = 'admin_secret_token_123';
+    process.env.OWNER_PASS = 'owner_secret_pass_1234567890';
+
+    const checkNoAuth = await mailApi('GET', '/admin/mail-check?to=check@example.com');
+    check('/admin/mail-check 가 암호 없이는 안 열린다', checkNoAuth.status === 404);
+
+    const checkTokenAuth = await mailApi('GET', `/admin/mail-check?token=admin_secret_token_123&to=check@example.com`);
+    check('/admin/mail-check 토큰 인증으로 200 성공',
+      checkTokenAuth.status === 200 &&
+      checkTokenAuth.body.hasKey === true &&
+      checkTokenAuth.body.keyLength === testApiKey.length &&
+      typeof checkTokenAuth.body.from === 'string' &&
+      checkTokenAuth.body.status === 200);
+    check('/admin/mail-check 응답에 실제 API 키 값이 없다',
+      !JSON.stringify(checkTokenAuth.body).includes(testApiKey));
+
+    const checkPassAuth = await mailApi('GET', `/admin/mail-check?pass=owner_secret_pass_1234567890&to=check@example.com`);
+    check('/admin/mail-check 주인 통과로 200 성공', checkPassAuth.status === 200 && checkPassAuth.body.sent === true);
+  } finally {
+    console.log = origLog;
+    globalThis.fetch = origFetch;
+    mailSrv.close();
+    delete process.env.ADMIN_TOKEN;
+    delete process.env.OWNER_PASS;
+    if (oldKey !== undefined) process.env.RESEND_API_KEY = oldKey;
+    else delete process.env.RESEND_API_KEY;
+  }
 }
 
 // ── 2026-09-30 리포트 개편 및 이어사기·상세페이지 검증 ─────────────────────────

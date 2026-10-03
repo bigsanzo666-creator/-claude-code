@@ -70,6 +70,8 @@ export interface Order {
   previewProvided: boolean;
   /** 어느 광고를 보고 들어왔는지. 값을 정하거나 권한을 주는 데는 쓰지 않는다 */
   ref?: string | null;
+  /** 결제 완료 및 리포트 안내를 받을 이메일 주소 */
+  email?: string | null;
   createdAt: string;
   paidAt: string | null;
   viewedAt: string | null;
@@ -87,6 +89,7 @@ export interface CreateOrderInput {
   noticeGiven: boolean;
   previewProvided: boolean;
   ref?: string | null;
+  email?: string | null;
   inviteCode?: string | null;
   discountKrw?: number;
   rewardUsed?: string | null;
@@ -120,6 +123,7 @@ export function createOrder(input: CreateOrderInput): Order {
     noticeGiven: input.noticeGiven,
     previewProvided: input.previewProvided,
     ref: cleanRef(input.ref),
+    email: input.email ? input.email.trim().toLowerCase() : null,
     createdAt: now,
     paidAt: null,
     viewedAt: null,

@@ -40,7 +40,7 @@ export interface SendOrderMailResult {
 async function sendOnce(
   payload: Record<string, unknown>,
   apiKey: string,
-): Promise<{ ok: boolean; status: number; reason?: string }> {
+): Promise<{ ok: boolean; status: number; reason?: string; rawResponse?: string }> {
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -52,16 +52,27 @@ async function sendOnce(
       signal: AbortSignal.timeout(15000),
     });
 
+    const resText = await res.text().catch(() => '');
+    const cleanText = resText.replace(/re_[A-Za-z0-9]+/g, '[REDACTED]');
+    console.log(`[메일] 답 ${res.status} ${cleanText.slice(0, 200)}`);
+
     if (res.ok) {
-      return { ok: true, status: res.status };
+      return { ok: true, status: res.status, rawResponse: cleanText };
     }
 
-    const errText = await res.text().catch(() => '');
-    const cleanErr = errText.slice(0, 100).replace(/re_[A-Za-z0-9]+/g, '[REDACTED]');
-    return { ok: false, status: res.status, reason: `HTTP ${res.status}${cleanErr ? `: ${cleanErr}` : ''}` };
+    return {
+      ok: false,
+      status: res.status,
+      reason: `HTTP ${res.status}${cleanText ? `: ${cleanText}` : ''}`,
+      rawResponse: cleanText,
+    };
   } catch (err: unknown) {
     const isTimeout = err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
-    return { ok: false, status: 0, reason: isTimeout ? '응답 시간 초과 (15초)' : '네트워크 오류' };
+    const msg = err instanceof Error ? err.message : String(err);
+    const cleanMsg = msg.replace(/re_[A-Za-z0-9]+/g, '[REDACTED]');
+    const reason = isTimeout ? '응답 시간 초과 (15초)' : `네트워크 오류 (${cleanMsg})`;
+    console.log(`[메일] 답 0 ${cleanMsg.slice(0, 200)}`);
+    return { ok: false, status: 0, reason, rawResponse: reason };
   }
 }
 
@@ -93,7 +104,7 @@ export async function sendReportMail(args: SendReportMailArgs): Promise<SendOrde
     const reportText = (args?.reportText || '').trim();
     if (!orderId || !productName || !reportText) return { sent: false, reason: '주문 정보 부족' };
 
-    const from = (process.env.MAIL_FROM || '').trim() || '늘봄사주 <no-reply@neulbomsaju.co.kr>';
+    const from = (process.env.MAIL_FROM || '').trim() || 'Neulbom Saju <no-reply@neulbomsaju.co.kr>';
     const siteUrl = (process.env.SITE_URL || '').trim().replace(/\/+$/, '') || 'https://neulbomsaju.co.kr';
     const orderUrl = `${siteUrl}/order/${encodeURIComponent(orderId)}`;
     const biz = loadBusinessInfo();
@@ -127,9 +138,11 @@ export async function sendReportMail(args: SendReportMailArgs): Promise<SendOrde
 </html>`;
 
     const payload = { from, to: [to], subject, html };
+    console.log(`[메일] 보내려 함 ${orderId} → ${to} (from=${from})`);
     const firstTry = await sendOnce(payload, apiKey);
     if (firstTry.ok) return { sent: true };
     if (firstTry.status >= 400 && firstTry.status < 500) return { sent: false, reason: firstTry.reason };
+    console.log(`[메일] 보내려 함 ${orderId} → ${to} (from=${from}) [재시도]`);
     const secondTry = await sendOnce(payload, apiKey);
     if (secondTry.ok) return { sent: true };
     return { sent: false, reason: secondTry.reason || firstTry.reason };
@@ -160,7 +173,7 @@ export async function sendOrderMail(args: SendOrderMailArgs): Promise<SendOrderM
       return { sent: false, reason: '주문 정보 부족' };
     }
 
-    const from = (process.env.MAIL_FROM || '').trim() || '늘봄사주 <no-reply@neulbomsaju.co.kr>';
+    const from = (process.env.MAIL_FROM || '').trim() || 'Neulbom Saju <no-reply@neulbomsaju.co.kr>';
     const siteUrl = (process.env.SITE_URL || '').trim().replace(/\/+$/, '') || 'https://neulbomsaju.co.kr';
     const orderUrl = `${siteUrl}/order/${encodeURIComponent(orderId)}`;
 
@@ -214,6 +227,7 @@ export async function sendOrderMail(args: SendOrderMailArgs): Promise<SendOrderM
       html,
     };
 
+    console.log(`[메일] 보내려 함 ${orderId} → ${to} (from=${from})`);
     const firstTry = await sendOnce(payload, apiKey);
     if (firstTry.ok) {
       return { sent: true };
@@ -225,6 +239,7 @@ export async function sendOrderMail(args: SendOrderMailArgs): Promise<SendOrderM
     }
 
     // 일시적 네트워크 오류나 5xx 서버 오류는 1회만 재시도
+    console.log(`[메일] 보내려 함 ${orderId} → ${to} (from=${from}) [재시도]`);
     const secondTry = await sendOnce(payload, apiKey);
     if (secondTry.ok) {
       return { sent: true };
@@ -234,4 +249,74 @@ export async function sendOrderMail(args: SendOrderMailArgs): Promise<SendOrderM
   } catch (err: unknown) {
     return { sent: false, reason: '예기치 못한 발송 실패' };
   }
+}
+
+export interface SendTestMailArgs {
+  to: string;
+  from?: string;
+}
+
+export interface SendTestMailResult {
+  sent: boolean;
+  status: number;
+  from: string;
+  hasKey: boolean;
+  keyLength: number;
+  response: string;
+  reason?: string;
+}
+
+/**
+ * 주인 점검용 시험 메일 발송 (/admin/mail-check 에서 호출)
+ */
+export async function sendTestMail(args: SendTestMailArgs): Promise<SendTestMailResult> {
+  const apiKey = (process.env.RESEND_API_KEY || '').trim();
+  const hasKey = apiKey.length > 0;
+  const keyLength = apiKey.length;
+  const from = (args?.from || process.env.MAIL_FROM || '').trim() || 'Neulbom Saju <no-reply@neulbomsaju.co.kr>';
+  const to = (args?.to || '').trim();
+
+  if (!hasKey) {
+    return {
+      sent: false,
+      status: 0,
+      from,
+      hasKey: false,
+      keyLength: 0,
+      response: '',
+      reason: '열쇠 없음 (RESEND_API_KEY 미설정)',
+    };
+  }
+
+  if (!to || !to.includes('@')) {
+    return {
+      sent: false,
+      status: 0,
+      from,
+      hasKey: true,
+      keyLength,
+      response: '',
+      reason: '주소 없음',
+    };
+  }
+
+  console.log(`[메일] 보내려 함 test → ${to} (from=${from})`);
+
+  const payload = {
+    from,
+    to: [to],
+    subject: '[늘봄사주] 메일 발송 시험',
+    html: '<!doctype html><html lang="ko"><body><p>늘봄사주 메일 점검 시험 발송입니다.</p></body></html>',
+  };
+
+  const result = await sendOnce(payload, apiKey);
+  return {
+    sent: result.ok,
+    status: result.status,
+    from,
+    hasKey: true,
+    keyLength,
+    response: result.rawResponse || '',
+    reason: result.reason,
+  };
 }

@@ -52,7 +52,7 @@ import { buildPayload, buildPayloads, KIND_OF, sajuBundle, type ReadingRequest }
 import { pickDays, bestPerDay, mergeHours, buildDailyPreviewData, buildMonthPreviewData, parseInputTime, luckyNumbers, analyze } from '../../../packages/saju-rules/src/index.ts';
 import { calculate } from '../../../packages/manseryeok/src/index.ts';
 import { buildPreview, sampleFor, sampleNoticeFor } from './preview.ts';
-import { sendOrderMail, sendReportMail, mailReady } from './mail.ts';
+import { sendOrderMail, sendReportMail, sendTestMail, mailReady } from './mail.ts';
 import { type ReferralStore, MemoryReferralStore } from '../../../packages/store/src/index.ts';
 
 /**
@@ -618,6 +618,11 @@ ${STAGE_SCRIPT}
       leg.removeAttribute('hidden');
       leg.style.removeProperty('display');
       leg.style.display = 'block';
+    }
+    var pA = document.getElementById('panelA');
+    if (pA) {
+      pA.style.removeProperty('display');
+      pA.style.display = 'block';
     }
     var stF = document.getElementById('stFree');
     if (stF) {
@@ -1190,7 +1195,7 @@ export function createApi(deps: ApiDeps) {
           await save(current, done);
         }
 
-        const buyerEmail = ((stored as any).email || (reading?.birth?.email) || '').trim().toLowerCase();
+        const buyerEmail = ((stored as any).email || (stored as any).reading?.email || (reading as any)?.email || (reading?.birth as any)?.email || '').trim().toLowerCase();
         if (buyerEmail) {
           try {
             const r = await sendOrderMail({
@@ -1206,6 +1211,8 @@ export function createApi(deps: ApiDeps) {
             const myInviteCode = generateInviteCode(buyerEmail);
             await referrals.createInvite(myInviteCode, buyerEmail);
           } catch (e) {}
+        } else {
+          console.log(`[메일] 건너뜀 ${id} (이메일 없음)`);
         }
         if (stored.inviteCode && buyerEmail) {
           try {
@@ -1975,6 +1982,7 @@ export function createApi(deps: ApiDeps) {
         // 값은 **서버가 센 인원**으로만 정해진다. 화면이 보낸 금액은 쓰지 않는다
         memberCount: 1 + (reading.family?.length ?? 0),
         ref: body.ref,
+        email: email || null,
         inviteCode: appliedInviteCode,
         discountKrw,
         rewardUsed,
@@ -1984,7 +1992,7 @@ export function createApi(deps: ApiDeps) {
         await referrals.recordRewardUse(appliedRewardId);
       }
 
-      await deps.orders.save({ ...order, ...({ reading, email, rewardUsed } as any) });
+      await deps.orders.save({ ...order, ...({ reading: { ...reading, email: email || null }, email: email || null, rewardUsed } as any) });
       console.log(`[주문] ${order.productId} ${order.amountKrw}원${order.ref ? ` ref=${order.ref}` : ''}${rewardUsed ? ` (${rewardUsed})` : ''}`);
       send(res, 201, {
         order,
@@ -2156,6 +2164,9 @@ export function createApi(deps: ApiDeps) {
        * 답을 보낸 **뒤에** 돌린다. 메일이 늦거나 실패해도 손님 화면은 기다리지
        * 않는다. 메일은 어떤 경우에도 리포트를 막아선 안 된다.
        */
+      if (!viewed.email && (viewed as any).reading?.email) {
+        viewed.email = (viewed as any).reading.email;
+      }
       if (처음연다 && viewed.email) {
         void sendReportMail({
           to: viewed.email,
@@ -2163,8 +2174,10 @@ export function createApi(deps: ApiDeps) {
           productName: CATALOG[viewed.productId as keyof typeof CATALOG]?.name ?? viewed.productId,
           reportText: text,
         }).then((r) => {
-          if (!r.sent) console.log(`[메일] 리포트 전문 못 보냄 ${viewed.id} (${r.reason})`);
+          if (!r.sent) console.log(`[메일] 리포트 전문 못 보냄 ${viewed.id}${r.reason ? ` (${r.reason})` : ''}`);
         }).catch(() => {});
+      } else if (처음연다) {
+        console.log(`[메일] 리포트 전문 건너뜀 ${viewed.id} (이메일 없음)`);
       }
     },
 
@@ -2345,6 +2358,37 @@ export function createApi(deps: ApiDeps) {
       const status = body.status === '내줌' ? '내줌' : '거절';
       await referrals.reviewReward(id, status);
       send(res, 200, { ok: true });
+    },
+
+    'GET /admin/mail-check': async (req, res) => {
+      const url = new URL(req.url ?? '/', 'http://localhost');
+      const token = url.searchParams.get('token') || (req.headers['authorization']?.replace(/^Bearer\s+/, '') ?? '');
+      const pass = url.searchParams.get('pass') ?? '';
+      const adminToken = process.env.ADMIN_TOKEN;
+
+      const isAdminAuthed = Boolean(adminToken && token && token === adminToken);
+      const isOwnerAuthed = isOwnerPass(pass) || isOwnerPass(token);
+
+      if (!isAdminAuthed && !isOwnerAuthed) {
+        throw new HttpError(404, '없는 경로입니다: GET /admin/mail-check');
+      }
+
+      const to = (url.searchParams.get('to') || '').trim();
+      if (!to || !to.includes('@')) {
+        throw new HttpError(400, 'to 파라미터가 필요합니다 (올바른 이메일 주소).');
+      }
+
+      const customFrom = url.searchParams.get('from')?.trim() || undefined;
+      const result = await sendTestMail({ to, from: customFrom });
+      send(res, 200, {
+        from: result.from,
+        hasKey: result.hasKey,
+        keyLength: result.keyLength,
+        status: result.status,
+        response: result.response,
+        sent: result.sent,
+        reason: result.reason,
+      });
     },
   };
 
