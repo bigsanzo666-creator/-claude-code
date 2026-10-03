@@ -2321,3 +2321,24 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   window.addEventListener('load', function () { setTimeout(옮긴다, 300); });
 })();
 </script>
+
+<script>
+/*
+ * 주인 통과를 **어느 화면에서든** 받는다.
+ *
+ * 터진 뒤에 적은 것 (2026-10-03): 암호를 받는 자리가 결제 화면에만 있어서
+ * 사장님이 저장해 둔 「/?pass=…」 주소가 아무 일도 하지 않았다. 첫 화면으로
+ * 들어오면 그냥 지나쳐서, 상품을 고르고 들어가면 제값이 떴다.
+ * 받은 뒤에는 주소에서 지운다 — 어깨너머로 보이면 안 된다.
+ */
+(function () {
+  try {
+    var m = location.search.match(/[?&]pass=([^&#]+)/);
+    if (!m || !m[1]) return;
+    sessionStorage.setItem('nb_pass', decodeURIComponent(m[1]).slice(0, 128));
+    var clean = location.href.replace(/([?&])pass=[^&#]*(&|$)/, function (_, a, b) { return b ? a : ''; })
+      .replace(/[?&]$/, '');
+    history.replaceState(null, '', clean);
+  } catch (e) {}
+})();
+</script>

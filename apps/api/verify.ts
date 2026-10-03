@@ -2058,6 +2058,15 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     check('첫 화면이 잰 값을 결제 화면에 넘긴다',
       viewer.includes('nb_reading') && viewer.includes('잰값을둔다'),
       '첫 화면이 잰 값을 저장하지 않는다 — 결제 화면이 못 가져간다');
+    /*
+     * 터진 뒤에 적은 것 (2026-10-03): 암호를 받는 자리가 결제 화면에만 있어서
+     * 사장님이 저장해 둔 「/?pass=…」 주소가 아무 일도 하지 않았다.
+     */
+    check('첫 화면도 주인 통과를 받는다',
+      viewer.includes("[?&]pass=") && viewer.includes("'nb_pass'"),
+      '첫 화면으로 들어오면 통과가 그냥 지나간다');
+    check('받은 통과는 주소에서 지운다',
+      viewer.includes('history.replaceState'), '암호가 주소창에 남는다');
     check('재러 온 손님을 그 자리로 데려다 준다',
       viewer.includes("h !== 'panelF' && h !== 'panelP'") && viewer.includes('scrollIntoView'),
       '주소에 자리를 적어 보내도 첫 화면만 보인다');
