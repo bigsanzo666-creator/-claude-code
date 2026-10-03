@@ -188,28 +188,6 @@ ${UPSELL_CSS}
 .co-user-done-btn{display:block;width:100%;margin-top:10px;padding:10px;
   background:rgba(212,175,55,.2);border:1px solid #d4af37;border-radius:6px;
   color:#f3e5ab;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
-
-/* 사진 촬영 및 업로드 */
-.co-photo-sec{background:rgba(22,18,28,.8);border:1px solid rgba(212,175,55,.35);
-  border-radius:12px;padding:16px 18px;margin:20px 0}
-.co-photo-promise{display:flex;gap:10px;align-items:flex-start;background:rgba(0,0,0,.3);
-  border-left:3px solid #d4af37;border-radius:6px;padding:10px 12px;margin-bottom:14px}
-.co-promise-icon{font-size:18px;flex-shrink:0}
-.co-photo-promise p{margin:0;font-size:13px;color:#dcdce6;line-height:1.5}
-.co-photo-box{margin-bottom:14px;padding:12px;background:rgba(12,10,18,.6);
-  border:1px solid rgba(255,255,255,.08);border-radius:8px}
-.co-photo-guide{font-size:14px;color:#e4dfea;margin-bottom:10px}
-.co-photo-guide strong{color:#f3e5ab}
-.co-photo-btn{display:block;width:100%;box-sizing:border-box;padding:12px 16px;border-radius:8px;
-  border:1px dashed rgba(212,175,55,.6);background:rgba(212,175,55,.08);color:#f3e5ab;
-  text-align:center;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s}
-.co-photo-btn:hover{background:rgba(212,175,55,.15)}
-.co-file-input{display:none}
-.co-photo-preview-wrap{display:flex;align-items:center;gap:14px}
-.co-photo-thumb{width:80px;height:80px;object-fit:cover;border-radius:8px;border:1.5px solid #d4af37}
-.co-photo-retake-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);
-  border-radius:6px;color:#efeaf4;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit}
-.co-photo-retake-btn:hover{background:rgba(255,255,255,.15)}
 .co-pay-block-reason{color:#f97316;font-size:14px;margin:0 0 12px;font-weight:600;text-align:center;line-height:1.5}
 `;
 
@@ -427,6 +405,26 @@ export function renderCheckoutPage(
   var NEEDS_FACE = ${needsFace ? 'true' : 'false'};
   var NEEDS_PALM = ${needsPalm ? 'true' : 'false'};
   var IS_PHOTO = ${isPhotoProduct ? 'true' : 'false'};
+  /* 값이 없으면 상세페이지로 보낸다 */
+  if (IS_PHOTO) {
+    try {
+      var s = JSON.parse(sessionStorage.getItem('nb_reading') || '{}') || {};
+      var b = s.보여줌 || {};
+      var hasFace = !NEEDS_FACE || Boolean(s.face || b.face);
+      var hasPalm = !NEEDS_PALM || Boolean(s.palm || b.palm);
+      if (!hasFace || !hasPalm) {
+        var target = '/products/' + encodeURIComponent(PRODUCT) + (location.search || '');
+        if (window.history && window.history.replaceState) {
+          try { history.replaceState(null, '', target); } catch(e){}
+        }
+        location.replace(target);
+        return;
+      }
+    } catch(e) {
+      location.replace('/products/' + encodeURIComponent(PRODUCT) + (location.search || ''));
+      return;
+    }
+  }
   var HOUR_OPTIONS = ${JSON.stringify(HOURS)};
   var KEYS = ${JSON.stringify(keys)};
   var f = document.getElementById('coForm');
@@ -1182,7 +1180,9 @@ export function renderCheckoutPage(
       set('partnerTime', saved.partner && saved.partner.time);
 
       if(saved.face){ window.__nbFace = saved.face; faceUploaded = true; }
+      else if(saved.보여줌 && saved.보여줌.face){ window.__nbFace = { shown: true }; faceUploaded = true; }
       if(saved.palm){ window.__nbPalm = saved.palm; palmUploaded = true; }
+      else if(saved.보여줌 && saved.보여줌.palm){ window.__nbPalm = { shown: true }; palmUploaded = true; }
     }
   }catch(e){}
 
@@ -1559,6 +1559,25 @@ ${PRODUCTS_CSS}
 ${CHECKOUT_CSS}
 ${REFERRAL_BADGE_CSS}
 </style>
+${isPhotoProduct ? `<script>
+(function(){
+  try {
+    var s = JSON.parse(sessionStorage.getItem('nb_reading') || '{}') || {};
+    var b = s.보여줌 || {};
+    var hasFace = ${!needsFace} || Boolean(s.face || b.face);
+    var hasPalm = ${!needsPalm} || Boolean(s.palm || b.palm);
+    if (!hasFace || !hasPalm) {
+      var target = '/products/${encodeURIComponent(product.id)}' + (location.search || '');
+      if (window.history && window.history.replaceState) {
+        try { history.replaceState(null, '', target); } catch(e){}
+      }
+      location.replace(target);
+    }
+  } catch(e) {
+    location.replace('/products/${encodeURIComponent(product.id)}' + (location.search || ''));
+  }
+})();
+</script>` : ''}
 </head>
 <body>
 <main class="co">

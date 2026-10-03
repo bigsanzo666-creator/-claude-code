@@ -1840,6 +1840,11 @@ export function createApi(deps: ApiDeps) {
     'POST /api/orders': async (req, res) => {
       const body = await readJson(req);
       const reading = validateReading(body);
+      const PHOTO_PRODUCTS = ['cross-report', 'face-palm-report', 'saju-face-report', 'saju-palm-report'];
+      const hasPhoto = (v: any) => Boolean(v && (typeof v !== 'object' || Object.keys(v).length > 0));
+      if (PHOTO_PRODUCTS.includes(reading.productId) && !hasPhoto(body.face) && !hasPhoto(body.palm)) {
+        throw new HttpError(400, '얼굴과 손을 먼저 보여 주셔야 합니다.');
+      }
       if (body.acknowledgedNotice !== true) {
         throw new HttpError(400, '청약철회 제한 고지에 대한 확인이 필요합니다.');
       }

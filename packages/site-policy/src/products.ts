@@ -166,7 +166,18 @@ function 사진재기대본(product: Product): string {
         go.removeAttribute('aria-disabled');
         go.textContent = '더욱 자세한 내용 받기';
         var dest = go.getAttribute('data-go');
-        if(dest) go.setAttribute('href', dest);
+        if(dest) {
+          try {
+            var curParams = new URLSearchParams(location.search);
+            var destUrl = new URL(dest, location.origin);
+            curParams.forEach(function(v, k){
+              if(!destUrl.searchParams.has(k)) destUrl.searchParams.set(k, v);
+            });
+            go.setAttribute('href', destUrl.pathname + destUrl.search);
+          } catch(e) {
+            go.setAttribute('href', dest);
+          }
+        }
       }
     });
   }
@@ -2082,6 +2093,22 @@ ${사진재기대본(product)}
     var m = location.search.match(/[?&]ref=([a-zA-Z0-9_-]+)/);
     if(m && m[1] && !sessionStorage.getItem('nb_ref')){
       sessionStorage.setItem('nb_ref', m[1].toLowerCase().slice(0, 20));
+    }
+  }catch(e){}
+  try{
+    if(location.search){
+      var curParams = new URLSearchParams(location.search);
+      document.querySelectorAll('a.pd-go, a.pd-sticky-go').forEach(function(a){
+        if(a.classList.contains('pd-go-locked')) return;
+        var href = a.getAttribute('href');
+        if(href && href.startsWith('/checkout')){
+          var u = new URL(href, location.origin);
+          curParams.forEach(function(v, k){
+            if(!u.searchParams.has(k)) u.searchParams.set(k, v);
+          });
+          a.setAttribute('href', u.pathname + u.search);
+        }
+      });
     }
   }catch(e){}
 })();

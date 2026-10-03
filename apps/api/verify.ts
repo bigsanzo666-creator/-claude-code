@@ -77,7 +77,7 @@ const page = async (path: string) => {
 };
 
 const BIRTH = { date: '1990-05-15', time: '14:30', gender: '남' as const, name: '민수' };
-const reading = { productId: 'cross-report', birth: BIRTH };
+const reading = { productId: 'cross-report', birth: BIRTH, face: { foreheadWidth: 'wide' }, palm: { lifeLength: 'long' } };
 
 // ── A. 상품·미리보기 ───────────────────────────────────────────
 section('A. 상품과 미리보기 (결제 전, 원가 0)');
@@ -1238,9 +1238,9 @@ section('H2. 물어본 것이 리포트까지 간다');
 const Q = '올해 이직해도 괜찮을까요?';
 // 아무것도 안 물은 같은 손님. 이것과 견준다
 const quietBase = await api('POST', '/api/orders',
-  { productId: 'cross-report', birth: BIRTH, acknowledgedNotice: true, previewShown: true });
+  { productId: 'cross-report', birth: BIRTH, face: { foreheadWidth: 'wide' }, acknowledgedNotice: true, previewShown: true });
 const askOrder = await api('POST', '/api/orders',
-  { productId: 'cross-report', birth: BIRTH, question: Q, acknowledgedNotice: true, previewShown: true });
+  { productId: 'cross-report', birth: BIRTH, face: { foreheadWidth: 'wide' }, question: Q, acknowledgedNotice: true, previewShown: true });
 check('질문을 실은 주문이 생긴다', askOrder.status === 201, askOrder.body.error);
 check('질문이 다르면 다른 주문으로 친다',
   askOrder.body.order.inputHash !== quietBase.body.order.inputHash);
@@ -1272,15 +1272,15 @@ check('그 한 편은 마지막 편이다', generateArgs.at(-1)?.question === Q)
 // 안 물어도 된다. 그게 기본이다
 generateArgs.length = 0;
 const quiet = await api('POST', '/api/orders',
-  { productId: 'cross-report', birth: BIRTH, question: '   ', acknowledgedNotice: true });
+  { productId: 'cross-report', birth: BIRTH, face: { foreheadWidth: 'wide' }, question: '   ', acknowledgedNotice: true });
 check('빈 질문은 없는 것으로 친다', quiet.body.order.inputHash === quietBase.body.order.inputHash);
 
 const badQ = await api('POST', '/api/orders',
-  { productId: 'cross-report', birth: BIRTH, question: { 나쁜: '것' }, acknowledgedNotice: true });
+  { productId: 'cross-report', birth: BIRTH, face: { foreheadWidth: 'wide' }, question: { 나쁜: '것' }, acknowledgedNotice: true });
 check('글이 아닌 질문은 거부', badQ.status === 400, badQ.body.error);
 
 const longQ = await api('POST', '/api/orders',
-  { productId: 'cross-report', birth: BIRTH, question: '가'.repeat(600), acknowledgedNotice: true });
+  { productId: 'cross-report', birth: BIRTH, face: { foreheadWidth: 'wide' }, question: '가'.repeat(600), acknowledgedNotice: true });
 check('아주 긴 질문도 서버가 버틴다', longQ.status === 201, longQ.body.error);
 
 // ─── 택일 리포트 ──────────────────────────────────────────────
@@ -2102,6 +2102,63 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
       !/얼굴 사진|손 사진|손바닥 사진|재러 가기|보여 드리기/.test(co),
       '값을 치르기로 한 뒤에 사진을 요구하면 손님이 돌아선다');
 
+    /*
+     * 결제 화면으로 바로 들어와도 사진을 건너뛰지 못하게
+     */
+    const 사진필요상품 = ['cross-report', 'face-palm-report', 'saju-face-report', 'saju-palm-report'];
+    for (const pId of 사진필요상품) {
+      const coHtml = renderCheckoutPage(business, '', CATALOG[pId as keyof typeof CATALOG],
+        { storeId: 'test_store', channelKey: 'test_channel' });
+      check(`${pId}: 결제 화면 대본이 값이 없으면 상세페이지로 보낸다를 담고 있다`,
+        coHtml.includes('/products/' + encodeURIComponent(pId)) &&
+        coHtml.includes('location.replace') &&
+        coHtml.includes('nb_reading') &&
+        (coHtml.includes('보여줌') || coHtml.includes('face') || coHtml.includes('palm')),
+        '사진 없는 손님이 결제 화면에 머무를 수 있다');
+      check(`${pId}: 결제 화면에 사진 이야기가 여전히 한 글자도 없다`,
+        !/얼굴 사진|손 사진|손바닥 사진|재러 가기|보여 드리기|보여 주십시오|보여주십시오/.test(coHtml),
+        '결제 화면에 사진 관련 문구가 남아 있다');
+    }
+
+    for (const pId of 사진필요상품) {
+      const noPhotoRes = await api('POST', '/api/orders', {
+        productId: pId,
+        birth: BIRTH,
+        acknowledgedNotice: true,
+        previewShown: true,
+      });
+      check(`${pId}: face/palm 없이 주문하면 400 이 나온다`,
+        noPhotoRes.status === 400 && noPhotoRes.body.error === '얼굴과 손을 먼저 보여 주셔야 합니다.',
+        `상태: ${noPhotoRes.status}, 메시지: ${noPhotoRes.body?.error}`);
+
+      const withPhotoRes = await api('POST', '/api/orders', {
+        productId: pId,
+        birth: BIRTH,
+        face: { foreheadWidth: 'wide' },
+        palm: { lifeLength: 'long' },
+        acknowledgedNotice: true,
+        previewShown: true,
+      });
+      check(`${pId}: face/palm 이 있으면 주문이 201 로 만들어진다`,
+        withPhotoRes.status === 201,
+        `상태: ${withPhotoRes.status}, 에러: ${withPhotoRes.body?.error}`);
+    }
+
+    const charmNoPhoto = await api('POST', '/api/orders', {
+      productId: 'charm-report',
+      birth: BIRTH,
+      acknowledgedNotice: true,
+      previewShown: true,
+    });
+    check('사진이 필요 없는 상품(charm-report 등)은 아무 영향이 없다',
+      charmNoPhoto.status === 201,
+      `상태: ${charmNoPhoto.status}, 에러: ${charmNoPhoto.body?.error}`);
+
+    const charmCo = renderCheckoutPage(business, '', CATALOG['charm-report'],
+      { storeId: 'test_store', channelKey: 'test_channel' });
+    check('charm-report 결제 화면은 상세페이지로 보내지 않는다',
+      !charmCo.includes("location.replace('/products/charm-report") && !charmCo.includes('IS_PHOTO = true'));
+
     const viewer = fs.readFileSync(new URL('../../apps/manse-viewer/index.html', import.meta.url), 'utf8');
     check('첫 화면이 잰 값을 결제 화면에 넘긴다',
       viewer.includes('nb_reading') && viewer.includes('잰값을둔다'),
@@ -2218,7 +2275,9 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
 
     let openedOnEntry = false;
     let toggledOnEdit = false;
-    let photoNoticeVisible = false;
+    let redirectedToDetail = false;
+    let passCarriedOver = false;
+    let staysOnCheckoutWithPhotos = false;
     let homeFreeVisible = false;
     let productsFreeVisible = false;
     let inviteDiscountOk = false;
@@ -2343,22 +2402,40 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
         });
         toggledOnEdit = res2.result?.value?.afterFirst === 'none' && res2.result?.value?.afterSecond === 'block';
 
-        // 7단계: 사진이 필요한 상품에서 아무것도 안 한 상태로 들어가면 안내 문구 노출 확인
-        await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/?product=cross-report` });
-        await new Promise((r) => setTimeout(r, 800));
+        // 7단계: 사진이 필요한 상품에서 사진 없이 들어가면 상세페이지로 넘어가고 pass 보존 확인
+        await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/checkout?product=cross-report&pass=secret-pass-123` });
+        await new Promise((r) => setTimeout(r, 1000));
         const res3 = await pageSend('Runtime.evaluate', {
           expression: `(function(){
-            var el = document.getElementById('coPayBlockReason');
-            if(!el) return { found: false };
             return {
-              found: true,
-              visible: getComputedStyle(el).display !== 'none',
-              text: el.textContent || '',
+              pathname: location.pathname,
+              search: location.search,
+              href: location.href,
             };
           })()`,
           returnByValue: true,
         });
-        photoNoticeVisible = Boolean(res3.result?.value?.visible && res3.result?.value?.text.includes('얼굴 사진과 손 사진을 올리셔야 결제하실 수 있습니다'));
+        redirectedToDetail = res3.result?.value?.pathname === '/products/cross-report';
+        passCarriedOver = Boolean(res3.result?.value?.search?.includes('pass=secret-pass-123'));
+
+        // 사진 2장이 있으면 결제 화면이 제대로 뜨는지 확인
+        await pageSend('Runtime.evaluate', {
+          expression: `(function(){
+            sessionStorage.setItem('nb_reading', JSON.stringify({ face: { foreheadWidth: 'wide' }, palm: { lifeLength: 'long' } }));
+          })()`,
+        });
+        await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/checkout?product=cross-report` });
+        await new Promise((r) => setTimeout(r, 800));
+        const resStay = await pageSend('Runtime.evaluate', {
+          expression: `(function(){
+            return {
+              pathname: location.pathname,
+              hasForm: Boolean(document.getElementById('coForm')),
+            };
+          })()`,
+          returnByValue: true,
+        });
+        staysOnCheckoutWithPhotos = resStay.result?.value?.pathname === '/checkout' && Boolean(resStay.result?.value?.hasForm);
 
         // 1단계: 실제 브라우저로 홈의 「무료 · 내 사주 여덟 글자」를 눌러서 무료 사주 입력칸이 보이는지 확인
         await pageSend('Page.navigate', { url: `${base}/` });
@@ -2458,7 +2535,9 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
       openedOnEntry = coDaily.includes('if(editForm && !date){') && coDaily.includes("editForm.style.display = 'block';");
       toggledOnEdit = coDaily.includes("getComputedStyle(editForm).display !== 'none'") && coDaily.includes('scrollIntoView');
       const crossHtml = renderCheckoutPage(business, '', CATALOG['cross-report'], { storeId: 't', channelKey: 't' });
-      photoNoticeVisible = crossHtml.includes('coPayBlockReason') && crossHtml.includes('얼굴 사진과 손 사진을 올리셔야 결제하실 수 있습니다');
+      redirectedToDetail = crossHtml.includes('/products/cross-report') && crossHtml.includes('location.replace');
+      passCarriedOver = crossHtml.includes('location.search');
+      staysOnCheckoutWithPhotos = crossHtml.includes('coForm');
       homeFreeVisible = home.html.includes('btnFreeEightLetters') && home.html.includes('openFreeSaju');
       productsFreeVisible = (await page('/products')).html.includes('href="/?free=1"');
 
@@ -2479,6 +2558,9 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
 
     check('생년월일 없이 결제 화면에 들어오면 입력칸이 펼쳐져 있다', openedOnEntry);
     check('[고치기]를 누르면 입력칸이 열린다', toggledOnEdit);
+    check('사진 없이 들어가면 상세페이지로 리다이렉트된다', redirectedToDetail);
+    check('상세페이지로 갈 때 pass 가 보존된다', passCarriedOver);
+    check('사진이 있으면 결제 화면이 정상적으로 뜬다', staysOnCheckoutWithPhotos);
     /*
      * 터진 뒤에 적은 것 (2026-10-03): 사진을 결제 화면에서 받고 있었다.
      * 값을 치르기로 마음먹은 뒤에야 요구하니 거기서 돌아선다.
@@ -2915,11 +2997,13 @@ console.log(`\n${'═'.repeat(60)}`);
     const dummyOrder = await mailApi('POST', '/api/orders', {
       productId: 'cross-report',
       birth: BIRTH,
+      face: { foreheadWidth: 'wide' },
+      palm: { lifeLength: 'long' },
       email: 'test@example.com',
       acknowledgedNotice: true,
       previewShown: true,
     });
-    check('주문 생성 성공', dummyOrder.status === 201);
+    check('주문 생성 성공', dummyOrder.status === 201, `상태: ${dummyOrder.status}, 에러: ${dummyOrder.body?.error}`);
     const ordId = dummyOrder.body.order.id;
     fakeGw.put({
       paymentId: ordId,
