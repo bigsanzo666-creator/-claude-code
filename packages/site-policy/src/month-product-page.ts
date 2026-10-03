@@ -953,6 +953,7 @@ ${footer}
   }
 })();
 </script>
+<script src="/nalja.js"></script>
 </body>
 </html>`;
 }

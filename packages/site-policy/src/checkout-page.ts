@@ -1558,6 +1558,7 @@ ${script}
   }catch(e){}
 })();
 </script>
+<script src="/nalja.js"></script>
 </body>
 </html>`;
 }

@@ -1796,6 +1796,7 @@ ${PRODUCTS_CSS}
 ${renderProducts(ready, images, faces, true, scenes)}
 <div style="height:24px"></div>
 ${footer}
+<script src="/nalja.js"></script>
 </body>
 </html>`;
 }
@@ -2026,6 +2027,7 @@ ${사진재기대본(product)}
   }catch(e){}
 })();
 </script>
+<script src="/nalja.js"></script>
 </body>
 </html>`;
 }

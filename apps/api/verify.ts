@@ -2405,6 +2405,23 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
      * 값을 치르기로 마음먹은 뒤에야 요구하니 거기서 돌아선다.
      * 사진은 **상품 상세페이지**에서 받고, 받은 값으로 미리보기를 바꾼다.
      */
+    /*
+     * 생년월일을 **손으로 적을 수 있어야** 한다.
+     *
+     * 터진 뒤에 적은 것 (2026-10-03): 달력에서 고르는 것뿐이라, 폰에서 1988년을
+     * 찾으려면 달을 수십 번 넘겨야 했다. 사장님이 직접 겪고 두 번 말씀하셨다.
+     */
+    const 날짜대본 = fs.readFileSync(new URL('./public/nalja.js', import.meta.url), 'utf8');
+    check('날짜를 손으로 적는 장치가 있다',
+      날짜대본.includes('inputMode') && 날짜대본.includes('input[type="date"]'),
+      '달력에서만 고르게 두면 폰에서 한참 걸린다');
+    check('적은 값이 YYYY-MM-DD 모양으로 담긴다', 날짜대본.includes('모양을잡는다'));
+    check('달력으로 고르는 길도 남겨 둔다', 날짜대본.includes('달력에서 고르기'));
+    const 결제화면 = renderCheckoutPage(business, '', CATALOG['saju-report'],
+      { storeId: 'test_store', channelKey: 'test_channel' });
+    check('첫 화면이 날짜 적는 장치를 부른다', home.html.includes('/nalja.js'), '그 화면에서는 달력만 뜬다');
+    check('결제 화면이 날짜 적는 장치를 부른다', 결제화면.includes('/nalja.js'), '그 화면에서는 달력만 뜬다');
+
     const { renderProductPage: 상세 } = await import('../../packages/site-policy/src/index.ts');
     check('사진이 필요한 상품은 상세페이지에서 사진을 받는다',
       ['cross-report', 'face-palm-report', 'saju-face-report', 'saju-palm-report'].every((id) => {

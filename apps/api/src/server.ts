@@ -596,6 +596,7 @@ ${STAGE_SCRIPT}
 </div>
 
 <script src="/app.js?v=${assetStamp('app.js')}"></script>
+<script src="/nalja.js?v=${assetStamp('nalja.js')}"></script>
 <script>
 (function(){
   function openFreeSaju() {
@@ -2358,7 +2359,7 @@ export function createApi(deps: ApiDeps) {
         res.end(code || '// 엔진을 찾지 못했습니다');
         return;
       }
-            if (req.method === 'GET' && (url.pathname === '/style.css' || url.pathname === '/app.js' || url.pathname === '/jaegi.js')) {
+            if (req.method === 'GET' && (url.pathname === '/style.css' || url.pathname === '/app.js' || url.pathname === '/jaegi.js' || url.pathname === '/nalja.js')) {
         const p = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', url.pathname.slice(1));
         serveStaticFile(req, res, p);
         return;
