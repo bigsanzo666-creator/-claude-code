@@ -303,7 +303,15 @@ export function renderCheckoutPage(
    * 첫 화면(/#panelF, /#panelP)은 실제로 재고, 못 재는 것은 못 잰다고 밝히고
    * 손님이 직접 고르게 한다. 그 값만 쓴다.
    */
-  const 재는곳 = needsFace && !needsPalm ? '/#panelF' : needsPalm && !needsFace ? '/#panelP' : '/#panelF';
+  /*
+   * 재러 보내는 자리.
+   *
+   * 터진 뒤에 적은 것 (2026-10-03): /#panelF 로 보냈는데, 문을 두드리기 전에는
+   * 얼굴·손 재는 칸이 화면에 아예 없다. 그래서 손님은 문 앞에 선 채로
+   * 「뭐가 바뀐 거지」 하게 된다. 문부터 들어가야 하므로 첫 화면으로 보내고,
+   * **무엇을 해야 하는지 글로 말해 준다.**
+   */
+  const 재는곳 = '/';
   const 무엇 = needsFace && needsPalm ? '얼굴과 손' : needsFace ? '얼굴' : '손';
   const photoSection = isPhotoProduct ? `
     <div class="co-photo-sec" id="coPhotoSec">
@@ -315,15 +323,17 @@ export function renderCheckoutPage(
 
       <div class="co-photo-box" id="coMeasuredOk" style="display:none;">
         <div class="co-photo-guide">✓ 첫 화면에서 잰 <strong>${무엇}</strong> 값이 담겨 있습니다.</div>
-        <a class="co-photo-btn" href="${재는곳}" style="text-align:center;text-decoration:none;">다시 재러 가기</a>
+        <a class="co-photo-btn" href="${재는곳}" style="text-align:center;text-decoration:none;">처음 화면에서 다시 보여 드리기</a>
       </div>
 
       <div class="co-photo-box" id="coMeasuredNone">
         <div class="co-photo-guide">
-          이 점사는 <strong>${무엇}을 먼저 재야</strong> 합니다.
-          첫 화면에서 사진 한 장이면 잽니다. 재고 오시면 이 칸이 저절로 채워집니다.
+          이 점사는 <strong>${무엇}을 먼저 보여 주셔야</strong> 합니다.<br>
+          처음 화면에서 <strong>문을 두드리고</strong> 신령을 만나시면, 그 자리에서
+          ${무엇} 사진을 받습니다. 사진 한 장이면 저희가 잽니다.
+          재고 오시면 이 칸이 저절로 채워집니다.
         </div>
-        <a class="co-photo-btn" href="${재는곳}" style="text-align:center;text-decoration:none;">${무엇} 재러 가기 →</a>
+        <a class="co-photo-btn" href="${재는곳}" style="text-align:center;text-decoration:none;">처음 화면에서 ${무엇} 보여 드리기 →</a>
       </div>
 
       <p class="co-photo-warn" id="coPhotoWarn" style="display:none;color:#ffb8b8;font-size:13px;margin:8px 0 0;">

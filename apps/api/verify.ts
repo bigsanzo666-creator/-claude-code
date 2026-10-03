@@ -2051,8 +2051,14 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     check('결제 화면에 사진 올리는 칸이 없다',
       !co.includes('id="coFaceInput"') && !co.includes('id="coPalmInput"'),
       '재지 않으면서 사진을 받는 칸이 남아 있다');
+    /*
+     * 터진 뒤에 적은 것 (2026-10-03): /#panelF 로 보냈는데 문을 두드리기 전에는
+     * 그 칸이 화면에 없어서 손님이 문 앞에 선 채로 멈췄다. 자리만 가리키지 말고
+     * **무엇을 해야 하는지** 글로 말해야 한다.
+     */
     check('결제 화면이 재러 가는 길을 알려 준다',
-      co.includes('#panelF') || co.includes('#panelP'), '첫 화면으로 보내는 길이 없다');
+      co.includes('처음 화면에서') && co.includes('문을 두드리고'),
+      '어디로 가서 뭘 해야 하는지 말해 주지 않는다');
 
     const viewer = fs.readFileSync(new URL('../../apps/manse-viewer/index.html', import.meta.url), 'utf8');
     check('첫 화면이 잰 값을 결제 화면에 넘긴다',
