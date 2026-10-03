@@ -1,0 +1,11 @@
+{
+  "name": "@saju/report",
+  "version": "0.1.0",
+  "description": "룰 엔진 결과 → 서술형 리포트. 판단은 하지 않고 문장화만 한다.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "verify": "node --experimental-strip-types verify.ts" },
+  "dependencies": { "@anthropic-ai/sdk": "^0.70.0" },
+  "license": "UNLICENSED"
+}

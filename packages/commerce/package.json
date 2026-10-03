@@ -1,0 +1,10 @@
+{
+  "name": "@saju/commerce",
+  "version": "0.1.0",
+  "description": "주문·이용권·환불 정책과 결제 게이트웨이 (포트원 V2)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "verify": "node --experimental-strip-types verify.ts" },
+  "license": "UNLICENSED"
+}
