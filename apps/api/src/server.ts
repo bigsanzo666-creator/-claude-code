@@ -144,6 +144,29 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const VIEWER_PATH = join(HERE, '..', '..', 'manse-viewer', 'index.html');
 
 /**
+ * 만세력 엔진(MS)을 따로 내준다.
+ *
+ * 터진 뒤에 적은 것 (2026-10-03): 엔진이 첫 화면 HTML 안에만 박혀 있어서,
+ * 상품 상세페이지에서는 얼굴·손을 **잴 수가 없었다.** 같은 엔진을 두 벌 만들면
+ * 계산이 갈라지므로, 박혀 있는 그 덩어리를 그대로 꺼내 파일로 내준다.
+ * 값은 늘 한 곳에서 온다.
+ */
+let 엔진조각: string | null = null;
+function 엔진을꺼낸다(): string {
+  if (엔진조각 !== null) return 엔진조각;
+  try {
+    const html = readFileSync(VIEWER_PATH, 'utf8');
+    const i = html.indexOf('var MS=(');
+    if (i < 0) { 엔진조각 = ''; return 엔진조각; }
+    const end = html.indexOf('</script>', i);
+    엔진조각 = end < 0 ? '' : html.slice(i, end);
+  } catch {
+    엔진조각 = '';
+  }
+  return 엔진조각;
+}
+
+/**
  * 화면 HTML을 만든다.
  *
  * `apps/manse-viewer/index.html` 은 문서 조각이다 — 아티팩트로 게시할 때는
@@ -2326,7 +2349,16 @@ export function createApi(deps: ApiDeps) {
         key = `${req.method} /img/scene/:id`;
       }
 
-            if (req.method === 'GET' && (url.pathname === '/style.css' || url.pathname === '/app.js')) {
+      if (req.method === 'GET' && url.pathname === '/engine.js') {
+        const code = 엔진을꺼낸다();
+        res.writeHead(code ? 200 : 404, {
+          'Content-Type': 'application/javascript; charset=utf-8',
+          'Cache-Control': 'public, max-age=86400',
+        });
+        res.end(code || '// 엔진을 찾지 못했습니다');
+        return;
+      }
+            if (req.method === 'GET' && (url.pathname === '/style.css' || url.pathname === '/app.js' || url.pathname === '/jaegi.js')) {
         const p = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', url.pathname.slice(1));
         serveStaticFile(req, res, p);
         return;

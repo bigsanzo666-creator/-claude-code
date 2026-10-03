@@ -2056,9 +2056,9 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
      * 그 칸이 화면에 없어서 손님이 문 앞에 선 채로 멈췄다. 자리만 가리키지 말고
      * **무엇을 해야 하는지** 글로 말해야 한다.
      */
-    check('결제 화면이 재러 가는 길을 알려 준다',
-      co.includes('처음 화면에서') && co.includes('문을 두드리고'),
-      '어디로 가서 뭘 해야 하는지 말해 주지 않는다');
+    check('결제 화면이 사진 이야기를 꺼내지 않는다',
+      !/얼굴 사진|손 사진|손바닥 사진|재러 가기|보여 드리기/.test(co),
+      '값을 치르기로 한 뒤에 사진을 요구하면 손님이 돌아선다');
 
     const viewer = fs.readFileSync(new URL('../../apps/manse-viewer/index.html', import.meta.url), 'utf8');
     check('첫 화면이 잰 값을 결제 화면에 넘긴다',
@@ -2400,7 +2400,22 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
 
     check('생년월일 없이 결제 화면에 들어오면 입력칸이 펼쳐져 있다', openedOnEntry);
     check('[고치기]를 누르면 입력칸이 열린다', toggledOnEdit);
-    check('사진이 필요한 상품에서 아무것도 안 한 상태로 들어가면 위 안내 문구가 화면에 보인다', photoNoticeVisible);
+    /*
+     * 터진 뒤에 적은 것 (2026-10-03): 사진을 결제 화면에서 받고 있었다.
+     * 값을 치르기로 마음먹은 뒤에야 요구하니 거기서 돌아선다.
+     * 사진은 **상품 상세페이지**에서 받고, 받은 값으로 미리보기를 바꾼다.
+     */
+    const { renderProductPage: 상세 } = await import('../../packages/site-policy/src/index.ts');
+    check('사진이 필요한 상품은 상세페이지에서 사진을 받는다',
+      ['cross-report', 'face-palm-report', 'saju-face-report', 'saju-palm-report'].every((id) => {
+        const h = 상세(CATALOG[id as keyof typeof CATALOG], business, true, '');
+        return h.includes('id="pdJaegi"') && h.includes('/jaegi.js') && h.includes('/engine.js');
+      }), '상세페이지에 사진 받는 칸이 없다');
+    check('사진이 필요 없는 상품에는 그 칸이 없다',
+      !상세(CATALOG['charm-report'], business, true, '').includes('id="pdJaegi"'));
+    check('사진을 보여 주면 미리보기를 손님 것으로 바꾼다',
+      상세(CATALOG['cross-report'], business, true, '').includes('/api/preview'),
+      '사진을 받고도 미리보기가 그대로면 보여 준 보람이 없다');
     check('실제 브라우저로 홈의 「무료 · 내 사주 여덟 글자」를 눌러서 무료 사주 입력칸이 화면에 보인다', homeFreeVisible);
     check('/products 에서 누른 경우도 똑같이 확인된다', productsFreeVisible);
 

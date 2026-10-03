@@ -304,42 +304,17 @@ export function renderCheckoutPage(
    * 손님이 직접 고르게 한다. 그 값만 쓴다.
    */
   /*
-   * 재러 보내는 자리.
+   * 결제 화면은 얼굴·손을 **묻지 않는다.**
    *
-   * 터진 뒤에 적은 것 (2026-10-03): /#panelF 로 보냈는데, 문을 두드리기 전에는
-   * 얼굴·손 재는 칸이 화면에 아예 없다. 그래서 손님은 문 앞에 선 채로
-   * 「뭐가 바뀐 거지」 하게 된다. 문부터 들어가야 하므로 첫 화면으로 보내고,
-   * **무엇을 해야 하는지 글로 말해 준다.**
+   * 터진 뒤에 적은 것 (2026-10-03): 여기서 사진을 받고 있었다. 손님은 값을
+   * 치르기로 마음먹은 뒤에야 사진을 요구받았고, 그나마 그 칸은 아무것도 재지
+   * 않았다. 그 뒤에는 「재러 가기」로 내보냈는데 문 앞에 세워 두기만 했다.
+   *
+   * **보여 주는 것이 먼저고 값은 나중이다.** 사진은 상품 상세페이지에서 받아
+   * 거기서 잰다. 여기서는 그 값을 조용히 가져다 쓰기만 하고, 사진 이야기를
+   * 한 글자도 꺼내지 않는다.
    */
-  const 재는곳 = '/';
-  const 무엇 = needsFace && needsPalm ? '얼굴과 손' : needsFace ? '얼굴' : '손';
-  const photoSection = isPhotoProduct ? `
-    <div class="co-photo-sec" id="coPhotoSec">
-      <p class="co-sec">${무엇} 잰 값</p>
-      <div class="co-photo-promise">
-        <span class="co-promise-icon">🔒</span>
-        <p><strong>사진은 손님 기기 안에서만 봅니다.</strong><br>서버로 보내지 않고, 저장하지도 않습니다.</p>
-      </div>
-
-      <div class="co-photo-box" id="coMeasuredOk" style="display:none;">
-        <div class="co-photo-guide">✓ 첫 화면에서 잰 <strong>${무엇}</strong> 값이 담겨 있습니다.</div>
-        <a class="co-photo-btn" href="${재는곳}" style="text-align:center;text-decoration:none;">처음 화면에서 다시 보여 드리기</a>
-      </div>
-
-      <div class="co-photo-box" id="coMeasuredNone">
-        <div class="co-photo-guide">
-          이 점사는 <strong>${무엇}을 먼저 보여 주셔야</strong> 합니다.<br>
-          처음 화면에서 <strong>문을 두드리고</strong> 신령을 만나시면, 그 자리에서
-          ${무엇} 사진을 받습니다. 사진 한 장이면 저희가 잽니다.
-          재고 오시면 이 칸이 저절로 채워집니다.
-        </div>
-        <a class="co-photo-btn" href="${재는곳}" style="text-align:center;text-decoration:none;">처음 화면에서 ${무엇} 보여 드리기 →</a>
-      </div>
-
-      <p class="co-photo-warn" id="coPhotoWarn" style="display:none;color:#ffb8b8;font-size:13px;margin:8px 0 0;">
-        ${무엇}을 먼저 재셔야 결제하실 수 있습니다.
-      </p>
-    </div>` : '';
+  const photoSection = '';
 
   const form = keys === null ? `
     <div class="co-soon"><b>결제 준비 중입니다.</b><br>
@@ -557,11 +532,8 @@ export function renderCheckoutPage(
   function checkCanPay(){
     var reason = '';
     var dateVal = val('birthDate');
-    var isPhotoMissing = (NEEDS_FACE && !faceUploaded) || (NEEDS_PALM && !palmUploaded);
-
-    if(isPhotoMissing){
-      reason = '얼굴 사진과 손 사진을 올리셔야 결제하실 수 있습니다';
-    } else if(!dateVal && document.getElementById('birthDate')){
+    // 사진은 여기서 묻지 않는다. 막지도 않는다
+    if(!dateVal && document.getElementById('birthDate')){
       reason = '생년월일을 적으셔야 결제하실 수 있습니다';
     } else if(!agree.checked){
       reason = '위 안내에 동의하셔야 결제하실 수 있습니다';
@@ -580,32 +552,10 @@ export function renderCheckoutPage(
 
     pay.disabled = Boolean(reason);
 
-    var warn = document.getElementById('coPhotoWarn');
-    if(warn){
-      if(agree.checked && isPhotoMissing){
-        warn.style.display = 'block';
-      } else {
-        warn.style.display = 'none';
-      }
-    }
   }
 
   agree.addEventListener('change', checkCanPay);
 
-  /*
-   * 첫 화면에서 잰 얼굴·손 값이 담겼는지 본다.
-   *
-   * 여기서는 사진을 받지 않는다 — 재지도 않으면서 받으면 속이는 것이다.
-   * 값은 첫 화면이 sessionStorage('nb_reading') 에 넣어 둔 것만 쓴다.
-   */
-  function 잰값을본다(){
-    var okBox = document.getElementById('coMeasuredOk');
-    var noneBox = document.getElementById('coMeasuredNone');
-    if(!okBox && !noneBox) return;
-    var 다있나 = (!NEEDS_FACE || faceUploaded) && (!NEEDS_PALM || palmUploaded);
-    if(okBox) okBox.style.display = 다있나 ? 'block' : 'none';
-    if(noneBox) noneBox.style.display = 다있나 ? 'none' : 'block';
-  }
 
   /* invite tracking */
   try{
@@ -1206,7 +1156,6 @@ export function renderCheckoutPage(
 
       if(saved.face){ window.__nbFace = saved.face; faceUploaded = true; }
       if(saved.palm){ window.__nbPalm = saved.palm; palmUploaded = true; }
-      잰값을본다();
     }
   }catch(e){}
 
@@ -1422,8 +1371,6 @@ export function renderCheckoutPage(
     if(!date) return say('생년월일을 적어 주십시오.');
     if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) return say('이메일을 다시 확인해 주십시오.');
     if(phone.length < 10) return say('휴대전화 번호를 다시 확인해 주십시오.');
-    if(NEEDS_FACE && !faceUploaded) return say('먼저 첫 화면에서 얼굴을 재고 와 주십시오.');
-    if(NEEDS_PALM && !palmUploaded) return say('먼저 첫 화면에서 손을 재고 와 주십시오.');
     ${product.needsName ? "if(!val('surname')) return say('아이의 성을 적어 주십시오.');" : ''}
     ${product.needsPartner ? "if(!val('partnerDate')) return say('상대의 생년월일을 적어 주십시오.');" : ''}
     ${product.needsRange ? `

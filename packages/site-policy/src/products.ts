@@ -1,5 +1,160 @@
 import { INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW } from '../../commerce/src/referral.ts';
 
+/** 얼굴이 필요한 상품 */
+function 얼굴이필요한가(id: string): boolean {
+  return id === 'cross-report' || id === 'face-palm-report' || id === 'saju-face-report';
+}
+/** 손이 필요한 상품 */
+function 손이필요한가(id: string): boolean {
+  return id === 'cross-report' || id === 'face-palm-report' || id === 'saju-palm-report';
+}
+
+/**
+ * 얼굴·손 사진을 **여기서** 받는다.
+ *
+ * 터진 뒤에 적은 것 (2026-10-03): 사진 받는 자리가 결제 화면에 있었다. 손님은
+ * 값을 치르기로 마음먹은 뒤에야 사진을 요구받았고, 그나마 그 칸은 아무것도
+ * 재지 않았다. **보여 주는 것이 먼저고 값은 나중이다.** 상세페이지에서 받아
+ * 잰 다음, 그 값으로 미리보기를 손님 것으로 바꾼다. 결제 화면에서는 묻지 않는다.
+ *
+ * 사진은 손님 기기 밖으로 나가지 않는다.
+ */
+function 사진받는칸(product: Product): string {
+  const 얼굴 = 얼굴이필요한가(product.id);
+  const 손 = 손이필요한가(product.id);
+  if (!얼굴 && !손) return '';
+  const 무엇 = 얼굴 && 손 ? '얼굴과 손' : 얼굴 ? '얼굴' : '손';
+  return `
+  <section class="pd-sec pd-jaegi" id="pdJaegi">
+    <h3 class="pd-h">${무엇}을 보여 주십시오</h3>
+    <p class="pd-jaegi-promise">🔒 <b>사진은 손님 기기 안에서만 봅니다.</b>
+    서버로 보내지 않고, 저장하지도 않습니다.</p>
+    ${얼굴 ? `
+    <div class="pd-jaegi-box">
+      <label class="pd-jaegi-btn" id="pdFaceLabel">
+        <input type="file" accept="image/*" id="pdFaceInput" class="pd-jaegi-file">
+        <span>📷 얼굴 사진 올리기 — 정면으로, 밝은 데서</span>
+      </label>
+      <p class="pd-jaegi-msg" id="pdFaceMsg" role="status"></p>
+    </div>` : ''}
+    ${손 ? `
+    <div class="pd-jaegi-box">
+      <label class="pd-jaegi-btn" id="pdPalmLabel">
+        <input type="file" accept="image/*" id="pdPalmInput" class="pd-jaegi-file">
+        <span>✋ 손바닥 사진 올리기 — 손금이 보이게 펴고</span>
+      </label>
+      <p class="pd-jaegi-msg" id="pdPalmMsg" role="status"></p>
+    </div>` : ''}
+    <p class="pd-jaegi-note" id="pdJaegiNote">보여 주시면 아래 미리보기가 <b>손님 것으로</b> 바뀝니다.</p>
+  </section>`;
+}
+
+/**
+ * 상세페이지에서 사진을 재고, 미리보기를 손님 것으로 바꾸는 대본.
+ *
+ * 잰 값은 sessionStorage('nb_reading') 에 담긴다. 결제 화면과 리포트가 그걸 쓴다.
+ * 생년월일이 아직 없으면 재기만 하고 미리보기는 그대로 둔다 — 없는 것을
+ * 있는 척 지어내지 않는다.
+ */
+function 사진재기대본(product: Product): string {
+  const 얼굴 = 얼굴이필요한가(product.id);
+  const 손 = 손이필요한가(product.id);
+  if (!얼굴 && !손) return '';
+  return `
+<script src="/engine.js"></script>
+<script src="/jaegi.js"></script>
+<script>
+(function(){
+  var NEEDS_FACE = ${얼굴 ? 'true' : 'false'};
+  var NEEDS_PALM = ${손 ? 'true' : 'false'};
+  var PRODUCT = ${JSON.stringify(product.id)};
+
+  function 적는다(id, text, bad){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.textContent = text;
+    el.classList.toggle('bad', !!bad);
+  }
+  function 다됨(labelId){
+    var el = document.getElementById(labelId);
+    if(el) el.classList.add('done');
+  }
+
+  function 붙인다(inputId, labelId, msgId, 어느쪽){
+    var inp = document.getElementById(inputId);
+    if(!inp) return;
+    inp.addEventListener('change', function(){
+      var file = inp.files && inp.files[0];
+      if(!file) return;
+      적는다(msgId, 어느쪽 === '얼굴' ? '얼굴을 찾고 있습니다… 처음 한 번은 조금 걸립니다.'
+        : '손을 찾고 있습니다… 처음 한 번은 조금 걸립니다.');
+      var 잰다 = 어느쪽 === '얼굴' ? window.NB재기.얼굴 : window.NB재기.손;
+      잰다(file).then(function(값){
+        다됨(labelId);
+        적는다(msgId, 어느쪽 === '얼굴'
+          ? '얼굴을 다 재었습니다. 풀이에 그대로 씁니다.'
+          : '손 모양을 다 재었습니다 — ' + ((값 && 값.handShape) || '') + '. 풀이에 그대로 씁니다.');
+        미리보기를바꾼다();
+      }).catch(function(err){
+        // 못 재어도 막지 않는다. 사지 못하게 되는 것이 더 나쁘다
+        var t = (err && err.message) || '';
+        적는다(msgId, (!t || /import|fetch|network|Failed|module/i.test(t))
+          ? '지금은 사진을 재지 못했습니다. 그대로 두셔도 풀이는 나옵니다.' : t, true);
+      });
+    });
+  }
+
+  if(NEEDS_FACE) 붙인다('pdFaceInput','pdFaceLabel','pdFaceMsg','얼굴');
+  if(NEEDS_PALM) 붙인다('pdPalmInput','pdPalmLabel','pdPalmMsg','손');
+
+  var 바꾸는중 = false;
+  function 미리보기를바꾼다(){
+    if(바꾸는중) return;
+    var saved = window.NB재기.담긴값();
+    if(NEEDS_FACE && !saved.face) return;
+    if(NEEDS_PALM && !saved.palm) return;
+    var b = saved.birth || {};
+    if(!b.date){
+      적는다('pdJaegiNote', '다 보여 주셨습니다. 생년월일까지 넣으시면 미리보기가 손님 것으로 바뀝니다.');
+      return;
+    }
+    바꾸는중 = true;
+    적는다('pdJaegiNote', '손님의 얼굴과 손을 사주에 겹쳐 보고 있습니다…');
+    fetch('/api/preview', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId: PRODUCT, birth: b, face: saved.face, palm: saved.palm })
+    }).then(function(r){ return r.ok ? r.json() : null; }).then(function(d){
+      바꾸는중 = false;
+      var text = d && d.preview && d.preview.text;
+      if(!text){ 적는다('pdJaegiNote', '다 보여 주셨습니다. 풀이에 그대로 씁니다.'); return; }
+      var body = document.querySelector('.pd-sample-body');
+      if(!body) return;
+      var html = String(text)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/\\[\\[가림:([\\s\\S]+?)\\]\\]/g,
+          '<span class="pd-locked-sentence"><span class="pd-blurred-text">$1</span><span class="pd-lock-badge">🔒 비공개 결론</span></span>')
+        .replace(/\\n{2,}/g, '</p><p>');
+      body.innerHTML = '<p>' + html + '</p><div class="pd-sample-fade"></div>';
+      var lead = document.querySelector('.pd-sample-lead');
+      if(lead) lead.innerHTML = '<b>손님의 얼굴과 손을 보고</b> 말합니다';
+      적는다('pdJaegiNote', '아래 미리보기가 손님 것으로 바뀌었습니다.');
+    }).catch(function(){
+      바꾸는중 = false;
+      적는다('pdJaegiNote', '다 보여 주셨습니다. 풀이에 그대로 씁니다.');
+    });
+  }
+
+  // 이미 보여 주신 적이 있으면 그대로 이어 간다
+  try{
+    var 담긴 = window.NB재기.담긴값();
+    if(NEEDS_FACE && 담긴.face){ 다됨('pdFaceLabel'); 적는다('pdFaceMsg','이미 보여 주신 얼굴을 씁니다.'); }
+    if(NEEDS_PALM && 담긴.palm){ 다됨('pdPalmLabel'); 적는다('pdPalmMsg','이미 보여 주신 손을 씁니다.'); }
+    미리보기를바꾼다();
+  }catch(e){}
+})();
+</script>`;
+}
+
 /**
  * 오픈 할인 띠.
  *
@@ -1165,6 +1320,20 @@ body {
 }
 
 /* 가린 자리: 흐릿하게 덮고 그 위에 자물쇠 표시 (문장 길이는 유지) */
+/* 얼굴·손 보여 주는 칸 */
+.pd-jaegi { border: 1px solid rgba(212,175,55,.35); border-radius: 12px; }
+.pd-jaegi-promise { font-size: 13px; color: #dcdce6; line-height: 1.6; margin: 0 0 14px;
+  background: rgba(0,0,0,.28); padding: 10px 12px; border-radius: 8px; }
+.pd-jaegi-box { margin-bottom: 12px; }
+.pd-jaegi-btn { display: block; width: 100%; box-sizing: border-box; padding: 14px 16px;
+  border-radius: 10px; border: 1px dashed rgba(212,175,55,.6); background: rgba(212,175,55,.08);
+  color: #f3e5ab; font-size: 15px; font-weight: 700; text-align: center; cursor: pointer; }
+.pd-jaegi-btn.done { border-style: solid; background: rgba(120,200,140,.1); color: #bfe8c8; }
+.pd-jaegi-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.pd-jaegi-msg { font-size: 13px; line-height: 1.6; color: #cfc7da; margin: 8px 2px 0; }
+.pd-jaegi-msg.bad { color: #ffb8b8; }
+.pd-jaegi-note { font-size: 13px; color: #a79fb5; margin: 10px 0 0; }
+
 .pd-locked-sentence {
   position: relative;
   display: inline-block;
@@ -1796,6 +1965,7 @@ ${renderFit(product.id)}
     </div>
   </section>` : ''}
 
+${사진받는칸(product)}
 ${renderSample(sample, product.id)}
 
   <section class="pd-sec pd-why">
@@ -1845,6 +2015,7 @@ ${renderGlossary(product.id)}
 <div style="height:24px"></div>
 ${footer}
 ${stickyBuy(product, ready)}
+${사진재기대본(product)}
 <script>
 (function(){
   try{

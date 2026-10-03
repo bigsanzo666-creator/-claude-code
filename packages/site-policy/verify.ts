@@ -262,16 +262,19 @@ check('상세 페이지도 그림이 있을 때만 크게 건다',
   // 암호는 화면 어디에도 박혀 있으면 안 된다. 박히는 순간 통과가 아니라 구멍이다
   check('화면에 암호 자체가 박혀 있지 않다', !/OWNER_PASS\s*[:=]\s*['"][^'"]/.test(pay));
 
-  const photoRequiredProducts = Object.values(CATALOG).filter((p) => {
+  /*
+   * 결제 화면은 얼굴·손을 **묻지 않는다.**
+   *
+   * 터진 뒤에 적은 것 (2026-10-03): 여기서 사진을 받고 있었다. 값을 치르기로
+   * 마음먹은 뒤에야 사진을 요구받으니 손님이 거기서 돌아선다. 사진은 상품
+   * 상세페이지에서 받는다. 여기서는 사진이라는 말 자체가 나와선 안 된다.
+   */
+  const 사진말나오는상품 = Object.values(CATALOG).filter((p) => {
     const pPage = renderCheckoutPage({} as any, '', p, { storeId: 's', channelKey: 'c' });
-    return pPage.includes('id="coPhotoSec"');
-  });
-  check('사진이 필요한 상품은 넷뿐이다 (매력 상품은 아니다)',
-    photoRequiredProducts.length === 4 &&
-    !photoRequiredProducts.some((p) => p.id === 'charm-report') &&
-    ['cross-report', 'face-palm-report', 'saju-palm-report', 'saju-face-report'].every((id) =>
-      photoRequiredProducts.some((p) => p.id === id)
-    ));
+    return pPage.includes('id="coPhotoSec"') || pPage.includes('coFaceInput')
+      || pPage.includes('coPalmInput') || /얼굴 사진|손 사진|손바닥 사진|재러 가기|보여 드리기/.test(pPage);
+  }).map((p) => p.name);
+  check('결제 화면에서 사진 이야기를 꺼내지 않는다', 사진말나오는상품.length === 0, 사진말나오는상품.join(', '));
 
   check('결제 화면에 태어난 곳 고르개가 있다', pay.includes('id="birthPlace"'));
   check('태어난 곳 고르개의 기본값이 서울이다', pay.includes('value="서울" selected'));
