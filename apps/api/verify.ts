@@ -2058,6 +2058,9 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     check('첫 화면이 잰 값을 결제 화면에 넘긴다',
       viewer.includes('nb_reading') && viewer.includes('잰값을둔다'),
       '첫 화면이 잰 값을 저장하지 않는다 — 결제 화면이 못 가져간다');
+    check('재러 온 손님을 그 자리로 데려다 준다',
+      viewer.includes("h !== 'panelF' && h !== 'panelP'") && viewer.includes('scrollIntoView'),
+      '주소에 자리를 적어 보내도 첫 화면만 보인다');
     check('첫 화면이 쓰는 이름이 규칙이 읽는 이름과 같다',
       viewer.includes('foreheadWidth') && viewer.includes('lifeLength') && viewer.includes('handShape'),
       '첫 화면이 다른 이름을 쓴다');

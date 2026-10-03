@@ -2294,3 +2294,30 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   ['date', 'b-date'].forEach(attach);
 })();
 </script>
+
+<script>
+/*
+ * 주소에 적힌 자리로 데려다 준다.
+ *
+ * 터진 뒤에 적은 것 (2026-10-03): 결제 화면의 「얼굴·손 재러 가기」가
+ * /#panelF 로 보내는데, 들어가 보면 맨 첫 화면(문·나비신령)만 나왔다.
+ * 화면이 무거워서 자리가 잡히기 전에 건너뛰기 때문이다. 손님은 어디로
+ * 가야 할지 모른 채 처음부터 다시 하게 된다.
+ *
+ * 그래서 자리가 잡힐 때까지 몇 번 더 데려다 준다. 묻는 화면이 떠 있으면 걷는다.
+ */
+(function () {
+  var h = (location.hash || '').replace('#', '');
+  if (h !== 'panelF' && h !== 'panelP') return;
+  var 옮긴다 = function () {
+    try { if (typeof window.NB_SKIP_WIZARD === 'function') window.NB_SKIP_WIZARD(); } catch (e) {}
+    var el = document.getElementById(h);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  옮긴다();
+  setTimeout(옮긴다, 400);
+  setTimeout(옮긴다, 1200);
+  setTimeout(옮긴다, 2500);
+  window.addEventListener('load', function () { setTimeout(옮긴다, 300); });
+})();
+</script>
