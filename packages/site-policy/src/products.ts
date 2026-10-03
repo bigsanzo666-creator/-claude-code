@@ -32,16 +32,17 @@ function 사진받는칸(product: Product): string {
     ${얼굴 ? `
     <div class="pd-jaegi-box">
       <label class="pd-jaegi-btn" id="pdFaceLabel">
-        <input type="file" accept="image/*" id="pdFaceInput" class="pd-jaegi-file">
-        <span>📷 얼굴 사진 올리기 — 정면으로, 밝은 데서</span>
+        <input type="file" accept="image/*" capture="user" id="pdFaceInput" class="pd-jaegi-file">
+        <span>📷 얼굴 사진 찍기 / 올리기 — 정면으로, 밝은 데서</span>
       </label>
       <p class="pd-jaegi-msg" id="pdFaceMsg" role="status"></p>
     </div>` : ''}
     ${손 ? `
+    <p class="pd-jaegi-hand">손은 <b>남자는 왼손, 여자는 오른손</b>을 올려 주십시오 (남좌여우). 반대 손도 괜찮습니다.</p>
     <div class="pd-jaegi-box">
       <label class="pd-jaegi-btn" id="pdPalmLabel">
-        <input type="file" accept="image/*" id="pdPalmInput" class="pd-jaegi-file">
-        <span>✋ 손바닥 사진 올리기 — 손금이 보이게 펴고</span>
+        <input type="file" accept="image/*" capture="environment" id="pdPalmInput" class="pd-jaegi-file">
+        <span>✋ 손바닥 사진 찍기 / 올리기 — 손금이 보이게 펴고</span>
       </label>
       <p class="pd-jaegi-msg" id="pdPalmMsg" role="status"></p>
     </div>` : ''}
@@ -97,14 +98,21 @@ function 사진재기대본(product: Product): string {
         결제문을연다();
         미리보기를바꾼다();
       }).catch(function(err){
-        // 못 재어도 막지 않는다. 사지 못하게 되는 것이 더 나쁘다
-        var t = (err && err.message) || '';
-        적는다(msgId, (!t || /import|fetch|network|Failed|module/i.test(t))
-          ? '지금은 사진을 재지 못했습니다. 그대로 두셔도 풀이는 나옵니다.' : t, true);
+        /*
+         * 터진 뒤에 적은 것 (2026-10-03): 못 재면 잠금이 안 풀려서 손님이
+         * **앞으로 못 갔다.** 사장님이 직접 거기서 막히셨다. 사진은 받았으니
+         * 받은 것으로 치고 길을 연다. 못 산 손님이 제일 나쁜 결과다.
+         */
+        if(window.NB재기 && window.NB재기.보여줬다) window.NB재기.보여줬다(어느쪽 === '얼굴' ? 'face' : 'palm');
+        다됨(labelId);
+        적는다(msgId, '사진은 받았습니다. 지금은 못 재었지만 풀이는 그대로 나옵니다.');
+        결제문을연다();
+        미리보기를바꾼다();
       });
     });
   }
 
+  if(window.NB재기 && window.NB재기.미리받는다) window.NB재기.미리받는다(NEEDS_FACE, NEEDS_PALM);
   if(NEEDS_FACE) 붙인다('pdFaceInput','pdFaceLabel','pdFaceMsg','얼굴');
   if(NEEDS_PALM) 붙인다('pdPalmInput','pdPalmLabel','pdPalmMsg','손');
 
@@ -147,7 +155,8 @@ function 사진재기대본(product: Product): string {
 
   function 결제문을연다(){
     var saved = window.NB재기.담긴값();
-    var 다있나 = (!NEEDS_FACE || saved.face) && (!NEEDS_PALM || saved.palm);
+    var 보여줌 = saved.보여줌 || {};
+    var 다있나 = (!NEEDS_FACE || saved.face || 보여줌.face) && (!NEEDS_PALM || saved.palm || 보여줌.palm);
     ['pdGo','pdStickyGo'].forEach(function(id){
       var go = document.getElementById(id);
       if(!go) return;
@@ -177,8 +186,9 @@ function 사진재기대본(product: Product): string {
   // 이미 보여 주신 적이 있으면 그대로 이어 간다
   try{
     var 담긴 = window.NB재기.담긴값();
-    if(NEEDS_FACE && 담긴.face){ 다됨('pdFaceLabel'); 적는다('pdFaceMsg','이미 보여 주신 얼굴을 씁니다.'); }
-    if(NEEDS_PALM && 담긴.palm){ 다됨('pdPalmLabel'); 적는다('pdPalmMsg','이미 보여 주신 손을 씁니다.'); }
+    var 이미 = 담긴.보여줌 || {};
+    if(NEEDS_FACE && (담긴.face || 이미.face)){ 다됨('pdFaceLabel'); 적는다('pdFaceMsg','이미 보여 주신 얼굴을 씁니다. 다시 올리지 않으셔도 됩니다.'); }
+    if(NEEDS_PALM && (담긴.palm || 이미.palm)){ 다됨('pdPalmLabel'); 적는다('pdPalmMsg','이미 보여 주신 손을 씁니다. 다시 올리지 않으셔도 됩니다.'); }
     결제문을연다();
     미리보기를바꾼다();
   }catch(e){}
@@ -1367,6 +1377,7 @@ body {
 .pd-jaegi-msg { font-size: 13px; line-height: 1.6; color: #cfc7da; margin: 8px 2px 0; }
 .pd-jaegi-msg.bad { color: #ffb8b8; }
 .pd-jaegi-note { font-size: 13px; color: #a79fb5; margin: 10px 0 0; }
+.pd-jaegi-hand { font-size: 13px; color: #e4dfea; margin: 0 0 10px; line-height: 1.6; }
 
 .pd-locked-sentence {
   position: relative;

@@ -965,11 +965,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (needsPhoto) {
       jaegiSec = tEl('section', 'taste-jaegi');
       const promiseP = tEl('p', 'taste-jaegi-promise', '🔒 사진은 손님 기기 안에서만 봅니다. 서버로 보내지 않고 저장하지도 않습니다.');
+      /*
+       * 터진 뒤에 적은 것 (2026-10-03): 어느 손을 올려야 하는지 안 적어 두니
+       * 손님이 「왼손? 오른손?」 하고 멈춘다. 멈추면 그대로 나간다.
+       * 유파마다 다르므로 우리가 정하지 않고, 흔히 쓰는 기준을 알려 준다.
+       */
       jaegiSec.appendChild(promiseP);
+      if (needsPalm) {
+        jaegiSec.appendChild(tEl('p', 'taste-jaegi-hand',
+          '손은 남자는 왼손, 여자는 오른손을 올려 주십시오 (남좌여우). 반대 손도 괜찮습니다.'));
+      }
+      /* 도구를 미리 받아 둔다. 사진을 고를 때쯤이면 준비돼 있다 */
+      if (window.NB재기 && window.NB재기.미리받는다) window.NB재기.미리받는다(needsFace, needsPalm);
 
       const savedReading = (window.NB재기 && window.NB재기.담긴값) ? window.NB재기.담긴값() : (loadReading() || {});
-      faceDone = !!(savedReading && savedReading.face);
-      palmDone = !!(savedReading && savedReading.palm);
+      const 보여줌 = (savedReading && savedReading.보여줌) || {};
+      faceDone = !!((savedReading && savedReading.face) || 보여줌.face);
+      palmDone = !!((savedReading && savedReading.palm) || 보여줌.palm);
 
       const previewBox = tEl('div', 'taste-preview-box');
 
@@ -1058,7 +1070,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const input = tEl('input', 'taste-jaegi-file');
         input.type = 'file';
         input.accept = 'image/*';
-        const span = tEl('span', null, faceDone ? '✓ 📷 얼굴 사진 확인됨' : '📷 얼굴 사진 올리기');
+        /*
+         * 터진 뒤에 적은 것 (2026-10-03): 관상용 얼굴 사진을 미리 찍어 둔 사람은 없다.
+         * 앨범만 열리면 손님은 뒤로 나가 사진부터 찍고 다시 들어와야 한다.
+         * 그 사이에 그냥 가 버린다. **그 자리에서 바로 찍게 한다.**
+         */
+        input.setAttribute('capture', 'user');
+        const span = tEl('span', null, faceDone ? '✓ 📷 얼굴 사진 확인됨' : '📷 얼굴 사진 찍기 / 올리기');
         faceLabel.appendChild(input);
         faceLabel.appendChild(span);
         box.appendChild(faceLabel);
@@ -1073,7 +1091,7 @@ document.addEventListener('DOMContentLoaded', () => {
           faceMsg.textContent = '얼굴을 찾고 있습니다… 처음 한 번은 조금 걸립니다.';
           faceMsg.className = 'taste-jaegi-msg';
           if (!window.NB재기 || !window.NB재기.얼굴) {
-            faceMsg.textContent = '지금은 사진을 재지 못했습니다. 그대로 두셔도 풀이는 나옵니다.';
+            faceMsg.textContent = '사진은 받았습니다. 지금은 못 재었지만 풀이는 그대로 나옵니다.';
             faceDone = true;
             if (updateGoLock) updateGoLock();
             loadBlindPreview();
@@ -1087,7 +1105,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (updateGoLock) updateGoLock();
             loadBlindPreview();
           }).catch(function(err) {
-            faceMsg.textContent = '지금은 사진을 재지 못했습니다. 그대로 두셔도 풀이는 나옵니다.';
+            faceMsg.textContent = '사진은 받았습니다. 지금은 못 재었지만 풀이는 그대로 나옵니다.';
+            if (window.NB재기 && window.NB재기.보여줬다) window.NB재기.보여줬다('face');
+            faceLabel.classList.add('done');
+            span.textContent = '✓ 📷 얼굴 사진 받음';
             faceDone = true;
             if (updateGoLock) updateGoLock();
             loadBlindPreview();
@@ -1101,7 +1122,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const input = tEl('input', 'taste-jaegi-file');
         input.type = 'file';
         input.accept = 'image/*';
-        const span = tEl('span', null, palmDone ? '✓ ✋ 손바닥 사진 확인됨' : '✋ 손바닥 사진 올리기');
+        input.setAttribute('capture', 'environment');
+        const span = tEl('span', null, palmDone ? '✓ ✋ 손바닥 사진 확인됨' : '✋ 손바닥 사진 찍기 / 올리기');
         palmLabel.appendChild(input);
         palmLabel.appendChild(span);
         box.appendChild(palmLabel);
@@ -1117,7 +1139,7 @@ document.addEventListener('DOMContentLoaded', () => {
           palmMsg.textContent = '손을 찾고 있습니다… 처음 한 번은 조금 걸립니다.';
           palmMsg.className = 'taste-jaegi-msg';
           if (!window.NB재기 || !window.NB재기.손) {
-            palmMsg.textContent = '지금은 사진을 재지 못했습니다. 그대로 두셔도 풀이는 나옵니다.';
+            palmMsg.textContent = '사진은 받았습니다. 지금은 못 재었지만 풀이는 그대로 나옵니다.';
             palmDone = true;
             if (updateGoLock) updateGoLock();
             loadBlindPreview();
@@ -1132,7 +1154,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (updateGoLock) updateGoLock();
             loadBlindPreview();
           }).catch(function(err) {
-            palmMsg.textContent = '지금은 사진을 재지 못했습니다. 그대로 두셔도 풀이는 나옵니다.';
+            palmMsg.textContent = '사진은 받았습니다. 지금은 못 재었지만 풀이는 그대로 나옵니다.';
+            if (window.NB재기 && window.NB재기.보여줬다) window.NB재기.보여줬다('palm');
+            palmLabel.classList.add('done');
+            span.textContent = '✓ ✋ 손바닥 사진 받음';
             palmDone = true;
             if (updateGoLock) updateGoLock();
             loadBlindPreview();

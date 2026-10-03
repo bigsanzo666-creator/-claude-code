@@ -2104,6 +2104,28 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
      * 다 보여 주면 더 궁금할 것이 없어 결제할 까닭이 사라진다.
      * 가리는 것은 진짜 그 손님의 글이어야 한다 — 흐릿한 가짜 글은 속이는 것이다.
      */
+    /*
+     * 터진 뒤에 적은 것 (2026-10-03): 관상용 얼굴 사진을 미리 찍어 둔 사람은 없다.
+     * 앨범만 열리면 손님은 뒤로 나가 사진부터 찍고 다시 들어와야 한다 — 거기서 나간다.
+     * 그리고 못 재면 잠금이 안 풀려 **앞으로 못 갔다.** 사장님이 직접 막히셨다.
+     */
+    const { renderProductPage: 상세장 } = await import('../../packages/site-policy/src/index.ts');
+    const 상세대본 = 상세장(CATALOG['cross-report'], business, true, '');
+    check('카드 펼침 칸에서 카메라가 바로 켜진다',
+      신령대화.includes("'capture', 'user'") && 신령대화.includes("'capture', 'environment'"),
+      '앨범만 열리면 손님이 뒤로 나간다');
+    check('상세페이지에서도 카메라가 바로 켜진다',
+      상세대본.includes('capture="user"') && 상세대본.includes('capture="environment"'),
+      '앨범만 열리면 손님이 뒤로 나간다');
+    check('어느 손을 올리는지 알려 준다',
+      신령대화.includes('남좌여우') && 상세대본.includes('남좌여우'),
+      '왼손인지 오른손인지 몰라 손님이 멈춘다');
+    check('못 재어도 앞길을 막지 않는다',
+      신령대화.includes('보여줬다') && 상세대본.includes('보여줬다'),
+      '못 재면 손님이 갇혀서 못 산다');
+    check('이미 보여 준 손님에게 두 번 묻지 않는다',
+      상세대본.includes('다시 올리지 않으셔도 됩니다'), '같은 것을 두 번 올리게 하면 나간다');
+
     check('맛보기 글의 뒷부분을 가린다',
       신령대화.includes('pd-locked-sentence') && 신령대화.includes('가린다'),
       '손님 것으로 지은 글을 통째로 보여 주면 결제할 까닭이 없다');

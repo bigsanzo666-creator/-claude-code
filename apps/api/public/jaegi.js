@@ -93,7 +93,39 @@
     });
   }
 
+  /*
+   * 재지 **못했어도** 보여 주신 것은 보여 주신 것이다.
+   *
+   * 터진 뒤에 적은 것 (2026-10-03): 사진을 못 재면 아무것도 담기지 않아서,
+   * 다음 화면이 「얼굴과 손을 보여 주십시오」라고 **또** 물었다. 손님은 두 번
+   * 올리게 되고, 거기서도 못 재면 아예 앞으로 못 갔다. 사려는 손님을 가둔 것이다.
+   */
+  function 보여줬다(무엇) {
+    try {
+      var saved = JSON.parse(sessionStorage.getItem('nb_reading') || '{}') || {};
+      saved.보여줌 = saved.보여줌 || {};
+      saved.보여줌[무엇] = true;
+      sessionStorage.setItem('nb_reading', JSON.stringify(saved));
+    } catch (e) {}
+  }
+
+  /** 도구를 미리 받아 둔다. 손님이 사진을 고를 때쯤이면 준비돼 있다 */
+  function 미리받는다(얼굴필요, 손필요) {
+    try {
+      if (얼굴필요) 얼굴도구().catch(function () {});
+      if (손필요) 손도구().catch(function () {});
+    } catch (e) {}
+  }
+
   window.NB재기 = {
+    보여줬다: 보여줬다,
+    미리받는다: 미리받는다,
+    다보여줬나: function (얼굴필요, 손필요) {
+      var s = {};
+      try { s = JSON.parse(sessionStorage.getItem('nb_reading') || '{}') || {}; } catch (e) {}
+      var b = s.보여줌 || {};
+      return (!얼굴필요 || s.face || b.face) && (!손필요 || s.palm || b.palm);
+    },
     얼굴: function (file) {
       return 잰다(file, 얼굴도구, function (res) {
         var marks = res && res.faceLandmarks && res.faceLandmarks[0];

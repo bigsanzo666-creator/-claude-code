@@ -1332,3 +1332,11 @@ body {
   color: #a79fb5;
   line-height: 1.6;
 }
+
+/* 어느 손을 올려야 하는지 */
+.taste-jaegi-hand {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #e4dfea;
+}
