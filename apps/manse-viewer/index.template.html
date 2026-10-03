@@ -2384,10 +2384,26 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   try {
     var m = location.search.match(/[?&]pass=([^&#]+)/);
     if (!m || !m[1]) return;
-    sessionStorage.setItem('nb_pass', decodeURIComponent(m[1]).slice(0, 128));
+    var rawPass = decodeURIComponent(m[1]).slice(0, 128);
     var clean = location.href.replace(/([?&])pass=[^&#]*(&|$)/, function (_, a, b) { return b ? a : ''; })
       .replace(/[?&]$/, '');
     history.replaceState(null, '', clean);
+    fetch('/api/pass/check', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ pass: rawPass }),
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (res) {
+        if (res && res.ok === true) {
+          sessionStorage.setItem('nb_pass', rawPass);
+        } else {
+          sessionStorage.removeItem('nb_pass');
+        }
+      })
+      .catch(function () {
+        sessionStorage.removeItem('nb_pass');
+      });
   } catch (e) {}
 })();
 </script>

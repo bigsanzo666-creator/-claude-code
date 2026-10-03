@@ -910,6 +910,10 @@ section('주인 통과 — 사장님만 값 없이 리포트까지 받는다');
   check('암호를 안 걸어 두면 통과가 없다',
     잠김.status === 201 && 잠김.body.order.amountKrw > 0, `${잠김.body?.order?.amountKrw}원`);
 
+  const passNoEnv = await api('POST', '/api/pass/check', { pass: 'neulbom-owner-pass-verify-only' });
+  check('OWNER_PASS 가 없을 때 → 어떤 암호를 줘도 ok: false',
+    passNoEnv.status === 200 && passNoEnv.body.ok === false);
+
   // 짧은 암호는 받지 않는다. 주소창에 실려 다니므로 찍히면 끝난다
   process.env.OWNER_PASS = '짧다';
   const 짧음 = await 통과주문('짧다');
@@ -920,6 +924,23 @@ section('주인 통과 — 사장님만 값 없이 리포트까지 받는다');
   const 틀림 = await 통과주문('neulbom-owner-pass-verify-onlyX');
   check('암호가 한 글자만 달라도 통과하지 않는다',
     틀림.status === 201 && 틀림.body.order.amountKrw > 0, `${틀림.body?.order?.amountKrw}원`);
+
+  const passWrong = await api('POST', '/api/pass/check', { pass: 'neulbom-owner-pass-verify-onlyX' });
+  check('틀린 암호 → ok: false', passWrong.status === 200 && passWrong.body.ok === false);
+
+  const passOk = await api('POST', '/api/pass/check', { pass: 'neulbom-owner-pass-verify-only' });
+  check('맞는 암호로 /api/pass/check → ok: true', passOk.status === 200 && passOk.body.ok === true);
+
+  check('답에 암호 글자가 들어 있지 않다',
+    !JSON.stringify(passOk.body).includes('neulbom-owner-pass-verify-only') &&
+    !JSON.stringify(passWrong.body).includes('neulbom-owner-pass-verify-onlyX'));
+
+  const { renderCheckoutPage } = await import('../../packages/site-policy/src/index.ts');
+  const coHtml = renderCheckoutPage(business, '', CATALOG['saju-report'], { storeId: 'test_store', channelKey: 'test_channel' });
+  check('결제 화면 대본이 /api/pass/check 를 부른다', coHtml.includes('/api/pass/check'));
+  check('화면 금액과 주문 금액이 다르면 결제창을 안 연다',
+    coHtml.includes('created.order.amountKrw !== currentDisplayedAmount') &&
+    coHtml.includes('값이 맞지 않습니다. 새로고침한 뒤 다시 해 주십시오.'));
 
   const 없음 = await 통과주문();
   check('암호를 안 보낸 손님은 그대로 값을 낸다',

@@ -571,16 +571,43 @@ export function renderCheckoutPage(
   /*
    * 주인 통과 — 주소에 얹어 온 암호를 이 탭에만 담아 두고 주소창에서는 지운다.
    * 주소창에 남아 있으면 화면을 한 번만 찍혀도 남이 그대로 쓴다.
+   * 화면이 뜰 때 /api/pass/check 로 확인하고, 맞을 때만 담고 0원으로 적는다.
    */
+  var candidatePass = '';
   try{
     var mp = location.search.match(/[?&]pass=([^&#]+)/);
     if(mp && mp[1]){
-      sessionStorage.setItem('nb_pass', decodeURIComponent(mp[1]).slice(0, 128));
+      candidatePass = decodeURIComponent(mp[1]).slice(0, 128);
       var clean = location.href.replace(/([?&])pass=[^&#]*(&|$)/, function(_, a, b){ return b ? a : ''; })
         .replace(/[?&]$/, '');
       history.replaceState(null, '', clean);
     }
   }catch(e){}
+  if(!candidatePass){
+    try { candidatePass = sessionStorage.getItem('nb_pass') || ''; } catch(e){}
+  }
+
+  var passValid = false;
+  var currentDisplayedAmount = ${product.priceKrw};
+
+  if(candidatePass){
+    post('/api/pass/check', { pass: candidatePass })
+      .then(function(res){
+        if(res && res.ok === true){
+          passValid = true;
+          try { sessionStorage.setItem('nb_pass', candidatePass); } catch(e){}
+        }else{
+          passValid = false;
+          try { sessionStorage.removeItem('nb_pass'); } catch(e){}
+        }
+        refreshPrice();
+      })
+      .catch(function(){
+        passValid = false;
+        try { sessionStorage.removeItem('nb_pass'); } catch(e){}
+        refreshPrice();
+      });
+  }
 
   /* ref tracking */
   try{
@@ -1272,8 +1299,8 @@ export function renderCheckoutPage(
       noteEl.textContent = '소개 보답 이용권 적용 (0원)';
       return;
     }
-    var hasPass = (function(){ try { return !!sessionStorage.getItem('nb_pass'); } catch(e){ return false; } })();
-    if(hasPass){
+    if(passValid){
+      currentDisplayedAmount = 0;
       pay.textContent = '0원 바로 받기 (주인 통과)';
       var passTag = document.querySelector('.co-price b');
       if(passTag) passTag.textContent = '0원 (주인 통과)';
@@ -1304,6 +1331,7 @@ export function renderCheckoutPage(
       noteEl.textContent = '';
     }
     var finalP = Math.max(0, p - discount);
+    currentDisplayedAmount = finalP;
     pay.textContent = won(finalP) + '원 결제하기';
     var tag = document.querySelector('.co-price b');
     if(tag){
@@ -1443,6 +1471,10 @@ export function renderCheckoutPage(
       var created = await post('/api/orders',
         Object.assign({}, reading, { acknowledgedNotice:true, previewShown:true, ref: adRef, email: email, invite: userInvite, pass: ownerPass, marketingConsent: marketingConsent, fromOrderId: fromOrderId }));
       orderId = created.order.id;
+
+      if(created.order.amountKrw !== currentDisplayedAmount){
+        throw new Error('값이 맞지 않습니다. 새로고침한 뒤 다시 해 주십시오.');
+      }
 
       if(created.order.amountKrw === 0){
         var cf = null;

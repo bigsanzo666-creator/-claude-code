@@ -55,6 +55,17 @@ import { buildPreview, sampleFor, sampleNoticeFor } from './preview.ts';
 import { sendOrderMail, sendReportMail, mailReady } from './mail.ts';
 import { type ReferralStore, MemoryReferralStore } from '../../../packages/store/src/index.ts';
 
+/**
+ * 주인 통과 판정.
+ * OWNER_PASS 와 글자 그대로 같을 때만 true 다.
+ * OWNER_PASS 가 비어 있거나 16자 미만이면 무조건 false 다.
+ */
+export function isOwnerPass(candidate: unknown): boolean {
+  const ownerPass = (process.env.OWNER_PASS ?? '').trim();
+  const sent = typeof candidate === 'string' ? candidate.trim() : '';
+  return ownerPass.length >= 16 && sent.length > 0 && sent === ownerPass;
+}
+
 /** 주문 저장소. 배포 전에 Postgres 구현체로 갈아끼운다. */
 export interface OrderStore {
   get(id: string): Promise<Order | null>;
@@ -1296,6 +1307,26 @@ export function createApi(deps: ApiDeps) {
     };
   }
 
+  const passRateLimits = new Map<string, { count: number; resetAt: number }>();
+  function checkPassRateLimit(ip: string): boolean {
+    const now = Date.now();
+    if (passRateLimits.size > 1000) {
+      for (const [k, v] of passRateLimits.entries()) {
+        if (now > v.resetAt) passRateLimits.delete(k);
+      }
+    }
+    const item = passRateLimits.get(ip);
+    if (!item || now > item.resetAt) {
+      passRateLimits.set(ip, { count: 1, resetAt: now + 60_000 });
+      return true;
+    }
+    item.count++;
+    if (item.count > 30) {
+      return false;
+    }
+    return true;
+  }
+
   const routes: Record<string, (req: IncomingMessage, res: ServerResponse, id: string) => Promise<void>> = {
     /** 화면. 결제 설정을 주입해 내려준다 */
     'GET /': async (_req, res) => {
@@ -1779,6 +1810,29 @@ export function createApi(deps: ApiDeps) {
     },
 
     /**
+     * 주인 통과 암호 확인.
+     * 암호가 맞는지 서버에 물어보고, ok 만 준다.
+     * 암호 글자를 되돌려 주지 않는다.
+     * 틀린 암호를 무차별 대입하지 못하게, 같은 접속에서 자주 부르면 막는다.
+     */
+    'POST /api/pass/check': async (req, res) => {
+      const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim()
+        || req.socket.remoteAddress
+        || 'unknown';
+      if (!checkPassRateLimit(clientIp)) {
+        send(res, 429, { ok: false });
+        return;
+      }
+      try {
+        const body = await readJson(req);
+        const ok = isOwnerPass(body && (body as any).pass);
+        send(res, 200, { ok });
+      } catch {
+        send(res, 400, { ok: false });
+      }
+    },
+
+    /**
      * 주문 생성.
      * 금액은 클라이언트가 보낸 값을 쓰지 않고 카탈로그에서 가져온다.
      * 고지와 미리보기를 실제로 제공했는지 여부를 주문에 남겨, 나중에 환불 판정에 쓴다.
@@ -1855,9 +1909,7 @@ export function createApi(deps: ApiDeps) {
        *  - 화면이 보낸 금액은 어차피 쓰지 않는다. 값은 여기서만 0이 된다.
        *  - 기록에 「주인 통과」라고 남긴다. 판 것처럼 보이면 장부가 거짓이 된다.
        */
-      const ownerPass = (process.env.OWNER_PASS ?? '').trim();
-      const sentPass = typeof body.pass === 'string' ? body.pass.trim() : '';
-      if (!appliedRewardId && ownerPass.length >= 16 && sentPass.length > 0 && sentPass === ownerPass) {
+      if (!appliedRewardId && isOwnerPass(body.pass)) {
         discountKrw = baseAmount;
         rewardUsed = '주인 통과';
       }

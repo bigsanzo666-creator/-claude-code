@@ -383,11 +383,27 @@ loadCatalogProducts();
 try {
   const mp = location.search.match(/[?&]pass=([^&#]+)/);
   if (mp && mp[1]) {
-    sessionStorage.setItem('nb_pass', decodeURIComponent(mp[1]).slice(0, 128));
+    const rawPass = decodeURIComponent(mp[1]).slice(0, 128);
     const clean = location.href
       .replace(/([?&])pass=[^&#]*(&|$)/, (_, a, b) => (b ? a : ''))
       .replace(/[?&]$/, '');
     history.replaceState(null, '', clean);
+    fetch('/api/pass/check', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ pass: rawPass }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((res) => {
+        if (res && res.ok === true) {
+          sessionStorage.setItem('nb_pass', rawPass);
+        } else {
+          sessionStorage.removeItem('nb_pass');
+        }
+      })
+      .catch(() => {
+        sessionStorage.removeItem('nb_pass');
+      });
   }
 } catch (e) { /* 저장을 막아 둔 브라우저면 그냥 손님과 같은 길로 간다 */ }
 
