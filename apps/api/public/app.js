@@ -959,6 +959,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let jaegiSec = null;
     let updateGoLock = null;
+    let faceDone = false;
+    let palmDone = false;
 
     if (needsPhoto) {
       jaegiSec = tEl('section', 'taste-jaegi');
@@ -966,8 +968,8 @@ document.addEventListener('DOMContentLoaded', () => {
       jaegiSec.appendChild(promiseP);
 
       const savedReading = (window.NB재기 && window.NB재기.담긴값) ? window.NB재기.담긴값() : (loadReading() || {});
-      let faceDone = !!(savedReading && savedReading.face);
-      let palmDone = !!(savedReading && savedReading.palm);
+      faceDone = !!(savedReading && savedReading.face);
+      palmDone = !!(savedReading && savedReading.palm);
 
       const previewBox = tEl('div', 'taste-preview-box');
 
