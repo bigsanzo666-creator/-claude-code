@@ -595,6 +595,8 @@ ${fragment}
 ${STAGE_SCRIPT}
 </div>
 
+<script src="/engine.js"></script>
+<script src="/jaegi.js?v=${assetStamp('jaegi.js')}"></script>
 <script src="/app.js?v=${assetStamp('app.js')}"></script>
 <script src="/nalja.js?v=${assetStamp('nalja.js')}"></script>
 <script>

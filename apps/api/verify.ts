@@ -1919,6 +1919,27 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     check('맛보기 칸에 생김새가 붙어 있다', style.includes('.taste-panel'));
 
     /*
+     * 맛보기 펼침 칸에서 얼굴·손 사진을 받고 블라인드 사주를 보여준다
+     */
+    check('app.js 가 NB재기.얼굴 / NB재기.손 을 부른다',
+      appJs.includes('NB재기.얼굴') && appJs.includes('NB재기.손'));
+    check('첫 화면이 /engine.js 와 /jaegi.js 를 부른다',
+      home.html.includes('/engine.js') && home.html.includes('/jaegi.js'));
+    const 사진필요상품 = ['cross-report', 'face-palm-report', 'saju-face-report', 'saju-palm-report'];
+    const 사진불필요상품 = Object.keys(CATALOG).filter((id) => !사진필요상품.includes(id));
+    const 사진판별 = (id: string) => {
+      const needsFace = (id === 'cross-report' || id === 'face-palm-report' || id === 'saju-face-report');
+      const needsPalm = (id === 'cross-report' || id === 'face-palm-report' || id === 'saju-palm-report');
+      return needsFace || needsPalm;
+    };
+    check('사진이 필요 없는 상품에는 사진 칸이 안 생긴다',
+      사진불필요상품.length > 0 && 사진불필요상품.every((id) => !사진판별(id)) &&
+      appJs.includes('if (needsPhoto)'));
+    check('사진을 다 넣기 전에는 「자세히 보기」가 잠겨 있다',
+      appJs.includes("go.classList.add('locked')") &&
+      appJs.includes('얼굴과 손을 먼저 보여 주십시오 ↑'));
+
+    /*
      * 터진 뒤에 적은 것 (2026-09-29): 갈래 칸의 신령 카드가 140px 짜리 납작한
      * 띠였다. 신령 그림은 세로로 긴데 가로 한 줄만 보여 얼굴이 손톱만 했다.
      * 누가 봐 주는 것인지 알아볼 수 없으면 카드가 아니다.

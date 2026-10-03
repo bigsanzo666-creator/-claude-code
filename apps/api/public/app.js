@@ -952,8 +952,222 @@ document.addEventListener('DOMContentLoaded', () => {
     // 끊는 자리를 신령이 직접 말한다. 그래야 손님이 속았다고 느끼지 않는다
     if (res && res.more) panel.appendChild(tEl('p', 'taste-cut', res.more));
 
+    const productId = panel.dataset.of || '';
+    const needsFace = (productId === 'cross-report' || productId === 'face-palm-report' || productId === 'saju-face-report');
+    const needsPalm = (productId === 'cross-report' || productId === 'face-palm-report' || productId === 'saju-palm-report');
+    const needsPhoto = needsFace || needsPalm;
+
+    let jaegiSec = null;
+    let updateGoLock = null;
+
+    if (needsPhoto) {
+      jaegiSec = tEl('section', 'taste-jaegi');
+      const promiseP = tEl('p', 'taste-jaegi-promise', '🔒 사진은 손님 기기 안에서만 봅니다. 서버로 보내지 않고 저장하지도 않습니다.');
+      jaegiSec.appendChild(promiseP);
+
+      const savedReading = (window.NB재기 && window.NB재기.담긴값) ? window.NB재기.담긴값() : (loadReading() || {});
+      let faceDone = !!(savedReading && savedReading.face);
+      let palmDone = !!(savedReading && savedReading.palm);
+
+      const previewBox = tEl('div', 'taste-preview-box');
+
+      let loadingPreview = false;
+      function loadBlindPreview() {
+        const allDone = (!needsFace || faceDone) && (!needsPalm || palmDone);
+        if (!allDone) return;
+
+        const curSaved = (window.NB재기 && window.NB재기.담긴값) ? window.NB재기.담긴값() : (loadReading() || {});
+        const b = curSaved.birth || (curSaved.date ? curSaved : null);
+        if (!b || !b.date) {
+          previewBox.textContent = '';
+          const note = tEl('p', 'taste-preview-note', '생년월일을 넣으시면 손님 것으로 보여 드립니다.');
+          previewBox.appendChild(note);
+          return;
+        }
+
+        if (loadingPreview) return;
+        loadingPreview = true;
+        previewBox.textContent = '';
+        const waitP = tEl('p', 'taste-preview-wait', '손님의 얼굴과 손을 사주에 겹쳐 보고 있습니다…');
+        previewBox.appendChild(waitP);
+
+        fetch('/api/preview', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            productId: productId,
+            birth: b,
+            face: curSaved.face,
+            palm: curSaved.palm,
+          }),
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((data) => {
+            loadingPreview = false;
+            previewBox.textContent = '';
+            const text = data && data.preview && data.preview.text;
+            if (!text) return;
+
+            const lead = tEl('p', 'taste-preview-lead', '손님의 얼굴과 손을 보고 말합니다');
+            previewBox.appendChild(lead);
+
+            const contentDiv = tEl('div', 'taste-preview-content');
+            const safeHtml = String(text)
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/\[\[가림:([\s\S]+?)\]\]/g,
+                '<span class="pd-locked-sentence"><span class="pd-blurred-text">$1</span><span class="pd-lock-badge">🔒 비공개 결론</span></span>')
+              .replace(/\n{2,}/g, '</p><p>');
+            contentDiv.innerHTML = '<p>' + safeHtml + '</p>';
+            previewBox.appendChild(contentDiv);
+          })
+          .catch(() => {
+            loadingPreview = false;
+            previewBox.textContent = '';
+          });
+      }
+
+      if (needsFace) {
+        const box = tEl('div', 'taste-jaegi-box');
+        const faceLabel = tEl('label', 'taste-jaegi-btn' + (faceDone ? ' done' : ''));
+        const input = tEl('input', 'taste-jaegi-file');
+        input.type = 'file';
+        input.accept = 'image/*';
+        const span = tEl('span', null, faceDone ? '✓ 📷 얼굴 사진 확인됨' : '📷 얼굴 사진 올리기');
+        faceLabel.appendChild(input);
+        faceLabel.appendChild(span);
+        box.appendChild(faceLabel);
+
+        const faceMsg = tEl('p', 'taste-jaegi-msg', faceDone ? '얼굴을 다 재었습니다. 풀이에 그대로 씁니다.' : '');
+        box.appendChild(faceMsg);
+        jaegiSec.appendChild(box);
+
+        input.addEventListener('change', function() {
+          const file = input.files && input.files[0];
+          if (!file) return;
+          faceMsg.textContent = '얼굴을 찾고 있습니다… 처음 한 번은 조금 걸립니다.';
+          faceMsg.className = 'taste-jaegi-msg';
+          if (!window.NB재기 || !window.NB재기.얼굴) {
+            faceMsg.textContent = '지금은 사진을 재지 못했습니다. 그대로 두셔도 풀이는 나옵니다.';
+            faceDone = true;
+            if (updateGoLock) updateGoLock();
+            loadBlindPreview();
+            return;
+          }
+          window.NB재기.얼굴(file).then(function(val) {
+            faceDone = true;
+            faceLabel.classList.add('done');
+            span.textContent = '✓ 📷 얼굴 사진 확인됨';
+            faceMsg.textContent = '얼굴을 다 재었습니다. 풀이에 그대로 씁니다.';
+            if (updateGoLock) updateGoLock();
+            loadBlindPreview();
+          }).catch(function(err) {
+            faceMsg.textContent = '지금은 사진을 재지 못했습니다. 그대로 두셔도 풀이는 나옵니다.';
+            faceDone = true;
+            if (updateGoLock) updateGoLock();
+            loadBlindPreview();
+          });
+        });
+      }
+
+      if (needsPalm) {
+        const box = tEl('div', 'taste-jaegi-box');
+        const palmLabel = tEl('label', 'taste-jaegi-btn' + (palmDone ? ' done' : ''));
+        const input = tEl('input', 'taste-jaegi-file');
+        input.type = 'file';
+        input.accept = 'image/*';
+        const span = tEl('span', null, palmDone ? '✓ ✋ 손바닥 사진 확인됨' : '✋ 손바닥 사진 올리기');
+        palmLabel.appendChild(input);
+        palmLabel.appendChild(span);
+        box.appendChild(palmLabel);
+
+        const currentShape = (savedReading.palm && savedReading.palm.handShape) || '금형';
+        const palmMsg = tEl('p', 'taste-jaegi-msg', palmDone ? ('손 모양을 다 재었습니다 — ' + currentShape + '. 풀이에 그대로 씁니다.') : '');
+        box.appendChild(palmMsg);
+        jaegiSec.appendChild(box);
+
+        input.addEventListener('change', function() {
+          const file = input.files && input.files[0];
+          if (!file) return;
+          palmMsg.textContent = '손을 찾고 있습니다… 처음 한 번은 조금 걸립니다.';
+          palmMsg.className = 'taste-jaegi-msg';
+          if (!window.NB재기 || !window.NB재기.손) {
+            palmMsg.textContent = '지금은 사진을 재지 못했습니다. 그대로 두셔도 풀이는 나옵니다.';
+            palmDone = true;
+            if (updateGoLock) updateGoLock();
+            loadBlindPreview();
+            return;
+          }
+          window.NB재기.손(file).then(function(val) {
+            palmDone = true;
+            palmLabel.classList.add('done');
+            span.textContent = '✓ ✋ 손바닥 사진 확인됨';
+            const shape = (val && val.handShape) || '금형';
+            palmMsg.textContent = '손 모양을 다 재었습니다 — ' + shape + '. 풀이에 그대로 씁니다.';
+            if (updateGoLock) updateGoLock();
+            loadBlindPreview();
+          }).catch(function(err) {
+            palmMsg.textContent = '지금은 사진을 재지 못했습니다. 그대로 두셔도 풀이는 나옵니다.';
+            palmDone = true;
+            if (updateGoLock) updateGoLock();
+            loadBlindPreview();
+          });
+        });
+      }
+
+      jaegiSec.appendChild(previewBox);
+      panel.appendChild(jaegiSec);
+
+      if ((!needsFace || faceDone) && (!needsPalm || palmDone)) {
+        loadBlindPreview();
+      }
+    }
+
     const go = tEl('a', 'taste-go', '자세히 보기 →');
     go.href = href;
+
+    if (needsPhoto) {
+      updateGoLock = function() {
+        const savedReading = (window.NB재기 && window.NB재기.담긴값) ? window.NB재기.담긴값() : (loadReading() || {});
+        const hasF = faceDone || !!(savedReading && savedReading.face);
+        const hasP = palmDone || !!(savedReading && savedReading.palm);
+        const allDone = (!needsFace || hasF) && (!needsPalm || hasP);
+
+        if (allDone) {
+          go.classList.remove('locked');
+          go.textContent = '자세히 보기 →';
+          go.removeAttribute('aria-disabled');
+        } else {
+          go.classList.add('locked');
+          let missingText = '얼굴과 손을 먼저 보여 주십시오 ↑';
+          if (!hasF && !hasP) {
+            missingText = (needsFace && needsPalm) ? '얼굴과 손을 먼저 보여 주십시오 ↑' : (needsFace ? '얼굴을 먼저 보여 주십시오 ↑' : '손을 먼저 보여 주십시오 ↑');
+          } else if (!hasF) {
+            missingText = '얼굴을 먼저 보여 주십시오 ↑';
+          } else if (!hasP) {
+            missingText = '손을 먼저 보여 주십시오 ↑';
+          }
+          go.textContent = missingText;
+          go.setAttribute('aria-disabled', 'true');
+        }
+      };
+
+      go.addEventListener('click', function(e) {
+        const savedReading = (window.NB재기 && window.NB재기.담긴값) ? window.NB재기.담긴값() : (loadReading() || {});
+        const hasF = faceDone || !!(savedReading && savedReading.face);
+        const hasP = palmDone || !!(savedReading && savedReading.palm);
+        const allDone = (!needsFace || hasF) && (!needsPalm || hasP);
+
+        if (!allDone) {
+          e.preventDefault();
+          jaegiSec.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+
+      updateGoLock();
+    }
+
     panel.appendChild(go);
     panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
