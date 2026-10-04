@@ -32,6 +32,7 @@ import {
   HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, HOLIDAY_MAX_MEMBERS,
 } from '../../commerce/src/catalog.ts';
 import { PACKAGES } from '../../commerce/src/packages.ts';
+import { NAMING_FIELD_RATIO, NAMING_POPULAR_TOP_RANK } from '../../naming/src/index.ts';
 import { REPORT_CSS } from './report-render.ts';
 import { UPSELL_CSS } from './upsell-section.ts';
 
@@ -287,6 +288,13 @@ export function renderCheckoutPage(
   const surname = product.needsName ? `
     <div class="co-f"><label for="surname">아이의 성 (예: 김)</label>
       <input type="text" name="surname" id="surname" maxlength="4" required></div>
+    <div class="co-note" style="margin:4px 0 12px;padding:9px 12px;">
+      <p style="margin:0;font-size:13px;color:#c8bfd6;line-height:1.7;">
+        ${product.id === 'naming-plus-report'
+          ? `이 상품은 고르는 글자밭이 <b>${NAMING_FIELD_RATIO}배</b>로 넓고, 대법원 출생신고 통계를 대조해 <b>최근 ${NAMING_POPULAR_TOP_RANK}위 안의 흔한 이름을 피해서</b> 짓습니다.`
+          : '대법원 출생신고 통계를 대조해 흔한 이름인지까지는 보지 않습니다.'}
+      </p>
+    </div>
     <details class="co-opt-block" id="coFixedDetails">
       <summary>꼭 넣고 싶은 글자가 있으십니까?</summary>
       <div class="co-opt-content">

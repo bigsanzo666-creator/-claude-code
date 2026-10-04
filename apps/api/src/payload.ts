@@ -22,6 +22,7 @@ import { readFace, NEUTRAL_FEATURES, sanitizeFaceFeatures } from '../../../packa
 import { readPalm, NEUTRAL_PALM_FEATURES, sanitizePalmFeatures } from '../../../packages/palmistry/src/index.ts';
 import {
   nameField, popularList, popularitySource, popularYears, type NameWish,
+  NAMING_STANDARD_PAIR_LIMIT, NAMING_PLUS_PAIR_LIMIT,
 } from '../../../packages/naming/src/index.ts';
 import { CATALOG, type ProductId, HOLIDAY_MAX_MEMBERS } from '../../../packages/commerce/src/index.ts';
 
@@ -724,8 +725,8 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
       elements: want,
       fixed: wish.fixed,
       avoid: wish.avoid,
-      pairLimit: plus ? 36 : 12,
-      charLimit: plus ? 36 : 12,
+      pairLimit: plus ? NAMING_PLUS_PAIR_LIMIT : NAMING_STANDARD_PAIR_LIMIT,
+      charLimit: plus ? NAMING_PLUS_PAIR_LIMIT : NAMING_STANDARD_PAIR_LIMIT,
     });
     return {
       kind: '작명',

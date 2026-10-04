@@ -29,6 +29,11 @@ import { meaningBad, meaningGood } from './fit.ts';
 import { readFrames, type FrameRead, number81 } from './numbers.ts';
 import { surnamesByReading, surnameOf, type Surname } from './surname.ts';
 
+export const NAMING_STANDARD_PAIR_LIMIT = 12;
+export const NAMING_PLUS_PAIR_LIMIT = 36;
+export const NAMING_FIELD_RATIO = NAMING_PLUS_PAIR_LIMIT / NAMING_STANDARD_PAIR_LIMIT;
+export const NAMING_POPULAR_TOP_RANK = 100;
+
 /** 성을 한글로 받든 한자로 받든 하나로 만든다 */
 export interface SurnameRead {
   /** 한자 성. 두 자 성이면 두 자 */

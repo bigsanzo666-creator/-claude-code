@@ -1525,6 +1525,14 @@ section('11. 문 — 신령계 들어가는 곳');
     check(`${pid}: 돌림자 안내 문구 포함`, html.includes('꼭 넣고 싶은 글자가 있으십니까'));
     check(`${pid}: 피할 글자 안내 문구 포함`, html.includes('쓰고 싶지 않은 글자가 있으십니까'));
   }
+
+  const stdHtml = renderCheckoutPage(full, '', CATALOG['naming-report'], { storeId: 's', channelKey: 'c' });
+  const plusHtml = renderCheckoutPage(full, '', CATALOG['naming-plus-report'], { storeId: 's', channelKey: 'c' });
+
+  check('두 작명 결제 화면의 안내 문구가 서로 다르다', stdHtml !== plusHtml);
+  check('89,900원 결제 화면에 솔직한 안내(흔한 이름 여부 미확인) 표기', stdHtml.includes('흔한 이름인지까지는 보지 않습니다'));
+  check('149,000원 결제 화면에 배수 및 순위 차별화 안내 표기', plusHtml.includes('글자밭이 <b>3배</b>로 넓고') && plusHtml.includes('최근 100위 안의 흔한 이름을 피해서'));
+  check('149,000원 결제 화면에 89,900원 문구가 없다', !plusHtml.includes('흔한 이름인지까지는 보지 않습니다'));
 }
 
 
