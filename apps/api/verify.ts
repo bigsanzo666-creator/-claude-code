@@ -7,6 +7,9 @@
  */
 
 import { createServer } from 'node:http';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   CATALOG, FakeGateway, markPaid, markPending, createOrder,
   PACKAGES, bundleMath, orderable, upsellFor,
@@ -3544,6 +3547,91 @@ section('리포트 개편 — 시각 인지, 상세 가림막, 서버 계산 이
       expiredHtml.includes('할인 시간이 지났습니다'));
   }
 }
+
+{
+  section('배경음악 지연 생성 검증 (음악 끈 손님 데이터 낭비 방지)');
+  const appJsCode = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'public/app.js'), 'utf8');
+
+  // setSound 함수 내부 정적 분석
+  const setSoundMatch = appJsCode.match(/function setSound\(enable\)\s*\{([\s\S]*?)\n  \}/);
+  check('setSound 함수 존재', !!setSoundMatch);
+  if (setSoundMatch) {
+    const fnBody = setSoundMatch[1];
+    check('setSound(false) 분기에서 getBgm()을 부르지 않는다',
+      !/else\s*\{[^}]*getBgm\(\)/.test(fnBody));
+    check('getBgm() 호출은 enable(켜는 쪽)에만 모여 있다',
+      /if\s*\(enable\)\s*\{[\s\S]*?getBgm\(\)/.test(fnBody) &&
+      (fnBody.match(/getBgm\(\)/g) ?? []).length === 1);
+    check('끄는 쪽에서는 기존 bgmAudio가 있을 때만 정지한다',
+      /if\s*\(bgmAudio\)\s*\{\s*bgmAudio\.pause\(\);?\s*\}/.test(fnBody));
+  }
+
+  // 모의 브라우저 환경에서 동작 테스트
+  let audioInstances = 0;
+  class MockAudio {
+    src: string;
+    loop = false;
+    volume = 1.0;
+    paused = true;
+    constructor(src: string) {
+      this.src = src;
+      audioInstances++;
+    }
+    async play() { this.paused = false; }
+    pause() { this.paused = true; }
+  }
+
+  // 꺼 둔 상태(localStorage = '0') 모의 실행
+  const sandboxMuted: any = {
+    Audio: MockAudio,
+    document: { addEventListener: () => {}, removeEventListener: () => {}, getElementById: () => null },
+    localStorage: { getItem: (k: string) => k === 'nb_sound_active' ? '0' : null, setItem: () => {} },
+  };
+  const testScriptMuted = `
+    let bgmAudio = null;
+    let isAudioActive = false;
+    let gateVideo = null, enterVideo = null, stageGate = null, soundControl = null, soundIcon = null, soundText = null;
+    function getBgm() {
+      if (!bgmAudio) {
+        try { bgmAudio = new Audio('/audio/bgm'); } catch(e) { bgmAudio = null; }
+      }
+      return bgmAudio;
+    }
+    ${setSoundMatch ? setSoundMatch[0] : ''}
+    const savedSound = localStorage.getItem('nb_sound_active');
+    if (savedSound === '0') { setSound(false); }
+  `;
+  new Function('Audio', 'localStorage', 'document', testScriptMuted)(MockAudio, sandboxMuted.localStorage, sandboxMuted.document);
+  check('소리 꺼 둔 손님이 화면 열었을 때 /audio/bgm 을 한 번도 안 받는다', audioInstances === 0, `Audio 생성 횟수: ${audioInstances}회`);
+
+  // 켠 상태에서 setSound(true) 호출 시 Audio 생성
+  const sandboxOn: any = {
+    Audio: MockAudio,
+    document: { addEventListener: () => {}, removeEventListener: () => {}, getElementById: () => null },
+    localStorage: { getItem: (k: string) => null, setItem: () => {} },
+  };
+  const testScriptOn = `
+    let bgmAudio = null;
+    let isAudioActive = false;
+    let gateVideo = null, enterVideo = null, stageGate = null, soundControl = null, soundIcon = null, soundText = null;
+    function getBgm() {
+      if (!bgmAudio) {
+        try { bgmAudio = new Audio('/audio/bgm'); } catch(e) { bgmAudio = null; }
+      }
+      return bgmAudio;
+    }
+    ${setSoundMatch ? setSoundMatch[0] : ''}
+    setSound(true);
+    let pausedAfterOff = false;
+    setSound(false);
+    if (bgmAudio && bgmAudio.paused) pausedAfterOff = true;
+    return { audioCount: bgmAudio ? 1 : 0, pausedAfterOff };
+  `;
+  const resultOn = new Function('Audio', 'localStorage', 'document', testScriptOn)(MockAudio, sandboxOn.localStorage, sandboxOn.document);
+  check('소리를 켜면 /audio/bgm Audio 객체를 생성한다', resultOn.audioCount === 1);
+  check('신령음 OFF(setSound false)를 누르면 음악이 멈춘다', resultOn.pausedAfterOff === true);
+}
+
 
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }

@@ -676,7 +676,6 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('nb_sound_active', enable ? '1' : '0');
     } catch (e) {}
 
-    const bgm = getBgm();
     if (enable) {
       if (stageGate && stageGate.classList.contains('active') && gateVideo) {
         gateVideo.muted = false;
@@ -687,6 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
         enterVideo.muted = false;
         enterVideo.volume = 1.0;
       }
+      const bgm = getBgm();
       if (bgm) {
         bgm.play().catch(() => { });
       }
@@ -696,8 +696,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       if (gateVideo) gateVideo.muted = true;
       if (enterVideo) enterVideo.muted = true;
-      if (bgm) {
-        bgm.pause();
+      if (bgmAudio) {
+        bgmAudio.pause();
       }
       if (soundControl) soundControl.classList.remove('active');
       if (soundIcon) soundIcon.textContent = '🔇';
