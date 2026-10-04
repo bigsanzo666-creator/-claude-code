@@ -205,6 +205,22 @@ section('6. 잰 값이 풀이로 이어지는가');
   check('점 번호가 468개 안에 있다', NEEDED.every((i) => i >= 0 && i < 468));
 }
 
+section('7. 보통(mid) 손님도 10대목이 전부 나오는가 (1단계 검증)');
+{
+  const midReading = readFace(NEUTRAL_FEATURES);
+  check('보통 얼굴도 10대목이 빠짐없이 나온다', midReading.notes.length === 10, `대목 수: ${midReading.notes.length}`);
+  check('모든 대목에 근거(palace/부위 이름)가 붙어 있다',
+    midReading.notes.every((n) => n.palace && n.palace.trim().length > 0 && n.text && n.text.trim().length > 0));
+
+  const allText = midReading.notes.map((n) => `${n.palace} ${n.text}`).join(' ')
+    + (midReading.combos.length ? ' ' + midReading.combos.map((c) => `${c.name} ${c.evidence} ${c.text}`).join(' ') : '');
+  check('관상 글자수가 1,500자 이상이다', allText.length >= 1500, `글자수: ${allText.length}`);
+
+  const SCARY_WORDS = ['막혔다', '나쁘다', '닥친다', '반드시', '틀림없이', '장담', '수명', '사망', '중병', '사고', '불행', '재앙', '파멸'];
+  const scaryHits = SCARY_WORDS.filter((w) => allText.includes(w));
+  check('겁주는 낱말이 없다', scaryHits.length === 0, scaryHits.join(', '));
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }

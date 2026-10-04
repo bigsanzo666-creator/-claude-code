@@ -1275,8 +1275,8 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
     data: {
       보는_갈래: Object.entries(uses).filter(([, on]) => on).map(([k]) => k),
       ...(uses.사주 ? { 사주: axes ? { 명식: base.명식, 일간: base.일간, 매력: extractTopic(an, 'charm') } : base } : {}),
-      ...(face ? { 관상: { 부위별: face.notes, 신호: face.profile.signals } } : {}),
-      ...(palm ? { 손금: { 항목별: palm.notes, 신호: palm.profile.signals } } : {}),
+      ...(face ? { 관상: { 부위별: face.notes, ...(face.combos.length ? { 조합: face.combos } : {}), 신호: face.profile.signals } } : {}),
+      ...(palm ? { 손금: { 항목별: palm.notes, ...(palm.combos.length ? { 조합: palm.combos } : {}), 신호: palm.profile.signals } } : {}),
       교차검증,
     },
   };

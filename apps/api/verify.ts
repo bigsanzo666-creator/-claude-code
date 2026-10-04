@@ -1183,6 +1183,17 @@ section('H1. 값이 다르면 물건도 다르다');
   const sf = buildPayload({ productId: 'saju-face-report', birth: BIRTH2 } as never);
   check('사주 × 관상에 손금이 실리지 않는다', !('손금' in (sf.data as object)));
 
+  // 1단계 검증: 치우친 값이 없는 보통(mid) 손님도 관상 10대목, 손금 6대목이 빠짐없이 실린다
+  const crossMid = buildPayload({
+    productId: 'cross-report',
+    birth: BIRTH2,
+    face: {},
+    palm: {},
+  } as never);
+  const crossData = crossMid.data as { 관상?: { 부위별: unknown[] }; 손금?: { 항목별: unknown[] } };
+  check('보통 손님도 관상 10대목이 빠짐없이 실린다', crossData.관상?.부위별.length === 10, `${crossData.관상?.부위별.length}대목`);
+  check('보통 손님도 손금 6대목이 빠짐없이 실린다', crossData.손금?.항목별.length === 6, `${crossData.손금?.항목별.length}대목`);
+
   /*
    * 화면에 적은 것과 자료가 같은 말을 해야 한다.
    *

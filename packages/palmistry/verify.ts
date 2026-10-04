@@ -257,6 +257,22 @@ section('11. 넷을 한 번에 읽는다');
     === Object.keys(NEUTRAL_PALM_FEATURES).length);
 }
 
+section('12. 보통(mid) 손님도 6대목이 전부 나오는가 (1단계 검증)');
+{
+  const midReading = readPalm(NEUTRAL_PALM_FEATURES);
+  check('보통 손금도 6대목이 빠짐없이 나온다', midReading.notes.length === 6, `대목 수: ${midReading.notes.length}`);
+  check('모든 대목에 근거(domain/선 이름)가 붙어 있다',
+    midReading.notes.every((n) => n.domain && n.domain.trim().length > 0 && n.text && n.text.trim().length > 0));
+
+  const allText = midReading.notes.map((n) => `${n.domain} ${n.text}`).join(' ')
+    + (midReading.combos.length ? ' ' + midReading.combos.map((c) => `${c.name} ${c.evidence} ${c.text}`).join(' ') : '');
+  check('손금 글자수가 900자 이상이다', allText.length >= 900, `글자수: ${allText.length}`);
+
+  const SCARY_WORDS = ['막혔다', '나쁘다', '닥친다', '반드시', '틀림없이', '장담', '수명', '사망', '중병', '사고', '불행', '재앙', '파멸'];
+  const scaryHits = SCARY_WORDS.filter((w) => allText.includes(w));
+  check('겁주는 낱말이 없다', scaryHits.length === 0, scaryHits.join(', '));
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }
