@@ -732,6 +732,19 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
       kind: '작명',
       subject: `${field.성.한글} 씨 아이`,
       data: {
+        /*
+         * 손님이 적어 준 것을 **그대로** 싣는다.
+         *
+         * 터진 뒤에 적은 것 (2026-10-04): 리포트가 「돌림자 ○ 를 넣어 지음」
+         * 이라고만 적고, 손님이 무엇을 적어 냈는지는 어디에도 없었다.
+         * 그래서 적어 준 것이 지켜졌는지 손님이 대조할 길이 없었다.
+         * 149,000원짜리에서 이게 어긋나면 그대로 분쟁이 된다.
+         */
+        적어주신것: {
+          성: wish.surname,
+          꼭_넣을_글자: wish.fixed ? { 글자: wish.fixed.char, 자리: wish.fixed.at } : null,
+          피할_글자: (wish.avoid ?? []).length ? wish.avoid : null,
+        },
         채워야할기운: {
           오행: want,
           십신: an.yongsin.primary,

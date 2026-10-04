@@ -53,6 +53,7 @@ import { pickDays, bestPerDay, mergeHours, buildDailyPreviewData, buildMonthPrev
 import { calculate } from '../../../packages/manseryeok/src/index.ts';
 import { buildPreview, sampleFor, sampleNoticeFor } from './preview.ts';
 import { sendOrderMail, sendReportMail, sendTestMail, mailReady, redactKey } from './mail.ts';
+import { byReading, readSurname, goodPairs } from '../../../packages/naming/src/index.ts';
 import { type ReferralStore, MemoryReferralStore } from '../../../packages/store/src/index.ts';
 
 /**
@@ -1010,7 +1011,7 @@ function validateReading(body: any): ReadingRequest {
         throw new HttpError(400, '돌림자는 한글 또는 한자 한 글자만 적어 주십시오.');
       }
       if (!['앞', '뒤'].includes(String(fixed.at))) {
-        throw new HttpError(400, '돌림자 자리는 앞이나 뒤여야 합니다.');
+        throw new HttpError(400, '꼭 넣을 글자를 어디에 넣을지 골라 주십시오.');
       }
       cleanFixed = { char: c, at: fixed.at as '앞' | '뒤' };
     }
@@ -2322,6 +2323,49 @@ export function createApi(deps: ApiDeps) {
 
     'GET /invite': async (_req, res) => {
       sendHtml(res, renderInvitePage(business, renderFooter(business)));
+    },
+
+    /*
+     * 「희」라고 적으면 **희로 읽는 한자들을 뜻과 함께** 돌려준다.
+     *
+     * 터진 뒤에 적은 것 (2026-10-04): 손님이 「희」를 적으면 획수만 보고
+     * 아무 희자나 골라 이름을 지어 보냈다. 「희」로 쓸 수 있는 한자는
+     * 스물셋이고 뜻이 전부 다르다. 밝을 희(熙)를 원한 손님이 바랄 희(希)를
+     * 받으면 그 이름은 못 쓴다. 이름은 평생 쓰는 것이다.
+     *
+     * 성을 같이 주면 **그 성으로 길한 획수가 서는 자리**까지 같이 본다.
+     * 못 쓰는 글자를 목록에서 빼지 않는다 — 왜 못 쓰는지 알아야 한다.
+     */
+    'GET /api/naming/hanja': async (req, res) => {
+      const url = new URL(req.url ?? '/', 'http://localhost');
+      const 소리 = (url.searchParams.get('reading') ?? '').trim();
+      const 성 = (url.searchParams.get('surname') ?? '').trim();
+      if (!/^[\uac00-\ud7a3]$/.test(소리)) {
+        throw new HttpError(400, '한글 한 글자를 적어 주십시오.');
+      }
+      const 목록 = byReading(소리, { legal: true });
+
+      let 앞획: Set<number> | null = null;
+      let 끝획: Set<number> | null = null;
+      if (성) {
+        const sur = readSurname(성);
+        if (sur) {
+          const 전부 = goodPairs(sur, Number.MAX_SAFE_INTEGER);
+          앞획 = new Set(전부.map((p) => p.first));
+          끝획 = new Set(전부.map((p) => p.last));
+        }
+      }
+
+      send(res, 200, {
+        소리,
+        글자들: 목록.map((h) => ({
+          자: h.char,
+          획: h.strokes,
+          뜻: h.meaning || null,
+          앞자리로_쓸_수_있나: 앞획 ? 앞획.has(h.strokes) : null,
+          끝자리로_쓸_수_있나: 끝획 ? 끝획.has(h.strokes) : null,
+        })),
+      });
     },
 
     'POST /api/invite/check': async (req, res) => {

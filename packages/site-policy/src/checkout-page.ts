@@ -147,6 +147,21 @@ ${UPSELL_CSS}
 .co-kin-top b{font-size:14px;color:#e4dfea}
 .co-kin-del{background:none;border:none;color:#9a93a6;font-size:14px;cursor:pointer;font-family:inherit}
 .co-opt-block{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.co-hanja-pick{margin:10px 0 4px;padding:10px 12px;border:1px solid var(--nb-line-soft);border-radius:10px;background:rgba(255,255,255,.03)}
+.co-hanja-head{margin:0 0 8px;font-size:13px;color:var(--nb-ink-3);line-height:1.6}
+.co-hanja-grid{display:flex;flex-wrap:wrap;gap:7px}
+.co-hanja-btn{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:52px;padding:7px 8px;
+  border:1px solid var(--nb-line-soft);border-radius:9px;background:rgba(255,255,255,.04);color:var(--nb-ink);cursor:pointer}
+.co-hanja-btn .co-hanja-ja{font-size:22px;line-height:1.1;font-family:var(--nb-serif,serif)}
+.co-hanja-btn .co-hanja-sub{font-size:11px;color:var(--nb-ink-3)}
+.co-hanja-btn.on{border-color:#d4af37;background:rgba(212,175,55,.16)}
+.co-hanja-btn.off{opacity:.38}
+.co-hanja-note{margin:8px 0 0;font-size:12px;color:var(--nb-ink-3);line-height:1.6}
+.co-shape{margin:8px 0 0;font-size:13px;color:var(--nb-ink-2);line-height:1.8}
+.co-shape .co-shape-name{font-size:19px;letter-spacing:2px}
+.co-shape .co-shape-name b{color:#d4af37}
+.co-shape .co-shape-note{font-size:12px;color:var(--nb-ink-3)}
+
 .co-opt-block summary{font-size:14px;color:#d4af37;cursor:pointer;font-weight:600;outline:none}
 .co-opt-content{margin-top:10px}
 .co-note{background:rgba(12,10,18,.6);border:1px solid rgba(255,255,255,.1);
@@ -299,15 +314,23 @@ export function renderCheckoutPage(
       <summary>꼭 넣고 싶은 글자가 있으십니까?</summary>
       <div class="co-opt-content">
         <div class="co-f">
-          <label for="fixedChar">돌림자 (한 글자)</label>
-          <div class="co-two" style="align-items:center;">
-            <input type="text" name="fixedChar" id="fixedChar" maxlength="1" placeholder="예: 준 또는 俊">
-            <select name="fixedAt" id="fixedAt">
-              <option value="앞" selected>앞자리 (준○)</option>
-              <option value="뒤">뒷자리 (○준)</option>
-            </select>
-          </div>
-          <span class="co-hint">형이 「준희」면 동생 「○희」는 뒤, 「준○」은 앞입니다</span>
+          <label for="fixedChar">꼭 넣을 글자 (한 글자)</label>
+          <input type="text" name="fixedChar" id="fixedChar" maxlength="1" placeholder="한글로 적으셔도 되고 한자로 적으셔도 됩니다">
+          <span class="co-hint">형·누나와 같은 글자를 쓰실 때 적습니다. 한글로 적으시면 그 소리로 쓸 수 있는 한자를 보여 드립니다.</span>
+        </div>
+        <div class="co-hanja-pick" id="coHanjaPick" style="display:none">
+          <p class="co-hanja-head" id="coHanjaHead"></p>
+          <div class="co-hanja-grid" id="coHanjaGrid"></div>
+          <p class="co-hanja-note">글자를 누르면 그 한자로 지어 드립니다. 고르지 않으시면 저희가 아이 사주에 맞는 것으로 고릅니다.</p>
+        </div>
+        <div class="co-f">
+          <label for="fixedAt">그 글자를 어디에 넣을까요?</label>
+          <select name="fixedAt" id="fixedAt">
+            <option value="" selected>— 고르지 않음 —</option>
+            <option value="앞">먼저 (성 바로 뒤)</option>
+            <option value="뒤">나중 (이름 끝)</option>
+          </select>
+          <p class="co-shape" id="coFixedShape" style="display:none"></p>
         </div>
       </div>
     </details>
@@ -1437,6 +1460,93 @@ export function renderCheckoutPage(
   }
   refreshPrice();
 
+  /*
+   * 꼭 넣을 글자 — 한자를 **손님이 고르게** 한다.
+   *
+   * 터진 뒤에 적은 것 (2026-10-04): 「희」라고만 받고 획수에 맞는 한자를
+   * 저희가 골랐다. 「희」로 쓸 수 있는 한자는 마흔 개가 넘고 뜻이 전부 다르다.
+   * 밝을 희(熙)를 바란 손님이 바랄 희(希)를 받으면 그 이름은 못 쓴다.
+   * 그리고 자리(앞/뒤)가 「앞」으로 미리 눌려 있어, 못 보고 지나간 손님은
+   * 끝에 넣고 싶던 글자를 앞에 받았다. 149,000원짜리에서 이러면 분쟁이다.
+   */
+  ${product.needsName ? `
+  var fxInput = document.getElementById('fixedChar');
+  var fxAt    = document.getElementById('fixedAt');
+  var fxPick  = document.getElementById('coHanjaPick');
+  var fxGrid  = document.getElementById('coHanjaGrid');
+  var fxHead  = document.getElementById('coHanjaHead');
+  var fxShape = document.getElementById('coFixedShape');
+  var 고른한자 = '';
+
+  function 한글인가(c){ return /^[\uac00-\ud7a3]$/.test(c); }
+
+  function 모양을그린다(){
+    if(!fxShape) return;
+    var 성 = (val('surname') || '').trim();
+    var 글 = 고른한자 || (fxInput ? fxInput.value.trim() : '');
+    var 자리 = fxAt ? fxAt.value : '';
+    if(!글 || !자리){ fxShape.style.display = 'none'; return; }
+    var 성글 = 성 || '○';
+    var 보기 = 자리 === '앞'
+      ? 성글 + ' <b>' + 글 + '</b> ○'
+      : 성글 + ' ○ <b>' + 글 + '</b>';
+    fxShape.innerHTML = '이렇게 지어 드립니다 &nbsp; <span class="co-shape-name">' + 보기 + '</span>'
+      + '<br><span class="co-shape-note">○ 는 저희가 지어 드릴 글자입니다</span>';
+    fxShape.style.display = 'block';
+  }
+
+  function 한자를보여준다(){
+    if(!fxGrid || !fxPick) return;
+    var c = fxInput ? fxInput.value.trim() : '';
+    if(!한글인가(c)){
+      fxPick.style.display = 'none';
+      fxGrid.innerHTML = '';
+      고른한자 = '';
+      모양을그린다();
+      return;
+    }
+    var 성 = (val('surname') || '').trim();
+    fetch('/api/naming/hanja?reading=' + encodeURIComponent(c) + (성 ? '&surname=' + encodeURIComponent(성) : ''))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var 글자들 = (d && d.글자들) || [];
+        if(!글자들.length){ fxPick.style.display='none'; return; }
+        fxHead.textContent = '「' + c + '」 로 쓸 수 있는 한자 ' + 글자들.length + '개 — 아시는 글자가 있으면 눌러 주십시오';
+        fxGrid.innerHTML = 글자들.map(function(h){
+          var 쓸수없나 = (h.앞자리로_쓸_수_있나 === false && h.끝자리로_쓸_수_있나 === false);
+          return '<button type="button" class="co-hanja-btn' + (쓸수없나 ? ' off' : '') + '" data-ja="' + h.자 + '"'
+            + (쓸수없나 ? ' title="이 글자로는 길한 획수가 서지 않습니다"' : '')
+            + '><span class="co-hanja-ja">' + h.자 + '</span><span class="co-hanja-sub">' + h.획 + '획</span></button>';
+        }).join('');
+        fxPick.style.display = 'block';
+      })
+      .catch(function(){ fxPick.style.display='none'; });
+  }
+
+  if(fxGrid){
+    fxGrid.addEventListener('click', function(e){
+      var b = e.target.closest ? e.target.closest('.co-hanja-btn') : null;
+      if(!b) return;
+      var 이미 = b.classList.contains('on');
+      Array.prototype.forEach.call(fxGrid.querySelectorAll('.co-hanja-btn'), function(x){ x.classList.remove('on'); });
+      if(이미){ 고른한자 = ''; } else { b.classList.add('on'); 고른한자 = b.getAttribute('data-ja'); }
+      모양을그린다();
+    });
+  }
+  if(fxInput){
+    var 늦게 = null;
+    fxInput.addEventListener('input', function(){
+      고른한자 = '';
+      모양을그린다();
+      clearTimeout(늦게);
+      늦게 = setTimeout(한자를보여준다, 250);
+    });
+  }
+  if(fxAt) fxAt.addEventListener('change', 모양을그린다);
+  var 성칸 = document.getElementById('surname');
+  if(성칸) 성칸.addEventListener('input', function(){ 모양을그린다(); });
+  ` : ''}
+
   var invToggle = document.getElementById('coInviteToggle');
   var invFold = document.getElementById('coInviteFold');
   var invInput = document.getElementById('coInviteInput');
@@ -1643,9 +1753,16 @@ export function renderCheckoutPage(
     };
     ${product.needsName ? `
     var nObj = { surname: val('surname') };
-    var fChar = val('fixedChar').trim();
+    var fChar = (고른한자 || val('fixedChar')).trim();
     if (fChar) {
-      nObj.fixed = { char: fChar, at: (val('fixedAt') || '앞') };
+      /*
+       * 자리를 안 고르면 **보내지 않는다.**
+       * 전에는 비었을 때 조용히 '앞' 으로 넣었다. 끝에 넣고 싶던 손님이
+       * 그 칸을 못 보고 지나가면 앞에 박힌 이름을 받았다.
+       */
+      var fAt = val('fixedAt');
+      if (!fAt) return say('꼭 넣을 글자를 어디에 넣을지 골라 주십시오.');
+      nObj.fixed = { char: fChar, at: fAt };
     }
     var rawAvoid = val('avoidChars').trim();
     if (rawAvoid) {

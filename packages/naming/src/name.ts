@@ -310,35 +310,54 @@ export function nameField(wish: NameWish): NameField {
     }
   }
 
-  let pairs = goodPairs(sur, wish.pairLimit ?? 40);
+  const pairLimit = wish.pairLimit ?? 40;
+  let pairs: ReturnType<typeof goodPairs>;
   if (wish.fixed && fixedStrokes.length > 0) {
+    /*
+     * 터진 뒤에 적은 것 (2026-10-04): **먼저 좁히고 나서 자른다.**
+     *
+     * 전에는 `goodPairs(sur, pairLimit)` 로 **먼저 자른 뒤** 돌림자 획수로
+     * 좁혔다. 획수 짝은 「아홉에 가까운 것」 순으로 서므로, 획이 많은
+     * 글자(熙 15획)의 짝은 앞쪽 열두 개 안에 들지 못한다. 그러면 좁힌
+     * 결과가 비고, 조용히 **좁히지 않은 밭**으로 되돌아가 손님이 적어 준
+     * 글자가 **한 자도 없는 이름**이 나갔다. 그런데 막힘 은 false 였다.
+     *
+     * 사장님이 「밝을 희(熙)를 끝에 넣어 달라」고 적고 149,000원을 낸 뒤
+     * 전혀 다른 이름을 받아서 드러났다. 89,900원 상품(열두 짝)에서만
+     * 터지고 149,000원(서른여섯 짝)에서는 멀쩡해, 값싼 쪽만 조용히 당했다.
+     */
     const at = wish.fixed.at;
-    const filtered = pairs.filter((p) => fixedStrokes.includes(at === '앞' ? p.first : p.last));
-    if (filtered.length > 0) {
-      pairs = filtered;
-    } else if (fixedAnalysis?.대안_자리) {
+    const 전부 = goodPairs(sur, Number.MAX_SAFE_INTEGER);
+    pairs = 전부
+      .filter((p) => fixedStrokes.includes(at === '앞' ? p.first : p.last))
+      .slice(0, pairLimit);
+    if (pairs.length === 0 && fixedAnalysis?.대안_자리) {
       const altAt = fixedAnalysis.대안_자리;
-      const altFiltered = pairs.filter((p) => fixedStrokes.includes(altAt === '앞' ? p.first : p.last));
-      if (altFiltered.length > 0) pairs = altFiltered;
+      pairs = 전부
+        .filter((p) => fixedStrokes.includes(altAt === '앞' ? p.first : p.last))
+        .slice(0, pairLimit);
     }
+  } else {
+    pairs = goodPairs(sur, pairLimit);
   }
 
   const 후보: StrokePair[] = pairs.map((p) => {
-    let firstChars: Hanja[];
-    if (wish.fixed && fixedHanjaList.length > 0 && wish.fixed.at === '앞') {
-      const matching = fixedHanjaList.filter((h) => h.strokes === p.first);
-      firstChars = matching.length ? matching : charsByStroke(p.first, want, charLimit, avoid);
-    } else {
-      firstChars = charsByStroke(p.first, want, charLimit, avoid);
-    }
+    /*
+     * 돌림자 자리에는 **손님이 적어 준 글자만** 놓는다.
+     *
+     * 터진 뒤에 적은 것 (2026-10-04): 획수가 안 맞으면 조용히
+     * `charsByStroke` 로 되돌아가, 손님이 적어 준 글자 대신 전혀 다른 글자가
+     * 그 자리에 들어갔다. 못 넣으면 그 짝을 **버린다**. 바꿔치기하지 않는다.
+     */
+    const 놓는자리 = wish.fixed && fixedHanjaList.length > 0 ? wish.fixed.at : null;
 
-    let lastChars: Hanja[];
-    if (wish.fixed && fixedHanjaList.length > 0 && wish.fixed.at === '뒤') {
-      const matching = fixedHanjaList.filter((h) => h.strokes === p.last);
-      lastChars = matching.length ? matching : charsByStroke(p.last, want, charLimit, avoid);
-    } else {
-      lastChars = charsByStroke(p.last, want, charLimit, avoid);
-    }
+    const firstChars: Hanja[] = 놓는자리 === '앞'
+      ? fixedHanjaList.filter((h) => h.strokes === p.first)
+      : charsByStroke(p.first, want, charLimit, avoid);
+
+    const lastChars: Hanja[] = 놓는자리 === '뒤'
+      ? fixedHanjaList.filter((h) => h.strokes === p.last)
+      : charsByStroke(p.last, want, charLimit, avoid);
 
     return {
       first: p.first,

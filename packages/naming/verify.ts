@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs';
 import {
   EIGHTY_ONE, number81, fourFrames, readFrames, middleStrokeCandidates, frameRows, FRAME_PLAIN,
   popularYears, popularList, popularitySource, popularityOf,
+  nameField, byReading,
 } from './src/index.ts';
 
 let passed = 0, failed = 0;
@@ -333,6 +334,77 @@ check('없다고 「좋은 이름」이라고 말하지 않는다',
 check('한자까지 안다고 하지 않는다',
   !common.say.includes('한자') && !rare.say.includes('한자'));
 
+
+// ── 손님이 적어 준 글자를 버리지 않는다 ────────────────────────────────
+/*
+ * 터진 뒤에 적은 것 (2026-10-04): 사장님이 「밝을 희(熙)를 끝에 넣어 달라」고
+ * 적고 149,000원을 낸 뒤, 熙 가 한 자도 없는 이름을 받았다. 막힘 은 false 였다.
+ *
+ * 까닭이 둘이었다.
+ *  ① 획수 짝을 **먼저 자르고 나중에 좁혔다** — 획이 많은 글자의 짝은
+ *     앞쪽 열두 개 안에 못 들어, 좁힌 결과가 비고 조용히 전체 밭으로 돌아갔다.
+ *  ② 글자를 놓을 때 획수가 안 맞으면 조용히 다른 글자로 바꿔치기했다.
+ *
+ * 값싼 상품(열두 짝)에서만 터지고 비싼 상품(서른여섯 짝)은 멀쩡해 더 늦게 드러났다.
+ */
+console.log('\n돌림자 — 적어 준 글자를 버리지 않는다');
+console.log('─'.repeat(60));
+
+{
+  const 실제모양한자 = [
+    ['熙', '뒤'], ['熙', '앞'], ['禧', '뒤'], ['俊', '앞'], ['希', '뒤'],
+  ] as const;
+  for (const [자, 자리] of 실제모양한자) {
+    for (const 밭 of [12, 36]) {
+      const f = nameField({ surname: '김', elements: ['화'], fixed: { char: 자, at: 자리 }, pairLimit: 밭, charLimit: 6 });
+      const 칸 = 자리 === '뒤' ? 'lastChars' : 'firstChars';
+      const 그자리글자 = new Set(f.후보.flatMap((p) => p[칸].map((c) => c.char)));
+      const 막힘 = f.돌림자_분석?.막힘 ?? false;
+      if (막힘) {
+        check(`${자}(${자리}·밭${밭}) 막혔다고 했으면 짝을 내지 않는다`, f.후보.length === 0);
+      } else {
+        check(`${자}(${자리}·밭${밭}) 그 자리에 적어 준 한자만 들어간다`,
+          f.후보.length > 0 && 그자리글자.size === 1 && 그자리글자.has(자),
+          [...그자리글자].join(' '));
+      }
+    }
+  }
+}
+
+{
+  // 「잘 됐다」고 해 놓고 그 글자가 없는 경우가 **단 하나도** 없어야 한다
+  const 성들 = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임'];
+  const 소리들 = ['희', '준', '서', '민', '현', '우', '연', '지'];
+  let 거짓말 = 0;
+  let 본것 = 0;
+  for (const 성 of 성들) {
+    for (const 소리 of 소리들) {
+      for (const h of byReading(소리, { legal: true }).slice(0, 6)) {
+        for (const 자리 of ['앞', '뒤'] as const) {
+          for (const 밭 of [12, 36]) {
+            본것 += 1;
+            let f;
+            try { f = nameField({ surname: 성, elements: ['화'], fixed: { char: h.char, at: 자리 }, pairLimit: 밭, charLimit: 4 }); } catch { continue; }
+            const 칸 = 자리 === '뒤' ? 'lastChars' : 'firstChars';
+            const 들어감 = f.후보.length > 0 && f.후보.every((p) => p[칸].some((c) => c.char === h.char));
+            if (!(f.돌림자_분석?.막힘 ?? false) && !들어감) 거짓말 += 1;
+          }
+        }
+      }
+    }
+  }
+  check('「막히지 않았다」고 해 놓고 그 글자가 빠진 경우가 없다', 거짓말 === 0,
+    `${본것}가지 중 ${거짓말}건`);
+}
+
+{
+  // 한글로 적으면 그 소리로 읽는 한자만 나온다
+  const f = nameField({ surname: '김', elements: ['화'], fixed: { char: '희', at: '뒤' }, pairLimit: 12, charLimit: 6 });
+  const 끝 = new Set(f.후보.flatMap((p) => p.lastChars.map((c) => c.char)));
+  const 희소리 = new Set(byReading('희', { legal: true }).map((h) => h.char));
+  check('한글로 적으면 그 소리로 읽는 한자만 끝자리에 온다',
+    끝.size > 0 && [...끝].every((c) => 희소리.has(c)), [...끝].slice(0, 8).join(' '));
+}
 
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} / 실패 ${failed}`);
