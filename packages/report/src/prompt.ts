@@ -59,8 +59,8 @@ export const LADDER_TIERS = [
   { minPrice: CATALOG['daily-report'].priceKrw, maxPrice: CATALOG['daily-report'].priceKrw, minChars: 1500, maxChars: 2500 },
   { minPrice: CATALOG['month-report'].priceKrw, maxPrice: CATALOG['month-report'].priceKrw, minChars: 2500, maxChars: 3500 },
   { minPrice: CATALOG['wealth-report'].priceKrw, maxPrice: CATALOG['charm-report'].priceKrw, minChars: 3500, maxChars: 4500 },
-  { minPrice: CATALOG['crush-compat-report'].priceKrw, maxPrice: CATALOG['family-holiday-report'].priceKrw, minChars: 5000, maxChars: 6500 },
-  { minPrice: CATALOG['pick-report'].priceKrw, maxPrice: CATALOG['cross-report'].priceKrw, minChars: 8000, maxChars: 11000 },
+  { minPrice: CATALOG['crush-compat-report'].priceKrw, maxPrice: CATALOG['face-palm-report'].priceKrw, minChars: 5000, maxChars: 6500 },
+  { minPrice: CATALOG['saju-palm-report'].priceKrw, maxPrice: CATALOG['cross-report'].priceKrw, minChars: 8000, maxChars: 11000 },
   { minPrice: CATALOG['naming-report'].priceKrw, maxPrice: CATALOG['naming-plus-report'].priceKrw, minChars: 11000, maxChars: 15000 },
 ] as const;
 
@@ -70,9 +70,19 @@ export interface LengthTarget {
   maxChars: number;
 }
 
-export function lengthTargetOf(kind: ReportKind): LengthTarget {
-  const prodId = KIND_REPRESENTATIVE_PRODUCT[kind];
-  const priceKrw = CATALOG[prodId].priceKrw;
+export function lengthTargetOf(
+  kind: ReportKind,
+  productIdOrPrice?: ProductId | number,
+): LengthTarget {
+  let priceKrw: number;
+  if (typeof productIdOrPrice === 'number') {
+    priceKrw = productIdOrPrice;
+  } else if (productIdOrPrice && typeof productIdOrPrice === 'string' && productIdOrPrice in CATALOG) {
+    priceKrw = CATALOG[productIdOrPrice as ProductId].priceKrw;
+  } else {
+    const prodId = KIND_REPRESENTATIVE_PRODUCT[kind];
+    priceKrw = CATALOG[prodId].priceKrw;
+  }
   const tier = LADDER_TIERS.find((t) => priceKrw >= t.minPrice && priceKrw <= t.maxPrice);
   if (!tier) {
     throw new Error(`알 수 없는 가격대: ${kind} (${priceKrw}원)`);
@@ -84,8 +94,11 @@ export function lengthTargetOf(kind: ReportKind): LengthTarget {
   };
 }
 
-export function lengthInstructionFor(kind: ReportKind): string {
-  const target = lengthTargetOf(kind);
+export function lengthInstructionFor(
+  kind: ReportKind,
+  productIdOrPrice?: ProductId | number,
+): string {
+  const target = lengthTargetOf(kind, productIdOrPrice);
   return `## 분량 지시
 
 - 분량은 공백 제외 ${target.minChars.toLocaleString()}자에서 ${target.maxChars.toLocaleString()}자 사이를 목표로 합니다.
@@ -109,6 +122,8 @@ export interface ReportInput {
    * 모델이 없는 것을 지어내기 시작하면 이 집이 쌓은 것이 그 자리에서 무너진다.
    */
   question?: string;
+  /** 세부 상품 ID (교차검증 등 갈래별 맞춤 구성에 사용) */
+  productId?: ProductId;
 }
 
 /**
@@ -273,6 +288,100 @@ const TWO_TIER_RULES = `## 이 리포트의 구성 — 두 층으로 씁니다
 - 별도의 각주 장치나 <small> 태그는 쓰지 않습니다.
 - 겁주지 않습니다. 「막혔다」, 「닥친다」, 「반드시」, 「틀림없이」, 「장담」 같은 말을 쓰지 않습니다.`;
 
+/** 교차검증 상품별 분석 갈래 매핑 */
+export const CROSS_SOURCES: Record<string, { 사주: boolean; 관상: boolean; 손금: boolean }> = {
+  'face-palm-report': { 사주: false, 관상: true, 손금: true },
+  'saju-palm-report': { 사주: true, 관상: false, 손금: true },
+  'saju-face-report': { 사주: true, 관상: true, 손금: false },
+  'cross-report': { 사주: true, 관상: true, 손금: true },
+};
+
+export function buildCrossOutline(context?: unknown): string {
+  let uses = { 사주: true, 관상: true, 손금: true };
+
+  if (typeof context === 'string' && context in CROSS_SOURCES) {
+    uses = CROSS_SOURCES[context] ?? uses;
+  } else if (context && typeof context === 'object') {
+    const obj = context as any;
+    if (typeof obj.productId === 'string' && obj.productId in CROSS_SOURCES) {
+      uses = CROSS_SOURCES[obj.productId] ?? uses;
+    } else if (Array.isArray(obj.보는_갈래)) {
+      uses = {
+        사주: obj.보는_갈래.includes('사주'),
+        관상: obj.보는_갈래.includes('관상'),
+        손금: obj.보는_갈래.includes('손금'),
+      };
+    } else if ('사주' in obj || '관상' in obj || '손금' in obj) {
+      uses = {
+        사주: Boolean(obj.사주),
+        관상: Boolean(obj.관상),
+        손금: Boolean(obj.손금),
+      };
+    }
+  }
+
+  const isFacePalm = !uses.사주 && uses.관상 && uses.손금;
+  const isSajuPalm = uses.사주 && !uses.관상 && uses.손금;
+  const isSajuFace = uses.사주 && uses.관상 && !uses.손금;
+
+  // 분량 사다리 기준 (합이 사다리 하한을 넘게 함)
+  const sajuMin = isSajuPalm || isSajuFace ? 3500 : 3000;
+  const faceMin = isFacePalm ? 2000 : (isSajuFace ? 2000 : 1500);
+  const palmMin = isFacePalm ? 1500 : (isSajuPalm ? 1500 : 1000);
+  const crossMin = isFacePalm ? 1500 : 2500;
+  const actionMin = isFacePalm ? 500 : 800;
+
+  const sections: string[] = [];
+
+  // 1부
+  const activeNames = Object.entries(uses).filter(([, on]) => on).map(([k]) => k).join('·');
+  sections.push(`### 1부 들어가며
+몇 갈래(${activeNames})를 어떻게 보았는지 짧고 명쾌하게 밝힙니다.`);
+
+  // 2부
+  if (uses.사주) {
+    sections.push(`### 2부 사주로 본 것 (최소 ${sajuMin.toLocaleString()}자 이상)
+일간·강약·십신·오행·용신·대운까지 쭉 풉니다.
+**[규칙] 2부는 대조를 하지 않습니다.** 그 갈래가 본 것만 씁니다. 대조는 5부에서만 합니다. 섞으면 세 권을 산 느낌이 안 납니다. 오직 사주 명식으로 본 것만 씁니다.`);
+  }
+
+  // 3부
+  if (uses.관상) {
+    sections.push(`### 3부 얼굴로 본 것 (최소 ${faceMin.toLocaleString()}자 이상)
+부위별로 한 대목씩 풀고, 두 부위를 묶어 보는 대목도 포함합니다.
+**[규칙] 3부는 대조를 하지 않습니다.** 그 갈래가 본 것만 씁니다. 대조는 5부에서만 합니다. 섞으면 세 권을 산 느낌이 안 납니다. 오직 얼굴(관상)로 본 것만 씁니다.`);
+  }
+
+  // 4부
+  if (uses.손금) {
+    sections.push(`### 4부 손으로 본 것 (최소 ${palmMin.toLocaleString()}자 이상)
+선마다 한 대목씩 풀고, 손 모양을 포함합니다.
+**[규칙] 4부는 대조를 하지 않습니다.** 그 갈래가 본 것만 씁니다. 대조는 5부에서만 합니다. 섞으면 세 권을 산 느낌이 안 납니다. 오직 손(손금)으로 본 것만 씁니다.`);
+  }
+
+  // 5부
+  const countKorean = Object.values(uses).filter(Boolean).length === 3 ? '셋' : '둘';
+  sections.push(`### 5부 ${countKorean}을 맞대어 보니 (최소 ${crossMin.toLocaleString()}자 이상)
+일치 / 엇갈림 / 한쪽만을 다룹니다.
+- **엇갈리는 것을 가장 길게 씁니다.** 타고난 바탕과 지금 드러나는 모습의 차이로 읽고, 노력과 환경이 작용하는 영역이라고 전합니다. 어느 쪽이 옳다고 판정하지 마십시오. 데이터에 그런 판정이 없습니다.
+- 서로 다른 갈래가 같은 말을 하는 일치 항목을 짚습니다.
+- 한쪽만 말하는 것(단독 항목)은 참고 수준이라는 것을 분명히 합니다.`);
+
+  // 6부
+  sections.push(`### 6부 그래서 무엇을 하시면 되는가 (최소 ${actionMin.toLocaleString()}자 이상)
+엇갈림을 중심으로, 손님이 현실에서 실천할 수 있는 구체적인 행동 제안을 작성합니다.`);
+
+  return `${TWO_TIER_RULES}
+
+## 이 리포트의 구성 — 「세 권을 한 상자에」
+
+이 리포트는 세 권을 한 상자에 담아 드리는 구성입니다.
+**2부, 3부, 4부는 대조를 하지 않습니다.** 그 갈래가 본 것만 씁니다.
+대조는 5부에서만 합니다. 섞으면 세 권을 산 느낌이 안 납니다.
+
+${sections.join('\n\n')}`;
+}
+
 /** 리포트 종류별 구성 지시. */
 const OUTLINES: Record<ReportKind, string> = {
   작명: `${TWO_TIER_RULES}
@@ -355,17 +464,7 @@ const OUTLINES: Record<ReportKind, string> = {
   연주와 월주는 이미 정해져 있어 100점은 나오지 않는다는 것을 글 안에서 한 번 밝힙니다.
 - 아이의 성격이나 앞날을 단정하지 않습니다. 아직 태어나지 않았습니다.`,
 
-  교차검증: `${TWO_TIER_RULES}
-
-## 이 리포트의 구성
-
-1. **한 문단 요약** — 몇 갈래를 대조했고 무엇이 나왔는지.
-2. **세 갈래가 같은 말을 하는 것** — 일치 항목. 서로 다른 방식으로 본 결과가 겹친다는 점을 짚습니다.
-3. **엇갈리는 것** — 이 리포트의 핵심입니다. 가장 길게 씁니다.
-   타고난 바탕과 지금 드러나는 모습의 차이로 읽고, 노력과 환경이 작용하는 영역이라고 전합니다.
-   어느 쪽이 옳다고 판정하지 마십시오. 데이터에 그런 판정이 없습니다.
-4. **한쪽만 말하는 것** — 단독 항목. 참고 수준이라는 것을 분명히 합니다.
-5. **그래서 무엇을 할 것인가** — 엇갈리는 항목을 중심으로 한 제안.`,
+  교차검증: buildCrossOutline(),
 
   궁합: `${TWO_TIER_RULES}
 
@@ -749,12 +848,21 @@ const OUTLINES: Record<ReportKind, string> = {
 - 판매 문구를 넣지 않습니다.`,
 };
 
-/**
- * 시스템 프롬프트. 입력과 무관하게 항상 같아야 캐시가 걸린다.
- * 종류별 구성 지시까지 포함하되, 사용자 데이터는 절대 넣지 않는다.
- */
-export function buildSystemPrompt(kind: ReportKind): string {
-  return `${SYSTEM_CORE}\n\n${lengthInstructionFor(kind)}\n\n${OUTLINES[kind]}`;
+export function buildSystemPrompt(
+  kind: ReportKind,
+  context?: ProductId | { productId?: ProductId; 보는_갈래?: string[]; 사주?: unknown; 관상?: unknown; 손금?: unknown } | unknown,
+): string {
+  let prodId: ProductId | undefined;
+  if (typeof context === 'string' && context in CATALOG) {
+    prodId = context as ProductId;
+  } else if (context && typeof context === 'object' && 'productId' in (context as object)) {
+    prodId = (context as { productId?: ProductId }).productId;
+  }
+
+  const lengthInstruction = lengthInstructionFor(kind, prodId);
+  const outline = kind === '교차검증' ? buildCrossOutline(context) : OUTLINES[kind];
+
+  return `${SYSTEM_CORE}\n\n${lengthInstruction}\n\n${outline}`;
 }
 
 /**

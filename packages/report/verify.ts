@@ -322,6 +322,30 @@ check('약속한 이름 개수와 프롬프트가 맞는다',
   const noHoleThanDaily = expensiveKinds.every((k) => lengthTargetOf(k).minChars >= dailyTarget.maxChars);
   check('1,900원짜리보다 짧게 나올 수 있는 구멍이 없다', noHoleThanDaily);
 
+  // ─── 삼합 리포트 세 권을 한 상자에 (3단계) ────────────────────
+  section('3단계: 삼합 리포트 6부 구성 및 갈래별 분기 검증');
+  const crossFull = buildSystemPrompt('교차검증', 'cross-report');
+  check('삼합(cross-report) 지시문에 1부가 있다', crossFull.includes('1부 들어가며'));
+  check('삼합(cross-report) 지시문에 2부가 있다', crossFull.includes('2부 사주로 본 것'));
+  check('삼합(cross-report) 지시문에 3부가 있다', crossFull.includes('3부 얼굴로 본 것'));
+  check('삼합(cross-report) 지시문에 4부가 있다', crossFull.includes('4부 손으로 본 것'));
+  check('삼합(cross-report) 지시문에 5부가 있다', crossFull.includes('5부 셋을 맞대어 보니'));
+  check('삼합(cross-report) 지시문에 6부가 있다', crossFull.includes('6부 그래서 무엇을 하시면 되는가'));
+  check('2·3·4부 대조 금지 원칙이 지시문에 명시됨', crossFull.includes('2부, 3부, 4부는 대조를 하지 않습니다'));
+
+  // 교차검증 4개 상품별 안 보는 갈래의 부 제외 검증
+  const facePalm = buildSystemPrompt('교차검증', 'face-palm-report');
+  check('얼굴과손(face-palm-report)에는 2부(사주)가 빠진다', !facePalm.includes('2부 사주로 본 것') && !facePalm.includes('사주로 본 것'));
+  check('얼굴과손(face-palm-report)에는 3부(얼굴)와 4부(손)가 있다', facePalm.includes('3부 얼굴로 본 것') && facePalm.includes('4부 손으로 본 것'));
+
+  const sajuPalm = buildSystemPrompt('교차검증', 'saju-palm-report');
+  check('사주×손금(saju-palm-report)에는 3부(얼굴)가 빠진다', !sajuPalm.includes('3부 얼굴로 본 것') && !sajuPalm.includes('얼굴로 본 것'));
+  check('사주×손금(saju-palm-report)에는 2부(사주)와 4부(손)가 있다', sajuPalm.includes('2부 사주로 본 것') && sajuPalm.includes('4부 손으로 본 것'));
+
+  const sajuFace = buildSystemPrompt('교차검증', 'saju-face-report');
+  check('사주×관상(saju-face-report)에는 4부(손)가 빠진다', !sajuFace.includes('4부 손으로 본 것') && !sajuFace.includes('손으로 본 것'));
+  check('사주×관상(saju-face-report)에는 2부(사주)와 3부(얼굴)가 있다', sajuFace.includes('2부 사주로 본 것') && sajuFace.includes('3부 얼굴로 본 것'));
+
 console.log('전부 통과. (모델 호출 없음 — 이 검증은 비용이 들지 않는다)');
 
 

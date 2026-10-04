@@ -1180,7 +1180,7 @@ export function createApi(deps: ApiDeps) {
         const chunks: string[] = [];
         for (const part of parts) {
           const made = await deps.generate({
-            kind: part.kind, data: part.data, subject: part.subject, question: part.question,
+            kind: part.kind, data: part.data, subject: part.subject, question: part.question, productId: part.productId,
           });
           chunks.push(parts.length === 1
             ? made.text

@@ -74,7 +74,7 @@ export async function generateReport(
     system: [
       {
         type: 'text',
-        text: buildSystemPrompt(input.kind),
+        text: buildSystemPrompt(input.kind, input.productId ?? input.data),
         cache_control: { type: 'ephemeral' },
       },
     ],
