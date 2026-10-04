@@ -57,7 +57,7 @@ const made = createOrder({
   id: 'ord_test_1', productId: 'cross-report', inputHash: 'hash-abc',
   noticeGiven: true, previewProvided: true,
 });
-await orders.save({ ...made, reading });
+await orders.save({ ...made, reading, email: '  TEST@Example.COM ' } as any);
 
 // 연결을 완전히 끊었다가 새로 연다 = 서버 재시작과 같은 상황
 await pool.query('DISCARD ALL');
@@ -66,6 +66,7 @@ const orders2 = new PostgresOrderStore(pool2);
 const back = await orders2.get('ord_test_1');
 
 check('다른 연결에서 주문을 되찾는다', back !== null);
+check('주문 저장 시 이메일 소문자 및 공백 정규화', back?.email === 'test@example.com');
 check('금액이 카탈로그 값 그대로', back?.amountKrw === CATALOG['cross-report'].priceKrw, `${back?.amountKrw}원`);
 check('상태 보존', back?.status === 'created');
 check('청약철회 고지 여부 보존', back?.noticeGiven === true);

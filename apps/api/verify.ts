@@ -18,7 +18,7 @@ import {
 import { loadBusinessInfo, SPIRITS, CONTENTS_FOR, renderCheckoutPage } from '../../packages/site-policy/src/index.ts';
 import { CATEGORIES, maxLaunchDiscountPercent, isLaunchSale } from '../../packages/commerce/src/catalog.ts';
 import { findSpiritVideos } from './src/images.ts';
-import { createApi, MemoryOrderStore } from './src/server.ts';
+import { createApi, MemoryOrderStore, checkInviteRateLimit, recordInviteCheckFail, inviteCheckAttempts } from './src/server.ts';
 import { buildPayload } from './src/payload.ts';
 import { buildPreview } from './src/preview.ts';
 import { cacheKey } from '../../packages/report/src/cache.ts';
@@ -1829,9 +1829,51 @@ section('J. 월운세 · 행운의 번호 · 친구 추천');
   check('명식 넣고 들어온 화면에 「벗의 증표가 있으십니까?」 작은 단추 존재',
     homeRes.html.includes('btnOpenStageInvite') && homeRes.html.includes('벗의 증표가 있으십니까?'));
 
-  const checkoutRes = await page(`/checkout?product=wealth-report`);
+  const checkoutRes = await page(`/checkout?product=saju-report`);
   check('결제 화면 금액 아래에 「증표 있으십니까?」 접힌 칸 존재',
     checkoutRes.html.includes('coInviteToggle') && checkoutRes.html.includes('증표 있으십니까?'));
+
+  const checkoutUnder20Res = await page(`/checkout?product=wealth-report`);
+  check('2만원 미만 결제 화면 금액 아래에 사전 안내 접힌 칸 존재',
+    checkoutUnder20Res.html.includes('coInviteToggle') && checkoutUnder20Res.html.includes('증표는 2만원 이상 점사에서 쓰실 수 있습니다'));
+
+  // 13-C. 증표 입력 제한 개선 검증 (6단계: 1분 잠금, 이메일 격리, 만료 후 리셋, 10분 후 리셋)
+  const lockedEmail = 'locked_tester@example.com';
+  const otherEmail = 'other_tester@example.com';
+  await api('POST', '/api/invite/check', { code: 'nb000001', email: lockedEmail });
+  await api('POST', '/api/invite/check', { code: 'nb000002', email: lockedEmail });
+  const lockedRes = await api('POST', '/api/invite/check', { code: 'nb000003', email: lockedEmail });
+  check('3회 틀린 이메일은 429로 잠긴다', lockedRes.status === 429 && lockedRes.body.message.includes('60초'));
+
+  const otherRes = await api('POST', '/api/invite/check', { code: 'nb000001', email: otherEmail });
+  check('이메일이 다르면 남의 실패로 잠기지 않는다', otherRes.status === 200 && otherRes.body.message === '그런 증표가 없습니다');
+
+  const unlockEmail = 'unlock_tester@example.com';
+  await api('POST', '/api/invite/check', { code: 'nb000001', email: unlockEmail });
+  await api('POST', '/api/invite/check', { code: 'nb000002', email: unlockEmail });
+  const rightRes = await api('POST', '/api/invite/check', { code: myCode, email: unlockEmail });
+  check('맞히면 그 자리에서 성공하고 잠금 기록이 삭제된다', rightRes.status === 200 && rightRes.body.ok === true);
+  check('맞힌 후 다시 틀려도 바로 잠기지 않는다', (await api('POST', '/api/invite/check', { code: 'nb000001', email: unlockEmail })).status === 200);
+
+  // 시간 경과 시뮬레이션: 잠금 만료 후 카운트 0 리셋 & 10분 후 리셋
+  const t0 = 1_000_000_000;
+  recordInviteCheckFail('sim_user', t0);
+  recordInviteCheckFail('sim_user', t0);
+  const simLocked = recordInviteCheckFail('sim_user', t0);
+  check('3회 실패 시 60초 잠금', simLocked.locked === true && simLocked.remainingSec === 60);
+
+  const simCheckUnlocked = checkInviteRateLimit('sim_user', t0 + 61_000);
+  check('60초 경과 후 잠금이 풀린다', simCheckUnlocked.allowed === true);
+
+  const simFailAfterUnlock = recordInviteCheckFail('sim_user', t0 + 61_000);
+  check('잠금 풀린 뒤 한 번 틀려도 안 잠긴다 (카운트 0 리셋 확인)', simFailAfterUnlock.locked === false);
+
+  const t2 = 2_000_000_000;
+  recordInviteCheckFail('sim_user2', t2);
+  recordInviteCheckFail('sim_user2', t2);
+  const sim10m = recordInviteCheckFail('sim_user2', t2 + 10 * 60 * 1000 + 1000);
+  check('10분 지난 것은 잊고 다시 카운트 1부터 시작 (잠기지 않음)', sim10m.locked === false);
+  check('10분 지난 후 카운트는 1이다', inviteCheckAttempts.get('sim_user2')?.count === 1);
 
   // 14. 월운세: 어느 달인지 명시되고 열흘 미만 시 다음 달 운세 제공
   const monthPreviewCheck = await api('POST', '/api/preview', {

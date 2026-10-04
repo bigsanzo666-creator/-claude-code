@@ -1214,6 +1214,65 @@ function isSameKoreanMonth(d1: Date, d2: Date): boolean {
   return getYearMonth(d1) === getYearMonth(d2);
 }
 
+export interface InviteAttemptRecord {
+  count: number;
+  lockedUntil: number;
+  lastAttemptAt: number;
+}
+
+export const inviteCheckAttempts = new Map<string, InviteAttemptRecord>();
+
+export function checkInviteRateLimit(key: string, now: number = Date.now()): { allowed: boolean; remainingSec: number } {
+  if (inviteCheckAttempts.size > 1000) {
+    for (const [k, v] of inviteCheckAttempts.entries()) {
+      if (now - v.lastAttemptAt > 10 * 60 * 1000) inviteCheckAttempts.delete(k);
+    }
+  }
+  const item = inviteCheckAttempts.get(key);
+  if (!item) return { allowed: true, remainingSec: 0 };
+
+  // 틀린 지 10분 지난 것은 잊는다 (count 를 0 으로)
+  if (now - item.lastAttemptAt > 10 * 60 * 1000) {
+    item.count = 0;
+    item.lockedUntil = 0;
+    return { allowed: true, remainingSec: 0 };
+  }
+
+  // 잠금 상태 확인
+  if (item.lockedUntil > now) {
+    return { allowed: false, remainingSec: Math.ceil((item.lockedUntil - now) / 1000) };
+  }
+
+  // 잠금이 풀릴 때 count 를 0 으로 되돌린다
+  if (item.lockedUntil > 0 && now >= item.lockedUntil) {
+    item.count = 0;
+    item.lockedUntil = 0;
+  }
+
+  return { allowed: true, remainingSec: 0 };
+}
+
+export function recordInviteCheckFail(key: string, now: number = Date.now()): { locked: boolean; remainingSec: number } {
+  const item = inviteCheckAttempts.get(key) || { count: 0, lockedUntil: 0, lastAttemptAt: now };
+
+  // 10분 지났거나 이미 만료된 잠금 후 첫 시도면 초기화
+  if (now - item.lastAttemptAt > 10 * 60 * 1000 || (item.lockedUntil > 0 && now >= item.lockedUntil)) {
+    item.count = 0;
+    item.lockedUntil = 0;
+  }
+
+  item.lastAttemptAt = now;
+  item.count += 1;
+  if (item.count >= 3) {
+    const LOCK_MS = 60 * 1000; // 3분 -> 1분(60초)으로 줄인다
+    item.lockedUntil = now + LOCK_MS;
+    inviteCheckAttempts.set(key, item);
+    return { locked: true, remainingSec: 60 };
+  }
+  inviteCheckAttempts.set(key, item);
+  return { locked: false, remainingSec: 0 };
+}
+
 export function createApi(deps: ApiDeps) {
   const reports: ReportBox = deps.reportStore ?? new MemoryReportBox();
   const referrals: ReferralStore = deps.referrals ?? new MemoryReferralStore();
@@ -1389,29 +1448,6 @@ export function createApi(deps: ApiDeps) {
       return false;
     }
     return true;
-  }
-
-  const inviteCheckAttempts = new Map<string, { count: number; lockedUntil: number }>();
-  function checkInviteRateLimit(ip: string): { allowed: boolean; remainingSec: number } {
-    const now = Date.now();
-    const item = inviteCheckAttempts.get(ip);
-    if (!item) return { allowed: true, remainingSec: 0 };
-    if (item.lockedUntil > now) {
-      return { allowed: false, remainingSec: Math.ceil((item.lockedUntil - now) / 1000) };
-    }
-    return { allowed: true, remainingSec: 0 };
-  }
-  function recordInviteCheckFail(ip: string): { locked: boolean; remainingSec: number } {
-    const now = Date.now();
-    const item = inviteCheckAttempts.get(ip) || { count: 0, lockedUntil: 0 };
-    item.count += 1;
-    if (item.count >= 3) {
-      item.lockedUntil = now + 3 * 60 * 1000;
-      inviteCheckAttempts.set(ip, item);
-      return { locked: true, remainingSec: 180 };
-    }
-    inviteCheckAttempts.set(ip, item);
-    return { locked: false, remainingSec: 0 };
   }
 
   const routes: Record<string, (req: IncomingMessage, res: ServerResponse, id: string) => Promise<void>> = {
@@ -2290,7 +2326,12 @@ export function createApi(deps: ApiDeps) {
 
     'POST /api/invite/check': async (req, res) => {
       const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || '127.0.0.1';
-      const rl = checkInviteRateLimit(ip);
+      const body = await readJson(req);
+      const rawCode = typeof body.code === 'string' ? body.code.trim().toLowerCase() : '';
+      const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+      const rateKey = email ? `email:${email}` : `ip:${ip}`;
+
+      const rl = checkInviteRateLimit(rateKey);
       if (!rl.allowed) {
         send(res, 429, {
           ok: false,
@@ -2300,12 +2341,8 @@ export function createApi(deps: ApiDeps) {
         return;
       }
 
-      const body = await readJson(req);
-      const rawCode = typeof body.code === 'string' ? body.code.trim().toLowerCase() : '';
-      const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
-
       if (!rawCode || !isValidInviteCode(rawCode)) {
-        const fail = recordInviteCheckFail(ip);
+        const fail = recordInviteCheckFail(rateKey);
         if (fail.locked) {
           send(res, 429, { ok: false, valid: false, message: `증표를 3회 이상 잘못 입력하여 잠시 후(${fail.remainingSec}초 뒤) 다시 시도해 주세요.` });
         } else {
@@ -2316,7 +2353,7 @@ export function createApi(deps: ApiDeps) {
 
       const invite = await referrals.getInvite(rawCode);
       if (!invite) {
-        const fail = recordInviteCheckFail(ip);
+        const fail = recordInviteCheckFail(rateKey);
         if (fail.locked) {
           send(res, 429, { ok: false, valid: false, message: `증표를 3회 이상 잘못 입력하여 잠시 후(${fail.remainingSec}초 뒤) 다시 시도해 주세요.` });
         } else {
@@ -2330,7 +2367,8 @@ export function createApi(deps: ApiDeps) {
         return;
       }
 
-      inviteCheckAttempts.delete(ip);
+      inviteCheckAttempts.delete(rateKey);
+      if (email) inviteCheckAttempts.delete(`ip:${ip}`);
       send(res, 200, {
         ok: true,
         valid: true,

@@ -96,7 +96,7 @@ export class PostgresOrderStore implements OrderStore {
         order.paymentId, order.noticeGiven, order.previewProvided, order.ref ?? null,
         order.createdAt, order.paidAt, order.viewedAt, order.refundedAt,
         order.failureReason, order.reading == null ? null : JSON.stringify(order.reading),
-        order.email ?? null,
+        order.email ? order.email.trim().toLowerCase() : null,
       ],
     );
   }

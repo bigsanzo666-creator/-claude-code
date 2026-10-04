@@ -1470,6 +1470,9 @@ export function renderCheckoutPage(
           invMsg.textContent = '증표 입력을 여러 번 실패하여 잠시 후(' + rem + '초 뒤) 다시 시도해 주세요.';
         }
         return;
+      } else if(clientCooldownUntil > 0){
+        clientFailCount = 0;
+        clientCooldownUntil = 0;
       }
 
       var code = invInput.value.trim().toLowerCase();
