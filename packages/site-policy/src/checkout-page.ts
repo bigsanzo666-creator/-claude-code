@@ -154,7 +154,12 @@ ${UPSELL_CSS}
   border:1px solid var(--nb-line-soft);border-radius:9px;background:rgba(255,255,255,.04);color:var(--nb-ink);cursor:pointer}
 .co-hanja-btn .co-hanja-ja{font-size:22px;line-height:1.1;font-family:var(--nb-serif,serif)}
 .co-hanja-btn .co-hanja-sub{font-size:11px;color:var(--nb-ink-3)}
-.co-hanja-btn.on{border-color:#d4af37;background:rgba(212,175,55,.16)}
+.co-hanja-btn.on{border-color:#d4af37;background:rgba(212,175,55,.22);box-shadow:0 0 0 2px rgba(212,175,55,.45)}
+.co-hanja-btn.on .co-hanja-ja{color:#f0d77a}
+.co-hanja-btn.on .co-hanja-sub::after{content:' ✓';color:#d4af37}
+.co-shape .co-shape-pick{color:#f0d77a;font-weight:600}
+.co-shape .co-shape-name.dim{opacity:.75;font-size:17px}
+.co-shape .co-shape-or{font-size:12px;color:var(--nb-ink-3)}
 .co-hanja-btn.off{opacity:.38}
 .co-hanja-note{margin:8px 0 0;font-size:12px;color:var(--nb-ink-3);line-height:1.6}
 .co-shape{margin:8px 0 0;font-size:13px;color:var(--nb-ink-2);line-height:1.8}
@@ -1485,12 +1490,28 @@ export function renderCheckoutPage(
     var 성 = (val('surname') || '').trim();
     var 글 = 고른한자 || (fxInput ? fxInput.value.trim() : '');
     var 자리 = fxAt ? fxAt.value : '';
-    if(!글 || !자리){ fxShape.style.display = 'none'; return; }
+    if(!글){ fxShape.style.display = 'none'; return; }
     var 성글 = 성 || '○';
-    var 보기 = 자리 === '앞'
-      ? 성글 + ' <b>' + 글 + '</b> ○'
-      : 성글 + ' ○ <b>' + 글 + '</b>';
-    fxShape.innerHTML = '이렇게 지어 드립니다 &nbsp; <span class="co-shape-name">' + 보기 + '</span>'
+    var 앞모양 = 성글 + ' <b>' + 글 + '</b> ○';
+    var 뒷모양 = 성글 + ' ○ <b>' + 글 + '</b>';
+    /*
+     * 자리를 아직 안 골랐어도 **눌린 것이 보이게** 한다.
+     *
+     * 터진 뒤에 적은 것 (2026-10-04): 한자를 눌러도 자리를 고르기 전에는
+     * 화면이 꿈쩍도 안 했다. 사장님이 「버튼이 안 눌리더만」이라고 하셨다.
+     * 실제로는 눌렸는데 보여 주는 것이 없었다.
+     */
+    if(!자리){
+      fxShape.innerHTML = '<span class="co-shape-pick">「' + 글 + '」 를 고르셨습니다.</span>'
+        + ' 이제 <b>어디에 넣을지</b> 골라 주십시오.'
+        + '<br><span class="co-shape-name dim">' + 앞모양 + '</span>'
+        + ' <span class="co-shape-or">또는</span> '
+        + '<span class="co-shape-name dim">' + 뒷모양 + '</span>';
+      fxShape.style.display = 'block';
+      return;
+    }
+    fxShape.innerHTML = '이렇게 지어 드립니다 &nbsp; <span class="co-shape-name">'
+      + (자리 === '앞' ? 앞모양 : 뒷모양) + '</span>'
       + '<br><span class="co-shape-note">○ 는 저희가 지어 드릴 글자입니다</span>';
     fxShape.style.display = 'block';
   }

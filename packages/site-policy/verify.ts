@@ -1530,6 +1530,17 @@ section('11. 문 — 신령계 들어가는 곳');
     check(`${pid}: 피할 글자 입력칸(avoidChars) 존재`, html.includes('id="avoidChars"'));
     check(`${pid}: 돌림자 안내 문구 포함`, html.includes('꼭 넣고 싶은 글자가 있으십니까'));
     check(`${pid}: 피할 글자 안내 문구 포함`, html.includes('쓰고 싶지 않은 글자가 있으십니까'));
+    /*
+     * 터진 뒤에 적은 것 (2026-10-04): 한자를 눌러도 자리를 고르기 전에는
+     * 화면이 꿈쩍도 안 해서, 사장님이 「버튼이 안 눌리더만」이라고 하셨다.
+     * 실제로는 눌렸는데 보여 주는 것이 없었다.
+     */
+    check(`${pid}: 한자를 고르면 자리를 고르기 전에도 반응이 보인다`,
+      html.includes('를 고르셨습니다') && html.includes('어디에 넣을지'));
+    check(`${pid}: 고른 한자에 눈에 띄는 표시가 붙는다`,
+      html.includes('.co-hanja-btn.on') && html.includes("content:' ✓'"));
+    check(`${pid}: 자리를 고르지 않은 채로는 결제로 넘어가지 못한다`,
+      html.includes('어디에 넣을지 골라 주십시오'));
   }
 
   const stdHtml = renderCheckoutPage(full, '', CATALOG['naming-report'], { storeId: 's', channelKey: 'c' });
