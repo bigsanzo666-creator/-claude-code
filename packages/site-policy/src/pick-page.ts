@@ -40,8 +40,10 @@ function esc(value: string): string {
  * 읽는 것은 폭이다.
  */
 export const TIMES = [
+  '00:30', '01:30', '02:30', '03:30', '04:30', '05:30', '06:30',
   '07:30', '08:30', '09:30', '10:30', '11:30',
-  '12:30', '13:30', '14:30', '15:30', '16:30',
+  '12:30', '13:30', '14:30', '15:30', '16:30', '17:30',
+  '18:30', '19:30', '20:30', '21:30', '22:30', '23:30',
 ];
 
 
@@ -79,12 +81,19 @@ function formSection(form: PickForm): string {
       </label>`;
   }).join('\n');
 
-  const times = TIMES.map((t) => {
+  const renderTimeSlot = (t: string) => {
     const on = form.times.includes(t);
     return `      <label class="pk-t${on ? ' pk-on' : ''}">
         <input type="checkbox" name="time" value="${t}"${on ? ' checked' : ''}><span>${slotLabel(t)}</span>
       </label>`;
-  }).join('\n');
+  };
+
+  const dayTimes = TIMES.filter((t) => t >= '07:30' && t <= '17:30');
+  const otherTimes = TIMES.filter((t) => t < '07:30' || t > '17:30');
+  const hasNightSelected = otherTimes.some((t) => form.times.includes(t));
+
+  const dayTimesHtml = dayTimes.map(renderTimeSlot).join('\n');
+  const otherTimesHtml = otherTimes.map(renderTimeSlot).join('\n');
 
   const places = PLACES.map((p) =>
     `        <option value="${esc(p.name)}"${p.name === form.place ? ' selected' : ''}>${esc(p.name)}</option>`,
@@ -104,8 +113,14 @@ ${slots}
     <p class="pk-h">아기가 <strong>나오는</strong> 시간대로 고르세요. 수술을 시작하는 시각이 아닙니다.
     두 시간마다 시주가 바뀌므로 여기서 점수가 크게 갈립니다. 여러 개 골라도 됩니다.</p>
     <div class="pk-times">
-${times}
+${dayTimesHtml}
     </div>
+    <details class="pk-times-more"${hasNightSelected ? ' open' : ''}>
+      <summary class="pk-times-more-btn">밤·새벽 시간대 (18~07시)</summary>
+      <div class="pk-times" style="margin-top:10px;">
+${otherTimesHtml}
+      </div>
+    </details>
   </div>
 
   <div class="pk-f">
@@ -310,6 +325,8 @@ export const PICK_CSS = `
   border:1px solid var(--nb-line);background:var(--nb-paper);font-size:15px;white-space:nowrap}
 .pk-t input{width:20px;height:20px;margin:0;accent-color:var(--nb-ink);cursor:pointer}
 .pk-on{border-color:var(--nb-gold);background:var(--nb-paper-2)}
+.pk-times-more{margin-top:10px}
+.pk-times-more-btn{font-size:14px;color:var(--nb-gold);cursor:pointer;padding:8px 0;outline:none;user-select:none;font-weight:600}
 .pk-go{width:100%;min-height:52px;padding:15px;border:0;border-radius:12px;
   background:linear-gradient(135deg,var(--nb-gold),#A37C15);
   color:#120D04;font:700 16px var(--nb-sans);cursor:pointer;

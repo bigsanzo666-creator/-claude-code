@@ -955,6 +955,11 @@ section('11. 문 — 신령계 들어가는 곳');
   check('스크립트 없이 돈다', !empty.includes('<script'));
   check('날짜 칸이 넉넉하다', (empty.match(/name="date"/g) ?? []).length === DATE_SLOTS);
   check('시각을 다 고를 수 있다', (empty.match(/name="time"/g) ?? []).length === TIMES.length);
+  check('택일 시각 선택지가 24시간(24개)이다', TIMES.length === 24);
+  check('낮 시간대는 기본 노출되고 밤·새벽 시간대는 접혀 있다',
+    empty.includes('class="pk-times-more"') && empty.includes('밤·새벽 시간대'));
+  check('23:30과 00:30이 시각 선택지에 포함되어 있다',
+    empty.includes('value="23:30"') && empty.includes('value="00:30"'));
   check('태어날 곳을 고른다', PLACES.every((x) => empty.includes(`>${x.name}</option>`)));
   check('아직 잰 것이 없으면 결과 칸이 없다', !empty.includes('골라 본 결과'));
 

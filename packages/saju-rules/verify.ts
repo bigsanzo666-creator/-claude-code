@@ -710,6 +710,20 @@ section('주제별 분리 (상품을 열 개로 나누기 위한 것)');
   check('같은 날이라도 시각이 다르면 점수가 다르다',
     morning.total !== evening.total, `${morning.total} vs ${evening.total}`);
 
+  // 23시 이후 택일 시 일주·시주가 다음 날로 넘어가는지 확인
+  const pick0030 = pickScore('2026-10-10', '00:30');
+  const pick2330 = pickScore('2026-10-10', '23:30');
+  const eight0030 = pick0030.eight.split(' ');
+  const eight2330 = pick2330.eight.split(' ');
+  const day0030 = eight0030[2];
+  const hour0030 = eight0030[3];
+  const day2330 = eight2330[2];
+  const hour2330 = eight2330[3];
+
+  check('00:30 택일 결과 일주(정사)와 시주(경자) 올바름', day0030 === '정사' && hour0030 === '경자', `${day0030} ${hour0030}`);
+  check('23:30 택일 결과 일주(무오)와 시주(임자)가 다음 날로 넘어감', day2330 === '무오' && hour2330 === '임자', `${day2330} ${hour2330}`);
+  check('00:30과 23:30의 일주와 시주가 서로 다름', day0030 !== day2330 && hour0030 !== hour2330);
+
   // 손님이 의사한테 받은 날 말고는 보지 않는다
   const dates = ['2027-04-27', '2027-04-30', '2027-05-03'];
   const times = ['09:00', '16:00'];
