@@ -25,6 +25,7 @@ import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
 import { orderable } from '../commerce/src/orderable.ts';
 import { WITHDRAWAL_WINDOW_DAYS, REFUND_DUE_BUSINESS_DAYS } from '../commerce/src/refund.ts';
+import { INVITE_MIN_ORDER_KRW } from '../commerce/src/referral.ts';
 
 let passed = 0, failed = 0;
 const failures: string[] = [];
@@ -1538,6 +1539,20 @@ section('11. 문 — 신령계 들어가는 곳');
   check('89,900원 결제 화면에 솔직한 안내(흔한 이름 여부 미확인) 표기', stdHtml.includes('흔한 이름인지까지는 보지 않습니다'));
   check('149,000원 결제 화면에 배수 및 순위 차별화 안내 표기', plusHtml.includes('글자밭이 <b>3배</b>로 넓고') && plusHtml.includes('최근 100위 안의 흔한 이름을 피해서'));
   check('149,000원 결제 화면에 89,900원 문구가 없다', !plusHtml.includes('흔한 이름인지까지는 보지 않습니다'));
+}
+
+{
+  section('2만원 미만 상품 증표 사전 안내 검사');
+  const under20Html = renderCheckoutPage(full, '', CATALOG['daily-report'], { storeId: 's', channelKey: 'c' });
+  const over20Html = renderCheckoutPage(full, '', CATALOG['saju-report'], { storeId: 's', channelKey: 'c' });
+  const minWonText = `증표는 ${Math.floor(INVITE_MIN_ORDER_KRW / 10000)}만원 이상 점사에서 쓰실 수 있습니다`;
+
+  check('2만원 미만 상품 결제 화면에 사전 안내 문구 표기', under20Html.includes(minWonText));
+  check('2만원 미만 상품 결제 화면에는 증표 입력칸이 없다', !under20Html.includes('id="coInviteInput"'));
+  check('2만원 미만 상품 결제 화면에는 「증표 있으십니까?」가 없다', !under20Html.includes('증표 있으십니까?'));
+
+  check('2만원 이상 상품 결제 화면에는 「증표 있으십니까?」가 있다', over20Html.includes('증표 있으십니까?'));
+  check('2만원 이상 상품 결제 화면에는 증표 입력칸이 있다', over20Html.includes('id="coInviteInput"'));
 }
 
 

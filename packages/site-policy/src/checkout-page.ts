@@ -1817,6 +1817,13 @@ ${isPhotoProduct ? `<script>
     <div class="co-price"><b>${price}원</b><span>부가세 포함</span></div>
     ${priceNote(product)}
     <div class="co-invite-entry" id="coInviteEntry">
+      ${product.priceKrw < INVITE_MIN_ORDER_KRW ? `
+      <button type="button" class="co-invite-toggle" id="coInviteToggle">증표는 ${Math.floor(INVITE_MIN_ORDER_KRW / 10000)}만원 이상 점사에서 쓰실 수 있습니다</button>
+      <div class="co-invite-fold" id="coInviteFold" style="display:none">
+        <p class="co-invite-msg" style="display:block;margin:0;color:#c2b6cf;font-size:14px;line-height:1.6">
+          증표는 ${Math.floor(INVITE_MIN_ORDER_KRW / 10000)}만원 이상 점사에서 쓰실 수 있습니다.
+        </p>
+      </div>` : `
       <button type="button" class="co-invite-toggle" id="coInviteToggle">증표 있으십니까?</button>
       <div class="co-invite-fold" id="coInviteFold" style="display:none">
         <div class="co-invite-input-row">
@@ -1824,7 +1831,7 @@ ${isPhotoProduct ? `<script>
           <button type="button" id="coInviteApplyBtn">적용</button>
         </div>
         <p class="co-invite-msg" id="coInviteMsg"></p>
-      </div>
+      </div>`}
     </div>
   </section>
 
