@@ -279,6 +279,16 @@ check('줄 순서는 초년부터 전체까지',
   try { nameField({ surname: '김', fixed: { char: '龘', at: '뒤' } }); } catch { threw = true; }
   check('신고 안 되는 돌림자는 막는다', threw);
 
+  // 한글로 돌림자를 넣을 수 있다
+  const dolHangul = nameField({ surname: '김', fixed: { char: '준', at: '앞' } });
+  check('한글 돌림자도 받을 수 있다', dolHangul.후보.length > 0 && dolHangul.돌림자 === '준');
+
+  // 길한 획수 짝이 안 나오는 돌림자의 경우 분석을 남긴다
+  const dolBlocked = nameField({ surname: '김', fixed: { char: '天', at: '앞' } });
+  check('길한 획수가 안 나오는 돌림자는 분석을 남긴다',
+    dolBlocked.돌림자_분석?.막힘 === true && Boolean(dolBlocked.돌림자_분석?.막힌_까닭),
+    dolBlocked.돌림자_분석?.막힌_까닭);
+
   let threw2 = false;
   try { nameField({ surname: '쀍' }); } catch { threw2 = true; }
   check('모르는 성은 막는다', threw2);

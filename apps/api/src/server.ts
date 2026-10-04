@@ -998,9 +998,52 @@ function validateReading(body: any): ReadingRequest {
     if (!surname) throw new HttpError(400, '아이의 성이 필요합니다.');
     if (surname.length > 4) throw new HttpError(400, '성이 너무 깁니다.');
     const fixed = body.name?.fixed;
-    if (fixed && !['앞', '뒤'].includes(String(fixed.at))) {
-      throw new HttpError(400, '돌림자 자리는 앞이나 뒤여야 합니다.');
+    let cleanFixed: { char: string; at: '앞' | '뒤' } | undefined = undefined;
+    if (fixed && fixed.char !== undefined && fixed.char !== null && String(fixed.char).trim() !== '') {
+      const fixedChar = String(fixed.char).trim();
+      const chars = Array.from(fixedChar);
+      if (chars.length > 1) {
+        throw new HttpError(400, '돌림자는 한 글자만 적어 주십시오.');
+      }
+      const c = chars[0];
+      if (!/^[\uac00-\ud7af\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]$/u.test(c)) {
+        throw new HttpError(400, '돌림자는 한글 또는 한자 한 글자만 적어 주십시오.');
+      }
+      if (!['앞', '뒤'].includes(String(fixed.at))) {
+        throw new HttpError(400, '돌림자 자리는 앞이나 뒤여야 합니다.');
+      }
+      cleanFixed = { char: c, at: fixed.at as '앞' | '뒤' };
     }
+    const rawAvoid = body.name?.avoid;
+    let cleanAvoid: string[] | undefined = undefined;
+    if (rawAvoid !== undefined && rawAvoid !== null) {
+      if (!Array.isArray(rawAvoid)) {
+        throw new HttpError(400, '피할 글자 형식이 올바르지 않습니다.');
+      }
+      if (rawAvoid.length > 20) {
+        throw new HttpError(400, '피할 글자는 20자까지 적으실 수 있습니다.');
+      }
+      const filtered: string[] = [];
+      for (const it of rawAvoid) {
+        if (typeof it !== 'string') continue;
+        for (const ch of Array.from(it.trim())) {
+          if (/^[\uac00-\ud7af\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]$/u.test(ch)) {
+            filtered.push(ch);
+          }
+        }
+      }
+      if (filtered.length > 20) {
+        throw new HttpError(400, '피할 글자는 20자까지 적으실 수 있습니다.');
+      }
+      if (filtered.length > 0) {
+        cleanAvoid = Array.from(new Set(filtered));
+      }
+    }
+    body.name = {
+      surname,
+      ...(cleanFixed ? { fixed: cleanFixed } : {}),
+      ...(cleanAvoid ? { avoid: cleanAvoid } : {}),
+    };
   }
   /*
    * 한 상에 앉는 사람들.

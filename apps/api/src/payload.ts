@@ -1300,6 +1300,7 @@ function slimField(field: ReturnType<typeof nameField>) {
   return {
     성: field.성,
     돌림자: field.돌림자,
+    돌림자_분석: field.돌림자_분석 ?? null,
     후보: field.후보.map((p) => ({
       앞획: p.first,
       끝획: p.last,

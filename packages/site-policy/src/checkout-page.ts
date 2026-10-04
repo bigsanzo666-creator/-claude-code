@@ -145,6 +145,9 @@ ${UPSELL_CSS}
 .co-kin-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .co-kin-top b{font-size:14px;color:#e4dfea}
 .co-kin-del{background:none;border:none;color:#9a93a6;font-size:14px;cursor:pointer;font-family:inherit}
+.co-opt-block{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.co-opt-block summary{font-size:14px;color:#d4af37;cursor:pointer;font-weight:600;outline:none}
+.co-opt-content{margin-top:10px}
 .co-note{background:rgba(12,10,18,.6);border:1px solid rgba(255,255,255,.1);
   border-radius:10px;padding:13px 14px;margin:18px 0 14px}
 .co-note p{margin:0 0 7px;font-size:14px;color:#bdb6c8;line-height:1.85}
@@ -283,7 +286,33 @@ export function renderCheckoutPage(
 
   const surname = product.needsName ? `
     <div class="co-f"><label for="surname">아이의 성 (예: 김)</label>
-      <input type="text" name="surname" id="surname" maxlength="4" required></div>` : '';
+      <input type="text" name="surname" id="surname" maxlength="4" required></div>
+    <details class="co-opt-block" id="coFixedDetails">
+      <summary>꼭 넣고 싶은 글자가 있으십니까?</summary>
+      <div class="co-opt-content">
+        <div class="co-f">
+          <label for="fixedChar">돌림자 (한 글자)</label>
+          <div class="co-two" style="align-items:center;">
+            <input type="text" name="fixedChar" id="fixedChar" maxlength="1" placeholder="예: 준 또는 俊">
+            <select name="fixedAt" id="fixedAt">
+              <option value="앞" selected>앞자리 (준○)</option>
+              <option value="뒤">뒷자리 (○준)</option>
+            </select>
+          </div>
+          <span class="co-hint">형이 「준희」면 동생 「○희」는 뒤, 「준○」은 앞입니다</span>
+        </div>
+      </div>
+    </details>
+    <details class="co-opt-block" id="coAvoidDetails">
+      <summary>쓰고 싶지 않은 글자가 있으십니까?</summary>
+      <div class="co-opt-content">
+        <div class="co-f">
+          <label for="avoidChars">피하고 싶은 글자</label>
+          <input type="text" name="avoidChars" id="avoidChars" placeholder="예: 철, 영, 수">
+          <span class="co-hint">집안 어른 이름자처럼 피해야 할 글자가 있으면 적어 주십시오</span>
+        </div>
+      </div>
+    </details>` : '';
 
   /*
    * 얼굴·손은 **첫 화면에서 잰 값**을 가져다 쓴다.
@@ -1601,7 +1630,19 @@ export function renderCheckoutPage(
       productId: PRODUCT,
       birth: { date: date, time: finalTime, timeKnown: finalTimeKnown, place: val('birthPlace') || '서울', gender: val('gender'), name: name }
     };
-    ${product.needsName ? "reading.name = { surname: val('surname') };" : ''}
+    ${product.needsName ? `
+    var nObj = { surname: val('surname') };
+    var fChar = val('fixedChar').trim();
+    if (fChar) {
+      nObj.fixed = { char: fChar, at: (val('fixedAt') || '앞') };
+    }
+    var rawAvoid = val('avoidChars').trim();
+    if (rawAvoid) {
+      var avList = rawAvoid.split(/[,\\s]+/).map(function(s){ return s.trim(); }).filter(Boolean);
+      if (avList.length) nObj.avoid = avList;
+    }
+    reading.name = nObj;
+    ` : ''}
     ${product.needsPartner ? "reading.partner = { date: val('partnerDate'), time: val('partnerTime') || '12:00' };" : ''}
     ${product.needsRange ? `
     var rawAvoid = val('rangeAvoid');

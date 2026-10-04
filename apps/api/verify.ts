@@ -159,6 +159,53 @@ check('ref 가 값을 바꾸지 않는다 (같은 주문이면 ref 가 달라도
 check('ref 가 없어도 주문이 만들어진다',
   created.status === 201 && created.body.order.ref === null);
 
+// 작명 상품 돌림자 / 피할 글자 주문 및 검증
+const namingNoFixed = await api('POST', '/api/orders', {
+  productId: 'naming-report',
+  birth: BIRTH,
+  name: { surname: '김' },
+  acknowledgedNotice: true,
+  previewShown: true,
+});
+check('돌림자 없는 작명 주문 정상 생성', namingNoFixed.status === 201);
+
+const namingWithFixed = await api('POST', '/api/orders', {
+  productId: 'naming-report',
+  birth: BIRTH,
+  name: { surname: '김', fixed: { char: '준', at: '앞' }, avoid: ['철', '수'] },
+  acknowledgedNotice: true,
+  previewShown: true,
+});
+check('돌림자·피할글자 있는 작명 주문 정상 생성', namingWithFixed.status === 201);
+
+const namingLongAvoid = await api('POST', '/api/orders', {
+  productId: 'naming-report',
+  birth: BIRTH,
+  name: {
+    surname: '김',
+    avoid: ['가','나','다','라','마','바','사','아','자','차','카','타','파','하','거','너','더','러','머','버','서'], // 21자
+  },
+  acknowledgedNotice: true,
+  previewShown: true,
+});
+check('피할 글자 21자 입력 시 400 반환', namingLongAvoid.status === 400);
+
+const namingLongFixed = await api('POST', '/api/orders', {
+  productId: 'naming-report',
+  birth: BIRTH,
+  name: { surname: '김', fixed: { char: '준희', at: '앞' } },
+  acknowledgedNotice: true,
+  previewShown: true,
+});
+check('돌림자 2자 이상 입력 시 400 반환', namingLongFixed.status === 400);
+
+const pLoad = buildPayload({
+  productId: 'naming-report',
+  birth: BIRTH,
+  name: { surname: '김', fixed: { char: '준', at: '앞' }, avoid: ['철'] },
+});
+check('작명 페이로드에 돌림자가 반영된다', (pLoad.data as any).이름밭?.돌림자 === '준' || Boolean((pLoad.data as any).이름밭?.돌림자_분석));
+
 // ── C. 결제 검증 ───────────────────────────────────────────────
 section('C. 결제 확인 — 위조 차단');
 

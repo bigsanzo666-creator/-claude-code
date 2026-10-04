@@ -1516,6 +1516,18 @@ section('11. 문 — 신령계 들어가는 곳');
     entered.finalTime === '14:40' ? '14:40 보존 확인' : `실패: ${entered.finalTime}`);
 }
 
+{
+  section('작명 결제 화면 돌림자·피할 글자 입력칸 검사');
+  for (const pid of ['naming-report', 'naming-plus-report'] as const) {
+    const html = renderCheckoutPage(full, '', CATALOG[pid], { storeId: 's', channelKey: 'c' });
+    check(`${pid}: 돌림자 입력칸(fixedChar, fixedAt) 존재`, html.includes('id="fixedChar"') && html.includes('id="fixedAt"'));
+    check(`${pid}: 피할 글자 입력칸(avoidChars) 존재`, html.includes('id="avoidChars"'));
+    check(`${pid}: 돌림자 안내 문구 포함`, html.includes('꼭 넣고 싶은 글자가 있으십니까'));
+    check(`${pid}: 피할 글자 안내 문구 포함`, html.includes('쓰고 싶지 않은 글자가 있으십니까'));
+  }
+}
+
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }

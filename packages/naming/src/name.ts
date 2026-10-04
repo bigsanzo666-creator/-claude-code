@@ -22,11 +22,11 @@
 
 import { readFileSync } from 'node:fs';
 import {
-  hanja, hanjaLegal, hanjaCommon,
+  hanja, hanjaLegal, hanjaCommon, byReading,
   type Hanja, type Element,
 } from './hanja.ts';
 import { meaningBad, meaningGood } from './fit.ts';
-import { readFrames, type FrameRead } from './numbers.ts';
+import { readFrames, type FrameRead, number81 } from './numbers.ts';
 import { surnamesByReading, surnameOf, type Surname } from './surname.ts';
 
 /** 성을 한글로 받든 한자로 받든 하나로 만든다 */
@@ -207,6 +207,15 @@ export interface NameField {
   성: { 한글: string; 한자: string; 획수: number[] };
   /** 돌림자를 넣었으면 그 글자 */
   돌림자: string | null;
+  /** 돌림자 분석 및 막힌 경우 사유 */
+  돌림자_분석?: {
+    글자: string;
+    자리: '앞' | '뒤';
+    막힘: boolean;
+    막힌_까닭?: string;
+    쓸_수_있는_자리?: string;
+    대안_자리?: '앞' | '뒤';
+  };
   /** 사주가 필요로 하는 기운 */
   필요한기운: Element[];
   /** 획수 짝마다 쓸 수 있는 글자들 */
@@ -227,33 +236,118 @@ export function nameField(wish: NameWish): NameField {
   // 성으로 쓰는 글자는 이름 자리에서 뺀다
   const avoid = [...(wish.avoid ?? []), ...sur.chars];
   const charLimit = wish.charLimit ?? 20;
-  const fixedH = wish.fixed ? hanja(wish.fixed.char) : null;
-  if (wish.fixed && (!fixedH || !hanjaLegal(wish.fixed.char))) {
-    throw new Error(`「${wish.fixed.char}」는 출생신고가 되지 않는 글자입니다.`);
+
+  let fixedHanjaList: Hanja[] = [];
+  let fixedStrokes: number[] = [];
+  let fixedAnalysis: NameField['돌림자_분석'] = undefined;
+
+  if (wish.fixed) {
+    const rawChar = wish.fixed.char.trim();
+    const h = hanja(rawChar);
+    if (h) {
+      if (!hanjaLegal(rawChar)) {
+        throw new Error(`「${rawChar}」는 출생신고가 되지 않는 글자입니다.`);
+      }
+      fixedHanjaList = [h];
+      fixedStrokes = [h.strokes];
+    } else if (/^[\uac00-\ud7a3]$/.test(rawChar)) {
+      const legals = byReading(rawChar, { legal: true });
+      if (!legals.length) {
+        throw new Error(`「${rawChar}」 소리로 출생신고가 되는 한자가 없습니다.`);
+      }
+      fixedHanjaList = legals;
+      fixedStrokes = [...new Set(legals.map((item) => item.strokes))];
+    } else {
+      throw new Error(`「${rawChar}」는 출생신고가 되지 않는 글자입니다.`);
+    }
+
+    const at = wish.fixed.at;
+    const allGood = goodPairs(sur, 100);
+    const matchedPairs = allGood.filter((p) => fixedStrokes.includes(at === '앞' ? p.first : p.last));
+
+    if (matchedPairs.length > 0) {
+      fixedAnalysis = {
+        글자: rawChar,
+        자리: at,
+        막힘: false,
+      };
+    } else {
+      // 길한 획수 짝이 안 나오는 경우 분석
+      const primaryStroke = fixedStrokes[0] ?? 0;
+      let blockedReason = '';
+      if (at === '앞') {
+        const hyeong = sur.total + primaryStroke;
+        const hN = number81(hyeong);
+        blockedReason = `성의 획수(${sur.total}획)와 앞자리 돌림자(${primaryStroke}획)의 합인 청년운(형격)이 ${hyeong}획(${hN.name}, ${hN.verdict})으로 흉이 되어 네 격이 모두 길한 짝을 이룰 수 없습니다.`;
+      } else {
+        const i = sur.total + primaryStroke;
+        const iN = number81(i);
+        blockedReason = `성의 획수(${sur.total}획)와 뒷자리 돌림자(${primaryStroke}획)의 합인 장년운(이격)이 ${i}획(${iN.name}, ${iN.verdict})으로 흉이 되어 네 격이 모두 길한 짝을 이룰 수 없습니다.`;
+      }
+
+      const otherAt: '앞' | '뒤' = at === '앞' ? '뒤' : '앞';
+      const otherPairs = allGood.filter((p) => fixedStrokes.includes(otherAt === '앞' ? p.first : p.last));
+      let alternativeNote = '';
+      if (otherPairs.length > 0) {
+        alternativeNote = `${otherAt}자리(${otherAt === '앞' ? rawChar + '○' : '○' + rawChar})로 쓰실 경우 ${otherPairs.length}개의 길한 획수 짝이 가능합니다.`;
+      } else {
+        alternativeNote = `다른 자리에서도 길한 격이 나오지 않아, 성명학상 길한 기본 획수 짝을 대안으로 제안합니다.`;
+      }
+
+      fixedAnalysis = {
+        글자: rawChar,
+        자리: at,
+        막힘: true,
+        막힌_까닭: blockedReason,
+        쓸_수_있는_자리: alternativeNote,
+        대안_자리: otherPairs.length > 0 ? otherAt : undefined,
+      };
+    }
   }
 
   let pairs = goodPairs(sur, wish.pairLimit ?? 40);
-  // 돌림자가 있으면 그 자리의 획수는 이미 정해졌다
-  if (fixedH && wish.fixed) {
+  if (wish.fixed && fixedStrokes.length > 0) {
     const at = wish.fixed.at;
-    pairs = pairs.filter((p) => (at === '앞' ? p.first : p.last) === fixedH.strokes);
+    const filtered = pairs.filter((p) => fixedStrokes.includes(at === '앞' ? p.first : p.last));
+    if (filtered.length > 0) {
+      pairs = filtered;
+    } else if (fixedAnalysis?.대안_자리) {
+      const altAt = fixedAnalysis.대안_자리;
+      const altFiltered = pairs.filter((p) => fixedStrokes.includes(altAt === '앞' ? p.first : p.last));
+      if (altFiltered.length > 0) pairs = altFiltered;
+    }
   }
 
-  const 후보: StrokePair[] = pairs.map((p) => ({
-    first: p.first,
-    last: p.last,
-    frames: p.frames,
-    firstChars: fixedH && wish.fixed?.at === '앞'
-      ? [fixedH]
-      : charsByStroke(p.first, want, charLimit, avoid),
-    lastChars: fixedH && wish.fixed?.at === '뒤'
-      ? [fixedH]
-      : charsByStroke(p.last, want, charLimit, avoid),
-  })).filter((p) => p.firstChars.length && p.lastChars.length);
+  const 후보: StrokePair[] = pairs.map((p) => {
+    let firstChars: Hanja[];
+    if (wish.fixed && fixedHanjaList.length > 0 && wish.fixed.at === '앞') {
+      const matching = fixedHanjaList.filter((h) => h.strokes === p.first);
+      firstChars = matching.length ? matching : charsByStroke(p.first, want, charLimit, avoid);
+    } else {
+      firstChars = charsByStroke(p.first, want, charLimit, avoid);
+    }
+
+    let lastChars: Hanja[];
+    if (wish.fixed && fixedHanjaList.length > 0 && wish.fixed.at === '뒤') {
+      const matching = fixedHanjaList.filter((h) => h.strokes === p.last);
+      lastChars = matching.length ? matching : charsByStroke(p.last, want, charLimit, avoid);
+    } else {
+      lastChars = charsByStroke(p.last, want, charLimit, avoid);
+    }
+
+    return {
+      first: p.first,
+      last: p.last,
+      frames: p.frames,
+      firstChars,
+      lastChars,
+    };
+  }).filter((p) => p.firstChars.length && p.lastChars.length);
 
   return {
     성: { 한글: sur.hangul, 한자: sur.chars.join(''), 획수: sur.strokes },
     돌림자: wish.fixed?.char ?? null,
+    돌림자_분석: fixedAnalysis,
     필요한기운: want,
     후보,
     눈금: [
