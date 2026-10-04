@@ -3255,6 +3255,9 @@ console.log(`\n${'═'.repeat(60)}`);
     !redactKey(`오류: ${testApiKey} 노출됨`).includes(keyFront) &&
     !redactKey(`오류: ${testApiKey} 노출됨`).includes(keyBack));
 
+  const origAdminToken = process.env.ADMIN_TOKEN;
+  const origOwnerPass = process.env.OWNER_PASS;
+
   try {
     globalThis.fetch = async (input: any, init?: any) => {
       const url = typeof input === 'string' ? input : input?.url || '';
@@ -3304,8 +3307,10 @@ console.log(`\n${'═'.repeat(60)}`);
     console.log = origLog;
     globalThis.fetch = origFetch;
     mailSrv.close();
-    delete process.env.ADMIN_TOKEN;
-    delete process.env.OWNER_PASS;
+    if (origAdminToken === undefined) delete process.env.ADMIN_TOKEN;
+    else process.env.ADMIN_TOKEN = origAdminToken;
+    if (origOwnerPass === undefined) delete process.env.OWNER_PASS;
+    else process.env.OWNER_PASS = origOwnerPass;
     if (oldKey !== undefined) process.env.RESEND_API_KEY = oldKey;
     else delete process.env.RESEND_API_KEY;
   }
