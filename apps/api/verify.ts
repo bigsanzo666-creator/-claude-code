@@ -3236,7 +3236,21 @@ console.log(`\n${'═'.repeat(60)}`);
   check('mail.ts 에 외부 패키지 import 가 없다', !/import\s+.*\s+from\s+['"](?!(\.|\.\.|\/)).*['"]/.test(mailCode));
 
   // 7) 메일 코드가 보내기 전과 후에 기록을 남긴다 & 기록에 열쇠(re_...)가 절대 안 찍힌다
-  const { sendTestMail, redactKey } = await import('./src/mail.ts');
+  const { sendTestMail, redactKey, formatMailFrom } = await import('./src/mail.ts');
+
+  // 6단계: 보내는 이 이름 한글 RFC 2047 인코딩 검증
+  const defaultFrom = formatMailFrom();
+  const expectedEncoded = `=?UTF-8?B?${Buffer.from('늘봄사주').toString('base64')}?= <no-reply@neulbomsaju.co.kr>`;
+  check('기본 발송자 이름이 RFC 2047 규격으로 인코딩되어 주소와 함께 구성된다',
+    defaultFrom === expectedEncoded,
+    defaultFrom);
+  check('발송자 주소 부분(<no-reply@neulbomsaju.co.kr>)이 온전하다',
+    defaultFrom.endsWith('<no-reply@neulbomsaju.co.kr>'));
+  check('한글 발송자명 인코딩이 올바르다',
+    formatMailFrom('늘봄사주 <no-reply@neulbomsaju.co.kr>') === expectedEncoded);
+  check('영문 발송자명은 그대로 유지된다',
+    formatMailFrom('Neulbom Saju <no-reply@neulbomsaju.co.kr>') === 'Neulbom Saju <no-reply@neulbomsaju.co.kr>');
+
   const capturedLogs: string[] = [];
   const origLog = console.log;
   console.log = (...args: any[]) => {

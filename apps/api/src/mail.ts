@@ -66,6 +66,29 @@ export function buildOrderMailSubject(productName: string): string {
 }
 
 /**
+ * 메일 발송자(from) 지정.
+ * 한글 표시명은 수신 메일함에서 깨지지 않고 「늘봄사주」로 표기되도록
+ * RFC 2047(=?UTF-8?B?...?=) 규격으로 인코딩한다.
+ * 이메일 주소 부분(<no-reply@neulbomsaju.co.kr>)은 손대지 않는다.
+ */
+export function formatMailFrom(customFrom?: string): string {
+  const fromStr = (customFrom || '').trim();
+  if (!fromStr) {
+    return `=?UTF-8?B?${Buffer.from('늘봄사주').toString('base64')}?= <no-reply@neulbomsaju.co.kr>`;
+  }
+  if (fromStr.includes('=?') || !/[^\x00-\x7F]/.test(fromStr)) {
+    return fromStr;
+  }
+  const match = fromStr.match(/^(.*?)\s*(<[^>]+>)$/);
+  if (match) {
+    const [, name, addr] = match;
+    const encoded = `=?UTF-8?B?${Buffer.from(name.trim()).toString('base64')}?=`;
+    return `${encoded} ${addr}`;
+  }
+  return fromStr;
+}
+
+/**
  * Resend API 1회 발송 시도
  */
 async function sendOnce(
@@ -135,7 +158,7 @@ export async function sendReportMail(args: SendReportMailArgs): Promise<SendOrde
     const reportText = (args?.reportText || '').trim();
     if (!orderId || !productName || !reportText) return { sent: false, reason: '주문 정보 부족' };
 
-    const from = (process.env.MAIL_FROM || '').trim() || 'Neulbom Saju <no-reply@neulbomsaju.co.kr>';
+    const from = formatMailFrom(process.env.MAIL_FROM);
     const siteUrl = (process.env.SITE_URL || '').trim().replace(/\/+$/, '') || 'https://neulbomsaju.co.kr';
     const orderUrl = `${siteUrl}/order/${encodeURIComponent(orderId)}`;
     const biz = loadBusinessInfo();
@@ -204,7 +227,7 @@ export async function sendOrderMail(args: SendOrderMailArgs): Promise<SendOrderM
       return { sent: false, reason: '주문 정보 부족' };
     }
 
-    const from = (process.env.MAIL_FROM || '').trim() || 'Neulbom Saju <no-reply@neulbomsaju.co.kr>';
+    const from = formatMailFrom(process.env.MAIL_FROM);
     const siteUrl = (process.env.SITE_URL || '').trim().replace(/\/+$/, '') || 'https://neulbomsaju.co.kr';
     const orderUrl = `${siteUrl}/order/${encodeURIComponent(orderId)}`;
 
@@ -304,7 +327,7 @@ export async function sendTestMail(args: SendTestMailArgs): Promise<SendTestMail
   const apiKey = (process.env.RESEND_API_KEY || '').trim();
   const hasKey = apiKey.length > 0;
   const keyLength = apiKey.length;
-  const from = (args?.from || process.env.MAIL_FROM || '').trim() || 'Neulbom Saju <no-reply@neulbomsaju.co.kr>';
+  const from = formatMailFrom(args?.from || process.env.MAIL_FROM);
   const to = (args?.to || '').trim();
 
   if (!hasKey) {
