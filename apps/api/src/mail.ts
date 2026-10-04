@@ -35,6 +35,15 @@ export interface SendOrderMailResult {
 }
 
 /**
+ * 로그 및 응답에 API 키가 노출되지 않도록 가린다.
+ * Resend 키는 re_XXXXXXXX_YYYY...YYYY 꼴(밑줄 포함 36자)이므로 밑줄까지 포함해 전체를 가린다.
+ */
+export function redactKey(text: string): string {
+  if (typeof text !== 'string') return '';
+  return text.replace(/re_[A-Za-z0-9_]+/g, '[REDACTED]');
+}
+
+/**
  * Resend API 1회 발송 시도
  */
 async function sendOnce(
@@ -53,7 +62,7 @@ async function sendOnce(
     });
 
     const resText = await res.text().catch(() => '');
-    const cleanText = resText.replace(/re_[A-Za-z0-9]+/g, '[REDACTED]');
+    const cleanText = redactKey(resText);
     console.log(`[메일] 답 ${res.status} ${cleanText.slice(0, 200)}`);
 
     if (res.ok) {
@@ -63,16 +72,16 @@ async function sendOnce(
     return {
       ok: false,
       status: res.status,
-      reason: `HTTP ${res.status}${cleanText ? `: ${cleanText}` : ''}`,
+      reason: redactKey(`HTTP ${res.status}${cleanText ? `: ${cleanText}` : ''}`),
       rawResponse: cleanText,
     };
   } catch (err: unknown) {
     const isTimeout = err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
     const msg = err instanceof Error ? err.message : String(err);
-    const cleanMsg = msg.replace(/re_[A-Za-z0-9]+/g, '[REDACTED]');
-    const reason = isTimeout ? '응답 시간 초과 (15초)' : `네트워크 오류 (${cleanMsg})`;
+    const cleanMsg = redactKey(msg);
+    const reason = isTimeout ? '응답 시간 초과 (15초)' : redactKey(`네트워크 오류 (${cleanMsg})`);
     console.log(`[메일] 답 0 ${cleanMsg.slice(0, 200)}`);
-    return { ok: false, status: 0, reason, rawResponse: reason };
+    return { ok: false, status: 0, reason, rawResponse: cleanMsg };
   }
 }
 
@@ -316,7 +325,7 @@ export async function sendTestMail(args: SendTestMailArgs): Promise<SendTestMail
     from,
     hasKey: true,
     keyLength,
-    response: result.rawResponse || '',
-    reason: result.reason,
+    response: redactKey(result.rawResponse || ''),
+    reason: result.reason ? redactKey(result.reason) : undefined,
   };
 }

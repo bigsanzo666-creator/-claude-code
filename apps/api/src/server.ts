@@ -52,7 +52,7 @@ import { buildPayload, buildPayloads, KIND_OF, sajuBundle, type ReadingRequest }
 import { pickDays, bestPerDay, mergeHours, buildDailyPreviewData, buildMonthPreviewData, parseInputTime, luckyNumbers, analyze } from '../../../packages/saju-rules/src/index.ts';
 import { calculate } from '../../../packages/manseryeok/src/index.ts';
 import { buildPreview, sampleFor, sampleNoticeFor } from './preview.ts';
-import { sendOrderMail, sendReportMail, sendTestMail, mailReady } from './mail.ts';
+import { sendOrderMail, sendReportMail, sendTestMail, mailReady, redactKey } from './mail.ts';
 import { type ReferralStore, MemoryReferralStore } from '../../../packages/store/src/index.ts';
 
 /**
@@ -2385,9 +2385,9 @@ export function createApi(deps: ApiDeps) {
         hasKey: result.hasKey,
         keyLength: result.keyLength,
         status: result.status,
-        response: result.response,
+        response: redactKey(result.response || ''),
         sent: result.sent,
-        reason: result.reason,
+        reason: result.reason ? redactKey(result.reason) : undefined,
       });
     },
   };

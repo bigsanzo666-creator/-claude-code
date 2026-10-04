@@ -3061,7 +3061,7 @@ console.log(`\n${'═'.repeat(60)}`);
   check('mail.ts 에 외부 패키지 import 가 없다', !/import\s+.*\s+from\s+['"](?!(\.|\.\.|\/)).*['"]/.test(mailCode));
 
   // 7) 메일 코드가 보내기 전과 후에 기록을 남긴다 & 기록에 열쇠(re_...)가 절대 안 찍힌다
-  const { sendTestMail } = await import('./src/mail.ts');
+  const { sendTestMail, redactKey } = await import('./src/mail.ts');
   const capturedLogs: string[] = [];
   const origLog = console.log;
   console.log = (...args: any[]) => {
@@ -3069,8 +3069,16 @@ console.log(`\n${'═'.repeat(60)}`);
     origLog(...args);
   };
 
-  const testApiKey = 're_testsecretkey1234567890abcdef';
+  // 실제 Resend 열쇠는 36자이며 가운데 밑줄이 있다 (re_XXXXXXXX_YYYY...YYYY)
+  const testApiKey = 're_8aB3kLmN_9xYzQw4RtUvWx7PqS2dFg1234';
+  const keyFront = '8aB3kLmN';
+  const keyBack = '9xYzQw4RtUvWx7PqS2dFg1234';
   process.env.RESEND_API_KEY = testApiKey;
+
+  check('redactKey 가 실제 36자 밑줄 키(앞8자, 뒤24자) 전체를 가린다',
+    redactKey(testApiKey) === '[REDACTED]' &&
+    !redactKey(`오류: ${testApiKey} 노출됨`).includes(keyFront) &&
+    !redactKey(`오류: ${testApiKey} 노출됨`).includes(keyBack));
 
   try {
     globalThis.fetch = async (input: any, init?: any) => {
@@ -3092,8 +3100,10 @@ console.log(`\n${'═'.repeat(60)}`);
     check('메일 코드가 보내기 전과 후에 기록을 남긴다', hasPreLog && hasPostLog);
 
     const leakedKey = capturedLogs.some((l) => l.includes(testApiKey));
+    const leakedFront = capturedLogs.some((l) => l.includes(keyFront));
+    const leakedBack = capturedLogs.some((l) => l.includes(keyBack));
     const redactedKeySeen = capturedLogs.some((l) => l.includes('[REDACTED]'));
-    check('기록에 열쇠(re_...)가 절대 안 찍힌다', !leakedKey && redactedKeySeen);
+    check('기록에 열쇠(re_...)와 조각(앞8자, 뒤24자)이 절대 안 찍힌다', !leakedKey && !leakedFront && !leakedBack && redactedKeySeen);
 
     // 8) /admin/mail-check 가 암호 없이는 안 열린다 (404) & 암호/토큰으로 열린다 (200)
     process.env.ADMIN_TOKEN = 'admin_secret_token_123';
@@ -3109,8 +3119,9 @@ console.log(`\n${'═'.repeat(60)}`);
       checkTokenAuth.body.keyLength === testApiKey.length &&
       typeof checkTokenAuth.body.from === 'string' &&
       checkTokenAuth.body.status === 200);
-    check('/admin/mail-check 응답에 실제 API 키 값이 없다',
-      !JSON.stringify(checkTokenAuth.body).includes(testApiKey));
+    const bodyStr = JSON.stringify(checkTokenAuth.body);
+    check('/admin/mail-check 응답에 실제 API 키 및 조각(앞8자, 뒤24자)이 없다',
+      !bodyStr.includes(testApiKey) && !bodyStr.includes(keyFront) && !bodyStr.includes(keyBack));
 
     const checkPassAuth = await mailApi('GET', `/admin/mail-check?pass=owner_secret_pass_1234567890&to=check@example.com`);
     check('/admin/mail-check 주인 통과로 200 성공', checkPassAuth.status === 200 && checkPassAuth.body.sent === true);
