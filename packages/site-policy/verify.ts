@@ -785,6 +785,10 @@ section('10. 들어가는 길 — 전체 화면');
     check('태어난 날만 있어야 한다',
       /\{ q:'when', need:true/.test(STAGE_SCRIPT)
       && !/\{ q:'(name|place|sex)', need:true/.test(STAGE_SCRIPT));
+    check('태어난 시각 직접 적는 칸과 시간을 모릅니다 단추가 있다',
+      withFace.includes('id="stTimeInput"') && withFace.includes('id="stBtnUnknown"'));
+    check('시각 직접 입력 처리 및 timeKnown 저장이 들어 있다',
+      STAGE_SCRIPT.includes('parseTimeInput') && STAGE_SCRIPT.includes('timeKnown:!!hour'));
   }
   // 계산은 만세력 조각이 한다. 두 곳에서 계산하면 언젠가 두 값이 달라진다.
   // 덮개는 **제 손으로 세지 않고** 그 조각을 불러 쓴다

@@ -214,6 +214,10 @@ export function renderStage(
         </div>
         <div class="st-q st-two" data-q="when" hidden>
           <input type="date" id="stDate" min="1900-01-01" max="2100-12-31" required>
+          <div class="st-time-row">
+            <input type="text" id="stTimeInput" placeholder="시각 직접 입력 (예: 14:40 또는 1440)" maxlength="5" autocomplete="off" inputmode="numeric">
+            <button type="button" class="st-btn-unknown" id="stBtnUnknown">시간을 모릅니다</button>
+          </div>
           <select id="stHour">
         ${hours}
           </select>
@@ -634,6 +638,10 @@ body.st-locked{overflow:hidden}
   box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 0 0 3px rgba(212,175,55,.24)}
 /* 날과 시는 한 물음이다. 옆으로 붙이면 「미시 (오후 1:30 ~ 3:30)」이 잘린다 */
 .st-two{display:grid;gap:10px}
+.st-time-row{display:flex;gap:8px;align-items:stretch}
+.st-time-row input{flex:1 1 auto;min-width:0}
+.st-btn-unknown{padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid var(--nb-line);color:var(--nb-ink-2);font:600 14px var(--nb-sans);white-space:nowrap;cursor:pointer;transition:all .15s ease}
+.st-btn-unknown:hover{background:rgba(255,255,255,.14);color:var(--nb-ink);border-color:var(--nb-gold)}
 
 .st-talk .st-go{width:100%;padding:17px;border:0;border-radius:12px;
   background:linear-gradient(135deg,var(--nb-gold),#A37C15);
@@ -1260,10 +1268,34 @@ export const STAGE_SCRIPT = `<script>(function(){
   var told2={};   // 신령마다 몇 번 주고받았는가
   var logs={};    // 신령마다 지금까지 주고받은 말
 
+  function parseTimeInput(val){
+    if(!val)return null;
+    var trimmed=val.trim();
+    var m=/^(\d{1,2}):?(\d{2})$/.exec(trimmed);
+    if(!m)return null;
+    var h=parseInt(m[1],10);
+    var min=parseInt(m[2],10);
+    if(h>=0&&h<=23&&min>=0&&min<=59){
+      var hh=(h<10?'0':'')+h;
+      var mm=(min<10?'0':'')+min;
+      return hh+':'+mm;
+    }
+    return null;
+  }
+
+  function getHourVal(){
+    var ti=$('stTimeInput');
+    if(ti&&ti.value){
+      var p=parseTimeInput(ti.value);
+      if(p)return p;
+    }
+    return ($('stHour')&&$('stHour').value)||'';
+  }
+
   function facts(){
     var name=($('stName')&&$('stName').value.trim())||'';
     var date=$('stDate')&&$('stDate').value;
-    var hour=$('stHour')&&$('stHour').value;
+    var hour=getHourVal();
     var out={name:name,dayStem:'',dayElement:'',eight:'',strong:false,
       topGod:'',lackGod:'',topElement:'',lackElement:'',timeKnown:!!hour};
     if(!date||!window.MS||!MS.calculate||!MS.analyze)return out;
@@ -1340,7 +1372,7 @@ export const STAGE_SCRIPT = `<script>(function(){
     var date=$('stDate')&&$('stDate').value;
     if(!date||!window.MS||!MS.calculate||!MS.analyze||!MS.freeReading)return null;
     try{
-      var hour=$('stHour')&&$('stHour').value;
+      var hour=getHourVal();
       var sexEl=$('stSex'), sex=(sexEl&&sexEl.value)||null;
       var ms=MS.calculate({date:date,time:hour||null});
       return MS.freeReading(ms,MS.analyze(ms),
@@ -1562,6 +1594,91 @@ export const STAGE_SCRIPT = `<script>(function(){
   };
   var stepBack=function(){ if(at>0){ at--; draw(); return true; } return false; };
   var bk=$('stBack'); if(bk)bk.addEventListener('click',stepBack);
+
+  var timeInput=$('stTimeInput');
+  var hourSel=$('stHour');
+
+  function syncTimeToSelect(timeStr){
+    if(!hourSel)return;
+    if(!timeStr){ hourSel.value=''; return; }
+    var found=false;
+    for(var i=0;i<hourSel.options.length;i++){
+      if(hourSel.options[i].value===timeStr){
+        hourSel.selectedIndex=i; found=true; break;
+      }
+    }
+    if(!found){
+      var opt=document.createElement('option');
+      opt.value=timeStr;
+      opt.textContent=timeStr+' (직접 입력)';
+      hourSel.appendChild(opt);
+      hourSel.value=timeStr;
+    }
+  }
+
+  if(timeInput){
+    timeInput.addEventListener('input',function(){
+      var parsed=parseTimeInput(timeInput.value);
+      if(parsed)syncTimeToSelect(parsed);
+    });
+    timeInput.addEventListener('change',function(){
+      var parsed=parseTimeInput(timeInput.value);
+      if(parsed){ timeInput.value=parsed; syncTimeToSelect(parsed); }
+      else if(!timeInput.value.trim()){ syncTimeToSelect(''); }
+    });
+    timeInput.addEventListener('blur',function(){
+      var parsed=parseTimeInput(timeInput.value);
+      if(parsed){ timeInput.value=parsed; syncTimeToSelect(parsed); }
+    });
+  }
+
+  if(hourSel){
+    hourSel.addEventListener('change',function(){
+      if(timeInput)timeInput.value=hourSel.value;
+    });
+  }
+
+  var btnUnknown=$('stBtnUnknown');
+  if(btnUnknown){
+    btnUnknown.addEventListener('click',function(){
+      if(hourSel)hourSel.value='';
+      if(timeInput)timeInput.value='';
+      var noTime=document.getElementById('notime');
+      if(noTime&&!noTime.checked){
+        noTime.checked=true;
+        noTime.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+      var dateVal=$('stDate')&&$('stDate').value;
+      if(!dateVal){
+        var msg=$('stMsg');
+        if(msg)msg.textContent='태어난 날을 먼저 적어 주십시오.';
+        var dateEl=$('stDate');
+        if(dateEl&&dateEl.focus)dateEl.focus();
+        return;
+      }
+      for(var k=0;k<STEPS.length;k++){
+        if(STEPS[k].q==='when'){
+          if(at===k&&at<STEPS.length-1){ at++; draw(); }
+          break;
+        }
+      }
+    });
+  }
+
+  try{
+    var savedInit=JSON.parse(sessionStorage.getItem('nb_reading')||'{}');
+    if(savedInit&&savedInit.birth){
+      if(savedInit.birth.name&&$('stName'))$('stName').value=savedInit.birth.name;
+      if(savedInit.birth.date&&$('stDate'))$('stDate').value=savedInit.birth.date;
+      if(savedInit.birth.timeKnown!==false&&savedInit.birth.time){
+        if(timeInput)timeInput.value=savedInit.birth.time;
+        syncTimeToSelect(savedInit.birth.time);
+      }
+      if(savedInit.birth.place&&$('stPlace'))$('stPlace').value=savedInit.birth.place;
+      if(savedInit.birth.gender&&$('stSex'))$('stSex').value=savedInit.birth.gender;
+    }
+  }catch(e){}
+
   draw();
 
   // 사러 온 손님은 길을 걷지 않는다. 문 앞에서 시작한다.
@@ -1579,7 +1696,8 @@ export const STAGE_SCRIPT = `<script>(function(){
 
     var name=$('stName').value.trim();
     var date=$('stDate').value;
-    var hour=$('stHour').value;
+    var hour=getHourVal();
+    syncTimeToSelect(hour);
     if(!date){ $('stMsg').textContent='태어난 날은 있어야 한다.'; at=1; draw(); return; }
     put('date',date);
     if(name)put('name',name);
@@ -1591,6 +1709,15 @@ export const STAGE_SCRIPT = `<script>(function(){
     // 태어난 곳과 성별도 그대로 내려보낸다. 진태양시와 대운 방향이 여기서 갈린다
     var place=$('stPlace'); if(place&&place.value)put('place',place.value);
     var sexNow=$('stSex'); if(sexNow&&sexNow.value)put('gender',sexNow.value);
+
+    try{
+      var s=JSON.parse(sessionStorage.getItem('nb_reading')||'{}')||{};
+      s.birth=Object.assign({},s.birth||{},{
+        name:name,date:date,time:hour||'12:00',timeKnown:!!hour,
+        place:(place&&place.value)||'서울',gender:(sexNow&&sexNow.value)||'남'
+      });
+      sessionStorage.setItem('nb_reading',JSON.stringify(s));
+    }catch(e){}
 
     told=true;
     // 고르고 온 손님은 신령계를 거치지 않는다. 사는 자리로 곧장 내려보낸다

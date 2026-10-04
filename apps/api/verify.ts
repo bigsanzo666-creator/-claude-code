@@ -2828,6 +2828,12 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     check('소개 현황 화면에 깎이는 금액과 받는 보답이 둘 다 명시된다',
       inviteHtml.includes(`${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원`) &&
       inviteHtml.includes('오늘의 운세 30일'));
+
+    const appJsContent = fs.readFileSync(new URL('./public/app.js', import.meta.url), 'utf8');
+    check('첫 화면에 시각 직접 입력칸과 시간을 모릅니다 단추가 있다',
+      home.html.includes('id="stTimeInput"') && home.html.includes('id="stBtnUnknown"'));
+    check('app.js 에 배경음악(/audio/bgm) 및 신령음 제어가 연결되어 있다',
+      appJsContent.includes('/audio/bgm') && appJsContent.includes('setSound'));
   }
 
   section('소개 보답 — 오늘의 운세 30일 소개당 지급');

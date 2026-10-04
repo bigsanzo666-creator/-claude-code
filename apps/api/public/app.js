@@ -655,11 +655,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const panoramaViewport = document.getElementById('panoramaViewport');
 
-  // ================= 🔊 사운드 컨트롤 =================
+  // ================= 🔊 사운드 컨트롤 & 배경음악(/audio/bgm) =================
+  let bgmAudio = null;
+  function getBgm() {
+    if (!bgmAudio) {
+      try {
+        bgmAudio = new Audio('/audio/bgm');
+        bgmAudio.loop = true;
+        bgmAudio.volume = 0.15; // 0.2 안쪽 (신령 목소리와 겹칠 때 목소리가 이기도록)
+      } catch (e) {
+        bgmAudio = null;
+      }
+    }
+    return bgmAudio;
+  }
+
   function setSound(enable) {
     isAudioActive = enable;
+    try {
+      localStorage.setItem('nb_sound_active', enable ? '1' : '0');
+    } catch (e) {}
+
+    const bgm = getBgm();
     if (enable) {
-      if (stageGate.classList.contains('active') && gateVideo) {
+      if (stageGate && stageGate.classList.contains('active') && gateVideo) {
         gateVideo.muted = false;
         gateVideo.volume = 1.0;
         gateVideo.play().catch(() => { });
@@ -668,22 +687,53 @@ document.addEventListener('DOMContentLoaded', () => {
         enterVideo.muted = false;
         enterVideo.volume = 1.0;
       }
-      soundControl.classList.add('active');
-      soundIcon.textContent = '🔊';
-      soundText.textContent = '신령음 ON';
+      if (bgm) {
+        bgm.play().catch(() => { });
+      }
+      if (soundControl) soundControl.classList.add('active');
+      if (soundIcon) soundIcon.textContent = '🔊';
+      if (soundText) soundText.textContent = '신령음 ON';
     } else {
       if (gateVideo) gateVideo.muted = true;
       if (enterVideo) enterVideo.muted = true;
-      soundControl.classList.remove('active');
-      soundIcon.textContent = '🔇';
-      soundText.textContent = '신령음 OFF';
+      if (bgm) {
+        bgm.pause();
+      }
+      if (soundControl) soundControl.classList.remove('active');
+      if (soundIcon) soundIcon.textContent = '🔇';
+      if (soundText) soundText.textContent = '신령음 OFF';
     }
   }
 
-  soundControl.addEventListener('click', (e) => {
-    e.stopPropagation();
-    setSound(!isAudioActive);
-  });
+  if (soundControl) {
+    soundControl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setSound(!isAudioActive);
+    });
+  }
+
+  // 껐다 켠 상태 기억: 이전 방문에서 꺼뒀으면 OFF 상태로 복원
+  try {
+    const savedSound = localStorage.getItem('nb_sound_active');
+    if (savedSound === '0') {
+      setSound(false);
+    }
+  } catch (e) {}
+
+  // 손님이 화면을 한 번 누른 다음에 틀기 시작한다 (브라우저 자동 재생 정책)
+  const startBgmOnFirstClick = () => {
+    document.removeEventListener('click', startBgmOnFirstClick);
+    document.removeEventListener('touchstart', startBgmOnFirstClick);
+    try {
+      if (localStorage.getItem('nb_sound_active') === '0') return;
+    } catch (e) {}
+    const bgm = getBgm();
+    if (bgm) {
+      bgm.play().catch(() => { });
+    }
+  };
+  document.addEventListener('click', startBgmOnFirstClick, { once: true });
+  document.addEventListener('touchstart', startBgmOnFirstClick, { once: true });
 
   // ================= 1. 비디오 루프 금지 & 마지막 프레임 정지 =================
   if (gateVideo) {
