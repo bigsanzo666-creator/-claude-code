@@ -2283,6 +2283,16 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     let inviteDiscountOk = false;
     let under20kNoteOk = false;
 
+    let redirectDetailNote: string | undefined;
+    let passCarriedNote: string | undefined;
+    let staysOnCheckoutNote: string | undefined;
+    let homeFreeNote: string | undefined;
+    let productsFreeNote: string | undefined;
+    let openedOnEntryNote: string | undefined;
+    let toggledOnEditNote: string | undefined;
+    let inviteDiscountNote: string | undefined;
+    let under20kNoteNote: string | undefined;
+
     if (chromePath) {
       const coServer = createServer(async (req, res) => {
         const u = new URL(req.url || '/', 'http://127.0.0.1');
@@ -2374,49 +2384,91 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
           });
         };
 
+        const pollUntil = async <T>(
+          fn: () => Promise<T | null | undefined | false>,
+          timeoutMs = 5000,
+          intervalMs = 50,
+        ): Promise<{ ok: boolean; value?: T; lastSeen?: any }> => {
+          const start = Date.now();
+          let lastSeen: any = undefined;
+          while (Date.now() - start < timeoutMs) {
+            try {
+              const res = await fn();
+              lastSeen = res;
+              if (res) return { ok: true, value: res, lastSeen };
+            } catch (err: any) {
+              lastSeen = { error: err?.message || String(err) };
+            }
+            await new Promise((r) => setTimeout(r, intervalMs));
+          }
+          return { ok: false, lastSeen };
+        };
+
         await pageSend('Page.enable');
         await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/checkout?product=daily-report` });
-        await new Promise((r) => setTimeout(r, 1200));
 
-        const res1 = await pageSend('Runtime.evaluate', {
-          expression: `(function(){
-            var editForm = document.getElementById('coUserEditForm');
-            return editForm ? getComputedStyle(editForm).display : 'none';
-          })()`,
-          returnByValue: true,
-        });
-        openedOnEntry = res1.result?.value === 'block';
+        const waitRes1 = await pollUntil(async () => {
+          const evalRes = await pageSend('Runtime.evaluate', {
+            expression: `(function(){
+              var editForm = document.getElementById('coUserEditForm');
+              var ready = document.querySelector('.co-soon');
+              return {
+                display: editForm ? getComputedStyle(editForm).display : 'none',
+                hasForm: Boolean(document.getElementById('coForm')),
+                isReady: Boolean(ready),
+              };
+            })()`,
+            returnByValue: true,
+          });
+          const val = evalRes.result?.value;
+          if (val?.display === 'block' || val?.isReady) return val;
+          return null;
+        }, 5000, 50);
+        openedOnEntry = waitRes1.value?.display === 'block';
+        openedOnEntryNote = openedOnEntry ? undefined : `마지막 화면 상태: ${JSON.stringify(waitRes1.lastSeen)}`;
 
-        const res2 = await pageSend('Runtime.evaluate', {
-          expression: `(function(){
-            var editBtn = document.getElementById('coEditUserBtn');
-            var editForm = document.getElementById('coUserEditForm');
-            if(!editBtn || !editForm) return { noElements: true };
-            editBtn.click();
-            var afterFirst = getComputedStyle(editForm).display;
-            editBtn.click();
-            var afterSecond = getComputedStyle(editForm).display;
-            return { afterFirst: afterFirst, afterSecond: afterSecond };
-          })()`,
-          returnByValue: true,
-        });
-        toggledOnEdit = res2.result?.value?.afterFirst === 'none' && res2.result?.value?.afterSecond === 'block';
+        const waitRes2 = await pollUntil(async () => {
+          const evalRes = await pageSend('Runtime.evaluate', {
+            expression: `(function(){
+              var editBtn = document.getElementById('coEditUserBtn');
+              var editForm = document.getElementById('coUserEditForm');
+              if(!editBtn || !editForm) return null;
+              editBtn.click();
+              var afterFirst = getComputedStyle(editForm).display;
+              editBtn.click();
+              var afterSecond = getComputedStyle(editForm).display;
+              return { afterFirst: afterFirst, afterSecond: afterSecond };
+            })()`,
+            returnByValue: true,
+          });
+          const val = evalRes.result?.value;
+          if (val && val.afterFirst === 'none' && val.afterSecond === 'block') return val;
+          return null;
+        }, 5000, 50);
+        toggledOnEdit = Boolean(waitRes2.ok);
+        toggledOnEditNote = toggledOnEdit ? undefined : `마지막 상태: ${JSON.stringify(waitRes2.lastSeen)}`;
 
         // 7단계: 사진이 필요한 상품에서 사진 없이 들어가면 상세페이지로 넘어가고 pass 보존 확인
         await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/checkout?product=cross-report&pass=secret-pass-123` });
-        await new Promise((r) => setTimeout(r, 1000));
-        const res3 = await pageSend('Runtime.evaluate', {
-          expression: `(function(){
-            return {
-              pathname: location.pathname,
-              search: location.search,
-              href: location.href,
-            };
-          })()`,
-          returnByValue: true,
-        });
-        redirectedToDetail = res3.result?.value?.pathname === '/products/cross-report';
-        passCarriedOver = Boolean(res3.result?.value?.search?.includes('pass=secret-pass-123'));
+        const waitRes3 = await pollUntil(async () => {
+          const evalRes = await pageSend('Runtime.evaluate', {
+            expression: `(function(){
+              return {
+                pathname: location.pathname,
+                search: location.search,
+                href: location.href,
+              };
+            })()`,
+            returnByValue: true,
+          });
+          const val = evalRes.result?.value;
+          if (val?.pathname === '/products/cross-report') return val;
+          return null;
+        }, 5000, 50);
+        redirectedToDetail = Boolean(waitRes3.ok);
+        passCarriedOver = Boolean(waitRes3.value?.search?.includes('pass=secret-pass-123'));
+        redirectDetailNote = redirectedToDetail ? undefined : `마지막 위치: ${JSON.stringify(waitRes3.lastSeen)}`;
+        passCarriedNote = passCarriedOver ? undefined : `마지막 쿼리: ${JSON.stringify(waitRes3.lastSeen)}`;
 
         // 사진 2장이 있으면 결제 화면이 제대로 뜨는지 확인
         await pageSend('Runtime.evaluate', {
@@ -2425,101 +2477,169 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
           })()`,
         });
         await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/checkout?product=cross-report` });
-        await new Promise((r) => setTimeout(r, 800));
-        const resStay = await pageSend('Runtime.evaluate', {
-          expression: `(function(){
-            return {
-              pathname: location.pathname,
-              hasForm: Boolean(document.getElementById('coForm')),
-            };
-          })()`,
-          returnByValue: true,
-        });
-        staysOnCheckoutWithPhotos = resStay.result?.value?.pathname === '/checkout' && Boolean(resStay.result?.value?.hasForm);
+        const waitStay = await pollUntil(async () => {
+          const evalRes = await pageSend('Runtime.evaluate', {
+            expression: `(function(){
+              return {
+                pathname: location.pathname,
+                hasForm: Boolean(document.getElementById('coForm')),
+                isReady: Boolean(document.querySelector('.co-soon')),
+              };
+            })()`,
+            returnByValue: true,
+          });
+          const val = evalRes.result?.value;
+          if (val?.pathname === '/checkout' && (val?.hasForm || val?.isReady)) return val;
+          return null;
+        }, 5000, 50);
+        staysOnCheckoutWithPhotos = Boolean(waitStay.value?.pathname === '/checkout' && waitStay.value?.hasForm);
+        staysOnCheckoutNote = staysOnCheckoutWithPhotos ? undefined : `마지막 상태: ${JSON.stringify(waitStay.lastSeen)}`;
 
         // 1단계: 실제 브라우저로 홈의 「무료 · 내 사주 여덟 글자」를 눌러서 무료 사주 입력칸이 보이는지 확인
         await pageSend('Page.navigate', { url: `${base}/` });
-        await new Promise((r) => setTimeout(r, 1200));
-        const resHomeFree = await pageSend('Runtime.evaluate', {
-          expression: `(function(){
-            var btn = document.getElementById('btnFreeEightLetters');
-            if(!btn) return { found: false, error: '버튼 없음' };
-            btn.click();
-            var panelA = document.getElementById('panelA');
-            var ymd = document.querySelector('.ymd') || panelA;
-            var leg = document.getElementById('legacyStageWrapper');
-            if(!panelA || !leg) return { found: false, error: 'panelA/legacy 없음' };
-            var isVis = getComputedStyle(panelA).display !== 'none' && getComputedStyle(leg).display !== 'none';
-            return { found: true, visible: isVis };
-          })()`,
-          returnByValue: true,
-        });
-        homeFreeVisible = Boolean(resHomeFree.result?.value?.visible);
+        await pollUntil(async () => {
+          const evalRes = await pageSend('Runtime.evaluate', {
+            expression: `document.readyState === 'complete' && Boolean(document.getElementById('btnFreeEightLetters'))`,
+            returnByValue: true,
+          });
+          return evalRes.result?.value ? true : null;
+        }, 5000, 50);
+
+        let lastHomeFree: any = null;
+        const waitHomeFree = await pollUntil(async () => {
+          const evalRes = await pageSend('Runtime.evaluate', {
+            expression: `(function(){
+              var panelA = document.getElementById('panelA');
+              var leg = document.getElementById('legacyStageWrapper');
+              if(!panelA || !leg) {
+                var btn = document.getElementById('btnFreeEightLetters');
+                if (btn) btn.click();
+                panelA = document.getElementById('panelA');
+                leg = document.getElementById('legacyStageWrapper');
+              }
+              if(!panelA || !leg) return { found: false, error: 'panelA/legacy 없음', panelA: Boolean(panelA), leg: Boolean(leg) };
+              var pDisp = getComputedStyle(panelA).display;
+              var lDisp = getComputedStyle(leg).display;
+              var isVis = pDisp !== 'none' && lDisp !== 'none';
+              if (!isVis) {
+                var btn = document.getElementById('btnFreeEightLetters');
+                if (btn) btn.click();
+                pDisp = getComputedStyle(panelA).display;
+                lDisp = getComputedStyle(leg).display;
+                isVis = pDisp !== 'none' && lDisp !== 'none';
+              }
+              return { found: true, visible: isVis, panelADisplay: pDisp, legDisplay: lDisp };
+            })()`,
+            returnByValue: true,
+          });
+          const val = evalRes.result?.value;
+          lastHomeFree = val;
+          if (val?.visible) return val;
+          return null;
+        }, 5000, 50);
+        homeFreeVisible = Boolean(waitHomeFree.ok);
+        homeFreeNote = homeFreeVisible ? undefined : `마지막 판정: ${JSON.stringify(lastHomeFree)}`;
 
         // /products 에서 누른 경우도 똑같이 확인
         await pageSend('Page.navigate', { url: `${base}/products` });
-        await new Promise((r) => setTimeout(r, 1200));
-        await pageSend('Runtime.evaluate', {
-          expression: `(function(){
-            var btn = document.getElementById('btnFreeEightLetters');
-            if(btn) location.href = btn.href;
-          })()`,
-        });
-        await new Promise((r) => setTimeout(r, 1500));
-        const resProductsFree = await pageSend('Runtime.evaluate', {
-          expression: `(function(){
-            var panelA = document.getElementById('panelA');
-            var leg = document.getElementById('legacyStageWrapper');
-            if(!panelA || !leg) return { found: false, error: 'panelA/legacy 없음', loc: location.href };
-            var isVis = getComputedStyle(panelA).display !== 'none' && getComputedStyle(leg).display !== 'none';
-            var urlClean = !location.search.includes('free=1');
-            return { found: true, visible: isVis, urlClean: urlClean };
-          })()`,
-          returnByValue: true,
-        });
-        productsFreeVisible = Boolean(resProductsFree.result?.value?.visible && resProductsFree.result?.value?.urlClean);
+        await pollUntil(async () => {
+          const evalRes = await pageSend('Runtime.evaluate', {
+            expression: `document.readyState === 'complete' && Boolean(document.getElementById('btnFreeEightLetters'))`,
+            returnByValue: true,
+          });
+          return evalRes.result?.value ? true : null;
+        }, 5000, 50);
+
+        let lastProductsFree: any = null;
+        const waitProductsFree = await pollUntil(async () => {
+          const evalRes = await pageSend('Runtime.evaluate', {
+            expression: `(function(){
+              var panelA = document.getElementById('panelA');
+              var leg = document.getElementById('legacyStageWrapper');
+              if(!panelA || !leg) {
+                var btn = document.getElementById('btnFreeEightLetters');
+                if(btn && location.pathname === '/products') location.href = btn.href;
+                panelA = document.getElementById('panelA');
+                leg = document.getElementById('legacyStageWrapper');
+              }
+              if(!panelA || !leg) return { found: false, error: 'panelA/legacy 없음', loc: location.href };
+              var pDisp = getComputedStyle(panelA).display;
+              var lDisp = getComputedStyle(leg).display;
+              var isVis = pDisp !== 'none' && lDisp !== 'none';
+              var urlClean = !location.search.includes('free=1');
+              return { found: true, visible: isVis, urlClean: urlClean, panelADisplay: pDisp, legDisplay: lDisp, loc: location.href };
+            })()`,
+            returnByValue: true,
+          });
+          const val = evalRes.result?.value;
+          lastProductsFree = val;
+          if (val?.visible && val?.urlClean) return val;
+          return null;
+        }, 5000, 50);
+        productsFreeVisible = Boolean(waitProductsFree.ok);
+        productsFreeNote = productsFreeVisible ? undefined : `마지막 판정: ${JSON.stringify(lastProductsFree)}`;
 
         // 소개 검증: 실제 브라우저로 /?invite=<코드> 로 들어가 상품을 고르고 결제 화면까지 가서 값이 깎였는지 본다
         await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/?invite=friendtest12` });
-        await new Promise((r) => setTimeout(r, 1200));
+        await pollUntil(async () => {
+          const evalRes = await pageSend('Runtime.evaluate', {
+            expression: `document.readyState === 'complete'`,
+            returnByValue: true,
+          });
+          return evalRes.result?.value ? true : null;
+        }, 5000, 50);
 
         // 1) 2만원 이상 상품 선택하여 결제 화면으로 이동 (saju-report: 34,900원 -> 31,900원)
         await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/checkout?product=saju-report` });
-        await new Promise((r) => setTimeout(r, 1200));
-        const resInviteCheckout = await pageSend('Runtime.evaluate', {
-          expression: `(function(){
-            var tag = document.querySelector('.co-price b');
-            var note = document.getElementById('coInviteNote');
-            var pay = document.getElementById('coPay');
-            var text = ((tag && tag.textContent) || '') + ' ' + ((note && note.textContent) || '') + ' ' + ((pay && pay.textContent) || '');
-            var hasMinus = text.includes('3,000') || text.includes('−3,000') || text.includes('-3,000');
-            var hasBadge = text.includes('벗의 증표');
-            var isDiscounted = text.includes('31,900');
-            return {
-              ok: hasBadge && hasMinus && isDiscounted,
-              text: text,
-              session: sessionStorage.getItem('nb_invite')
-            };
-          })()`,
-          returnByValue: true,
-        });
-        inviteDiscountOk = Boolean(resInviteCheckout.result?.value?.ok);
+        const waitInvite = await pollUntil(async () => {
+          const evalRes = await pageSend('Runtime.evaluate', {
+            expression: `(function(){
+              var tag = document.querySelector('.co-price b');
+              var note = document.getElementById('coInviteNote');
+              var pay = document.getElementById('coPay');
+              var ready = document.querySelector('.co-soon');
+              var text = ((tag && tag.textContent) || '') + ' ' + ((note && note.textContent) || '') + ' ' + ((pay && pay.textContent) || '');
+              var hasMinus = text.includes('3,000') || text.includes('−3,000') || text.includes('-3,000');
+              var hasBadge = text.includes('벗의 증표');
+              var isDiscounted = text.includes('31,900');
+              return {
+                ok: hasBadge && hasMinus && isDiscounted,
+                text: text,
+                isReady: Boolean(ready),
+                session: sessionStorage.getItem('nb_invite')
+              };
+            })()`,
+            returnByValue: true,
+          });
+          const val = evalRes.result?.value;
+          if (val?.ok || val?.isReady) return val;
+          return null;
+        }, 5000, 50);
+        inviteDiscountOk = Boolean(waitInvite.value?.ok);
+        inviteDiscountNote = inviteDiscountOk ? undefined : `마지막 상태: ${JSON.stringify(waitInvite.lastSeen)}`;
 
         // 2) 2만원 아래 상품(daily-report, 9,900원)
         await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/checkout?product=daily-report` });
-        await new Promise((r) => setTimeout(r, 1200));
-        const resUnder20k = await pageSend('Runtime.evaluate', {
-          expression: `(function(){
-            var note = document.getElementById('coInviteNote');
-            var text = (note && note.textContent) || '';
-            return {
-              ok: text.includes('이 증표는 2만원 이상 점사에 쓰실 수 있습니다'),
-              text: text
-            };
-          })()`,
-          returnByValue: true,
-        });
-        under20kNoteOk = Boolean(resUnder20k.result?.value?.ok);
+        const waitUnder20k = await pollUntil(async () => {
+          const evalRes = await pageSend('Runtime.evaluate', {
+            expression: `(function(){
+              var note = document.getElementById('coInviteNote');
+              var ready = document.querySelector('.co-soon');
+              var text = (note && note.textContent) || '';
+              return {
+                ok: text.includes('이 증표는 2만원 이상 점사에 쓰실 수 있습니다'),
+                text: text,
+                isReady: Boolean(ready),
+              };
+            })()`,
+            returnByValue: true,
+          });
+          const val = evalRes.result?.value;
+          if (val?.ok || val?.isReady) return val;
+          return null;
+        }, 5000, 50);
+        under20kNoteOk = Boolean(waitUnder20k.value?.ok);
+        under20kNoteNote = under20kNoteOk ? undefined : `마지막 상태: ${JSON.stringify(waitUnder20k.lastSeen)}`;
 
         pageWs.close();
         ws.close();
@@ -2556,11 +2676,11 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     const invitePathsCount = inviteWayHome + (inviteWayBadge ? 1 : 0);
     const hasMultipleInvitePaths = invitePathsCount >= 2;
 
-    check('생년월일 없이 결제 화면에 들어오면 입력칸이 펼쳐져 있다', openedOnEntry);
-    check('[고치기]를 누르면 입력칸이 열린다', toggledOnEdit);
-    check('사진 없이 들어가면 상세페이지로 리다이렉트된다', redirectedToDetail);
-    check('상세페이지로 갈 때 pass 가 보존된다', passCarriedOver);
-    check('사진이 있으면 결제 화면이 정상적으로 뜬다', staysOnCheckoutWithPhotos);
+    check('생년월일 없이 결제 화면에 들어오면 입력칸이 펼쳐져 있다', openedOnEntry, openedOnEntryNote);
+    check('[고치기]를 누르면 입력칸이 열린다', toggledOnEdit, toggledOnEditNote);
+    check('사진 없이 들어가면 상세페이지로 리다이렉트된다', redirectedToDetail, redirectDetailNote);
+    check('상세페이지로 갈 때 pass 가 보존된다', passCarriedOver, passCarriedNote);
+    check('사진이 있으면 결제 화면이 정상적으로 뜬다', staysOnCheckoutWithPhotos, staysOnCheckoutNote);
     /*
      * 터진 뒤에 적은 것 (2026-10-03): 사진을 결제 화면에서 받고 있었다.
      * 값을 치르기로 마음먹은 뒤에야 요구하니 거기서 돌아선다.
@@ -2614,17 +2734,17 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     check('사진을 보여 주면 미리보기를 손님 것으로 바꾼다',
       상세(CATALOG['cross-report'], business, true, '').includes('/api/preview'),
       '사진을 받고도 미리보기가 그대로면 보여 준 보람이 없다');
-    check('실제 브라우저로 홈의 「무료 · 내 사주 여덟 글자」를 눌러서 무료 사주 입력칸이 화면에 보인다', homeFreeVisible);
-    check('/products 에서 누른 경우도 똑같이 확인된다', productsFreeVisible);
+    check('실제 브라우저로 홈의 「무료 · 내 사주 여덟 글자」를 눌러서 무료 사주 입력칸이 화면에 보인다', homeFreeVisible, homeFreeNote);
+    check('/products 에서 누른 경우도 똑같이 확인된다', productsFreeVisible, productsFreeNote);
 
     /*
      * 터진 뒤에 적은 것 (2026-10-01): 소개 링크는 홈을 가리키는데 코드를
      * 받는 곳은 결제 화면뿐이었다. 할인이 한 번도 걸린 적이 없다.
      * 만들어 두고 이어 보지 않았다.
      */
-    check('홈에 소개 코드를 담고 들어가면 결제 화면에서 3,000원이 깎인다', inviteDiscountOk);
+    check('홈에 소개 코드를 담고 들어가면 결제 화면에서 3,000원이 깎인다', inviteDiscountOk, inviteDiscountNote);
     check('소개 현황 화면으로 가는 길이 두 군데 이상 있다', hasMultipleInvitePaths);
-    check('2만원 아래 상품에서는 못 쓴다고 솔직히 적는다', under20kNoteOk);
+    check('2만원 아래 상품에서는 못 쓴다고 솔직히 적는다', under20kNoteOk, under20kNoteNote);
   }
 
   section('소개 보답 — 오늘의 운세 30일 소개당 지급');
