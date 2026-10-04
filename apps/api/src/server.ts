@@ -293,6 +293,18 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
 
     <!-- ================= STAGE 3: 10대 신령 메뉴판 ================= -->
     <section id="stageSpirits" class="stage-section spirits-menu-section">
+      <!-- 벗의 증표(소개 코드) 수동 입력창: 왼쪽 위 빈 자리 -->
+      <div class="stage-invite-badge" id="stageInviteBadge">
+        <button type="button" class="stage-invite-btn" id="btnOpenStageInvite">벗의 증표가 있으십니까?</button>
+        <div class="stage-invite-fold" id="stageInviteFold" style="display:none">
+          <div class="stage-invite-input-row">
+            <input type="text" id="stageInviteInput" placeholder="증표 코드 입력" maxlength="16" autocomplete="off">
+            <button type="button" id="stageInviteSubmit">확인</button>
+          </div>
+          <p class="stage-invite-msg" id="stageInviteMsg"></p>
+        </div>
+      </div>
+
       <div class="spirits-menu-header">
         <div class="spirits-menu-user" id="userInfoDisplay">
           <span class="user-seal-mark">늘봄</span>
@@ -1334,6 +1346,29 @@ export function createApi(deps: ApiDeps) {
     return true;
   }
 
+  const inviteCheckAttempts = new Map<string, { count: number; lockedUntil: number }>();
+  function checkInviteRateLimit(ip: string): { allowed: boolean; remainingSec: number } {
+    const now = Date.now();
+    const item = inviteCheckAttempts.get(ip);
+    if (!item) return { allowed: true, remainingSec: 0 };
+    if (item.lockedUntil > now) {
+      return { allowed: false, remainingSec: Math.ceil((item.lockedUntil - now) / 1000) };
+    }
+    return { allowed: true, remainingSec: 0 };
+  }
+  function recordInviteCheckFail(ip: string): { locked: boolean; remainingSec: number } {
+    const now = Date.now();
+    const item = inviteCheckAttempts.get(ip) || { count: 0, lockedUntil: 0 };
+    item.count += 1;
+    if (item.count >= 3) {
+      item.lockedUntil = now + 3 * 60 * 1000;
+      inviteCheckAttempts.set(ip, item);
+      return { locked: true, remainingSec: 180 };
+    }
+    inviteCheckAttempts.set(ip, item);
+    return { locked: false, remainingSec: 0 };
+  }
+
   const routes: Record<string, (req: IncomingMessage, res: ServerResponse, id: string) => Promise<void>> = {
     /** 화면. 결제 설정을 주입해 내려준다 */
     'GET /': async (_req, res) => {
@@ -2206,6 +2241,59 @@ export function createApi(deps: ApiDeps) {
 
     'GET /invite': async (_req, res) => {
       sendHtml(res, renderInvitePage(business, renderFooter(business)));
+    },
+
+    'POST /api/invite/check': async (req, res) => {
+      const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || '127.0.0.1';
+      const rl = checkInviteRateLimit(ip);
+      if (!rl.allowed) {
+        send(res, 429, {
+          ok: false,
+          valid: false,
+          message: `증표 입력을 여러 번 실패하여 잠시 후(${rl.remainingSec}초 뒤) 다시 시도해 주세요.`,
+        });
+        return;
+      }
+
+      const body = await readJson(req);
+      const rawCode = typeof body.code === 'string' ? body.code.trim().toLowerCase() : '';
+      const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+
+      if (!rawCode || !isValidInviteCode(rawCode)) {
+        const fail = recordInviteCheckFail(ip);
+        if (fail.locked) {
+          send(res, 429, { ok: false, valid: false, message: `증표를 3회 이상 잘못 입력하여 잠시 후(${fail.remainingSec}초 뒤) 다시 시도해 주세요.` });
+        } else {
+          send(res, 200, { ok: false, valid: false, message: '그런 증표가 없습니다' });
+        }
+        return;
+      }
+
+      const invite = await referrals.getInvite(rawCode);
+      if (!invite) {
+        const fail = recordInviteCheckFail(ip);
+        if (fail.locked) {
+          send(res, 429, { ok: false, valid: false, message: `증표를 3회 이상 잘못 입력하여 잠시 후(${fail.remainingSec}초 뒤) 다시 시도해 주세요.` });
+        } else {
+          send(res, 200, { ok: false, valid: false, message: '그런 증표가 없습니다' });
+        }
+        return;
+      }
+
+      if (email && invite.ownerEmail.toLowerCase() === email) {
+        send(res, 200, { ok: false, valid: false, message: '자신의 증표는 쓰실 수 없습니다' });
+        return;
+      }
+
+      inviteCheckAttempts.delete(ip);
+      send(res, 200, {
+        ok: true,
+        valid: true,
+        code: rawCode,
+        discountKrw: INVITE_DISCOUNT_KRW,
+        minOrderKrw: INVITE_MIN_ORDER_KRW,
+        message: `${(INVITE_MIN_ORDER_KRW / 10000)}만원 이상 상품에서 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 깎입니다`,
+      });
     },
 
     'POST /api/invite/status': async (req, res) => {

@@ -10,6 +10,7 @@ import { createServer } from 'node:http';
 import {
   CATALOG, FakeGateway, markPaid, markPending, createOrder,
   PACKAGES, bundleMath, orderable, upsellFor,
+  INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW,
 } from '../../packages/commerce/src/index.ts';
 import { loadBusinessInfo, SPIRITS, CONTENTS_FOR, renderCheckoutPage } from '../../packages/site-policy/src/index.ts';
 import { CATEGORIES, maxLaunchDiscountPercent, isLaunchSale } from '../../packages/commerce/src/catalog.ts';
@@ -1760,6 +1761,27 @@ section('J. 월운세 · 행운의 번호 · 친구 추천');
   });
   check('이메일이 없으면 증표 할인을 하지 않는다',
     noEmailOrder.status === 201 && noEmailOrder.body.order.amountKrw === normalPrice);
+
+  // 13-B. 증표 수동 확인 API (POST /api/invite/check) 및 화면 입력칸 검증
+  const validCheck = await api('POST', '/api/invite/check', { code: myCode });
+  check('/api/invite/check: 올바른 증표는 200과 할인 정보 반환',
+    validCheck.status === 200 && validCheck.body.ok === true && validCheck.body.discountKrw === INVITE_DISCOUNT_KRW && validCheck.body.minOrderKrw === INVITE_MIN_ORDER_KRW);
+
+  const fakeCheck = await api('POST', '/api/invite/check', { code: 'nb000000' });
+  check('/api/invite/check: 없는 증표는 「그런 증표가 없습니다」 반환',
+    fakeCheck.status === 200 && fakeCheck.body.ok === false && fakeCheck.body.message === '그런 증표가 없습니다');
+
+  const selfCheck = await api('POST', '/api/invite/check', { code: myCode, email: inviterEmail });
+  check('/api/invite/check: 자기 증표는 「자신의 증표는 쓰실 수 없습니다」 반환',
+    selfCheck.status === 200 && selfCheck.body.ok === false && selfCheck.body.message === '자신의 증표는 쓰실 수 없습니다');
+
+  const homeRes = await page('/');
+  check('명식 넣고 들어온 화면에 「벗의 증표가 있으십니까?」 작은 단추 존재',
+    homeRes.html.includes('btnOpenStageInvite') && homeRes.html.includes('벗의 증표가 있으십니까?'));
+
+  const checkoutRes = await page(`/checkout?product=wealth-report`);
+  check('결제 화면 금액 아래에 「증표 있으십니까?」 접힌 칸 존재',
+    checkoutRes.html.includes('coInviteToggle') && checkoutRes.html.includes('증표 있으십니까?'));
 
   // 14. 월운세: 어느 달인지 명시되고 열흘 미만 시 다음 달 운세 제공
   const monthPreviewCheck = await api('POST', '/api/preview', {

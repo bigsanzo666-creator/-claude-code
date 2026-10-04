@@ -108,6 +108,21 @@ ${UPSELL_CSS}
 .co-price span{font-size:14px;color:#9a93a6}
 .co-pricenote{margin:10px 0 0;font-size:14px;color:#c9a34a;line-height:1.85}
 .co-pricenote b{color:#e8c86a}
+.co-invite-entry{margin:10px 0 14px}
+.co-invite-toggle{background:none;border:none;color:#d4af37;font-size:14px;cursor:pointer;
+  padding:4px 0;text-decoration:underline;font-family:inherit;display:inline-block}
+.co-invite-toggle:hover{color:#f5d77f}
+.co-invite-fold{margin-top:8px;background:rgba(12,10,18,.8);border:1px solid rgba(212,175,55,.3);
+  border-radius:8px;padding:10px 12px}
+.co-invite-input-row{display:flex;gap:8px}
+.co-invite-input-row input{flex:1 1 auto;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);
+  border-radius:6px;padding:8px 10px;font-size:14px;color:#fff;font-family:inherit}
+.co-invite-input-row button{background:#d4af37;color:#18151f;border:none;border-radius:6px;
+  padding:8px 14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.co-invite-msg{font-size:13px;margin:6px 0 0;line-height:1.5;color:#c8c2d4}
+.co-invite-msg.ok{color:#9fd8a8;font-weight:600}
+.co-invite-msg.warn{color:#f0c080}
+.co-invite-msg.err{color:#e8b4b4}
 .co-sec{margin:0 0 10px;font-size:15px;font-weight:700;color:#efe9f5}
 .co-f{display:block;margin-bottom:12px}
 .co-f label{display:block;font-size:14px;color:#c8c2d4;margin-bottom:5px}
@@ -1318,14 +1333,14 @@ export function renderCheckoutPage(
         var prSec = document.querySelector('.co-price');
         if(prSec && prSec.parentNode) prSec.parentNode.insertBefore(noteEl, prSec.nextSibling);
       }
-      if(p >= 20000){
-        discount = 3000;
+      if(p >= ${INVITE_MIN_ORDER_KRW}){
+        discount = ${INVITE_DISCOUNT_KRW}; // discount = 3000
         noteEl.style.color = '#9fd8a8';
-        noteEl.textContent = '벗의 증표 −${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원';
+        noteEl.textContent = '벗의 증표 −${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원'; // 벗의 증표 −3,000원
       }else{
         discount = 0;
         noteEl.style.color = '#f0c080';
-        noteEl.textContent = '이 증표는 ${(INVITE_MIN_ORDER_KRW / 10000)}만원 이상 점사에 쓰실 수 있습니다';
+        noteEl.textContent = '이 증표는 ${(INVITE_MIN_ORDER_KRW / 10000)}만원 이상 점사에 쓰실 수 있습니다'; // 이 증표는 2만원 이상 점사에 쓰실 수 있습니다
       }
     } else if(noteEl){
       noteEl.textContent = '';
@@ -1335,7 +1350,7 @@ export function renderCheckoutPage(
     pay.textContent = won(finalP) + '원 결제하기';
     var tag = document.querySelector('.co-price b');
     if(tag){
-      if(inv && p >= 20000){
+      if(inv && p >= ${INVITE_MIN_ORDER_KRW}){
         tag.innerHTML = won(finalP) + '원 <span class="co-invite-tag" style="font-size:14px;color:#9fd8a8;font-weight:600;margin-left:6px">벗의 증표 −${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원</span>';
       }else{
         tag.textContent = won(finalP) + '원';
@@ -1344,6 +1359,121 @@ export function renderCheckoutPage(
     if(addKin && NEEDS_FAMILY) addKin.disabled = (1 + kinCount()) >= MAX_MEMBERS;
   }
   refreshPrice();
+
+  var invToggle = document.getElementById('coInviteToggle');
+  var invFold = document.getElementById('coInviteFold');
+  var invInput = document.getElementById('coInviteInput');
+  var invBtn = document.getElementById('coInviteApplyBtn');
+  var invMsg = document.getElementById('coInviteMsg');
+
+  var existingInv = (function(){ try { return sessionStorage.getItem('nb_invite'); } catch(e){ return null; } })();
+  if(existingInv && invInput){
+    invInput.value = existingInv;
+    if(invToggle) invToggle.textContent = '증표 적용 중 (' + existingInv + ')';
+  }
+
+  if(invToggle && invFold){
+    invToggle.onclick = function(){
+      var isHidden = invFold.style.display === 'none';
+      invFold.style.display = isHidden ? 'block' : 'none';
+      if(isHidden && invInput) invInput.focus();
+    };
+  }
+
+  if(invBtn && invInput){
+    var clientFailCount = 0;
+    var clientCooldownUntil = 0;
+
+    var handleApplyInvite = function(){
+      var now = Date.now();
+      if(clientCooldownUntil > now){
+        var rem = Math.ceil((clientCooldownUntil - now) / 1000);
+        if(invMsg){
+          invMsg.className = 'co-invite-msg err';
+          invMsg.textContent = '증표 입력을 여러 번 실패하여 잠시 후(' + rem + '초 뒤) 다시 시도해 주세요.';
+        }
+        return;
+      }
+
+      var code = invInput.value.trim().toLowerCase();
+      if(!code){
+        if(invMsg){
+          invMsg.className = 'co-invite-msg err';
+          invMsg.textContent = '증표 코드를 입력해 주세요.';
+        }
+        return;
+      }
+
+      invBtn.disabled = true;
+      var emailVal = (val('email') || '').trim();
+
+      fetch('/api/invite/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code, email: emailVal })
+      })
+      .then(function(res){
+        return res.json().then(function(d){ return { status: res.status, data: d }; });
+      })
+      .then(function(result){
+        invBtn.disabled = false;
+        var data = result.data || {};
+        if(result.status === 429){
+          if(invMsg){
+            invMsg.className = 'co-invite-msg err';
+            invMsg.textContent = data.message || '증표 입력을 여러 번 실패하여 잠시 후 다시 시도해 주세요.';
+          }
+          return;
+        }
+
+        if(data.ok && data.valid){
+          clientFailCount = 0;
+          try { sessionStorage.setItem('nb_invite', data.code); } catch(e){}
+          if(invToggle) invToggle.textContent = '증표 적용 중 (' + data.code + ')';
+          refreshPrice();
+
+          if(invMsg){
+            if(p >= ${INVITE_MIN_ORDER_KRW}){
+              invMsg.className = 'co-invite-msg ok';
+              invMsg.textContent = '증표가 적용되어 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인되었습니다.';
+            } else {
+              invMsg.className = 'co-invite-msg warn';
+              invMsg.textContent = '이 증표는 ${(INVITE_MIN_ORDER_KRW / 10000)}만원 이상 점사에서만 사용하실 수 있습니다.';
+            }
+          }
+        } else {
+          clientFailCount++;
+          if(clientFailCount >= 3){
+            clientCooldownUntil = Date.now() + 60 * 1000;
+            if(invMsg){
+              invMsg.className = 'co-invite-msg err';
+              invMsg.textContent = '증표 입력을 여러 번 실패하여 잠시 후 다시 시도해 주세요.';
+            }
+          } else {
+            if(invMsg){
+              invMsg.className = 'co-invite-msg err';
+              invMsg.textContent = data.message || '그런 증표가 없습니다';
+            }
+          }
+        }
+      })
+      .catch(function(){
+        invBtn.disabled = false;
+        if(invMsg){
+          invMsg.className = 'co-invite-msg err';
+          invMsg.textContent = '확인 중 오류가 발생했습니다.';
+        }
+      });
+    };
+
+    invBtn.onclick = handleApplyInvite;
+    invInput.onkeydown = function(e){
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        handleApplyInvite();
+      }
+    };
+  }
   function hourSelect(){
     return '<select class="kin-time">' + HOUR_OPTIONS.map(function(h){
       return '<option value="'+h[0]+'">'+h[1]+'</option>';
@@ -1593,6 +1723,16 @@ ${isPhotoProduct ? `<script>
     </div>
     <div class="co-price"><b>${price}원</b><span>부가세 포함</span></div>
     ${priceNote(product)}
+    <div class="co-invite-entry" id="coInviteEntry">
+      <button type="button" class="co-invite-toggle" id="coInviteToggle">증표 있으십니까?</button>
+      <div class="co-invite-fold" id="coInviteFold" style="display:none">
+        <div class="co-invite-input-row">
+          <input type="text" id="coInviteInput" placeholder="증표 코드 입력" maxlength="16" autocomplete="off">
+          <button type="button" id="coInviteApplyBtn">적용</button>
+        </div>
+        <p class="co-invite-msg" id="coInviteMsg"></p>
+      </div>
+    </div>
   </section>
 
   ${form}

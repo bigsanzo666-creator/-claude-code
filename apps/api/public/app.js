@@ -444,6 +444,118 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {}
   }
 
+  // 벗의 증표(소개 코드) 수동 입력 위젯
+  const btnOpenStageInvite = document.getElementById('btnOpenStageInvite');
+  const stageInviteFold = document.getElementById('stageInviteFold');
+  const stageInviteInput = document.getElementById('stageInviteInput');
+  const stageInviteSubmit = document.getElementById('stageInviteSubmit');
+  const stageInviteMsg = document.getElementById('stageInviteMsg');
+
+  if (btnOpenStageInvite && stageInviteFold) {
+    try {
+      const storedInv = sessionStorage.getItem('nb_invite');
+      if (storedInv) {
+        btnOpenStageInvite.textContent = '벗의 증표 적용됨 (' + storedInv + ')';
+      }
+    } catch (e) {}
+
+    btnOpenStageInvite.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = stageInviteFold.style.display === 'none';
+      stageInviteFold.style.display = isHidden ? 'block' : 'none';
+      if (isHidden && stageInviteInput) {
+        stageInviteInput.focus();
+        try {
+          const inv = sessionStorage.getItem('nb_invite');
+          if (inv) stageInviteInput.value = inv;
+        } catch (e) {}
+      }
+    });
+
+    if (stageInviteSubmit && stageInviteInput) {
+      let failCount = 0;
+      let cooldownUntil = 0;
+
+      const submitInvite = async () => {
+        const now = Date.now();
+        if (cooldownUntil > now) {
+          const remSec = Math.ceil((cooldownUntil - now) / 1000);
+          if (stageInviteMsg) {
+            stageInviteMsg.className = 'stage-invite-msg err';
+            stageInviteMsg.textContent = `증표 입력을 여러 번 실패하여 잠시 후(${remSec}초 뒤) 다시 시도해 주세요.`;
+          }
+          return;
+        }
+
+        const code = stageInviteInput.value.trim().toLowerCase();
+        if (!code) {
+          if (stageInviteMsg) {
+            stageInviteMsg.className = 'stage-invite-msg err';
+            stageInviteMsg.textContent = '증표 코드를 입력해 주세요.';
+          }
+          return;
+        }
+
+        stageInviteSubmit.disabled = true;
+        try {
+          const res = await fetch('/api/invite/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.status === 429) {
+            if (stageInviteMsg) {
+              stageInviteMsg.className = 'stage-invite-msg err';
+              stageInviteMsg.textContent = data.message || '증표 입력을 여러 번 실패하여 잠시 후 다시 시도해 주세요.';
+            }
+            return;
+          }
+
+          if (data.ok && data.valid) {
+            failCount = 0;
+            try { sessionStorage.setItem('nb_invite', data.code); } catch(e){}
+            btnOpenStageInvite.textContent = '벗의 증표 적용됨 (' + data.code + ')';
+            if (stageInviteMsg) {
+              stageInviteMsg.className = 'stage-invite-msg ok';
+              stageInviteMsg.textContent = data.message;
+            }
+            if (inviteBanner) inviteBanner.style.display = 'block';
+          } else {
+            failCount++;
+            if (failCount >= 3) {
+              cooldownUntil = Date.now() + 60 * 1000;
+              if (stageInviteMsg) {
+                stageInviteMsg.className = 'stage-invite-msg err';
+                stageInviteMsg.textContent = '증표 입력을 여러 번 실패하여 잠시 후 다시 시도해 주세요.';
+              }
+            } else {
+              if (stageInviteMsg) {
+                stageInviteMsg.className = 'stage-invite-msg err';
+                stageInviteMsg.textContent = data.message || '그런 증표가 없습니다';
+              }
+            }
+          }
+        } catch (err) {
+          if (stageInviteMsg) {
+            stageInviteMsg.className = 'stage-invite-msg err';
+            stageInviteMsg.textContent = '확인 중 오류가 발생했습니다.';
+          }
+        } finally {
+          stageInviteSubmit.disabled = false;
+        }
+      };
+
+      stageInviteSubmit.addEventListener('click', submitInvite);
+      stageInviteInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          submitInvite();
+        }
+      });
+    }
+  }
+
   const gateVideo = document.getElementById('gateVideo');
   const enterVideo = document.getElementById('enterVideo');
   const soundControl = document.getElementById('soundControl');
