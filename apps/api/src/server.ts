@@ -548,8 +548,10 @@ window.SAJU_CONFIG = ${config};
 window.__CATALOG_PRODUCTS__ = ${JSON.stringify(Object.values(CATALOG).map(p => ({ id: p.id, name: p.name, hook: p.hook, category: p.category, priceKrw: p.priceKrw, regularKrw: p.regularKrw })))};
 window.__CATEGORIES__ = ${JSON.stringify(CATEGORY_MENU)};
 window.__IS_LAUNCH_SALE__ = ${isLaunchSale()};
+window.KAKAO_JS_KEY = ${JSON.stringify(process.env.KAKAO_JS_KEY ?? '')};
 </script>
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" defer></script>
 </head>
 <body>
 <div class="nb-invite-banner" id="nbInviteBanner" style="display:none">

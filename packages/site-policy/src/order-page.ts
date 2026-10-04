@@ -146,8 +146,12 @@ export function renderOrderReportPage(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>${esc(title)} — ${esc(site)}</title>
-<style>${ORDER_CSS}</style>
+<style>${ORDER_CSS}
+${REFERRAL_BADGE_CSS}</style>
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" defer></script>
+<script>
+window.KAKAO_JS_KEY = ${JSON.stringify(process.env.KAKAO_JS_KEY ?? '')};
+</script>
 </head>
 <body>
 <main class="od-main">

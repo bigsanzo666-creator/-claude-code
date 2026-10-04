@@ -20,7 +20,7 @@
  * - 거짓 급함("지금만")을 쓰지 않는다. 2024년 개정 전자상거래법
  */
 
-import { INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW } from '../../commerce/src/referral.ts';
+import { INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW, INVITE_REWARD_DAYS, INVITE_REWARD_NAME } from '../../commerce/src/referral.ts';
 import { type BusinessInfo, show } from './business.ts';
 import { PLACES } from '../../saju-rules/src/index.ts';
 import { renderSocialHead } from './social.ts';
@@ -975,7 +975,10 @@ export function renderCheckoutPage(
       '<div class="nb-invite-box">' +
         '<div class="nb-invite-head">벗에게 알려주게</div>' +
         '<div class="nb-invite-code">그대의 증표 — <b>' + inviteCode + '</b></div>' +
-        '<p class="nb-invite-desc">이 증표로 들어온 벗은 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원을 덜 낸다네.<br>벗이 첫 점사를 받으면, 그대에게도 보답이 있을 것이야.</p>' +
+        '<div class="nb-invite-reward-box">' +
+          '<div class="nb-invite-reward-main">벗은 <b>${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원</b> 할인 · 그대는 <b>${INVITE_REWARD_NAME}</b> 무료</div>' +
+        '</div>' +
+        '<p class="nb-invite-desc">이 증표로 들어온 벗은 <b>${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원</b>을 덜 낸다네.<br>벗이 첫 점사(${(INVITE_MIN_ORDER_KRW / 10000)}만원 이상)를 받으면, 그대에게 <b>${INVITE_REWARD_NAME}</b> 보답을 드린다네.</p>' +
         '<div class="nb-invite-actions">' +
           '<button type="button" class="nb-invite-btn" id="nbCopyInviteBtn" data-code="' + inviteCode + '">증표 복사하기</button>' +
           '<button type="button" class="nb-invite-btn kakao" id="nbKakaoInviteBtn" data-code="' + inviteCode + '">카톡으로 보내기</button>' +
@@ -1047,15 +1050,52 @@ export function renderCheckoutPage(
       };
       if(invKakaoBtn){
         invKakaoBtn.onclick = function(){
-          var text = [
-            '벗에게 알려주게',
-            '그대의 증표 — ' + inviteCode,
-            '이 증표로 들어온 벗은 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원을 덜 낸다네.',
-            '벗이 첫 점사를 받으면, 그대에게도 보답이 있을 것이야.',
-            invLink
-          ].join(String.fromCharCode(10));
-          if(navigator.share){ navigator.share({ title: '늘봄사주 벗의 증표', text: text, url: invLink }).catch(function(){}); }
-          else { invCopyBtn.click(); }
+          var kKey = (window.KAKAO_JS_KEY || '').trim();
+          var kakaoShared = false;
+          if(kKey && window.Kakao){
+            try{
+              if(!window.Kakao.isInitialized()){
+                window.Kakao.init(kKey);
+              }
+              if(window.Kakao.Share && window.Kakao.Share.sendDefault){
+                window.Kakao.Share.sendDefault({
+                  objectType: 'feed',
+                  content: {
+                    title: '늘봄사주 — 벗의 증표',
+                    description: '벗은 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인, 그대는 ${INVITE_REWARD_NAME} 무료',
+                    imageUrl: location.origin + '/assets/신령계문_첫장면.jpg',
+                    link: {
+                      mobileWebUrl: invLink,
+                      webUrl: invLink
+                    }
+                  },
+                  buttons: [
+                    {
+                      title: '증표 받고 사주 보기',
+                      link: {
+                        mobileWebUrl: invLink,
+                        webUrl: invLink
+                      }
+                    }
+                  ]
+                });
+                kakaoShared = true;
+              }
+            }catch(err){
+              kakaoShared = false;
+            }
+          }
+          if(!kakaoShared){
+            var text = [
+              '벗에게 알려주게',
+              '그대의 증표 — ' + inviteCode,
+              '이 증표로 들어온 벗은 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원을 덜 낸다네.',
+              '벗이 첫 점사를 받으면, 그대에게 ${INVITE_REWARD_NAME} 보답이 주어진다네.',
+              invLink
+            ].join(String.fromCharCode(10));
+            if(navigator.share){ navigator.share({ title: '늘봄사주 벗의 증표', text: text, url: invLink }).catch(function(){}); }
+            else { invCopyBtn.click(); }
+          }
         };
       }
     }
@@ -1689,6 +1729,10 @@ ${PRODUCTS_CSS}
 ${CHECKOUT_CSS}
 ${REFERRAL_BADGE_CSS}
 </style>
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" defer></script>
+<script>
+window.KAKAO_JS_KEY = ${JSON.stringify(process.env.KAKAO_JS_KEY ?? '')};
+</script>
 ${isPhotoProduct ? `<script>
 (function(){
   try {

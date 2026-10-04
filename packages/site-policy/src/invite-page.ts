@@ -5,12 +5,13 @@
  * 로그인은 없으며, 이메일과 생년월일로 연다.
  */
 
-import { INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW } from '../../commerce/src/referral.ts';
+import {
+  INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW, INVITE_REWARD_DAYS, INVITE_REWARD_NAME, REWARD_TIERS,
+} from '../../commerce/src/referral.ts';
 import { type BusinessInfo, show } from './business.ts';
 import { renderSocialHead } from './social.ts';
 import { FONT_LINK, PRODUCTS_CSS } from './products.ts';
 import { PLACES } from '../../saju-rules/src/index.ts';
-import { REWARD_TIERS } from '../../commerce/src/referral.ts';
 
 const INVITE_PAGE_CSS = `
 .iv-wrap { max-width: 680px; margin: 0 auto; padding: 24px 18px 80px; font-family: "Pretendard", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; }
@@ -72,6 +73,10 @@ body { margin: 0; background: #0b0912; color: #efeaf4; }
 ${PRODUCTS_CSS}
 ${INVITE_PAGE_CSS}
 </style>
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" defer></script>
+<script>
+window.KAKAO_JS_KEY = ${JSON.stringify(process.env.KAKAO_JS_KEY ?? '')};
+</script>
 </head>
 <body>
 <main class="iv-wrap">
@@ -116,9 +121,12 @@ ${INVITE_PAGE_CSS}
     <section class="iv-summary">
       <div class="iv-badge-head">그대의 고유 증표</div>
       <div class="iv-badge-code" id="ivMyCode">—</div>
-      <p style="font-size:14px;color:#c8c2d4;margin:0 0 12px;line-height:1.85;">
+      <div class="nb-invite-reward-box" style="margin:10px 0 14px;padding:10px 14px;background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.4);border-radius:8px;text-align:center;">
+        <div style="font-size:15px;font-weight:700;color:#f3e5ab;line-height:1.5;">벗은 <b style="color:#4ade80;font-size:16px;">${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원</b> 할인 · 그대는 <b style="color:#4ade80;font-size:16px;">${INVITE_REWARD_NAME}</b> 무료</div>
+      </div>
+      <p style="font-size:14.5px;color:#c8c2d4;margin:0 0 12px;line-height:1.85;">
         이 증표로 들어온 벗은 <b>${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원을 덜 낸다네.</b><br>
-        벗이 첫 점사(${(INVITE_MIN_ORDER_KRW / 10000)}만원 이상)를 받으면 그대에게도 보답이 쌓인다네.
+        벗이 첫 점사(${(INVITE_MIN_ORDER_KRW / 10000)}만원 이상)를 받으면 그대에게 <b>${INVITE_REWARD_NAME}</b> 무료 보답이 쌓인다네.
       </p>
       <div class="iv-badge-actions">
         <button type="button" class="iv-badge-btn" id="ivCopyBtn">증표 복사하기</button>
@@ -495,17 +503,54 @@ ${footer}
 
   kakaoBtn.onclick = function(){
     var link = location.origin + '/?invite=' + encodeURIComponent(currentCode);
-    var text = [
-      '벗에게 알려주게',
-      '그대의 증표 — ' + currentCode,
-      '이 증표로 들어온 벗은 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원을 덜 낸다네.',
-      '벗이 첫 점사를 받으면, 그대에게도 보답이 있을 것이야.',
-      link
-    ].join(String.fromCharCode(10));
-    if(navigator.share){
-      navigator.share({ title: '늘봄사주 벗의 증표', text: text, url: link }).catch(function(){});
-    }else{
-      copyBtn.click();
+    var kKey = (window.KAKAO_JS_KEY || '').trim();
+    var kakaoShared = false;
+    if(kKey && window.Kakao){
+      try{
+        if(!window.Kakao.isInitialized()){
+          window.Kakao.init(kKey);
+        }
+        if(window.Kakao.Share && window.Kakao.Share.sendDefault){
+          window.Kakao.Share.sendDefault({
+            objectType: 'feed',
+            content: {
+              title: '늘봄사주 — 벗의 증표',
+              description: '벗은 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인, 그대는 ${INVITE_REWARD_NAME} 무료',
+              imageUrl: location.origin + '/assets/신령계문_첫장면.jpg',
+              link: {
+                mobileWebUrl: link,
+                webUrl: link
+              }
+            },
+            buttons: [
+              {
+                title: '증표 받고 사주 보기',
+                link: {
+                  mobileWebUrl: link,
+                  webUrl: link
+                }
+              }
+            ]
+          });
+          kakaoShared = true;
+        }
+      }catch(err){
+        kakaoShared = false;
+      }
+    }
+    if(!kakaoShared){
+      var text = [
+        '벗에게 알려주게',
+        '그대의 증표 — ' + currentCode,
+        '이 증표로 들어온 벗은 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원을 덜 낸다네.',
+        '벗이 첫 점사를 받으면, 그대에게 ${INVITE_REWARD_NAME} 보답이 주어진다네.',
+        link
+      ].join(String.fromCharCode(10));
+      if(navigator.share){
+        navigator.share({ title: '늘봄사주 벗의 증표', text: text, url: link }).catch(function(){});
+      }else{
+        copyBtn.click();
+      }
     }
   };
 })();

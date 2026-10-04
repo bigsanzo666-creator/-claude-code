@@ -2810,10 +2810,24 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
       check('소개 현황 화면으로 가는 길이 두 군데 이상 있다', hasMultipleInvitePaths);
       check('2만원 아래 상품에서는 못 쓴다고 솔직히 적는다', under20kNoteOk, under20kNoteNote);
     } else {
-      check('홈에 소개 코드를 담고 들어가면 결제 화면에서 3,000원이 깎인다', null, '결제 열쇠 없음 — coForm 미생성으로 건너뜀');
       check('소개 현황 화면으로 가는 길이 두 군데 이상 있다', hasMultipleInvitePaths);
       check('2만원 아래 상품에서는 못 쓴다고 솔직히 적는다', null, '결제 열쇠 없음 — coForm 미생성으로 건너뜀');
     }
+
+    const badgeHtml = rBadge('testcode');
+    check('증표 카드에 깎이는 금액과 받는 보답(오늘의 운세 30일)이 둘 다 명시된다',
+      badgeHtml.includes(`${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원`) &&
+      badgeHtml.includes('오늘의 운세 30일'));
+
+    const { REFERRAL_BADGE_SCRIPT: rScript } = await import('../../packages/site-policy/src/referral-badge.ts');
+    check('카카오 SDK 연동 스크립트 및 피드 공유 로직이 포함된다',
+      rScript.includes('window.Kakao') && rScript.includes("objectType: 'feed'"));
+
+    const { renderInvitePage: rInvPage } = await import('../../packages/site-policy/src/invite-page.ts');
+    const inviteHtml = rInvPage(business, '');
+    check('소개 현황 화면에 깎이는 금액과 받는 보답이 둘 다 명시된다',
+      inviteHtml.includes(`${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원`) &&
+      inviteHtml.includes('오늘의 운세 30일'));
   }
 
   section('소개 보답 — 오늘의 운세 30일 소개당 지급');
