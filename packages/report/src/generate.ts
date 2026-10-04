@@ -79,11 +79,15 @@ export async function generateReport(
       },
     ],
     messages: [{ role: 'user', content: buildUserMessage(input) }],
-    thinking: { type: 'adaptive' },
-    output_config: { effort },
-    // Opus 5 권장 설정. 정책상 거절이 나면 같은 요청을 대체 모델로 이어 처리한다.
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
+    ...(model.includes('opus')
+      ? {
+          thinking: { type: 'adaptive' as const },
+          output_config: { effort },
+          // Opus 5 권장 설정. 정책상 거절이 나면 같은 요청을 대체 모델로 이어 처리한다.
+          betas: ['server-side-fallback-2026-07-01'],
+          fallbacks: 'default' as const,
+        }
+      : {}),
   });
 
   const response = await stream.finalMessage();
