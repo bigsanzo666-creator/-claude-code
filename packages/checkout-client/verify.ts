@@ -34,6 +34,8 @@ const apiBase = `http://127.0.0.1:${(server.address() as any).port}`;
 const READING = {
   productId: 'cross-report',
   birth: { date: '1990-05-15', time: '14:30', gender: '남', name: '민수' },
+  face: { foreheadWidth: 'wide' },
+  palm: { lifeLength: 'long' },
 };
 const config = { storeId: 'store-test', channelKey: 'channel-test' };
 
