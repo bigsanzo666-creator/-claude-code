@@ -15,11 +15,13 @@
  * SDK를 임포트하지 않는다. 프롬프트 조립은 순수 함수여야 테스트할 수 있다.
  */
 
+import { CATALOG, type ProductId } from '../../commerce/src/catalog.ts';
+
 /**
  * 프롬프트를 고칠 때마다 올린다.
  * 캐시 키에 들어가므로, 올리지 않으면 옛 문장이 계속 나온다.
  */
-export const PROMPT_VERSION = 'v13';
+export const PROMPT_VERSION = 'v14';
 
 /** 리포트 종류. 가격대가 다르므로 분량과 범위도 다르다. */
 export type ReportKind =
@@ -27,6 +29,69 @@ export type ReportKind =
   | '결혼시기' | '말년' | '아이'
   | '만남' | '정리' | '적성'
   | '썸' | '재회' | '부모자식';
+
+/** 갈래별 대표 상품 (카탈로그에서 가격을 가져올 기준 상품) */
+export const KIND_REPRESENTATIVE_PRODUCT: Record<ReportKind, ProductId> = {
+  오늘운세: 'daily-report',
+  월운세: 'month-report',
+  주제: 'wealth-report',
+  만남: 'single-report',
+  결혼시기: 'marriage-timing-report',
+  정리: 'letgo-report',
+  말년: 'latelife-report',
+  썸: 'crush-compat-report',
+  사주: 'saju-report',
+  궁합: 'compat-report',
+  재회: 'reunion-report',
+  아이: 'child-report',
+  적성: 'child-aptitude-report',
+  부모자식: 'parent-child-report',
+  택일: 'pick-report',
+  교차검증: 'cross-report',
+  작명: 'naming-report',
+};
+
+/**
+ * 값에 따른 분량 사다리.
+ * 상품값은 카탈로그에서 가져와 갈래별로 정하고, 지시문 안에 숫자를 손으로 적지 않는다.
+ */
+export const LADDER_TIERS = [
+  { minPrice: CATALOG['daily-report'].priceKrw, maxPrice: CATALOG['daily-report'].priceKrw, minChars: 1500, maxChars: 2500 },
+  { minPrice: CATALOG['month-report'].priceKrw, maxPrice: CATALOG['month-report'].priceKrw, minChars: 2500, maxChars: 3500 },
+  { minPrice: CATALOG['wealth-report'].priceKrw, maxPrice: CATALOG['charm-report'].priceKrw, minChars: 3500, maxChars: 4500 },
+  { minPrice: CATALOG['crush-compat-report'].priceKrw, maxPrice: CATALOG['family-holiday-report'].priceKrw, minChars: 5000, maxChars: 6500 },
+  { minPrice: CATALOG['pick-report'].priceKrw, maxPrice: CATALOG['cross-report'].priceKrw, minChars: 8000, maxChars: 11000 },
+  { minPrice: CATALOG['naming-report'].priceKrw, maxPrice: CATALOG['naming-plus-report'].priceKrw, minChars: 11000, maxChars: 15000 },
+] as const;
+
+export interface LengthTarget {
+  priceKrw: number;
+  minChars: number;
+  maxChars: number;
+}
+
+export function lengthTargetOf(kind: ReportKind): LengthTarget {
+  const prodId = KIND_REPRESENTATIVE_PRODUCT[kind];
+  const priceKrw = CATALOG[prodId].priceKrw;
+  const tier = LADDER_TIERS.find((t) => priceKrw >= t.minPrice && priceKrw <= t.maxPrice);
+  if (!tier) {
+    throw new Error(`알 수 없는 가격대: ${kind} (${priceKrw}원)`);
+  }
+  return {
+    priceKrw,
+    minChars: tier.minChars,
+    maxChars: tier.maxChars,
+  };
+}
+
+export function lengthInstructionFor(kind: ReportKind): string {
+  const target = lengthTargetOf(kind);
+  return `## 분량 지시
+
+- 분량은 공백 제외 ${target.minChars.toLocaleString()}자에서 ${target.maxChars.toLocaleString()}자 사이를 목표로 합니다.
+- 분량을 채우려고 자료에 없는 것을 쓰는 것은 금지입니다.
+  쓸 것이 모자라면 짧게 쓰십시오.`;
+}
 
 export interface ReportInput {
   kind: ReportKind;
@@ -649,13 +714,9 @@ const OUTLINES: Record<ReportKind, string> = {
 마지막에 한 줄만 답니다 — 「오늘의 운세는 하루의 날씨와 같습니다.
 타고난 그릇과 십 년 단위 흐름은 종합 리포트에서 봅니다.」
 **이것을 따로 대목으로 만들지 마십시오.** 돈 내고 산 글의 마지막
-대목이 광고면 인상이 나빠집니다.
-
-분량은 1,500자에서 2,500자 사이.`,
+대목이 광고면 인상이 나빠집니다.`,
 
   주제: `${TWO_TIER_RULES}
-
-- 분량은 공백 제외 3,500자에서 4,500자 사이를 목표로, 데이터의 맥락을 충분히 풀어 써서 14,900원의 가치를 온전히 느끼게 합니다. (분량을 채우려고 없는 사실을 지어내는 것은 엄격히 금지됩니다.)
 
 ### 9대 대목 순서
 1. **문 여는 한 방**
@@ -693,7 +754,7 @@ const OUTLINES: Record<ReportKind, string> = {
  * 종류별 구성 지시까지 포함하되, 사용자 데이터는 절대 넣지 않는다.
  */
 export function buildSystemPrompt(kind: ReportKind): string {
-  return `${SYSTEM_CORE}\n\n${OUTLINES[kind]}`;
+  return `${SYSTEM_CORE}\n\n${lengthInstructionFor(kind)}\n\n${OUTLINES[kind]}`;
 }
 
 /**

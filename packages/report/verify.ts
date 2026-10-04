@@ -13,6 +13,7 @@
 // 그쪽을 거치면 이 검증이 SDK 설치에 묶여버린다. 검증은 의존성 없이 돌아야 한다.
 import {
   buildSystemPrompt, buildUserMessage, canonicalize, cleanQuestion, PROMPT_VERSION, QUESTION_MAX,
+  LADDER_TIERS, lengthTargetOf,
   type ReportInput, type ReportKind,
 } from './src/prompt.ts';
 import { cacheKey, MemoryReportCache, estimateCostKrw } from './src/cache.ts';
@@ -281,7 +282,7 @@ check('약속한 이름 개수와 프롬프트가 맞는다',
   check('지시문에 「쉽게 말하면」 층을 쓰라는 대목이 있다',
     topicSys.includes('쉽게 말하면') && topicSys.includes('전문 ·'));
   check('PROMPT_VERSION 이 v9 가 아니다',
-    PROMPT_VERSION !== 'v9' && PROMPT_VERSION === 'v13');
+    PROMPT_VERSION !== 'v9' && PROMPT_VERSION === 'v14');
 
   // 터진 뒤에 적은 것 (2026-10-01): 사장님이 제일 좋아하시는 대목이
   // 한 주제 상품 11개에만 있었다. 23개에는 처음부터 없었다.
@@ -295,6 +296,31 @@ check('약속한 이름 개수와 프롬프트가 맞는다',
     return sys.includes('쉽게 말하면') && sys.includes('전문 ·');
   });
   check('열일곱 가지 리포트 지시문에 전부 두 층 형식이 들어 있다', allHaveTwoTier);
+
+  // ─── 분량 사다리 검증 (2단계) ──────────────────────────────────
+  section('2단계: 값에 따른 분량 사다리 검증');
+  const allHaveLengthInstruction = ALL_KINDS.every((kind) => {
+    const sys = buildSystemPrompt(kind);
+    return sys.includes('## 분량 지시') &&
+      sys.includes('분량을 채우려고 자료에 없는 것을 쓰는 것은 금지입니다.') &&
+      sys.includes('쓸 것이 모자라면 짧게 쓰십시오.');
+  });
+  check('갈래 17종 전부에 분량 지시가 들어 있다', allHaveLengthInstruction);
+
+  let ladderMonotonic = true;
+  for (let i = 1; i < LADDER_TIERS.length; i++) {
+    const prev = LADDER_TIERS[i - 1];
+    const curr = LADDER_TIERS[i];
+    if (curr.minChars < prev.maxChars) {
+      ladderMonotonic = false;
+    }
+  }
+  check('값이 비싼 갈래의 하한이 싼 갈래의 상한보다 크거나 같다', ladderMonotonic);
+
+  const dailyTarget = lengthTargetOf('오늘운세');
+  const expensiveKinds = ALL_KINDS.filter((k) => k !== '오늘운세');
+  const noHoleThanDaily = expensiveKinds.every((k) => lengthTargetOf(k).minChars >= dailyTarget.maxChars);
+  check('1,900원짜리보다 짧게 나올 수 있는 구멍이 없다', noHoleThanDaily);
 
 console.log('전부 통과. (모델 호출 없음 — 이 검증은 비용이 들지 않는다)');
 
