@@ -2926,6 +2926,88 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
       home.html.includes('id="stTimeInput"') && home.html.includes('id="stBtnUnknown"'));
     check('app.js 에 배경음악(/audio/bgm) 및 신령음 제어가 연결되어 있다',
       appJsContent.includes('/audio/bgm') && appJsContent.includes('setSound'));
+
+    /*
+     * 상품 설명에 약속을 적으면, 그 약속을 받는 칸이 화면에 있어야 한다.
+     * 없으면 거짓 광고다. 검증이 본다. (터진 뒤에 적은 것, 2026-10-04)
+     */
+    const PROMISE_RULES = [
+      {
+        keyword: '넣고 싶은 글자',
+        test: (desc: string) => desc.includes('넣고 싶은 글자'),
+        fieldCheck: (html: string) => html.includes('id="fixedChar"') || html.includes('name="fixedChar"'),
+        fieldDescription: '돌림자/넣고 싶은 글자 입력칸(fixedChar)',
+      },
+      {
+        keyword: '돌림자',
+        test: (desc: string) => desc.includes('돌림자'),
+        fieldCheck: (html: string) => html.includes('id="fixedChar"') || html.includes('name="fixedChar"'),
+        fieldDescription: '돌림자 입력칸(fixedChar)',
+      },
+      {
+        keyword: '피할',
+        test: (desc: string) => desc.includes('피할'),
+        fieldCheck: (html: string) => html.includes('avoidChars') || html.includes('rangeAvoid'),
+        fieldDescription: '피할 글자(avoidChars) 또는 피할 날(rangeAvoid) 입력칸',
+      },
+      {
+        keyword: '상대',
+        test: (desc: string) => desc.includes('상대'),
+        fieldCheck: (html: string) => html.includes('partnerDate') || html.includes('partnerTime'),
+        fieldDescription: '상대 정보 입력칸(partnerDate/partnerTime)',
+      },
+      {
+        keyword: '기간',
+        test: (desc: string) => desc.includes('기간'),
+        fieldCheck: (html: string) => html.includes('rangeFrom') && html.includes('rangeTo'),
+        fieldDescription: '기간 선택칸(rangeFrom/rangeTo)',
+      },
+      {
+        keyword: '사진',
+        test: (desc: string) => desc.includes('사진'),
+        fieldCheck: (html: string, p: any) => p.needsFace || p.needsPalm || html.includes('isPhotoProduct'),
+        fieldDescription: '사진 확인/입력 흐름',
+      },
+      {
+        keyword: '얼굴',
+        test: (desc: string) => desc.includes('얼굴'),
+        fieldCheck: (html: string, p: any) => p.needsFace || html.includes('needsFace') || html.includes('hasFace'),
+        fieldDescription: '얼굴 사진 확인/입력 흐름',
+      },
+      {
+        keyword: '손',
+        test: (desc: string) => desc.includes('손금') || desc.includes('손만으로') || (desc.includes('손') && !desc.includes('손을 내미')),
+        fieldCheck: (html: string, p: any) => p.needsPalm || html.includes('needsPalm') || html.includes('hasPalm'),
+        fieldDescription: '손/손금 사진 확인/입력 흐름',
+      },
+      {
+        keyword: '가족',
+        test: (desc: string) => desc.includes('가족'),
+        fieldCheck: (html: string) => html.includes('addKin') || html.includes('kinDate') || html.includes('NEEDS_FAMILY'),
+        fieldDescription: '가족/구성원 추가 입력칸',
+      },
+      {
+        keyword: '성(姓)',
+        test: (desc: string) => desc.includes('성(姓)') || desc.includes('아이의 성') || desc.includes('성씨'),
+        fieldCheck: (html: string) => html.includes('id="surname"') || html.includes('name="surname"'),
+        fieldDescription: '성(surname) 입력칸',
+      },
+    ];
+
+    for (const [id, p] of Object.entries(CATALOG)) {
+      const coHtml = renderCheckoutPage(business, '', p, { storeId: 'test_store', channelKey: 'test_channel' });
+      const textToCheck = `${p.name} ${p.description || ''} ${p.hook || ''}`;
+      for (const rule of PROMISE_RULES) {
+        if (rule.test(textToCheck)) {
+          const ok = rule.fieldCheck(coHtml, p);
+          check(
+            `${id}: 설명/문구 약속 [${rule.keyword}]이 결제 화면에 실려 있다`,
+            ok,
+            ok ? `필드 확인` : `설명/문구에 [${rule.keyword}] 약속이 있으나 화면에 [${rule.fieldDescription}] 없음`
+          );
+        }
+      }
+    }
   }
 
   section('소개 보답 — 오늘의 운세 30일 소개당 지급');

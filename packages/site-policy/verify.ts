@@ -1555,6 +1555,111 @@ section('11. 문 — 신령계 들어가는 곳');
   check('2만원 이상 상품 결제 화면에는 증표 입력칸이 있다', over20Html.includes('id="coInviteInput"'));
 }
 
+{
+  section('상품 설명의 약속과 결제 화면 입력칸 대조 검사 (터진 뒤에 적은 것, 2026-10-04)');
+  /*
+   * 터진 뒤에 적은 것 (2026-10-04): 상품 설명이 약속한 것을 화면이 안 받는데
+   * 아무도 몰랐다. 아이 이름 짓기 상품에 「넣고 싶은 글자가 있으면 그 글자로 짓습니다」
+   * 라고 광고해 두고 돌림자·피할 글자 입력칸이 결제 화면 어디에도 없었다.
+   * 상품 34개를 전수 점검하여 설명의 약속과 결제 화면 입력칸의 일치를 강제한다.
+   */
+  const PROMISE_RULES = [
+    {
+      keyword: '넣고 싶은 글자',
+      test: (desc: string) => desc.includes('넣고 싶은 글자'),
+      fieldCheck: (html: string) => html.includes('id="fixedChar"') || html.includes('name="fixedChar"'),
+      fieldDescription: '돌림자/넣고 싶은 글자 입력칸(fixedChar)',
+    },
+    {
+      keyword: '돌림자',
+      test: (desc: string) => desc.includes('돌림자'),
+      fieldCheck: (html: string) => html.includes('id="fixedChar"') || html.includes('name="fixedChar"'),
+      fieldDescription: '돌림자 입력칸(fixedChar)',
+    },
+    {
+      keyword: '피할',
+      test: (desc: string) => desc.includes('피할'),
+      fieldCheck: (html: string) => html.includes('avoidChars') || html.includes('rangeAvoid'),
+      fieldDescription: '피할 글자(avoidChars) 또는 피할 날(rangeAvoid) 입력칸',
+    },
+    {
+      keyword: '상대',
+      test: (desc: string) => desc.includes('상대'),
+      fieldCheck: (html: string) => html.includes('partnerDate') || html.includes('partnerTime'),
+      fieldDescription: '상대 정보 입력칸(partnerDate/partnerTime)',
+    },
+    {
+      keyword: '기간',
+      test: (desc: string) => desc.includes('기간'),
+      fieldCheck: (html: string) => html.includes('rangeFrom') && html.includes('rangeTo'),
+      fieldDescription: '기간 선택칸(rangeFrom/rangeTo)',
+    },
+    {
+      keyword: '사진',
+      test: (desc: string) => desc.includes('사진'),
+      fieldCheck: (html: string, p: any) => p.needsFace || p.needsPalm || html.includes('isPhotoProduct'),
+      fieldDescription: '사진 확인/입력 흐름',
+    },
+    {
+      keyword: '얼굴',
+      test: (desc: string) => desc.includes('얼굴'),
+      fieldCheck: (html: string, p: any) => p.needsFace || html.includes('needsFace') || html.includes('hasFace'),
+      fieldDescription: '얼굴 사진 확인/입력 흐름',
+    },
+    {
+      keyword: '손',
+      test: (desc: string) => desc.includes('손금') || desc.includes('손만으로') || (desc.includes('손') && !desc.includes('손을 내미')),
+      fieldCheck: (html: string, p: any) => p.needsPalm || html.includes('needsPalm') || html.includes('hasPalm'),
+      fieldDescription: '손/손금 사진 확인/입력 흐름',
+    },
+    {
+      keyword: '가족',
+      test: (desc: string) => desc.includes('가족'),
+      fieldCheck: (html: string) => html.includes('addKin') || html.includes('kinDate') || html.includes('NEEDS_FAMILY'),
+      fieldDescription: '가족/구성원 추가 입력칸',
+    },
+    {
+      keyword: '성(姓)',
+      test: (desc: string) => desc.includes('성(姓)') || desc.includes('아이의 성') || desc.includes('성씨'),
+      fieldCheck: (html: string) => html.includes('id="surname"') || html.includes('name="surname"'),
+      fieldDescription: '성(surname) 입력칸',
+    },
+  ];
+
+  for (const [id, p] of Object.entries(CATALOG)) {
+    const html = renderCheckoutPage(full, '', p, { storeId: 's', channelKey: 'c' });
+    const textToCheck = `${p.name} ${p.description || ''} ${p.hook || ''}`;
+    for (const rule of PROMISE_RULES) {
+      if (rule.test(textToCheck)) {
+        const ok = rule.fieldCheck(html, p);
+        check(
+          `${id}: 설명/문구 약속 [${rule.keyword}]이 결제 화면에 실려 있다`,
+          ok,
+          ok ? `필드 확인` : `설명/문구에 [${rule.keyword}] 약속이 있으나 화면에 [${rule.fieldDescription}] 없음`
+        );
+      }
+    }
+  }
+
+  // 약속을 어긴 가짜 상품이 검증기에 적발되는지 검증
+  const fakeP: any = {
+    id: 'fake-promising-report',
+    name: '약속만 있는 리포트',
+    priceKrw: 50000,
+    description: '돌림자가 있으면 돌림자로 짓고 피할 글자도 피합니다. 기간도 정해 주십시오.',
+  };
+  const fakeHtml = renderCheckoutPage(full, '', { ...CATALOG['saju-report'], id: 'fake-promising-report' } as any, { storeId: 's', channelKey: 'c' });
+  const failedPromiseWords: string[] = [];
+  for (const rule of PROMISE_RULES) {
+    if (rule.test(fakeP.description) && !rule.fieldCheck(fakeHtml, fakeP)) {
+      failedPromiseWords.push(rule.keyword);
+    }
+  }
+  check('약속이 있으나 입력칸이 없는 가짜 상품을 검증기가 적발한다',
+    failedPromiseWords.includes('돌림자') && failedPromiseWords.includes('피할') && failedPromiseWords.includes('기간'),
+    `적발된 누락 약속: ${failedPromiseWords.join(', ')}`);
+}
+
 
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
