@@ -112,7 +112,7 @@ export function bandOf(total: number): string {
 
 /** 한 날 한 시각을 잰다 */
 export function pickScore(date: string, time: string, longitude = 126.978): PickScore {
-  const ms = calculate({ date, time, longitude, yajaMode: 'yaja' });
+  const ms = calculate({ date, time, longitude });
   const an = analyze(ms);
 
   const weights = an.elements.map((e) => e.weight);

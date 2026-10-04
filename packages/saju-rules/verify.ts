@@ -710,19 +710,45 @@ section('주제별 분리 (상품을 열 개로 나누기 위한 것)');
   check('같은 날이라도 시각이 다르면 점수가 다르다',
     morning.total !== evening.total, `${morning.total} vs ${evening.total}`);
 
-  // 23시 이후 택일 시 일주·시주가 다음 날로 넘어가는지 확인
-  const pick0030 = pickScore('2026-10-10', '00:30');
-  const pick2330 = pickScore('2026-10-10', '23:30');
-  const eight0030 = pick0030.eight.split(' ');
-  const eight2330 = pick2330.eight.split(' ');
-  const day0030 = eight0030[2];
-  const hour0030 = eight0030[3];
-  const day2330 = eight2330[2];
-  const hour2330 = eight2330[3];
+  // ── 택일과 만세력 기본값 일치 검증 (23:00, 23:30, 00:00, 00:30 포함 24시각 전수 검사) ──
+  const testDate = '2026-11-10';
+  const sampleTimes = [
+    ...Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`),
+    '23:00', '23:30', '00:00', '00:30',
+  ];
+  const uniqueTimes = [...new Set(sampleTimes)];
+  let diffCount = 0;
+  for (const t of uniqueTimes) {
+    const pick = pickScore(testDate, t);
+    const [, , pDay, pHour] = pick.eight.split(' ');
+    const manse = calculate({ date: testDate, time: t });
+    const mDay = manse.day.stem + manse.day.branch;
+    const mHour = manse.hour.stem + manse.hour.branch;
+    if (pDay !== mDay || pHour !== mHour) {
+      diffCount++;
+    }
+  }
+  check('택일과 만세력 기본값(midnight)의 일주·시주가 24개 시각(23:00·23:30·00:00·00:30 포함) 전수 일치',
+    diffCount === 0, `불일치: ${diffCount}개`);
 
-  check('00:30 택일 결과 일주(정사)와 시주(경자) 올바름', day0030 === '정사' && hour0030 === '경자', `${day0030} ${hour0030}`);
-  check('23:30 택일 결과 일주(무오)와 시주(임자)가 다음 날로 넘어감', day2330 === '무오' && hour2330 === '임자', `${day2330} ${hour2330}`);
-  check('00:30과 23:30의 일주와 시주가 서로 다름', day0030 !== day2330 && hour0030 !== hour2330);
+  // 구체적인 경계 시각(23:30, 00:30) 명식 일치 확인
+  const pick2330 = pickScore('2026-11-10', '23:30');
+  const manse2330 = calculate({ date: '2026-11-10', time: '23:30' });
+  const [, , day2330, hour2330] = pick2330.eight.split(' ');
+  const mDay2330 = manse2330.day.stem + manse2330.day.branch;
+  const mHour2330 = manse2330.hour.stem + manse2330.hour.branch;
+  check('2026-11-10 23:30 택일 일주·시주가 만세력 기본값(무자·임자)과 정확히 일치',
+    day2330 === '무자' && hour2330 === '임자' && day2330 === mDay2330 && hour2330 === mHour2330,
+    `택일: ${day2330} ${hour2330} / 만세력: ${mDay2330} ${mHour2330}`);
+
+  const pick0030 = pickScore('2026-11-10', '00:30');
+  const manse0030 = calculate({ date: '2026-11-10', time: '00:30' });
+  const [, , day0030, hour0030] = pick0030.eight.split(' ');
+  const mDay0030 = manse0030.day.stem + manse0030.day.branch;
+  const mHour0030 = manse0030.hour.stem + manse0030.hour.branch;
+  check('2026-11-10 00:30 택일 일주·시주가 만세력 기본값과 일치',
+    day0030 === mDay0030 && hour0030 === mHour0030,
+    `택일: ${day0030} ${hour0030} / 만세력: ${mDay0030} ${mHour0030}`);
 
   // 손님이 의사한테 받은 날 말고는 보지 않는다
   const dates = ['2027-04-27', '2027-04-30', '2027-05-03'];
