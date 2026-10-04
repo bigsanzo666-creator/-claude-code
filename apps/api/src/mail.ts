@@ -44,6 +44,28 @@ export function redactKey(text: string): string {
 }
 
 /**
+ * 리포트 전문 메일 제목 생성.
+ * 상품명이 「리포트」로 끝나면 「리포트」를 중복으로 붙이지 않는다.
+ */
+export function buildReportMailSubject(productName: string): string {
+  const name = productName.trim();
+  return name.endsWith('리포트')
+    ? `[늘봄사주] ${name}입니다`
+    : `[늘봄사주] ${name} 리포트입니다`;
+}
+
+/**
+ * 결제 완료 안내 메일 제목 생성.
+ * 상품명이 「리포트」로 끝나면 「리포트」를 중복으로 붙이지 않는다.
+ */
+export function buildOrderMailSubject(productName: string): string {
+  const name = productName.trim();
+  return name.endsWith('리포트')
+    ? `[늘봄사주] ${name}를 보실 수 있습니다`
+    : `[늘봄사주] ${name} 리포트를 보실 수 있습니다`;
+}
+
+/**
  * Resend API 1회 발송 시도
  */
 async function sendOnce(
@@ -126,7 +148,7 @@ export async function sendReportMail(args: SendReportMailArgs): Promise<SendOrde
       .map((para) => `<p style="margin:0 0 16px;font-size:15px;line-height:1.85;color:#1d1d1f;white-space:pre-wrap;">${esc(para.trim())}</p>`)
       .join('');
 
-    const subject = `[늘봄사주] ${productName} 리포트입니다`;
+    const subject = buildReportMailSubject(productName);
     const html = `<!doctype html>
 <html lang="ko">
 <head><meta charset="utf-8"><title>[늘봄사주] ${esc(productName)}</title></head>
@@ -189,13 +211,13 @@ export async function sendOrderMail(args: SendOrderMailArgs): Promise<SendOrderM
     const biz = loadBusinessInfo();
     const contact = biz.landline || biz.phone || biz.email || '';
 
-    const subject = `[늘봄사주] ${productName} 리포트를 보실 수 있습니다`;
+    const subject = buildOrderMailSubject(productName);
 
     const html = `<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <title>[늘봄사주] ${esc(productName)} 리포트 안내</title>
+  <title>[늘봄사주] ${esc(productName.endsWith('리포트') ? productName : `${productName} 리포트`)} 안내</title>
 </head>
 <body style="margin:0;padding:24px 16px;background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Pretendard',sans-serif;color:#1d1d1f;line-height:1.7;">
   <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e5ea;border-radius:12px;padding:32px 24px;">

@@ -3085,11 +3085,30 @@ console.log(`\n${'═'.repeat(60)}`);
  * 주문 완료 메일 발송 검증
  */
 {
-  const { sendOrderMail, mailReady } = await import('./src/mail.ts');
+  const { sendOrderMail, mailReady, buildReportMailSubject, buildOrderMailSubject } = await import('./src/mail.ts');
+  const { CATALOG } = await import('../../packages/commerce/src/catalog.ts');
   const { readFileSync } = await import('node:fs');
   const { join, dirname } = await import('node:path');
   const { fileURLToPath } = await import('node:url');
   const { WITHDRAWAL_WINDOW_DAYS } = await import('../../packages/commerce/src/refund.ts');
+
+  // 4단계: 34개 상품 전체 메일 제목 검증 — 「리포트 리포트」 중복 표기가 없어야 함
+  const catalogProducts = Object.values(CATALOG);
+  check('전체 상품 수가 34개이다', catalogProducts.length === 34, `${catalogProducts.length}개`);
+  const productsWithDup = catalogProducts.filter(p =>
+    buildReportMailSubject(p.name).includes('리포트 리포트') ||
+    buildOrderMailSubject(p.name).includes('리포트 리포트')
+  );
+  check('34개 상품 메일 제목에 「리포트 리포트」 중복 표기가 하나도 없다',
+    productsWithDup.length === 0,
+    productsWithDup.length ? productsWithDup.map(p => p.name).join(', ') : '0개');
+  check('「사주 종합 리포트」 리포트 전문 메일 제목이 올바르다',
+    buildReportMailSubject('사주 종합 리포트') === '[늘봄사주] 사주 종합 리포트입니다');
+  check('「사주 종합 리포트」 주문 완료 메일 제목이 올바르다',
+    buildOrderMailSubject('사주 종합 리포트') === '[늘봄사주] 사주 종합 리포트를 보실 수 있습니다');
+  check('끝이 「리포트」가 아닌 상품 메일 제목에 「리포트」가 붙는다',
+    buildReportMailSubject('재회운') === '[늘봄사주] 재회운 리포트입니다' &&
+    buildOrderMailSubject('재회운') === '[늘봄사주] 재회운 리포트를 보실 수 있습니다');
 
   // 1) 열쇠가 없을 때 sendOrderMail 이 예외를 던지지 않고 안 보냄으로 돌아온다
   const oldKey = process.env.RESEND_API_KEY;
