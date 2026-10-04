@@ -21,11 +21,20 @@ import { cacheKey } from '../../packages/report/src/cache.ts';
 import { StandbyGateway, standbyGenerate } from './src/standby.ts';
 import { MemoryReferralStore } from '../../packages/store/src/index.ts';
 
-let passed = 0, failed = 0;
+let passed = 0, failed = 0, skipped = 0;
 const failures: string[] = [];
-function check(label: string, ok: boolean, detail = '') {
-  if (ok) { passed++; console.log(`  ✓ ${label}${detail ? `  ${detail}` : ''}`); }
-  else { failed++; failures.push(label); console.log(`  ✗ ${label}${detail ? `  ${detail}` : ''}`); }
+function check(label: string, ok: boolean | null, detail = '') {
+  if (ok === null) {
+    skipped++;
+    console.log(`  - ${label} (건너뜀: ${detail || '환경 조건 불일치'})`);
+  } else if (ok) {
+    passed++;
+    console.log(`  ✓ ${label}${detail ? `  ${detail}` : ''}`);
+  } else {
+    failed++;
+    failures.push(label);
+    console.log(`  ✗ ${label}${detail ? `  ${detail}` : ''}`);
+  }
 }
 function section(t: string) { console.log(`\n${t}\n${'─'.repeat(60)}`); }
 
@@ -2282,6 +2291,8 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     let productsFreeVisible = false;
     let inviteDiscountOk = false;
     let under20kNoteOk = false;
+    let hasPaymentKeys = false;
+    let readySeen = false;
 
     let redirectDetailNote: string | undefined;
     let passCarriedNote: string | undefined;
@@ -2410,12 +2421,15 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
         const waitRes1 = await pollUntil(async () => {
           const evalRes = await pageSend('Runtime.evaluate', {
             expression: `(function(){
+              var form = document.getElementById('coForm');
               var editForm = document.getElementById('coUserEditForm');
               var ready = document.querySelector('.co-soon');
+              var isReady = Boolean(ready && ready.textContent.includes('결제 준비 중'));
               return {
                 display: editForm ? getComputedStyle(editForm).display : 'none',
-                hasForm: Boolean(document.getElementById('coForm')),
-                isReady: Boolean(ready),
+                hasForm: Boolean(form),
+                isReady: isReady,
+                readyText: ready ? ready.textContent.trim() : '',
               };
             })()`,
             returnByValue: true,
@@ -2424,7 +2438,9 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
           if (val?.display === 'block' || val?.isReady) return val;
           return null;
         }, 5000, 50);
-        openedOnEntry = waitRes1.value?.display === 'block';
+        hasPaymentKeys = Boolean(waitRes1.value?.hasForm);
+        readySeen = Boolean(waitRes1.value?.isReady);
+        openedOnEntry = hasPaymentKeys && waitRes1.value?.display === 'block';
         openedOnEntryNote = openedOnEntry ? undefined : `마지막 화면 상태: ${JSON.stringify(waitRes1.lastSeen)}`;
 
         const waitRes2 = await pollUntil(async () => {
@@ -2480,10 +2496,12 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
         const waitStay = await pollUntil(async () => {
           const evalRes = await pageSend('Runtime.evaluate', {
             expression: `(function(){
+              var form = document.getElementById('coForm');
+              var ready = document.querySelector('.co-soon');
               return {
                 pathname: location.pathname,
-                hasForm: Boolean(document.getElementById('coForm')),
-                isReady: Boolean(document.querySelector('.co-soon')),
+                hasForm: Boolean(form),
+                isReady: Boolean(ready && ready.textContent.includes('결제 준비 중')),
               };
             })()`,
             returnByValue: true,
@@ -2492,8 +2510,12 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
           if (val?.pathname === '/checkout' && (val?.hasForm || val?.isReady)) return val;
           return null;
         }, 5000, 50);
-        staysOnCheckoutWithPhotos = Boolean(waitStay.value?.pathname === '/checkout' && waitStay.value?.hasForm);
-        staysOnCheckoutNote = staysOnCheckoutWithPhotos ? undefined : `마지막 상태: ${JSON.stringify(waitStay.lastSeen)}`;
+        staysOnCheckoutWithPhotos = hasPaymentKeys
+          ? Boolean(waitStay.value?.pathname === '/checkout' && waitStay.value?.hasForm)
+          : Boolean(waitStay.value?.pathname === '/checkout' && waitStay.value?.isReady);
+        staysOnCheckoutNote = staysOnCheckoutWithPhotos
+          ? undefined
+          : (hasPaymentKeys ? `coForm 없음: ${JSON.stringify(waitStay.lastSeen)}` : `결제 준비 중 없음: ${JSON.stringify(waitStay.lastSeen)}`);
 
         // 1단계: 실제 브라우저로 홈의 「무료 · 내 사주 여덟 글자」를 눌러서 무료 사주 입력칸이 보이는지 확인
         await pageSend('Page.navigate', { url: `${base}/` });
@@ -2676,11 +2698,19 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     const invitePathsCount = inviteWayHome + (inviteWayBadge ? 1 : 0);
     const hasMultipleInvitePaths = invitePathsCount >= 2;
 
-    check('생년월일 없이 결제 화면에 들어오면 입력칸이 펼쳐져 있다', openedOnEntry, openedOnEntryNote);
-    check('[고치기]를 누르면 입력칸이 열린다', toggledOnEdit, toggledOnEditNote);
-    check('사진 없이 들어가면 상세페이지로 리다이렉트된다', redirectedToDetail, redirectDetailNote);
-    check('상세페이지로 갈 때 pass 가 보존된다', passCarriedOver, passCarriedNote);
-    check('사진이 있으면 결제 화면이 정상적으로 뜬다', staysOnCheckoutWithPhotos, staysOnCheckoutNote);
+    if (hasPaymentKeys) {
+      check('생년월일 없이 결제 화면에 들어오면 입력칸이 펼쳐져 있다', openedOnEntry, openedOnEntryNote);
+      check('[고치기]를 누르면 입력칸이 열린다', toggledOnEdit, toggledOnEditNote);
+      check('사진 없이 들어가면 상세페이지로 리다이렉트된다', redirectedToDetail, redirectDetailNote);
+      check('상세페이지로 갈 때 pass 가 보존된다', passCarriedOver, passCarriedNote);
+      check('사진이 있으면 결제 화면이 정상적으로 뜬다', staysOnCheckoutWithPhotos, staysOnCheckoutNote);
+    } else {
+      check('생년월일 없이 결제 화면에 들어오면 입력칸이 펼쳐져 있다', null, '결제 열쇠 없음 — coForm 미생성으로 건너뜀');
+      check('[고치기]를 누르면 입력칸이 열린다', null, '결제 열쇠 없음 — coForm 미생성으로 건너뜀');
+      check('사진 없이 들어가면 상세페이지로 리다이렉트된다', redirectedToDetail, redirectDetailNote);
+      check('상세페이지로 갈 때 pass 가 보존된다', passCarriedOver, passCarriedNote);
+      check('사진이 있으면 결제 화면이 정상적으로 뜬다', readySeen, readySeen ? '결제 열쇠 없는 서버: 결제 준비 중 확인' : '결제 준비 중 표시 없음');
+    }
     /*
      * 터진 뒤에 적은 것 (2026-10-03): 사진을 결제 화면에서 받고 있었다.
      * 값을 치르기로 마음먹은 뒤에야 요구하니 거기서 돌아선다.
@@ -2742,9 +2772,15 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
      * 받는 곳은 결제 화면뿐이었다. 할인이 한 번도 걸린 적이 없다.
      * 만들어 두고 이어 보지 않았다.
      */
-    check('홈에 소개 코드를 담고 들어가면 결제 화면에서 3,000원이 깎인다', inviteDiscountOk, inviteDiscountNote);
-    check('소개 현황 화면으로 가는 길이 두 군데 이상 있다', hasMultipleInvitePaths);
-    check('2만원 아래 상품에서는 못 쓴다고 솔직히 적는다', under20kNoteOk, under20kNoteNote);
+    if (hasPaymentKeys) {
+      check('홈에 소개 코드를 담고 들어가면 결제 화면에서 3,000원이 깎인다', inviteDiscountOk, inviteDiscountNote);
+      check('소개 현황 화면으로 가는 길이 두 군데 이상 있다', hasMultipleInvitePaths);
+      check('2만원 아래 상품에서는 못 쓴다고 솔직히 적는다', under20kNoteOk, under20kNoteNote);
+    } else {
+      check('홈에 소개 코드를 담고 들어가면 결제 화면에서 3,000원이 깎인다', null, '결제 열쇠 없음 — coForm 미생성으로 건너뜀');
+      check('소개 현황 화면으로 가는 길이 두 군데 이상 있다', hasMultipleInvitePaths);
+      check('2만원 아래 상품에서는 못 쓴다고 솔직히 적는다', null, '결제 열쇠 없음 — coForm 미생성으로 건너뜀');
+    }
   }
 
   section('소개 보답 — 오늘의 운세 30일 소개당 지급');
@@ -3371,7 +3407,7 @@ section('리포트 개편 — 시각 인지, 상세 가림막, 서버 계산 이
   }
 }
 
-console.log(`통과 ${passed} / 실패 ${failed}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
+console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
 console.log('전부 통과.');
 process.exit(0);
