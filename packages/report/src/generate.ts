@@ -8,7 +8,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { buildSystemPrompt, buildUserMessage, PROMPT_VERSION, type ReportInput } from './prompt.ts';
+import { buildSystemPrompt, buildUserMessage, PROMPT_VERSION, maxTokensFor, lengthTargetOf, type ReportInput } from './prompt.ts';
 import { cacheKey, estimateCostKrw, type CachedReport, type ReportCache } from './cache.ts';
 
 /**
@@ -54,7 +54,7 @@ export async function generateReport(
 ): Promise<GenerateResult> {
   const model = options.model ?? DEFAULT_MODEL;
   const effort = options.effort ?? (input.kind === '오늘운세' ? 'low' : DEFAULT_EFFORT);
-  const maxTokens = input.kind === '오늘운세' ? 3000 : 12000;
+  const maxTokens = maxTokensFor(input.kind, input.productId ?? input.data);
   const key = cacheKey({ input, model, effort });
 
   if (options.cache && !options.force) {

@@ -72,13 +72,21 @@ export interface LengthTarget {
 
 export function lengthTargetOf(
   kind: ReportKind,
-  productIdOrPrice?: ProductId | number,
+  productIdOrPrice?: ProductId | number | { productId?: ProductId } | unknown,
 ): LengthTarget {
   let priceKrw: number;
   if (typeof productIdOrPrice === 'number') {
     priceKrw = productIdOrPrice;
   } else if (productIdOrPrice && typeof productIdOrPrice === 'string' && productIdOrPrice in CATALOG) {
     priceKrw = CATALOG[productIdOrPrice as ProductId].priceKrw;
+  } else if (productIdOrPrice && typeof productIdOrPrice === 'object' && 'productId' in (productIdOrPrice as object)) {
+    const pid = (productIdOrPrice as { productId?: ProductId }).productId;
+    if (pid && pid in CATALOG) {
+      priceKrw = CATALOG[pid].priceKrw;
+    } else {
+      const prodId = KIND_REPRESENTATIVE_PRODUCT[kind];
+      priceKrw = CATALOG[prodId].priceKrw;
+    }
   } else {
     const prodId = KIND_REPRESENTATIVE_PRODUCT[kind];
     priceKrw = CATALOG[prodId].priceKrw;
@@ -92,6 +100,21 @@ export function lengthTargetOf(
     minChars: tier.minChars,
     maxChars: tier.maxChars,
   };
+}
+
+/**
+ * 리포트 생성 시 허용할 최대 토큰 한도.
+ *
+ * 지시문이 요구하는 글자 수(maxChars)에 한글 토큰 비율(×2)과
+ * 적응형 사고(adaptive thinking) 토큰 여유(16,000)를 더해 정한다.
+ * Opus 5 최대 한도 128,000을 넘지 않도록 자른다.
+ */
+export function maxTokensFor(
+  kind: ReportKind,
+  productIdOrPrice?: ProductId | number | { productId?: ProductId } | unknown,
+): number {
+  const target = lengthTargetOf(kind, productIdOrPrice);
+  return Math.min(128000, target.maxChars * 2 + 16000);
 }
 
 export function lengthInstructionFor(
