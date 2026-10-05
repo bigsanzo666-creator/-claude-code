@@ -2482,7 +2482,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const stage = state.stage;
 
     // 1) 만세력 뷰어가 열려 있고 새 상태가 viewer가 아니면 뷰어 닫기
-    const leg = document.getElementById('legacyStageWrapper');
+    const leg = document.getElementById('manseStage');
     if (leg && leg.style.display !== 'none' && !leg.hasAttribute('hidden') && stage !== 'viewer') {
       if (typeof window.closeFreeSaju === 'function') {
         window.closeFreeSaju();

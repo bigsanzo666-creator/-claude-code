@@ -605,10 +605,22 @@ ${idleVideos(renderStage(business, scenes, { walk: walkVideo, open: gateVideo, w
 ${renderHero(business, checkout !== null, hero, heroVideo)}
 ${renderSpiritRow(faces)}
 ${renderProducts(checkout !== null, images, faces, false, scenes)}
+${STAGE_SCRIPT}
+</div>
+
+<!--
+  무료 만세력.
+
+  터진 뒤에 적은 것 (2026-10-05): 이것이 위 보존 블록 **안에** 들어 있었다.
+  그래서 「무료 사주 보기」를 누르면 보존 블록이 통째로 열리면서 옛 첫 화면,
+  신령 줄, 옛 상품 목록이 한꺼번에 튀어나오고, 만세력은 그 **맨 밑**에 있어
+  손님이 한참 끌려 내려갔다. 옛 조각들이 제 너비를 들고 와 글자도 잘렸다.
+  열어야 하는 것만 따로 둔다.
+-->
+<div id="manseStage" style="display:none!important;" hidden>
 ${renderTryHeading()}
 ${fragment}
 <style>${VIEWER_SKIN}</style>
-${STAGE_SCRIPT}
 </div>
 
 <div class="site-footer-wrapper">
@@ -627,7 +639,7 @@ ${STAGE_SCRIPT}
         history.pushState({ stage: 'viewer' }, '');
       }
     } catch(err) {}
-    var leg = document.getElementById('legacyStageWrapper');
+    var leg = document.getElementById('manseStage');
     if (leg) {
       leg.removeAttribute('hidden');
       leg.style.removeProperty('display');
@@ -691,7 +703,7 @@ ${STAGE_SCRIPT}
   }
 
   function closeFreeSaju() {
-    var leg = document.getElementById('legacyStageWrapper');
+    var leg = document.getElementById('manseStage');
     if (leg) {
       leg.setAttribute('hidden', '');
       leg.style.display = 'none';
@@ -786,8 +798,14 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline-color:var(
 .seal{border-color:var(--nb-gold);color:var(--nb-gold);border-radius:0;border-width:1px}
 .pro{border-color:var(--nb-gold)}
 .pro::before{background:var(--nb-gold);color:var(--nb-paper-2)}
-#legacyStageWrapper *{font-family:var(--nb-sans);font-size:14px}
-#legacyStageWrapper h1,#legacyStageWrapper h2,#legacyStageWrapper .glyph{font-size:28px}`;
+#legacyStageWrapper *,#manseStage *{font-family:var(--nb-sans);font-size:14px}
+#legacyStageWrapper h1,#legacyStageWrapper h2,#legacyStageWrapper .glyph,
+#manseStage h1,#manseStage h2,#manseStage .glyph{font-size:28px}
+/*
+ * 조각이 제 너비를 들고 와서 폰에서 글자가 잘렸다. 화면 안에 가둔다.
+ */
+#manseStage{max-width:100%;overflow-x:hidden}
+#manseStage *{max-width:100%;box-sizing:border-box}`;
 
 class HttpError extends Error {
   readonly status: number;

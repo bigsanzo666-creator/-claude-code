@@ -2780,12 +2780,12 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
           const evalRes = await pageSend('Runtime.evaluate', {
             expression: `(function(){
               var panelA = document.getElementById('panelA');
-              var leg = document.getElementById('legacyStageWrapper');
+              var leg = document.getElementById('manseStage');
               if(!panelA || !leg) {
                 var btn = document.getElementById('btnFreeEightLetters');
                 if (btn) btn.click();
                 panelA = document.getElementById('panelA');
-                leg = document.getElementById('legacyStageWrapper');
+                leg = document.getElementById('manseStage');
               }
               if(!panelA || !leg) return { found: false, error: 'panelA/legacy 없음', panelA: Boolean(panelA), leg: Boolean(leg) };
               var pDisp = getComputedStyle(panelA).display;
@@ -2825,12 +2825,12 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
           const evalRes = await pageSend('Runtime.evaluate', {
             expression: `(function(){
               var panelA = document.getElementById('panelA');
-              var leg = document.getElementById('legacyStageWrapper');
+              var leg = document.getElementById('manseStage');
               if(!panelA || !leg) {
                 var btn = document.getElementById('btnFreeEightLetters');
                 if(btn && location.pathname === '/products') location.href = btn.href;
                 panelA = document.getElementById('panelA');
-                leg = document.getElementById('legacyStageWrapper');
+                leg = document.getElementById('manseStage');
               }
               if(!panelA || !leg) return { found: false, error: 'panelA/legacy 없음', loc: location.href };
               var pDisp = getComputedStyle(panelA).display;
@@ -4000,7 +4000,7 @@ section('무료 사주 화면 위치 및 기둥 순서 검증 (4단계)');
 {
   const here = dirname(fileURLToPath(import.meta.url));
   const serverSrc = readFileSync(join(here, 'src', 'server.ts'), 'utf8');
-  const viewerIdx = serverSrc.indexOf('id="legacyStageWrapper"');
+  const viewerIdx = serverSrc.indexOf('id="manseStage"');
   const footerIdx = serverSrc.indexOf('class="site-footer-wrapper"');
 
   check('화면에서 뷰어가 .site-footer-wrapper 보다 앞에 온다', viewerIdx !== -1 && footerIdx !== -1 && viewerIdx < footerIdx);
