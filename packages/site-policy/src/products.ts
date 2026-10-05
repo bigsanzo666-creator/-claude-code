@@ -1801,7 +1801,7 @@ ${cards}
     <span class="spirits-free-arrow">→</span>
   </a>
 </div>
-<a href="/invite" class="spirits-invite-bar">벗을 데려오시면 벗도 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원, 그대도 보답을 받습니다 →</a>
+<a href="/invite" class="spirits-invite-bar">벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고 그대도 보답을 받으시지요 →</a>
 <div class="pr-rule"></div>
 </div>
 ${groups}

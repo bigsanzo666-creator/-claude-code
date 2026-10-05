@@ -3866,6 +3866,23 @@ section('손 사진 안내 위치 및 문구 검증 (6단계)');
     handIdx !== -1 && palmBoxIdx !== -1 && handIdx < palmBoxIdx && (palmBoxIdx - handIdx) < 150);
 }
 
+// ── 7단계: 첫 화면 문구 어색한 것 다듬기 ──────────────────────────────
+section('첫 화면 문구 다듬기 검증 (7단계)');
+
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const serverSrc = readFileSync(join(here, 'src', 'server.ts'), 'utf8');
+
+  check('첫 화면에 "누루시면" 오타가 없다',
+    !serverSrc.includes('누루시면'));
+
+  check('첫 화면 안내 문구가 올바르다',
+    serverSrc.includes('상품을 누르시면 신령이 그 자리에서 사주를 봐 드립니다'));
+
+  check('첫 화면 벗 증표 바에 신령 말투 및 INVITE_DISCOUNT_KRW 반영',
+    serverSrc.includes('벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString(\'ko-KR\')}원 할인증표 보내고 그대도 보답을 받으시지요'));
+}
+
 
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }

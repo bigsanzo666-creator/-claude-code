@@ -1768,6 +1768,17 @@ section('11. 문 — 신령계 들어가는 곳');
     handIdx !== -1 && boxIdx !== -1 && handIdx < boxIdx && (boxIdx - handIdx) < 200);
 }
 
+{
+  section('첫 화면 문구 다듬기 및 상수 참조 검사 (7단계)');
+  const listHtml = renderProducts(true);
+
+  check('"누루시면" 오타가 없다',
+    !listHtml.includes('누루시면'));
+
+  check('벗 증표 바에 신령 말투 및 INVITE_DISCOUNT_KRW 반영',
+    listHtml.includes(`벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고 그대도 보답을 받으시지요`));
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }

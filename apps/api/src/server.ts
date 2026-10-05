@@ -312,7 +312,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
           <span class="user-name-text">명식 봉인 해제</span>
         </div>
         <h2 class="spirits-menu-title">어떤 물음을 품고 오셨습니까</h2>
-        <p class="spirits-menu-desc">상품을 누르시면 신령이 그 자리에서 사주를 조금 봐 드립니다</p>
+        <p class="spirits-menu-desc">상품을 누르시면 신령이 그 자리에서 사주를 봐 드립니다</p>
         <div class="spirits-free-duo">
           <button type="button" class="spirits-free-btn" id="btnFreeEightLetters">
             <span class="spirits-free-badge">무료</span>
@@ -333,7 +333,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
             <span class="spirits-free-arrow">→</span>
           </a>
         </div>
-        <a href="/invite" class="spirits-invite-bar">벗을 데려오시면 벗도 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원, 그대도 보답을 받습니다 →</a>
+        <a href="/invite" class="spirits-invite-bar">벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고 그대도 보답을 받으시지요 →</a>
       </div>
 
       <!-- 갈래 탭 11개 (가로 스크롤) -->
