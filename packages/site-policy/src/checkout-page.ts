@@ -2028,11 +2028,22 @@ export function renderCheckoutPage(
     if(!date && !NEEDS_PICK) return say('생년월일을 적어 주십시오.');
     if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) return say('이메일을 다시 확인해 주십시오.');
     if(phone.length < 10) return say('휴대전화 번호를 다시 확인해 주십시오.');
-    ${product.needsName ? "if(!val('surname')) return say('아이의 성을 적어 주십시오.');" : ''}
-    ${product.needsPartner ? "if(!val('partnerDate')) return say('상대의 생년월일을 적어 주십시오.');" : ''}
+    /*
+     * 터진 뒤에 적은 것 (2026-10-05): 덮개로 열린 결제창에는 이 칸들이 없다.
+     * 상품 화면에서 이미 받았기 때문이다. 그런데 여기서 그 칸을 빈 값으로 읽고
+     * 「적어 주십시오」로 막아서, **기간을 받는 상품은 아예 결제가 안 됐다.**
+     * 칸이 없으면 상품 화면에서 받아 둔 것을 쓴다.
+     */
+    var 받아둔것 = loadReading() || {};
+    var 칸또는받아둔것 = function(id, 받아둔값){
+      var el = document.getElementById(id);
+      return (el && val(id)) ? val(id) : (받아둔값 || '');
+    };
+    ${product.needsName ? "if(!칸또는받아둔것('surname', 받아둔것.name && 받아둔것.name.surname)) return say('아이의 성을 적어 주십시오.');" : ''}
+    ${product.needsPartner ? "if(!칸또는받아둔것('partnerDate', 받아둔것.partner && 받아둔것.partner.date)) return say('상대의 생년월일을 적어 주십시오.');" : ''}
     ${product.needsRange ? `
-    var rFrom = val('rangeFrom');
-    var rTo = val('rangeTo');
+    var rFrom = 칸또는받아둔것('rangeFrom', 받아둔것.range && 받아둔것.range.from);
+    var rTo = 칸또는받아둔것('rangeTo', 받아둔것.range && 받아둔것.range.to);
     if(!rFrom || !rTo) return say('보고 싶은 기간을 적어 주십시오.');
     if(rFrom > rTo) return say('끝 날짜가 시작 날짜보다 앞설 수 없습니다.');
     var diffDays = Math.round((new Date(rTo) - new Date(rFrom))/(1000*60*60*24)) + 1;
@@ -2108,15 +2119,16 @@ export function renderCheckoutPage(
     };
     ` : ''}
     ${product.needsName ? `
-    var nObj = { surname: val('surname') };
-    var fChar = (고른한자 || val('fixedChar')).trim();
+    var 받아둔이름 = 받아둔것.name || {};
+    var nObj = { surname: 칸또는받아둔것('surname', 받아둔이름.surname) };
+    var fChar = (고른한자 || 칸또는받아둔것('fixedChar', 받아둔이름.fixed && 받아둔이름.fixed.char)).trim();
     if (fChar) {
       /*
        * 자리를 안 고르면 **보내지 않는다.**
        * 전에는 비었을 때 조용히 '앞' 으로 넣었다. 끝에 넣고 싶던 손님이
        * 그 칸을 못 보고 지나가면 앞에 박힌 이름을 받았다.
        */
-      var fAt = val('fixedAt');
+      var fAt = 칸또는받아둔것('fixedAt', 받아둔이름.fixed && 받아둔이름.fixed.at);
       if (!fAt) return say('꼭 넣을 글자를 어디에 넣을지 골라 주십시오.');
       nObj.fixed = { char: fChar, at: fAt };
     }
@@ -2127,14 +2139,17 @@ export function renderCheckoutPage(
     }
     reading.name = nObj;
     ` : ''}
-    ${product.needsPartner ? "reading.partner = { date: val('partnerDate'), time: val('partnerTime') || '12:00' };" : ''}
+    ${product.needsPartner ? `reading.partner = {
+      date: 칸또는받아둔것('partnerDate', 받아둔것.partner && 받아둔것.partner.date),
+      time: 칸또는받아둔것('partnerTime', 받아둔것.partner && 받아둔것.partner.time) || '12:00' };` : ''}
     ${product.needsRange ? `
-    var rawAvoid = val('rangeAvoid');
+    var rawAvoid = 칸또는받아둔것('rangeAvoid', (받아둔것.range && (받아둔것.range.avoid || []).join(', ')));
     var avoidList = rawAvoid ? rawAvoid.split(/[,\\s]+/).map(function(s){ return s.trim(); }).filter(function(s){ return /^\\d{4}-\\d{2}-\\d{2}$/.test(s); }) : [];
     reading.range = { from: rFrom, to: rTo, avoid: avoidList };
     ` : ''}
     if(NEEDS_FAMILY){
       var kin = readFamily();
+      if(!kin.length) kin = (받아둔것.family || []).filter(function(r){ return r && r.date; });
       if(!kin.length) return say('같이 보실 분을 한 분 이상 넣어 주십시오.');
       reading.family = kin;
     }

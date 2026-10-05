@@ -155,6 +155,21 @@ check('세 대목이 근거를 데리고 온다',
   sections.length === 3 && sections.every((s: any) => typeof s.basis === 'string' && s.basis.length > 0));
 const embeddedCheckout = renderCheckoutPage(business, '', CATALOG['compat-report'],
   { storeId: 'test', channelKey: 'test' }, false, true);
+/*
+ * 터진 뒤에 적은 것 (2026-10-05): 덮개 결제창에는 기간·상대·성 칸이 없다.
+ * 상품 화면에서 이미 받았기 때문이다. 그런데 결제창이 그 빈 칸을 읽고
+ * 「적어 주십시오」로 막아서, **기간을 받는 상품은 아예 결제가 안 됐다.**
+ */
+{
+  const 기간상품 = renderCheckoutPage(business, '', CATALOG['pick-report'],
+    { storeId: 'test', channelKey: 'test' }, false, true);
+  check('덮개 결제창은 상품 화면에서 받은 기간을 쓴다',
+    기간상품.includes('칸또는받아둔것') && 기간상품.includes("받아둔것.range"),
+    '칸이 없다고 막으면 결제가 아예 안 된다');
+  check('덮개 결제창은 상품 화면에서 받은 수술 시각을 쓴다',
+    기간상품.includes("(loadReading() || {}).pick"));
+}
+
 check('결제 덮개에서 사주·상대 입력칸이 보이지 않는다',
   !embeddedCheckout.includes('id="birthDate"')
   && !embeddedCheckout.includes('id="partnerDate"')
