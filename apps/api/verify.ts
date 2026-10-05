@@ -3883,6 +3883,39 @@ section('첫 화면 문구 다듬기 검증 (7단계)');
     serverSrc.includes('벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString(\'ko-KR\')}원 할인증표 보내고 그대도 보답을 받으시지요'));
 }
 
+// ── 8단계: 뒤로가기 제어 ──────────────────────────────────────────────
+section('뒤로가기 제어 검증 (8단계)');
+
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const appJsCode = readFileSync(join(here, 'public', 'app.js'), 'utf8');
+  const serverSrc = readFileSync(join(here, 'src', 'server.ts'), 'utf8');
+
+  // 1. popstate 핸들러가 등록되어 있는지
+  check('app.js에 popstate 이벤트 리스너가 등록되어 있다',
+    appJsCode.includes("window.addEventListener('popstate'"));
+
+  // 2. 단계 전환 시 history.pushState 호출하는지
+  check('뷰어 열 때 history.pushState({ stage: \'viewer\' }) 호출',
+    serverSrc.includes("history.pushState({ stage: 'viewer' }"));
+
+  check('처소 열 때 history.pushState({ stage: \'chamber\' }) 호출',
+    appJsCode.includes("history.pushState({ stage: 'chamber'"));
+
+  check('사주 선택(맛보기) 열 때 history.pushState({ stage: \'select\' }) 호출',
+    appJsCode.includes("history.pushState({ stage: 'select'"));
+
+  // 3. popstate 시 각 단계의 닫기/복원 로직이 들어있는지
+  check('popstate 시 뷰어 닫기 로직 포함',
+    appJsCode.includes('closeFreeSaju'));
+
+  check('popstate 시 처소 닫기 로직 포함',
+    appJsCode.includes('closeChamber'));
+
+  check('popstate 시 맛보기 패널 제거 로직 포함',
+    appJsCode.includes('openPanel.remove()'));
+}
+
 
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }

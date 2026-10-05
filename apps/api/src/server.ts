@@ -628,6 +628,11 @@ ${STAGE_SCRIPT}
 <script>
 (function(){
   function openFreeSaju() {
+    try {
+      if (!history.state || history.state.stage !== 'viewer') {
+        history.pushState({ stage: 'viewer' }, '');
+      }
+    } catch(err) {}
     var leg = document.getElementById('legacyStageWrapper');
     if (leg) {
       leg.removeAttribute('hidden');
@@ -650,6 +655,21 @@ ${STAGE_SCRIPT}
       }, 50);
     }
   }
+
+  function closeFreeSaju() {
+    var leg = document.getElementById('legacyStageWrapper');
+    if (leg) {
+      leg.setAttribute('hidden', '');
+      leg.style.display = 'none';
+    }
+    var target = document.querySelector('.spirits-menu-title') || document.getElementById('userInfoDisplay');
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  window.openFreeSaju = openFreeSaju;
+  window.closeFreeSaju = closeFreeSaju;
 
   document.addEventListener('click', function(e) {
     var btn = e.target.closest('#btnFreeEightLetters');
