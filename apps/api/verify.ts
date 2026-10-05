@@ -3916,6 +3916,29 @@ section('뒤로가기 제어 검증 (8단계)');
     appJsCode.includes('openPanel.remove()'));
 }
 
+// ── 9단계: 무의미한 늘봄 워터마크 정리 ──────────────────────────────
+section('무의미한 늘봄 워터마크 정리 검증 (9단계)');
+
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const serverSrc = readFileSync(join(here, 'src', 'server.ts'), 'utf8');
+
+  // 1. 화면 위를 둥둥 떠다니는 무의미한 워터마크 이미지 요소 제거
+  check('대문/입장/메뉴판/처소 화면에 watermark-seal-cover 이미지가 없다',
+    !serverSrc.includes('watermark-seal-cover'));
+
+  check('화면 곳곳에 붓글씨 골드누끼 워터마크 이미지가 없다',
+    !serverSrc.includes('늘봄붓글씨_골드누끼.png'));
+
+  // 2. 메뉴판 위 불필요한 낙관 마크 제거
+  check('메뉴판 상단에 무의미한 user-seal-mark 낙관이 없다',
+    !serverSrc.includes('user-seal-mark'));
+
+  // 3. 필수 요소(푸터 법적 정보, 상품명 등)는 온전히 보존
+  check('푸터 회사 정보(.site-footer-wrapper)는 보존되어 있다',
+    serverSrc.includes('class="site-footer-wrapper"'));
+}
+
 
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }

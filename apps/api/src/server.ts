@@ -277,8 +277,6 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
           <button type="button" id="btnKnockGate" class="btn-primary pulse-gold">🚪 신령계 문 두드리기</button>
         </div>
       </div>
-
-      <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
     </section>
 
     <!-- ================= STAGE 2: 신령계 입장 연출 (문이 열리고 안으로 들어가는 1회성 연출 영상) ================= -->
@@ -288,8 +286,6 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
              그래야 대문 영상과 메뉴판 그림이 통신선을 나눠 쓰지 않는다 -->
         <video id="enterVideo" playsinline muted preload="none" data-src="assets/입장.mp4"></video>
       </div>
-
-      <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
     </section>
 
     <!-- ================= STAGE 3: 10대 신령 메뉴판 ================= -->
@@ -308,7 +304,6 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
 
       <div class="spirits-menu-header">
         <div class="spirits-menu-user" id="userInfoDisplay">
-          <span class="user-seal-mark">늘봄</span>
           <span class="user-name-text">명식 봉인 해제</span>
         </div>
         <h2 class="spirits-menu-title">어떤 물음을 품고 오셨습니까</h2>
@@ -351,8 +346,6 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
           <!-- JS가 동적으로 렌더링 -->
         </div>
       </div>
-
-      <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
     </section>
 
     <!-- ================= STAGE 4: 100% 2K 신령 1:1 대면 처소 (9:16 모바일 세로 풀스크린) ================= -->
@@ -381,10 +374,6 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
         <div class="consult-fields" id="consultFields"></div>
         <button type="button" class="consult-cta" id="consultCta">다음으로</button>
       </div>
-
-      <!-- 처소 하단 워터마크 가림막: 신령마다 AI 워터마크 위치가 왼쪽/오른쪽으로 제각각이라 양쪽 다 가림 -->
-      <div class="watermark-mask-bl"></div>
-      <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
     </section>
 
     <!-- ================= MODAL: 사주 신상 정보 입력 (무단침입 방지 Checkpoint) ================= -->
