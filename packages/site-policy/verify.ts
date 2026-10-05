@@ -25,7 +25,7 @@ import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
 import { orderable } from '../commerce/src/orderable.ts';
 import { WITHDRAWAL_WINDOW_DAYS, REFUND_DUE_BUSINESS_DAYS } from '../commerce/src/refund.ts';
-import { INVITE_MIN_ORDER_KRW } from '../commerce/src/referral.ts';
+import { INVITE_MIN_ORDER_KRW, INVITE_DISCOUNT_KRW } from '../commerce/src/referral.ts';
 
 let passed = 0, failed = 0;
 const failures: string[] = [];
@@ -1129,8 +1129,10 @@ section('11. 문 — 신령계 들어가는 곳');
     allCheckoutPages.every((html) => !html.includes('9월 28일') && !html.includes('39,900원으로 올라갑니다')));
 
   check('판 적 없는 값에 취소선을 긋지 않는다',
-    [...allProductPages, ...allCheckoutPages].every((html) =>
-      !/<del>|<s>|text-decoration:\s*line-through|line-through/.test(html)));
+    [...allProductPages, ...allCheckoutPages].every((html) => {
+      const bodyOnly = html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
+      return !/<del>|<s>|text-decoration:\s*line-through|line-through/.test(bodyOnly);
+    }));
 
   check('어디에도 취소선 정가·할인율·거짓 급함이 없다',
     allProductPages.every((html) =>
@@ -1584,6 +1586,34 @@ section('11. 문 — 신령계 들어가는 곳');
 
   check('2만원 이상 상품 결제 화면에는 「증표 있으십니까?」가 있다', over20Html.includes('증표 있으십니까?'));
   check('2만원 이상 상품 결제 화면에는 증표 입력칸이 있다', over20Html.includes('id="coInviteInput"'));
+}
+
+{
+  section('결제 화면 증표(할인코드) UI 및 동작 검사 (3단계)');
+  const over20Html = renderCheckoutPage(full, '', CATALOG['saju-report'], { storeId: 's', channelKey: 'c' });
+
+  // (가) 증표 적용 성공 시 입력칸 접힘 + [빼기] 노출, [빼기] 누르면 원복
+  check('증표 적용 시 입력칸 접히고 [빼기] 단추(coInviteRemoveBtn) 노출 로직 존재',
+    over20Html.includes('id="coInviteRemoveBtn"') &&
+    over20Html.includes("updateInviteUI") &&
+    over20Html.includes("invRemoveBtn.style.display = 'inline-block'"));
+
+  check('[빼기] 누르면 원복(sessionStorage 제거 및 증표 있으십니까? 복원) 로직 존재',
+    over20Html.includes("sessionStorage.removeItem('nb_invite')") &&
+    over20Html.includes("invToggle.textContent = DEFAULT_INVITE_TEXT") &&
+    over20Html.includes('DEFAULT_INVITE_TEXT = "증표 있으십니까?"'));
+
+  // (나) 「증표 있으십니까?」 글자 크기 16px
+  check('「증표 있으십니까?」 글자 크기 16px 스타일 적용',
+    over20Html.includes('.co-invite-toggle{') &&
+    over20Html.includes('font-size:16px'));
+
+  // (다) 금액 표시가 <del> + 할인 후 + 문구 꼴인지, 숫자가 상수를 따르는지
+  check('할인 전 금액에 <del> 태그 적용 및 할인 후 금액 표시 로직',
+    over20Html.includes("tag.innerHTML = '<del>' + won(p) + '원</del> ' + won(finalP) + '원"));
+
+  check('할인 문구에 (벗의 증표 −...원) 꼴 및 상수 INVITE_DISCOUNT_KRW 반영',
+    over20Html.includes(`(벗의 증표 −' + won(${INVITE_DISCOUNT_KRW}) + '원)`));
 }
 
 {

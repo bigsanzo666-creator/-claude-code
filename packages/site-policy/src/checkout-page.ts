@@ -106,13 +106,16 @@ ${UPSELL_CSS}
 .co-price{display:flex;align-items:baseline;justify-content:space-between;
   border-top:1px solid rgba(255,255,255,.1);padding-top:12px}
 .co-price b{font-size:22px;color:#d4af37;font-weight:800}
+.co-price b del{font-size:17px;color:#9a93a6;margin-right:6px;font-weight:400;text-decoration:line-through}
 .co-price span{font-size:14px;color:#9a93a6}
 .co-pricenote{margin:10px 0 0;font-size:14px;color:#c9a34a;line-height:1.85}
 .co-pricenote b{color:#e8c86a}
 .co-invite-entry{margin:10px 0 14px}
-.co-invite-toggle{background:none;border:none;color:#d4af37;font-size:14px;cursor:pointer;
+.co-invite-toggle{background:none;border:none;color:#f0d77a;font-size:16px;cursor:pointer;
   padding:4px 0;text-decoration:underline;font-family:inherit;display:inline-block}
-.co-invite-toggle:hover{color:#f5d77f}
+.co-invite-toggle:hover{color:#ffe494}
+.co-invite-remove-btn{background:none;border:none;color:#ffdd88;text-decoration:underline;cursor:pointer;font-size:14px;padding:4px 0;font-family:inherit}
+.co-invite-remove-btn:hover{color:#fff}
 .co-invite-fold{margin-top:8px;background:rgba(12,10,18,.8);border:1px solid rgba(212,175,55,.3);
   border-radius:8px;padding:10px 12px}
 .co-invite-input-row{display:flex;gap:8px}
@@ -1586,7 +1589,7 @@ export function renderCheckoutPage(
     var tag = document.querySelector('.co-price b');
     if(tag){
       if(inv && p >= ${INVITE_MIN_ORDER_KRW}){
-        tag.innerHTML = won(finalP) + '원 <span class="co-invite-tag" style="font-size:14px;color:#9fd8a8;font-weight:600;margin-left:6px">벗의 증표 −${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원</span>';
+        tag.innerHTML = '<del>' + won(p) + '원</del> ' + won(finalP) + '원 <span class="co-invite-tag" style="font-size:14px;color:#9fd8a8;font-weight:600;margin-left:6px">(벗의 증표 −' + won(${INVITE_DISCOUNT_KRW}) + '원)</span>';
       }else{
         tag.textContent = won(finalP) + '원';
       }
@@ -1707,19 +1710,54 @@ export function renderCheckoutPage(
   ` : ''}
 
   var invToggle = document.getElementById('coInviteToggle');
+  var invRemoveBtn = document.getElementById('coInviteRemoveBtn');
   var invFold = document.getElementById('coInviteFold');
   var invInput = document.getElementById('coInviteInput');
   var invBtn = document.getElementById('coInviteApplyBtn');
   var invMsg = document.getElementById('coInviteMsg');
+  var DEFAULT_INVITE_TEXT = ${JSON.stringify(product.priceKrw >= INVITE_MIN_ORDER_KRW ? '증표 있으십니까?' : '')};
+
+  function updateInviteUI(code){
+    var curP = priceNow();
+    if(code && curP >= ${INVITE_MIN_ORDER_KRW}){
+      if(invFold) invFold.style.display = 'none';
+      if(invToggle){
+        invToggle.textContent = '증표 적용 중 (' + code + ') · ' + won(${INVITE_DISCOUNT_KRW}) + '원 할인';
+        invToggle.style.textDecoration = 'none';
+        invToggle.style.cursor = 'default';
+      }
+      if(invRemoveBtn) invRemoveBtn.style.display = 'inline-block';
+    } else {
+      if(invToggle && DEFAULT_INVITE_TEXT){
+        invToggle.textContent = DEFAULT_INVITE_TEXT;
+        invToggle.style.textDecoration = 'underline';
+        invToggle.style.cursor = 'pointer';
+      }
+      if(invRemoveBtn) invRemoveBtn.style.display = 'none';
+    }
+  }
 
   var existingInv = (function(){ try { return sessionStorage.getItem('nb_invite'); } catch(e){ return null; } })();
   if(existingInv && invInput){
     invInput.value = existingInv;
-    if(invToggle) invToggle.textContent = '증표 적용 중 (' + existingInv + ')';
+    updateInviteUI(existingInv);
+  }
+
+  if(invRemoveBtn){
+    invRemoveBtn.onclick = function(e){
+      e.preventDefault();
+      try { sessionStorage.removeItem('nb_invite'); } catch(e){}
+      if(invInput) invInput.value = '';
+      if(invMsg) { invMsg.textContent = ''; invMsg.className = 'co-invite-msg'; }
+      updateInviteUI(null);
+      refreshPrice();
+    };
   }
 
   if(invToggle && invFold){
     invToggle.onclick = function(){
+      var invCur = (function(){ try { return sessionStorage.getItem('nb_invite'); } catch(e){ return null; } })();
+      if(invCur) return;
       var isHidden = invFold.style.display === 'none';
       invFold.style.display = isHidden ? 'block' : 'none';
       if(isHidden && invInput) invInput.focus();
@@ -1778,13 +1816,14 @@ export function renderCheckoutPage(
         if(data.ok && data.valid){
           clientFailCount = 0;
           try { sessionStorage.setItem('nb_invite', data.code); } catch(e){}
-          if(invToggle) invToggle.textContent = '증표 적용 중 (' + data.code + ')';
+          updateInviteUI(data.code);
           refreshPrice();
 
           if(invMsg){
-            if(p >= ${INVITE_MIN_ORDER_KRW}){
+            var curP = priceNow();
+            if(curP >= ${INVITE_MIN_ORDER_KRW}){
               invMsg.className = 'co-invite-msg ok';
-              invMsg.textContent = '증표가 적용되어 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인되었습니다.';
+              invMsg.textContent = '증표가 적용되어 ' + won(${INVITE_DISCOUNT_KRW}) + '원 할인되었습니다.';
             } else {
               invMsg.className = 'co-invite-msg warn';
               invMsg.textContent = '이 증표는 ${(INVITE_MIN_ORDER_KRW / 10000)}만원 이상 점사에서만 사용하실 수 있습니다.';
@@ -2139,7 +2178,10 @@ ${isPhotoProduct ? `<script>
           증표는 ${Math.floor(INVITE_MIN_ORDER_KRW / 10000)}만원 이상 점사에서 쓰실 수 있습니다.
         </p>
       </div>` : `
-      <button type="button" class="co-invite-toggle" id="coInviteToggle">증표 있으십니까?</button>
+      <div class="co-invite-bar" id="coInviteBar" style="display:flex;align-items:center;gap:8px;">
+        <button type="button" class="co-invite-toggle" id="coInviteToggle">증표 있으십니까?</button>
+        <button type="button" class="co-invite-remove-btn" id="coInviteRemoveBtn" style="display:none">[빼기]</button>
+      </div>
       <div class="co-invite-fold" id="coInviteFold" style="display:none">
         <div class="co-invite-input-row">
           <input type="text" id="coInviteInput" placeholder="증표 코드 입력" maxlength="16" autocomplete="off">
