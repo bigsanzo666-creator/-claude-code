@@ -1602,13 +1602,15 @@ document.addEventListener('DOMContentLoaded', () => {
     frame.src = '/checkout?product=' + encodeURIComponent(productId) + '&embedded=1';
     cover.append(close, frame);
     document.body.appendChild(cover);
-    history.pushState({ nbCheckout: productId }, '', location.href);
+    history.pushState({ stage: 'taste', productId: productId, nbCheckout: productId }, '', location.href);
   }
 
+  /*
+   * 결제 덮개만 맡는다. 펼침 칸을 여닫는 일은 stage 를 보는 아래쪽
+   * popstate 가 맡는다 — 두 곳에서 같이 닫으면 뒤로 한 번에 두 칸이 닫힌다.
+   */
   window.addEventListener('popstate', () => {
-    if (document.getElementById('tasteCheckoutCover')) { closeTasteCheckout(); return; }
-    const open = productCarouselTrack && productCarouselTrack.querySelector('.taste-panel');
-    if (open) open.remove();
+    if (document.getElementById('tasteCheckoutCover')) closeTasteCheckout();
   });
 
   // 트랙에 클릭 이벤트 위임 (카드를 누르면 그 자리에서 맛보기가 펼쳐진다)
@@ -1622,15 +1624,25 @@ document.addEventListener('DOMContentLoaded', () => {
       const href = '/products/' + encodeURIComponent(productId);
 
       const open = productCarouselTrack.querySelector('.taste-panel');
-      if (open && open.dataset.of === productId) { history.back(); return; }
+      if (open && open.dataset.of === productId) {
+        open.remove();
+        if (history.state && (history.state.stage === 'select' || history.state.stage === 'taste')) {
+          history.back();
+        }
+        return;
+      }
       if (open) open.remove();
 
       // 기다리는 동안 빈 칸이면 손님은 고장 난 줄 안다
+      try {
+        if (!history.state || history.state.stage !== 'select' || history.state.productId !== productId) {
+          history.pushState({ stage: 'select', productId: productId }, '');
+        }
+      } catch (err) {}
       const panel = tEl('div', 'taste-panel');
       panel.dataset.of = productId;
       panel.appendChild(tEl('p', 'taste-wait', '신령이 여덟 글자를 들여다보는 중…'));
       card.insertAdjacentElement('afterend', panel);
-      if (!open) history.pushState({ nbProduct: productId }, '', location.href);
       panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
       fetch('/api/taste', {
@@ -2369,6 +2381,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function openChamber(spirit) {
     if (!spirit) return;
+    try {
+      if (!history.state || history.state.stage !== 'chamber') {
+        history.pushState({ stage: 'chamber', spirit: spirit.name }, '');
+      }
+    } catch (err) {}
     currentSpirit = spirit;
     currentProduct = spirit.productIds ? spirit.productIds[0] : null;
 
@@ -2408,14 +2425,60 @@ document.addEventListener('DOMContentLoaded', () => {
     if (stageChamber) stageChamber.classList.add('active');
   }
 
+  function closeChamber() {
+    if (stageChamber) stageChamber.classList.remove('active');
+    if (stageSpirits) stageSpirits.classList.add('active');
+    if (chamberSpiritVideo) chamberSpiritVideo.pause();
+    stopChamberParticles();
+    hideConsult();
+  }
+
   // 신령 메뉴판으로 복귀
   if (btnExitChamber) {
     btnExitChamber.addEventListener('click', () => {
-      if (stageChamber) stageChamber.classList.remove('active');
-      if (stageSpirits) stageSpirits.classList.add('active');
-      if (chamberSpiritVideo) chamberSpiritVideo.pause();
-      stopChamberParticles();
-      hideConsult();
+      if (history.state && history.state.stage === 'chamber') {
+        history.back();
+      } else {
+        closeChamber();
+      }
     });
   }
+
+  // ── 뒤로가기 제어 (8단계) ─────────────────────────────────────────
+  window.addEventListener('popstate', (e) => {
+    const state = e.state || {};
+    const stage = state.stage;
+
+    // 1) 만세력 뷰어가 열려 있고 새 상태가 viewer가 아니면 뷰어 닫기
+    const leg = document.getElementById('legacyStageWrapper');
+    if (leg && leg.style.display !== 'none' && !leg.hasAttribute('hidden') && stage !== 'viewer') {
+      if (typeof window.closeFreeSaju === 'function') {
+        window.closeFreeSaju();
+      } else {
+        leg.setAttribute('hidden', '');
+        leg.style.display = 'none';
+      }
+    }
+
+    // 2) 신령 처소(상담)가 열려 있고 새 상태가 chamber가 아니면 처소 닫기
+    if (stageChamber && stageChamber.classList.contains('active') && stage !== 'chamber') {
+      closeChamber();
+    }
+
+    // 3) 맛보기(사주 선택) 패널이 열려 있고 새 상태가 select/taste가 아니면 닫기
+    const openPanel = document.querySelector('.taste-panel');
+    if (openPanel && stage !== 'select' && stage !== 'taste') {
+      openPanel.remove();
+    }
+
+    // 4) 새 상태에 따른 화면 복원
+    if (stage === 'viewer') {
+      if (typeof window.openFreeSaju === 'function') {
+        window.openFreeSaju();
+      }
+    } else if (stage === 'chamber' && state.spirit) {
+      const s = SPIRITS_DATA.find((sp) => sp.name === state.spirit);
+      if (s) openChamber(s);
+    }
+  });
 });

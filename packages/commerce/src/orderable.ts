@@ -40,6 +40,8 @@ export interface Orderable {
   needsFace: boolean;
   /** 아이의 성이 필요한가 (작명) */
   needsName: boolean;
+  /** 아이의 생년월일이 필요한가 */
+  needsChild: boolean;
 }
 
 function fromPackage(id: PackageId): Orderable {
@@ -60,6 +62,7 @@ function fromPackage(id: PackageId): Orderable {
     needsRange: pack.members.some((m) => CATALOG[m].needsRange === true),
     needsFace: pack.members.some((m) => CATALOG[m].needsFace === true),
     needsName: pack.members.some((m) => CATALOG[m].needsName === true),
+    needsChild: pack.members.some((m) => CATALOG[m].needsChild === true),
   };
 }
 
@@ -80,6 +83,7 @@ export function orderable(id: string): Orderable {
       needsRange: single.needsRange === true,
       needsFace: single.needsFace === true,
       needsName: single.needsName === true,
+      needsChild: single.needsChild === true,
     };
   }
   if (PACKAGES[id as PackageId]) return fromPackage(id as PackageId);

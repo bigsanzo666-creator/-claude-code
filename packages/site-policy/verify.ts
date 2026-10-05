@@ -25,7 +25,7 @@ import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
 import { orderable } from '../commerce/src/orderable.ts';
 import { WITHDRAWAL_WINDOW_DAYS, REFUND_DUE_BUSINESS_DAYS } from '../commerce/src/refund.ts';
-import { INVITE_MIN_ORDER_KRW } from '../commerce/src/referral.ts';
+import { INVITE_MIN_ORDER_KRW, INVITE_DISCOUNT_KRW } from '../commerce/src/referral.ts';
 
 let passed = 0, failed = 0;
 const failures: string[] = [];
@@ -1129,9 +1129,16 @@ section('11. 문 — 신령계 들어가는 곳');
     allCheckoutPages.every((html) => !html.includes('9월 28일') && !html.includes('39,900원으로 올라갑니다')));
 
   check('판 적 없는 값에 취소선을 긋지 않는다',
-    allProductPages.every((html) => !/<del>|<s>|line-through/.test(html))
-    && allCheckoutPages.every((html) => !/<del>|<s>/.test(html))
-    && allCheckoutPages.every((html) => html.includes("if(inv && p >=") && html.includes("won(p) + '원")));
+    /*
+     * 손님 눈에 보이는 글에는 줄을 긋지 않는다. 다만 **벗의 증표**가 든 값은
+     * 실제로 받던 값에서 실제로 깎는 것이라, 그 줄은 자바스크립트가 그 자리에서
+     * 그린다 — 그래서 대본은 빼고 본다.
+     */
+    [...allProductPages, ...allCheckoutPages].every((html) => {
+      const bodyOnly = html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
+      return !/<del>|<s>|text-decoration:\s*line-through|line-through/.test(bodyOnly);
+    })
+    && allCheckoutPages.every((html) => html.includes("won(p) + '원")));
 
   check('어디에도 취소선 정가·할인율·거짓 급함이 없다',
     allProductPages.every((html) =>
@@ -1542,6 +1549,9 @@ section('11. 문 — 신령계 들어가는 곳');
       html.includes('.co-hanja-btn.on') && html.includes("content:' ✓'"));
     check(`${pid}: 자리를 고르지 않은 채로는 결제로 넘어가지 못한다`,
       html.includes('어디에 넣을지 골라 주십시오'));
+    check(`${pid}: 꼭 넣을 글자가 있고 자리가 없으면 checkCanPay가 결제 단추를 끈다`,
+      html.includes("fChar && !val('fixedAt')") &&
+      html.includes("reason = '꼭 넣을 글자를 어디에 넣을지 골라 주십시오'"));
   }
 
   const stdHtml = renderCheckoutPage(full, '', CATALOG['naming-report'], { storeId: 's', channelKey: 'c' });
@@ -1551,6 +1561,23 @@ section('11. 문 — 신령계 들어가는 곳');
   check('89,900원 결제 화면에 솔직한 안내(흔한 이름 여부 미확인) 표기', stdHtml.includes('흔한 이름인지까지는 보지 않습니다'));
   check('149,000원 결제 화면에 배수 및 순위 차별화 안내 표기', plusHtml.includes('글자밭이 <b>3배</b>로 넓고') && plusHtml.includes('최근 100위 안의 흔한 이름을 피해서'));
   check('149,000원 결제 화면에 89,900원 문구가 없다', !plusHtml.includes('흔한 이름인지까지는 보지 않습니다'));
+}
+
+{
+  section('아이 상품 결제 화면 아이 사주 입력칸 검사 (1단계)');
+  const childPids = ['child-report', 'child-aptitude-report', 'naming-report', 'naming-plus-report'] as const;
+  for (const pid of childPids) {
+    const html = renderCheckoutPage(full, '', CATALOG[pid], { storeId: 's', channelKey: 'c' });
+    check(`${pid}: 아이 사주 영역(coChildCard) 존재`, html.includes('id="coChildCard"'));
+    check(`${pid}: 아이 생년월일 입력칸(childDate) 존재`, html.includes('id="childDate"'));
+    check(`${pid}: 아이 성별 선택(childGender) 존재`, html.includes('id="childGender"'));
+    check(`${pid}: 아이 태어난 시간 입력칸(childTime) 존재`, html.includes('id="childTime"'));
+    check(`${pid}: 아이 시간을 모릅니다 단추(childBtnUnknown) 존재`, html.includes('id="childBtnUnknown"'));
+    check(`${pid}: 출산 예정일 체크박스(childIsDueDate) 존재`, html.includes('id="childIsDueDate"'));
+    check(`${pid}: 부모 사주 카드 제목이 '손님(부모) 사주'`, html.includes('손님(부모) 사주'));
+  }
+  const adultHtml = renderCheckoutPage(full, '', CATALOG['saju-report'], { storeId: 's', channelKey: 'c' });
+  check('어른 상품에는 아이 사주 영역이 없다', !adultHtml.includes('id="coChildCard"'));
 }
 
 {
@@ -1565,6 +1592,34 @@ section('11. 문 — 신령계 들어가는 곳');
 
   check('2만원 이상 상품 결제 화면에는 「증표 있으십니까?」가 있다', over20Html.includes('증표 있으십니까?'));
   check('2만원 이상 상품 결제 화면에는 증표 입력칸이 있다', over20Html.includes('id="coInviteInput"'));
+}
+
+{
+  section('결제 화면 증표(할인코드) UI 및 동작 검사 (3단계)');
+  const over20Html = renderCheckoutPage(full, '', CATALOG['saju-report'], { storeId: 's', channelKey: 'c' });
+
+  // (가) 증표 적용 성공 시 입력칸 접힘 + [빼기] 노출, [빼기] 누르면 원복
+  check('증표 적용 시 입력칸 접히고 [빼기] 단추(coInviteRemoveBtn) 노출 로직 존재',
+    over20Html.includes('id="coInviteRemoveBtn"') &&
+    over20Html.includes("updateInviteUI") &&
+    over20Html.includes("invRemoveBtn.style.display = 'inline-block'"));
+
+  check('[빼기] 누르면 원복(sessionStorage 제거 및 증표 있으십니까? 복원) 로직 존재',
+    over20Html.includes("sessionStorage.removeItem('nb_invite')") &&
+    over20Html.includes("invToggle.textContent = DEFAULT_INVITE_TEXT") &&
+    over20Html.includes('DEFAULT_INVITE_TEXT = "증표 있으십니까?"'));
+
+  // (나) 「증표 있으십니까?」 글자 크기 16px
+  check('「증표 있으십니까?」 글자 크기 16px 스타일 적용',
+    over20Html.includes('.co-invite-toggle{') &&
+    over20Html.includes('font-size:16px'));
+
+  // (다) 금액 표시가 <del> + 할인 후 + 문구 꼴인지, 숫자가 상수를 따르는지
+  check('할인 전 금액에 <del> 태그 적용 및 할인 후 금액 표시 로직',
+    over20Html.includes("tag.innerHTML = '<del>' + won(p) + '원</del> ' + won(finalP) + '원"));
+
+  check('할인 문구에 (벗의 증표 −...원) 꼴 및 상수 INVITE_DISCOUNT_KRW 반영',
+    over20Html.includes(`(벗의 증표 −' + won(${INVITE_DISCOUNT_KRW}) + '원)`));
 }
 
 {
@@ -1672,6 +1727,63 @@ section('11. 문 — 신령계 들어가는 곳');
     `적발된 누락 약속: ${failedPromiseWords.join(', ')}`);
 }
 
+{
+  section('결제 화면 태어난 시간 직접 입력 및 모름 단추 검사 (5단계)');
+  const html = renderCheckoutPage(full, '', CATALOG['saju-report'], { storeId: 's', channelKey: 'c' });
+
+  // 1. 결제 화면에서 시:분 텍스트 입력 가능
+  check('결제 화면에서 birthTime이 텍스트(type="text") 입력칸이다',
+    html.includes('<input type="text" name="birthTime" id="birthTime"'));
+
+  check('결제 화면에 parseTimeInput 함수가 포함되어 있다',
+    html.includes('function parseTimeInput(val){'));
+
+  // 2. 「시간을 모릅니다」 큰 단추 제공
+  check('결제 화면에 「시간을 모릅니다」 큰 단추(birthBtnUnknown)가 있다',
+    html.includes('id="birthBtnUnknown"') && html.includes('시간을 모릅니다'));
+
+  // 3. 「모름」 단추 누르면 시간 칸 닫히고 시진 선택 노출 (setBirthTimeUnknown)
+  check('모름 단추 클릭 시 시진 선택 노출 및 시간 칸 비활성화 로직 존재',
+    html.includes('function setBirthTimeUnknown(unk){') &&
+    html.includes("timeSlotWrap.style.display = unk ? 'block' : 'none'") &&
+    html.includes("timeInp.disabled = unk"));
+
+  // 4. 1440 → 14:40 변환 및 timeKnown 정확한 저장 로직
+  check('parseTimeInput 정규식 및 시간 파싱 로직 포함',
+    html.includes('parseTimeInput(val)') && html.includes('parseInt(m[1], 10)'));
+
+  check('모름 선택 시 timeKnown: false, 시간 입력 시 timeKnown: true 로직 존재',
+    html.includes('finalTimeKnown = false') && html.includes('finalTimeKnown = true'));
+}
+
+{
+  section('손 사진 안내 위치 및 문구 검사 (6단계)');
+  const palmPage = renderProductPage(CATALOG['saju-palm-report'], full, true, '');
+
+  // 1. 문구에 "남좌여우" 포함, "반대 손" 제외
+  check('상세페이지 손 안내 문구에 남좌여우 포함',
+    palmPage.includes('남좌여우'));
+
+  check('상세페이지 손 안내 문구에서 「반대 손」이 빠져 있다',
+    !palmPage.includes('반대 손'));
+
+  // 2. 안내 문구 위치가 손 사진 box 바로 위인지
+  const handIdx = palmPage.indexOf('class="pd-jaegi-hand"');
+  const boxIdx = palmPage.indexOf('id="pdPalmLabel"');
+  check('손 사진 안내 문구가 손 사진 입력칸(pdPalmLabel) 바로 앞에 위치한다',
+    handIdx !== -1 && boxIdx !== -1 && handIdx < boxIdx && (boxIdx - handIdx) < 200);
+}
+
+{
+  section('첫 화면 문구 다듬기 및 상수 참조 검사 (7단계)');
+  const listHtml = renderProducts(true);
+
+  check('"누루시면" 오타가 없다',
+    !listHtml.includes('누루시면'));
+
+  check('벗 증표 바에 신령 말투 및 INVITE_DISCOUNT_KRW 반영',
+    listHtml.includes(`벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고 그대도 보답을 받으시지요`));
+}
 
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);

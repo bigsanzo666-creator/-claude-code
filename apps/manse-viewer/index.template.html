@@ -1842,10 +1842,10 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
       '<div style="height:1.6rem"></div>' +
       panel('사주 여덟 글자 <span class="label" style="font-family:inherit">명식</span>',
         '<div class="chart">' +
-          pillarColumn(ms.hour, byPos['시주'], '시주', false) +
-          pillarColumn(ms.day, byPos['일주'], '일주 · 나', true) +
-          pillarColumn(ms.month, byPos['월주'], '월주', false) +
           pillarColumn(ms.year, byPos['연주'], '연주', false) +
+          pillarColumn(ms.month, byPos['월주'], '월주', false) +
+          pillarColumn(ms.day, byPos['일주'], '일주 · 나', true) +
+          pillarColumn(ms.hour, byPos['시주'], '시주', false) +
         '</div>' +
         '<p class="note" style="margin-top:.9rem">일간 <strong class="e-' + ms.day.element.stem + '">' +
         ms.day.stemHanja + ' ' + ms.day.stem + '</strong>이 이 명식의 주체입니다. 나머지 글자에 붙은 이름(십신)은 전부 이 글자와의 관계입니다. ' +

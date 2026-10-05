@@ -164,6 +164,13 @@ export interface Product {
    * 이 표가 서 있으면 화면이 성과 돌림자를 더 받는다.
    */
   needsName?: boolean;
+  /**
+   * 아이의 생년월일이 필요한가.
+   *
+   * 어른의 사주가 아니라 아이의 사주로 풀어야 하는 상품들이다.
+   * 화면이 아이의 생년월일·성별·태어난 시간·태어난 곳을 따로 받는다.
+   */
+  needsChild?: boolean;
   /** 짝이 되는 주제 (`packages/saju-rules` 의 TopicId) */
   topic?: string;
 }
@@ -330,6 +337,7 @@ export const CATALOG: Record<ProductId, Product> = {
     previewRatio: 1.0,
     category: '가족',
     hook: '우리 아이는 어떤 아이일까?',
+    needsChild: true,
   },
   'child-aptitude-report': {
     id: 'child-aptitude-report',
@@ -339,6 +347,7 @@ export const CATALOG: Record<ProductId, Product> = {
     previewRatio: 1.0,
     category: '가족',
     hook: '이 아이는 뭘 시켜야 할까?',
+    needsChild: true,
   },
   /*
    * 명절 가족운세.
@@ -413,6 +422,7 @@ export const CATALOG: Record<ProductId, Product> = {
     category: '작명',
     hook: '우리 아이 이름, 뭐로 지을까?',
     needsName: true,
+    needsChild: true,
   },
   'naming-plus-report': {
     id: 'naming-plus-report',
@@ -423,6 +433,7 @@ export const CATALOG: Record<ProductId, Product> = {
     category: '작명',
     hook: '반에 같은 이름 없게 지을 수 없을까?',
     needsName: true,
+    needsChild: true,
   },
   'latelife-report': {
     id: 'latelife-report',
@@ -623,6 +634,11 @@ export function productsIn(category: Category): Product[] {
 /** 상대의 생년월일이 필요한 상품. 화면이 입력칸을 하나 더 띄운다 */
 export function needsPartner(id: ProductId): boolean {
   return CATALOG[id]?.needsPartner === true;
+}
+
+/** 아이의 생년월일이 필요한 상품. 화면이 아이 정보를 따로 받는다 */
+export function needsChild(id: ProductId): boolean {
+  return CATALOG[id]?.needsChild === true;
 }
 
 export function getProduct(id: string): Product {

@@ -106,13 +106,16 @@ ${UPSELL_CSS}
 .co-price{display:flex;align-items:baseline;justify-content:space-between;
   border-top:1px solid rgba(255,255,255,.1);padding-top:12px}
 .co-price b{font-size:22px;color:#d4af37;font-weight:800}
+.co-price b del{font-size:17px;color:#9a93a6;margin-right:6px;font-weight:400;text-decoration:line-through}
 .co-price span{font-size:14px;color:#9a93a6}
 .co-pricenote{margin:10px 0 0;font-size:14px;color:#c9a34a;line-height:1.85}
 .co-pricenote b{color:#e8c86a}
 .co-invite-entry{margin:10px 0 14px}
-.co-invite-toggle{background:none;border:none;color:#d4af37;font-size:14px;cursor:pointer;
+.co-invite-toggle{background:none;border:none;color:#f0d77a;font-size:16px;cursor:pointer;
   padding:4px 0;text-decoration:underline;font-family:inherit;display:inline-block}
-.co-invite-toggle:hover{color:#f5d77f}
+.co-invite-toggle:hover{color:#ffe494}
+.co-invite-remove-btn{background:none;border:none;color:#ffdd88;text-decoration:underline;cursor:pointer;font-size:14px;padding:4px 0;font-family:inherit}
+.co-invite-remove-btn:hover{color:#fff}
 .co-invite-fold{margin-top:8px;background:rgba(12,10,18,.8);border:1px solid rgba(212,175,55,.3);
   border-radius:8px;padding:10px 12px}
 .co-invite-input-row{display:flex;gap:8px}
@@ -138,6 +141,8 @@ ${UPSELL_CSS}
 .co-time-row>input{flex:1 1 auto;min-width:0}
 .co-time-unknown{display:flex;align-items:center;gap:6px;font-size:13px;color:#c8c2d4;cursor:pointer;white-space:nowrap;user-select:none;margin-bottom:0 !important}
 .co-time-unknown input{width:auto !important;margin:0}
+.co-btn-unknown{padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.2);color:#c8c2d4;font-size:13px;white-space:nowrap;cursor:pointer;transition:all .15s ease}
+.co-btn-unknown:hover{background:rgba(255,255,255,.14);color:#f4f1f8;border-color:#d4af37}
 .co-addkin{display:block;width:100%;padding:11px;margin:0 0 14px;font-size:14px;
   border-radius:8px;border:1px dashed rgba(212,175,55,.5);background:transparent;
   color:#d4af37;cursor:pointer;font-family:inherit}
@@ -372,6 +377,54 @@ export function renderCheckoutPage(
    * 거기서 잰다. 여기서는 그 값을 조용히 가져다 쓰기만 하고, 사진 이야기를
    * 한 글자도 꺼내지 않는다.
    */
+  const childSection = product.needsChild ? `
+    <div class="co-child-card" id="coChildCard" style="margin:16px 0;padding:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(212,175,55,0.25);border-radius:12px;">
+      <p class="co-sec" style="margin-top:0;color:#ffdd88;font-size:16px;font-weight:700;">아이 사주</p>
+      <div class="co-note" style="margin:4px 0 14px;padding:9px 12px;background:rgba(212,175,55,0.08);border-radius:8px;">
+        <p style="margin:0;font-size:13px;color:#c8bfd6;line-height:1.7;">
+          어른의 사주가 아니라 <b>아이의 명식으로</b> 풀이를 적습니다.
+        </p>
+      </div>
+      <div class="co-f">
+        <label for="childName">아이 이름 또는 태명</label>
+        <input type="text" name="childName" id="childName" maxlength="10" placeholder="예: 도윤, 튼튼이 (선택)">
+      </div>
+      <div class="co-f" style="margin-bottom:10px;">
+        <label class="co-time-unknown" for="childIsDueDate" style="font-size:14px;color:#ffdd88;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" id="childIsDueDate" name="childIsDueDate"> 아직 태어나지 않았습니다 — 예정일로 봅니다
+        </label>
+      </div>
+      <div class="co-two">
+        <div class="co-f">
+          <label for="childDate" id="childDateLabel">아이 생년월일</label>
+          <input type="date" name="childDate" id="childDate" required>
+        </div>
+        <div class="co-f">
+          <label for="childGender">아이 성별</label>
+          <select name="childGender" id="childGender">
+            <option value="남">남아</option>
+            <option value="여">여아</option>
+          </select>
+        </div>
+      </div>
+      <div class="co-f">
+        <label for="childTime">태어난 시간 (시:분 직접 입력)</label>
+        <div class="co-time-row">
+          <input type="text" name="childTime" id="childTime" placeholder="예: 14:40 또는 1440" maxlength="5" autocomplete="off" inputmode="numeric">
+          <button type="button" class="co-btn-unknown" id="childBtnUnknown">시간을 모릅니다</button>
+        </div>
+        <div id="childTimeSlotWrap" style="display:none;margin-top:8px;">
+          <label for="childTimeSlot" style="font-size:13px;color:#c8c2d4;margin-bottom:4px;display:block;">대략적인 시간대 선택 (해당 시간의 한가운데로 봅니다)</label>
+          ${hourOptions('childTimeSlot')}
+        </div>
+      </div>
+      <div class="co-f">
+        <label for="childPlace">태어난 곳</label>
+        ${placeOptions('childPlace')}
+        <span class="co-hint">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</span>
+      </div>
+    </div>` : '';
+
   const photoSection = '';
 
   const form = keys === null ? `
@@ -383,7 +436,7 @@ export function renderCheckoutPage(
       ${embedded ? '' : `<!-- 1. 사주 정보 요약 카드 (맨 위 노출) -->
       <div class="co-user-card" id="coUserCard">
         <div class="co-user-card-head">
-          <span class="co-user-card-title">사주 정보</span>
+          <span class="co-user-card-title">${product.needsChild ? '손님(부모) 사주' : '사주 정보'}</span>
           <button type="button" class="co-user-edit-btn" id="coEditUserBtn">[고치기]</button>
         </div>
         <div class="co-user-summary" id="coUserSummary">
@@ -401,7 +454,7 @@ export function renderCheckoutPage(
 
       <!-- 1-B. 사주 정보 입력·수정 폼 (기본 숨김, 고치기 누르거나 비어 있는 칸이 있을 때만 노출) -->
       <div class="co-user-edit-form" id="coUserEditForm" style="display:none;">
-        <p class="co-sec">사주 정보 수정</p>
+        <p class="co-sec">${product.needsChild ? '손님(부모) 사주 수정' : '사주 정보 수정'}</p>
         <div class="co-f"><label for="buyerName">성함</label>
           <input type="text" name="buyerName" id="buyerName" autocomplete="name" required placeholder="성함"></div>
         <div class="co-two">
@@ -413,10 +466,9 @@ export function renderCheckoutPage(
         <div class="co-f">
           <label for="birthTime">태어난 시간 (시:분 직접 입력)</label>
           <div class="co-time-row">
-            <input type="time" name="birthTime" id="birthTime">
-            <label class="co-time-unknown" for="birthTimeUnknown">
-              <input type="checkbox" id="birthTimeUnknown"> 시각 모름
-            </label>
+            <input type="text" name="birthTime" id="birthTime" placeholder="예: 14:40 또는 1440" maxlength="5" autocomplete="off" inputmode="numeric">
+            <button type="button" class="co-btn-unknown" id="birthBtnUnknown">시간을 모릅니다</button>
+            <input type="checkbox" id="birthTimeUnknown" style="display:none;" aria-hidden="true">
           </div>
           <div id="birthTimeSlotWrap" style="display:none;margin-top:8px;">
             <label for="birthTimeSlot" style="font-size:13px;color:#c8c2d4;margin-bottom:4px;display:block;">대략적인 시간대 선택 (해당 시간의 한가운데로 봅니다)</label>
@@ -428,6 +480,7 @@ export function renderCheckoutPage(
         <button type="button" class="co-user-done-btn" id="coUserDoneBtn">입력 완료</button>
       </div>`}
 
+      ${childSection}
       ${embedded ? '' : `<div class="co-reading-fields">
       ${surname}
       ${partner}
@@ -486,6 +539,8 @@ export function renderCheckoutPage(
   var EXTRA_KRW = ${HOLIDAY_EXTRA_MEMBER_KRW};
   var MAX_MEMBERS = ${HOLIDAY_MAX_MEMBERS};
   var NEEDS_FAMILY = ${product.needsFamily === true};
+  var NEEDS_CHILD = ${product.needsChild === true};
+  var NEEDS_NAME = ${product.needsName === true};
   var NEEDS_FACE = ${needsFace ? 'true' : 'false'};
   var NEEDS_PALM = ${needsPalm ? 'true' : 'false'};
   var IS_PHOTO = ${isPhotoProduct ? 'true' : 'false'};
@@ -598,13 +653,30 @@ export function renderCheckoutPage(
     return hStr;
   }
 
+  function parseTimeInput(val){
+    if(!val) return null;
+    var trimmed = val.trim();
+    var m = /^(\d{1,2}):?(\d{2})$/.exec(trimmed);
+    if(!m) return null;
+    var h = parseInt(m[1], 10);
+    var min = parseInt(m[2], 10);
+    if(h >= 0 && h <= 23 && min >= 0 && min <= 59){
+      var hh = (h < 10 ? '0' : '') + h;
+      var mm = (min < 10 ? '0' : '') + min;
+      return hh + ':' + mm;
+    }
+    return null;
+  }
+
   function updateSummaryDisplay(){
     var name = val('buyerName');
     var date = val('birthDate');
     var gender = val('gender') || '남';
     var unkEl = document.getElementById('birthTimeUnknown');
-    var isUnk = unkEl && unkEl.checked;
-    var time = isUnk ? (val('birthTimeSlot') || '12:00') : val('birthTime');
+    var isUnk = Boolean(window.__birthTimeUnknown || (unkEl && unkEl.checked));
+    var rawT = val('birthTime');
+    var parsedT = parseTimeInput(rawT);
+    var time = isUnk ? (val('birthTimeSlot') || '12:00') : (parsedT || rawT || '12:00');
     var place = val('birthPlace') || '서울';
 
     var dName = document.getElementById('dispName');
@@ -632,9 +704,18 @@ export function renderCheckoutPage(
     var reason = '';
     var dateVal = val('birthDate');
     // 사진은 여기서 묻지 않는다. 막지도 않는다
-    if(!NEEDS_PICK && !dateVal){
+    if(!NEEDS_PICK && !dateVal && document.getElementById('birthDate')){
       reason = EMBEDDED ? '상품 화면에서 생년월일을 먼저 적어 주십시오' : '생년월일을 적으셔야 결제하실 수 있습니다';
-    } else if(!agree.checked){
+    } else if(NEEDS_CHILD && !val('childDate') && document.getElementById('childDate')){
+      reason = '아이의 생년월일(또는 예정일)을 적으셔야 결제하실 수 있습니다';
+    }
+    if(!reason && NEEDS_NAME){
+      var fChar = (typeof 고른한자 !== 'undefined' ? 고른한자 : '') || val('fixedChar');
+      if(fChar && !val('fixedAt')){
+        reason = '꼭 넣을 글자를 어디에 넣을지 골라 주십시오';
+      }
+    }
+    if(!reason && !agree.checked){
       reason = '위 안내에 동의하셔야 결제하실 수 있습니다';
     }
 
@@ -1302,17 +1383,12 @@ export function renderCheckoutPage(
       set('buyerName', b.name);
       set('birthDate', b.date || b.birthDate);
       if(b.timeKnown === false || !b.time || b.time === '12:00'){
-        var unkEl = document.getElementById('birthTimeUnknown');
-        if(unkEl){
-          unkEl.checked = true;
-          var sw = document.getElementById('birthTimeSlotWrap');
-          if(sw) sw.style.display = 'block';
-          var ti = document.getElementById('birthTime');
-          if(ti) ti.disabled = true;
-          set('birthTimeSlot', b.time || '12:00');
-        }
+        setBirthTimeUnknown(true);
+        set('birthTimeSlot', b.time || '12:00');
       } else {
-        set('birthTime', b.time || b.birthTime);
+        setBirthTimeUnknown(false);
+        var parsed = parseTimeInput(b.time || b.birthTime);
+        set('birthTime', parsed || b.time || b.birthTime);
       }
       set('birthPlace', b.place || b.birthPlace);
       set('gender', b.gender);
@@ -1329,6 +1405,29 @@ export function renderCheckoutPage(
       set('rangeTo', saved.range && saved.range.to);
       set('rangeAvoid', saved.range && saved.range.avoid && saved.range.avoid.join(', '));` : ''}
 
+      if(saved.child){
+        set('childName', saved.child.name);
+        set('childDate', saved.child.date);
+        set('childGender', saved.child.gender);
+        set('childPlace', saved.child.place);
+        if(saved.child.isDueDate){
+          var dueEl = document.getElementById('childIsDueDate');
+          if(dueEl){
+            dueEl.checked = true;
+            var lbl = document.getElementById('childDateLabel');
+            if(lbl) lbl.textContent = '출산 예정일';
+          }
+        }
+        if(saved.child.timeKnown === false){
+          setChildTimeUnknown(true);
+          set('childTimeSlot', saved.child.time || '12:00');
+        } else {
+          setChildTimeUnknown(false);
+          var cParsed = parseTimeInput(saved.child.time);
+          set('childTime', cParsed || saved.child.time);
+        }
+      }
+
       if(saved.face){ window.__nbFace = saved.face; faceUploaded = true; }
       else if(saved.보여줌 && saved.보여줌.face){ window.__nbFace = { shown: true }; faceUploaded = true; }
       if(saved.palm){ window.__nbPalm = saved.palm; palmUploaded = true; }
@@ -1338,15 +1437,48 @@ export function renderCheckoutPage(
 
   var timeUnknownEl = document.getElementById('birthTimeUnknown');
   var timeSlotWrap = document.getElementById('birthTimeSlotWrap');
+  var birthBtnUnk = document.getElementById('birthBtnUnknown');
+  var timeUnknownEl = document.getElementById('birthTimeUnknown');
+  var timeSlotWrap = document.getElementById('birthTimeSlotWrap');
   var timeInp = document.getElementById('birthTime');
   var timeSlot = document.getElementById('birthTimeSlot');
+
+  function setBirthTimeUnknown(unk){
+    window.__birthTimeUnknown = unk;
+    if(timeUnknownEl) timeUnknownEl.checked = unk;
+    if(birthBtnUnk){
+      birthBtnUnk.style.borderColor = unk ? '#d4af37' : '';
+      birthBtnUnk.style.color = unk ? '#d4af37' : '';
+    }
+    if(timeSlotWrap) timeSlotWrap.style.display = unk ? 'block' : 'none';
+    if(timeInp){
+      timeInp.disabled = unk;
+      if(unk) timeInp.value = '';
+    }
+    updateSummaryDisplay();
+    checkCanPay();
+  }
+
+  if(birthBtnUnk){
+    birthBtnUnk.addEventListener('click', function(){
+      setBirthTimeUnknown(!window.__birthTimeUnknown);
+    });
+  }
   if(timeUnknownEl){
     timeUnknownEl.addEventListener('change', function(){
-      var unk = timeUnknownEl.checked;
-      if(timeSlotWrap) timeSlotWrap.style.display = unk ? 'block' : 'none';
-      if(timeInp) {
-        timeInp.disabled = unk;
-        if(unk) timeInp.value = '';
+      setBirthTimeUnknown(timeUnknownEl.checked);
+    });
+  }
+  if(timeInp){
+    timeInp.addEventListener('blur', function(){
+      var p = parseTimeInput(timeInp.value);
+      if(p) timeInp.value = p;
+      updateSummaryDisplay();
+    });
+    timeInp.addEventListener('input', function(){
+      var p = parseTimeInput(timeInp.value);
+      if(p && timeInp.value.length >= 4){
+        timeInp.value = p;
       }
       updateSummaryDisplay();
     });
@@ -1354,6 +1486,59 @@ export function renderCheckoutPage(
   if(timeSlot){
     timeSlot.addEventListener('change', updateSummaryDisplay);
   }
+
+  var childDueEl = document.getElementById('childIsDueDate');
+  if(childDueEl){
+    childDueEl.addEventListener('change', function(){
+      var lbl = document.getElementById('childDateLabel');
+      if(lbl) lbl.textContent = childDueEl.checked ? '출산 예정일' : '아이 생년월일';
+      checkCanPay();
+    });
+  }
+
+  var childBtnUnk = document.getElementById('childBtnUnknown');
+  var childTimeInp = document.getElementById('childTime');
+  var childTimeSlotWrap = document.getElementById('childTimeSlotWrap');
+
+  function setChildTimeUnknown(unk){
+    window.__childTimeUnknown = unk;
+    if(childBtnUnk){
+      childBtnUnk.style.borderColor = unk ? '#d4af37' : '';
+      childBtnUnk.style.color = unk ? '#d4af37' : '';
+    }
+    if(childTimeSlotWrap) childTimeSlotWrap.style.display = unk ? 'block' : 'none';
+    if(childTimeInp){
+      childTimeInp.disabled = unk;
+      if(unk) childTimeInp.value = '';
+    }
+    checkCanPay();
+  }
+
+  if(childBtnUnk){
+    childBtnUnk.addEventListener('click', function(){
+      setChildTimeUnknown(!window.__childTimeUnknown);
+    });
+  }
+  if(childTimeInp){
+    childTimeInp.addEventListener('blur', function(){
+      var p = parseTimeInput(childTimeInp.value);
+      if(p) childTimeInp.value = p;
+    });
+    childTimeInp.addEventListener('input', function(){
+      var p = parseTimeInput(childTimeInp.value);
+      if(p && childTimeInp.value.length >= 4){
+        childTimeInp.value = p;
+      }
+    });
+  }
+
+  ['childName', 'childDate', 'childGender', 'childTime', 'childTimeSlot', 'childPlace'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){
+      el.addEventListener('input', checkCanPay);
+      el.addEventListener('change', checkCanPay);
+    }
+  });
 
   updateSummaryDisplay();
   checkCanPay();
@@ -1373,10 +1558,13 @@ export function renderCheckoutPage(
     doneBtn.addEventListener('click', function(){
       var name = val('buyerName'), date = val('birthDate');
       var gender = val('gender'), place = val('birthPlace');
-      var isUnk = timeUnknownEl ? timeUnknownEl.checked : false;
-      var time = isUnk ? (val('birthTimeSlot') || '12:00') : val('birthTime');
+      var isUnk = Boolean(window.__birthTimeUnknown || (timeUnknownEl && timeUnknownEl.checked));
+      var rawTime = val('birthTime');
+      var parsedTime = parseTimeInput(rawTime);
+      var time = isUnk ? (val('birthTimeSlot') || '12:00') : (parsedTime || rawTime || '12:00');
+      var tKnown = !isUnk && Boolean(parsedTime || rawTime);
       saveReading({
-        birth: { name: name, date: date, gender: gender, time: time, timeKnown: !isUnk && Boolean(val('birthTime')), place: place }
+        birth: { name: name, date: date, gender: gender, time: time, timeKnown: tKnown, place: place }
       });
       updateSummaryDisplay();
       editForm.style.display = 'none';
@@ -1389,15 +1577,18 @@ export function renderCheckoutPage(
     var el = document.getElementById(id);
     if(el){
       el.addEventListener('change', function(){
-        var isUnk = timeUnknownEl ? timeUnknownEl.checked : false;
-        var time = isUnk ? (val('birthTimeSlot') || '12:00') : val('birthTime');
+        var isUnk = Boolean(window.__birthTimeUnknown || (timeUnknownEl && timeUnknownEl.checked));
+        var rawTime = val('birthTime');
+        var parsedTime = parseTimeInput(rawTime);
+        var time = isUnk ? (val('birthTimeSlot') || '12:00') : (parsedTime || rawTime || '12:00');
+        var tKnown = !isUnk && Boolean(parsedTime || rawTime);
         saveReading({
           birth: {
             name: val('buyerName'),
             date: val('birthDate'),
             gender: val('gender'),
             time: time,
-            timeKnown: !isUnk && Boolean(val('birthTime')),
+            timeKnown: tKnown,
             place: val('birthPlace')
           }
         });
@@ -1486,8 +1677,7 @@ export function renderCheckoutPage(
     var tag = document.querySelector('.co-price b');
     if(tag){
       if(inv && p >= ${INVITE_MIN_ORDER_KRW}){
-        tag.innerHTML = '<span style="text-decoration:line-through;color:#aaa;font-size:16px">' + won(p) + '원</span> → '
-          + won(finalP) + '원 <span class="co-invite-tag" style="font-size:14px;color:#9fd8a8;font-weight:600;margin-left:6px">벗의 증표 −${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원</span>';
+        tag.innerHTML = '<del>' + won(p) + '원</del> ' + won(finalP) + '원 <span class="co-invite-tag" style="font-size:14px;color:#9fd8a8;font-weight:600;margin-left:6px">(벗의 증표 −' + won(${INVITE_DISCOUNT_KRW}) + '원)</span>';
       }else{
         tag.textContent = won(finalP) + '원';
       }
@@ -1583,6 +1773,7 @@ export function renderCheckoutPage(
       Array.prototype.forEach.call(fxGrid.querySelectorAll('.co-hanja-btn'), function(x){ x.classList.remove('on'); });
       if(이미){ 고른한자 = ''; } else { b.classList.add('on'); 고른한자 = b.getAttribute('data-ja'); }
       모양을그린다();
+      checkCanPay();
     });
   }
   if(fxInput){
@@ -1590,29 +1781,71 @@ export function renderCheckoutPage(
     fxInput.addEventListener('input', function(){
       고른한자 = '';
       모양을그린다();
+      checkCanPay();
       clearTimeout(늦게);
       늦게 = setTimeout(한자를보여준다, 250);
     });
   }
-  if(fxAt) fxAt.addEventListener('change', 모양을그린다);
+  if(fxAt) fxAt.addEventListener('change', function(){
+    모양을그린다();
+    checkCanPay();
+  });
   var 성칸 = document.getElementById('surname');
-  if(성칸) 성칸.addEventListener('input', function(){ 모양을그린다(); });
+  if(성칸) 성칸.addEventListener('input', function(){
+    모양을그린다();
+    checkCanPay();
+  });
   ` : ''}
 
   var invToggle = document.getElementById('coInviteToggle');
+  var invRemoveBtn = document.getElementById('coInviteRemoveBtn');
   var invFold = document.getElementById('coInviteFold');
   var invInput = document.getElementById('coInviteInput');
   var invBtn = document.getElementById('coInviteApplyBtn');
   var invMsg = document.getElementById('coInviteMsg');
+  var DEFAULT_INVITE_TEXT = ${JSON.stringify(product.priceKrw >= INVITE_MIN_ORDER_KRW ? '증표 있으십니까?' : '')};
+
+  function updateInviteUI(code){
+    var curP = priceNow();
+    if(code && curP >= ${INVITE_MIN_ORDER_KRW}){
+      if(invFold) invFold.style.display = 'none';
+      if(invToggle){
+        invToggle.textContent = '증표 적용 중 (' + code + ') · ' + won(${INVITE_DISCOUNT_KRW}) + '원 할인';
+        invToggle.style.textDecoration = 'none';
+        invToggle.style.cursor = 'default';
+      }
+      if(invRemoveBtn) invRemoveBtn.style.display = 'inline-block';
+    } else {
+      if(invToggle && DEFAULT_INVITE_TEXT){
+        invToggle.textContent = DEFAULT_INVITE_TEXT;
+        invToggle.style.textDecoration = 'underline';
+        invToggle.style.cursor = 'pointer';
+      }
+      if(invRemoveBtn) invRemoveBtn.style.display = 'none';
+    }
+  }
 
   var existingInv = (function(){ try { return sessionStorage.getItem('nb_invite'); } catch(e){ return null; } })();
   if(existingInv && invInput){
     invInput.value = existingInv;
-    if(invToggle) invToggle.textContent = '증표 적용 중 (' + existingInv + ') · ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인';
+    updateInviteUI(existingInv);
+  }
+
+  if(invRemoveBtn){
+    invRemoveBtn.onclick = function(e){
+      e.preventDefault();
+      try { sessionStorage.removeItem('nb_invite'); } catch(e){}
+      if(invInput) invInput.value = '';
+      if(invMsg) { invMsg.textContent = ''; invMsg.className = 'co-invite-msg'; }
+      updateInviteUI(null);
+      refreshPrice();
+    };
   }
 
   if(invToggle && invFold){
     invToggle.onclick = function(){
+      var invCur = (function(){ try { return sessionStorage.getItem('nb_invite'); } catch(e){ return null; } })();
+      if(invCur) return;
       var isHidden = invFold.style.display === 'none';
       invFold.style.display = isHidden ? 'block' : 'none';
       if(isHidden && invInput) invInput.focus();
@@ -1671,14 +1904,14 @@ export function renderCheckoutPage(
         if(data.ok && data.valid){
           clientFailCount = 0;
           try { sessionStorage.setItem('nb_invite', data.code); } catch(e){}
-          if(invToggle) invToggle.textContent = '증표 적용 중 (' + data.code + ') · ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인';
-          if(invFold) invFold.style.display = 'none';
+          updateInviteUI(data.code);
           refreshPrice();
 
           if(invMsg){
-            if(priceNow() >= ${INVITE_MIN_ORDER_KRW}){
+            var curP = priceNow();
+            if(curP >= ${INVITE_MIN_ORDER_KRW}){
               invMsg.className = 'co-invite-msg ok';
-              invMsg.textContent = '증표가 적용되어 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인되었습니다.';
+              invMsg.textContent = '증표가 적용되어 ' + won(${INVITE_DISCOUNT_KRW}) + '원 할인되었습니다.';
             } else {
               invMsg.className = 'co-invite-msg warn';
               invMsg.textContent = '이 증표는 ${(INVITE_MIN_ORDER_KRW / 10000)}만원 이상 점사에서만 사용하실 수 있습니다.';
@@ -1787,9 +2020,11 @@ export function renderCheckoutPage(
     if(diffDays > 180) return say('기간은 최대 180일(여섯 달) 안으로 잡아 주세요.');
     ` : ''}
 
-    var isUnk = timeUnknownEl ? timeUnknownEl.checked : false;
-    var finalTime = '';
-    var finalTimeKnown = true;
+    var isUnk = Boolean(window.__birthTimeUnknown || (timeUnknownEl && timeUnknownEl.checked));
+    var finalTime = '12:00';
+    var finalTimeKnown = false;
+    var rawBirthTime = val('birthTime');
+    var parsedBirthTime = parseTimeInput(rawBirthTime);
     if(EMBEDDED){
       var savedBirth = (loadReading() || {}).birth || {};
       finalTime = savedBirth.time || '12:00';
@@ -1797,8 +2032,11 @@ export function renderCheckoutPage(
     } else if(isUnk){
       finalTime = val('birthTimeSlot') || '12:00';
       finalTimeKnown = false;
-    } else if(val('birthTime')){
-      finalTime = val('birthTime');
+    } else if(parsedBirthTime){
+      finalTime = parsedBirthTime;
+      finalTimeKnown = true;
+    } else if(rawBirthTime){
+      finalTime = rawBirthTime;
       finalTimeKnown = true;
     } else if(val('birthTimeSlot')){
       finalTime = val('birthTimeSlot');
@@ -1813,6 +2051,34 @@ export function renderCheckoutPage(
       birth: { date: date, time: finalTime, timeKnown: finalTimeKnown, place: val('birthPlace') || '서울', gender: val('gender'), name: name }
     };
     if(NEEDS_PICK) reading.pick = (loadReading() || {}).pick;
+    ${product.needsChild ? `
+    var cDate = val('childDate');
+    if(!cDate) return say('아이의 생년월일(또는 예정일)을 적어 주십시오.');
+    var isChildUnk = Boolean(window.__childTimeUnknown);
+    var cTimeInp = val('childTime');
+    var cParsed = parseTimeInput(cTimeInp);
+    var cFinalTime = '12:00';
+    var cTimeKnown = false;
+    if(!isChildUnk && cParsed){
+      cFinalTime = cParsed;
+      cTimeKnown = true;
+    } else if(!isChildUnk && cTimeInp){
+      cFinalTime = cTimeInp;
+      cTimeKnown = true;
+    } else if(val('childTimeSlot')){
+      cFinalTime = val('childTimeSlot');
+      cTimeKnown = false;
+    }
+    reading.child = {
+      date: cDate,
+      time: cFinalTime,
+      timeKnown: cTimeKnown,
+      place: val('childPlace') || '서울',
+      gender: val('childGender') || '남',
+      name: val('childName') || '',
+      isDueDate: Boolean(childDueEl && childDueEl.checked)
+    };
+    ` : ''}
     ${product.needsName ? `
     var nObj = { surname: val('surname') };
     var fChar = (고른한자 || val('fixedChar')).trim();
@@ -2012,7 +2278,10 @@ ${isPhotoProduct ? `<script>
           증표는 ${Math.floor(INVITE_MIN_ORDER_KRW / 10000)}만원 이상 점사에서 쓰실 수 있습니다.
         </p>
       </div>` : `
-      <button type="button" class="co-invite-toggle" id="coInviteToggle">증표 있으십니까?</button>
+      <div class="co-invite-bar" id="coInviteBar" style="display:flex;align-items:center;gap:8px;">
+        <button type="button" class="co-invite-toggle" id="coInviteToggle">증표 있으십니까?</button>
+        <button type="button" class="co-invite-remove-btn" id="coInviteRemoveBtn" style="display:none">[빼기]</button>
+      </div>
       <div class="co-invite-fold" id="coInviteFold" style="display:none">
         <div class="co-invite-input-row">
           <input type="text" id="coInviteInput" placeholder="증표 코드 입력" maxlength="16" autocomplete="off">

@@ -8,7 +8,7 @@
 
 import {
   CATALOG, getProduct, makePreview, CATEGORIES, productsIn,
-  PACKAGES, bundleMath, packagesContaining, assertPackagesValid, needsPartner, type PackageId,
+  PACKAGES, bundleMath, packagesContaining, assertPackagesValid, needsPartner, needsChild, type PackageId,
   ALLOWED_REFS, cleanRef, createOrder, markPending, markPaid, markFulfilled, markViewed, markRefunded,
   hasEntitlement, OrderTransitionError,
   assessRefund, addBusinessDays, WITHDRAWAL_NOTICE, WITHDRAWAL_WINDOW_DAYS, refundNotice,
@@ -61,6 +61,12 @@ check('가족 갈래가 비어 있지 않다', productsIn('가족').length >= 4,
 check('2인 상품은 상대 입력이 필요하다고 표시된다',
   Object.values(CATALOG).filter((p) => p.needsPartner).every((p) => needsPartner(p.id)));
 check('혼자 보는 상품은 상대를 요구하지 않는다', !needsPartner('saju-report'));
+const CHILD_PRODUCTS = ['child-report', 'child-aptitude-report', 'naming-report', 'naming-plus-report'] as const;
+check('아이 상품 네 개는 아이 생년월일을 요구한다',
+  CHILD_PRODUCTS.every((id) => needsChild(id) && CATALOG[id].needsChild === true));
+check('아이 상품 묶음도 아이 생년월일을 요구한다',
+  orderable('child-2').needsChild && orderable('child-3').needsChild && orderable('birth-2').needsChild && orderable('birth-3').needsChild);
+check('어른 상품은 아이 생년월일을 요구하지 않는다', !needsChild('saju-report') && !orderable('saju-report').needsChild);
 check('모든 상품에 갈래가 있다', Object.values(CATALOG).every((p) => CATEGORIES.some((c) => c.key === p.category)));
 check('모든 상품에 후킹 질문이 있다', Object.values(CATALOG).every((p) => p.hook.endsWith('?')),
   '「재물운」이라고만 쓰면 안 눌린다');

@@ -252,6 +252,7 @@ check('ref 가 없어도 주문이 만들어진다',
 const namingNoFixed = await api('POST', '/api/orders', {
   productId: 'naming-report',
   birth: BIRTH,
+  child: { date: '2026-03-10' },
   name: { surname: '김' },
   acknowledgedNotice: true,
   previewShown: true,
@@ -261,6 +262,7 @@ check('돌림자 없는 작명 주문 정상 생성', namingNoFixed.status === 2
 const namingWithFixed = await api('POST', '/api/orders', {
   productId: 'naming-report',
   birth: BIRTH,
+  child: { date: '2026-03-10' },
   name: { surname: '김', fixed: { char: '준', at: '앞' }, avoid: ['철', '수'] },
   acknowledgedNotice: true,
   previewShown: true,
@@ -270,6 +272,7 @@ check('돌림자·피할글자 있는 작명 주문 정상 생성', namingWithFi
 const namingLongAvoid = await api('POST', '/api/orders', {
   productId: 'naming-report',
   birth: BIRTH,
+  child: { date: '2026-03-10' },
   name: {
     surname: '김',
     avoid: ['가','나','다','라','마','바','사','아','자','차','카','타','파','하','거','너','더','러','머','버','서'], // 21자
@@ -282,6 +285,7 @@ check('피할 글자 21자 입력 시 400 반환', namingLongAvoid.status === 40
 const namingLongFixed = await api('POST', '/api/orders', {
   productId: 'naming-report',
   birth: BIRTH,
+  child: { date: '2026-03-10' },
   name: { surname: '김', fixed: { char: '준희', at: '앞' } },
   acknowledgedNotice: true,
   previewShown: true,
@@ -3127,6 +3131,24 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     const days = Math.round((expMs - Date.now()) / (24 * 60 * 60 * 1000));
     check('그 사람 만료일이 60일 뒤', c2.body.reward.grantCount === 2 && days >= 59 && days <= 61, `${days}일 뒤`);
   }
+
+  // 아이 상품 생년월일 필수 검증 (1단계)
+  {
+    const childProductIds = ['child-report', 'child-aptitude-report', 'naming-report', 'naming-plus-report'] as const;
+    const parentBirth = { date: '1988-05-14', time: '14:40', gender: '남' as const, name: '이부모' };
+    for (const pId of childProductIds) {
+      const badOrder = await api('POST', '/api/orders', {
+        reading: {
+          productId: pId,
+          birth: parentBirth,
+          name: { surname: '이' },
+        },
+        buyerEmail: 'parent@example.com',
+        buyerPhone: '01012345678',
+      });
+      check(`${pId} 아이 생년월일 없이 주문하면 400 반환`, badOrder.status === 400, `응답: ${badOrder.status}`);
+    }
+  }
 }
 
 server.close();
@@ -3841,6 +3863,173 @@ section('리포트 개편 — 시각 인지, 상세 가림막, 서버 계산 이
   const resultOn = new Function('Audio', 'localStorage', 'document', testScriptOn)(MockAudio, sandboxOn.localStorage, sandboxOn.document);
   check('소리를 켜면 /audio/bgm Audio 객체를 생성한다', resultOn.audioCount === 1);
   check('신령음 OFF(setSound false)를 누르면 음악이 멈춘다', resultOn.pausedAfterOff === true);
+}
+// ── 아이 상품 사주 분리 검증 (1단계) ───────────────────────────────
+section('아이 상품 사주 분리 검증 (1단계)');
+
+const parentBirth = { date: '1988-05-14', time: '14:40', gender: '남' as const, name: '이부모' };
+const childBirth = { date: '2026-03-10', time: '10:00', gender: '남' as const, name: '이도윤' };
+const childDueBirth = { date: '2026-03-10', time: '12:00', gender: '남' as const, isDueDate: true };
+
+const childProductIds = ['child-report', 'child-aptitude-report', 'naming-report', 'naming-plus-report'] as const;
+
+// 1. 네 상품 모두 아이의 명식(2026-03-10)으로 세워져야 한다 (부모 1988-05-14 명식이면 안 됨)
+for (const pId of childProductIds) {
+  const req = {
+    productId: pId,
+    birth: parentBirth,
+    child: childBirth,
+    name: { surname: '이' },
+  };
+  const payload = buildPayload(req as any);
+  const data: any = payload.data;
+  const myeongsik = data.명식 || data.아이사주?.명식;
+  check(`${pId}는 아이 명식(2026-03-10, 병오년)으로 계산된다`, myeongsik?.연주 === '병오', `실제 연주: ${myeongsik?.연주}`);
+  check(`${pId}는 부모 명식(1988-05-14, 무진년)을 쓰지 않는다`, myeongsik?.연주 !== '무진');
+  check(`${pId}의 subject는 부모 이름이 아니다`, payload.subject !== '이부모');
+}
+
+// 2. 예정일 주문인 경우 '예정일' 문구가 실리는지 검증
+for (const pId of childProductIds) {
+  const req = {
+    productId: pId,
+    birth: parentBirth,
+    child: childDueBirth,
+    name: { surname: '이' },
+  };
+  const payload = buildPayload(req as any);
+  const data: any = payload.data;
+  check(`${pId} 예정일 주문에 예정일 안내 문구가 실린다`,
+    data.예정일 === '예정일 2026-03-10 로 세운 명식입니다. 실제 태어난 날이 달라지면 명식도 달라집니다.');
+}
+
+// ── 4단계: 무료 사주 화면의 위치와 기둥 순서 ─────────────────────────
+section('무료 사주 화면 위치 및 기둥 순서 검증 (4단계)');
+
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const serverSrc = readFileSync(join(here, 'src', 'server.ts'), 'utf8');
+  const viewerIdx = serverSrc.indexOf('id="legacyStageWrapper"');
+  const footerIdx = serverSrc.indexOf('class="site-footer-wrapper"');
+
+  check('화면에서 뷰어가 .site-footer-wrapper 보다 앞에 온다', viewerIdx !== -1 && footerIdx !== -1 && viewerIdx < footerIdx);
+
+  // 기둥 순서 검증: 연주 -> 월주 -> 일주 -> 시주
+  /*
+   * 터진 뒤에 적은 것 (2026-10-05): 이 검사가 `index.html` 을 보고 있었다.
+   * 그 파일은 `index.template.html` 로 **만들어지는** 것이고 깃에 들어가지도
+   * 않는다. 빌드를 돌리지 않은 자리에서는 낡은 파일을 보고 엉뚱하게 실패하거나,
+   * 더 나쁘게는 고쳐지지 않았는데 통과한다. 깃에 든 원본을 본다.
+   */
+  const manseHtml = readFileSync(join(here, '..', 'manse-viewer', 'index.template.html'), 'utf8');
+
+  const yearPillarIdx = manseHtml.indexOf("pillarColumn(ms.year, byPos['연주'], '연주', false)");
+  const monthPillarIdx = manseHtml.indexOf("pillarColumn(ms.month, byPos['월주'], '월주', false)");
+  const dayPillarIdx = manseHtml.indexOf("pillarColumn(ms.day, byPos['일주'], '일주 · 나', true)");
+  const hourPillarIdx = manseHtml.indexOf("pillarColumn(ms.hour, byPos['시주'], '시주', false)");
+
+  check('기둥 순서가 연·월·일·시 순이다',
+    yearPillarIdx !== -1 &&
+    monthPillarIdx !== -1 &&
+    dayPillarIdx !== -1 &&
+    hourPillarIdx !== -1 &&
+    yearPillarIdx < monthPillarIdx &&
+    monthPillarIdx < dayPillarIdx &&
+    dayPillarIdx < hourPillarIdx);
+}
+
+// ── 6단계: 손 사진 안내의 위치 및 문구 ────────────────────────────────
+section('손 사진 안내 위치 및 문구 검증 (6단계)');
+
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const appJsCode = readFileSync(join(here, 'public', 'app.js'), 'utf8');
+
+  // 1. "남좌여우" 포함, "반대 손" 빠짐
+  check('app.js 손 안내 문구에 남좌여우 포함',
+    appJsCode.includes('남자는 왼손, 여자는 오른손을 올려주십시오 (남좌여우).'));
+
+  check('app.js 손 안내 문구에서 「반대 손」이 빠져 있다',
+    !appJsCode.includes('반대 손도 괜찮습니다'));
+
+  // 2. 안내 위치가 손 사진 box 바로 위
+  const handIdx = appJsCode.indexOf("'taste-jaegi-hand'");
+  const palmBoxIdx = appJsCode.indexOf("tEl('div', 'taste-jaegi-box')", handIdx);
+  check('app.js 손 사진 안내 문구가 손 사진 box 바로 앞에 위치한다',
+    handIdx !== -1 && palmBoxIdx !== -1 && handIdx < palmBoxIdx && (palmBoxIdx - handIdx) < 150);
+}
+
+// ── 7단계: 첫 화면 문구 어색한 것 다듬기 ──────────────────────────────
+section('첫 화면 문구 다듬기 검증 (7단계)');
+
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const serverSrc = readFileSync(join(here, 'src', 'server.ts'), 'utf8');
+
+  check('첫 화면에 "누루시면" 오타가 없다',
+    !serverSrc.includes('누루시면'));
+
+  check('첫 화면 안내 문구가 올바르다',
+    serverSrc.includes('상품을 누르시면 신령이 그 자리에서 사주를 봐 드립니다'));
+
+  check('첫 화면 벗 증표 바에 신령 말투 및 INVITE_DISCOUNT_KRW 반영',
+    serverSrc.includes('벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString(\'ko-KR\')}원 할인증표 보내고 그대도 보답을 받으시지요'));
+}
+
+// ── 8단계: 뒤로가기 제어 ──────────────────────────────────────────────
+section('뒤로가기 제어 검증 (8단계)');
+
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const appJsCode = readFileSync(join(here, 'public', 'app.js'), 'utf8');
+  const serverSrc = readFileSync(join(here, 'src', 'server.ts'), 'utf8');
+
+  // 1. popstate 핸들러가 등록되어 있는지
+  check('app.js에 popstate 이벤트 리스너가 등록되어 있다',
+    appJsCode.includes("window.addEventListener('popstate'"));
+
+  // 2. 단계 전환 시 history.pushState 호출하는지
+  check('뷰어 열 때 history.pushState({ stage: \'viewer\' }) 호출',
+    serverSrc.includes("history.pushState({ stage: 'viewer' }"));
+
+  check('처소 열 때 history.pushState({ stage: \'chamber\' }) 호출',
+    appJsCode.includes("history.pushState({ stage: 'chamber'"));
+
+  check('사주 선택(맛보기) 열 때 history.pushState({ stage: \'select\' }) 호출',
+    appJsCode.includes("history.pushState({ stage: 'select'"));
+
+  // 3. popstate 시 각 단계의 닫기/복원 로직이 들어있는지
+  check('popstate 시 뷰어 닫기 로직 포함',
+    appJsCode.includes('closeFreeSaju'));
+
+  check('popstate 시 처소 닫기 로직 포함',
+    appJsCode.includes('closeChamber'));
+
+  check('popstate 시 맛보기 패널 제거 로직 포함',
+    appJsCode.includes('openPanel.remove()'));
+}
+
+// ── 9단계: 무의미한 늘봄 워터마크 정리 ──────────────────────────────
+section('무의미한 늘봄 워터마크 정리 검증 (9단계)');
+
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const serverSrc = readFileSync(join(here, 'src', 'server.ts'), 'utf8');
+
+  // 1. 화면 위를 둥둥 떠다니는 무의미한 워터마크 이미지 요소 제거
+  check('대문/입장/메뉴판/처소 화면에 watermark-seal-cover 이미지가 없다',
+    !serverSrc.includes('watermark-seal-cover'));
+
+  check('화면 곳곳에 붓글씨 골드누끼 워터마크 이미지가 없다',
+    !serverSrc.includes('늘봄붓글씨_골드누끼.png'));
+
+  // 2. 메뉴판 위 불필요한 낙관 마크 제거
+  check('메뉴판 상단에 무의미한 user-seal-mark 낙관이 없다',
+    !serverSrc.includes('user-seal-mark'));
+
+  // 3. 필수 요소(푸터 법적 정보, 상품명 등)는 온전히 보존
+  check('푸터 회사 정보(.site-footer-wrapper)는 보존되어 있다',
+    serverSrc.includes('class="site-footer-wrapper"'));
 }
 
 

@@ -278,8 +278,6 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
           <button type="button" id="btnKnockGate" class="btn-primary pulse-gold">🚪 신령계 문 두드리기</button>
         </div>
       </div>
-
-      <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
     </section>
 
     <!-- ================= STAGE 2: 신령계 입장 연출 (문이 열리고 안으로 들어가는 1회성 연출 영상) ================= -->
@@ -289,8 +287,6 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
              그래야 대문 영상과 메뉴판 그림이 통신선을 나눠 쓰지 않는다 -->
         <video id="enterVideo" playsinline muted preload="none" data-src="assets/입장.mp4"></video>
       </div>
-
-      <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
     </section>
 
     <!-- ================= STAGE 3: 10대 신령 메뉴판 ================= -->
@@ -309,11 +305,10 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
 
       <div class="spirits-menu-header">
         <div class="spirits-menu-user" id="userInfoDisplay">
-          <span class="user-seal-mark">늘봄</span>
           <span class="user-name-text">명식 봉인 해제</span>
         </div>
         <h2 class="spirits-menu-title">어떤 물음을 품고 오셨습니까</h2>
-        <p class="spirits-menu-desc">상품을 누르시면 신령이 그 자리에서 사주를 조금 봐 드립니다</p>
+        <p class="spirits-menu-desc">상품을 누르시면 신령이 그 자리에서 사주를 봐 드립니다</p>
         <div class="spirits-free-duo">
           <button type="button" class="spirits-free-btn" id="btnFreeEightLetters">
             <span class="spirits-free-badge">무료</span>
@@ -334,7 +329,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
             <span class="spirits-free-arrow">→</span>
           </a>
         </div>
-        <a href="/invite" class="spirits-invite-bar">벗을 데려오시면 벗도 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원, 그대도 보답을 받습니다 →</a>
+        <a href="/invite" class="spirits-invite-bar">벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고 그대도 보답을 받으시지요 →</a>
       </div>
 
       <!-- 갈래 탭 11개 (가로 스크롤) -->
@@ -352,8 +347,6 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
           <!-- JS가 동적으로 렌더링 -->
         </div>
       </div>
-
-      <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
     </section>
 
     <!-- ================= STAGE 4: 100% 2K 신령 1:1 대면 처소 (9:16 모바일 세로 풀스크린) ================= -->
@@ -382,10 +375,6 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
         <div class="consult-fields" id="consultFields"></div>
         <button type="button" class="consult-cta" id="consultCta">다음으로</button>
       </div>
-
-      <!-- 처소 하단 워터마크 가림막: 신령마다 AI 워터마크 위치가 왼쪽/오른쪽으로 제각각이라 양쪽 다 가림 -->
-      <div class="watermark-mask-bl"></div>
-      <img src="assets/늘봄붓글씨_골드누끼.png" alt="늘봄사주" class="watermark-seal-cover">
     </section>
 
     <!-- ================= MODAL: 사주 신상 정보 입력 (무단침입 방지 Checkpoint) ================= -->
@@ -610,10 +599,6 @@ ${isLaunchSale() ? `
 </script>` : ''}
 ${STUDIO_CONTAINER_HTML}
 
-<div class="site-footer-wrapper">
-  ${renderFooter(business)}
-</div>
-
 <!-- 심사 및 시스템 검증용 보존 블록 (hidden 처리) -->
 <div id="legacyStageWrapper" style="display:none!important;" hidden>
 ${idleVideos(renderStage(business, scenes, { walk: walkVideo, open: gateVideo, walkWebm, openWebm: gateWebm }, faces, clips, clipWebms))}
@@ -626,6 +611,10 @@ ${fragment}
 ${STAGE_SCRIPT}
 </div>
 
+<div class="site-footer-wrapper">
+  ${renderFooter(business)}
+</div>
+
 <script src="/engine.js"></script>
 <script src="/jaegi.js?v=${assetStamp('jaegi.js')}"></script>
 <script src="/app.js?v=${assetStamp('app.js')}"></script>
@@ -633,6 +622,11 @@ ${STAGE_SCRIPT}
 <script>
 (function(){
   function openFreeSaju() {
+    try {
+      if (!history.state || history.state.stage !== 'viewer') {
+        history.pushState({ stage: 'viewer' }, '');
+      }
+    } catch(err) {}
     var leg = document.getElementById('legacyStageWrapper');
     if (leg) {
       leg.removeAttribute('hidden');
@@ -655,6 +649,21 @@ ${STAGE_SCRIPT}
       }, 50);
     }
   }
+
+  function closeFreeSaju() {
+    var leg = document.getElementById('legacyStageWrapper');
+    if (leg) {
+      leg.setAttribute('hidden', '');
+      leg.style.display = 'none';
+    }
+    var target = document.querySelector('.spirits-menu-title') || document.getElementById('userInfoDisplay');
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  window.openFreeSaju = openFreeSaju;
+  window.closeFreeSaju = closeFreeSaju;
 
   document.addEventListener('click', function(e) {
     var btn = e.target.closest('#btnFreeEightLetters');
@@ -973,6 +982,53 @@ function validateReading(body: any): ReadingRequest {
   // 궁합이 든 묶음은 상대의 생년월일이 있어야 만들 수 있다. 결제 전에 말한다
   if (item.needsPartner && !body.partner?.date) {
     throw new HttpError(400, '이 상품에는 상대의 생년월일이 필요합니다.');
+  }
+
+  // 아이 상품은 아이의 생년월일(또는 예정일)이 있어야 만들 수 있다.
+  if (item.needsChild) {
+    if (!body.child?.date) {
+      throw new HttpError(400, '이 상품에는 아이의 생년월일(또는 출산 예정일)이 필요합니다.');
+    }
+    const rawPlace = typeof body.child.place === 'string' ? body.child.place.trim() : '';
+    body.child.place = PLACES.some((p) => p.name === rawPlace) ? rawPlace : '서울';
+
+    const SIJIN_CENTER: Record<string, string> = {
+      자시: '00:30', 축시: '02:30', 인시: '04:30', 묘시: '06:30',
+      진시: '08:30', 사시: '10:30', 오시: '12:30', 미시: '14:30',
+      신시: '16:30', 유시: '18:30', 술시: '20:30', 해시: '22:30',
+      ja: '00:30', chuk: '02:30', in: '04:30', myo: '06:30',
+      jin: '08:30', sa: '10:30', o: '12:30', mi: '14:30',
+      sin: '16:30', yu: '18:30', sul: '20:30', hae: '22:30',
+    };
+
+    let timeKnown = body.child.timeKnown;
+    let rawTime = body.child.time;
+
+    if (rawTime === null || rawTime === undefined || rawTime === '' || rawTime === '모름' || rawTime === 'unknown') {
+      body.child.timeKnown = false;
+      body.child.time = '12:00';
+    } else if (typeof rawTime === 'string') {
+      rawTime = rawTime.trim();
+      const matchedSijin = SIJIN_CENTER[rawTime] || Object.entries(SIJIN_CENTER).find(([k]) => rawTime.includes(k) && !/^\d{1,2}:\d{2}$/.test(rawTime))?.[1];
+      if (timeKnown === false) {
+        body.child.timeKnown = false;
+        body.child.time = matchedSijin || parseInputTime(rawTime) || '12:00';
+      } else if (matchedSijin && timeKnown !== true) {
+        body.child.timeKnown = false;
+        body.child.time = matchedSijin;
+      } else {
+        body.child.time = parseInputTime(rawTime);
+        body.child.timeKnown = timeKnown !== false;
+      }
+    } else {
+      body.child.timeKnown = false;
+      body.child.time = '12:00';
+    }
+    body.child.gender = body.child.gender === '여' ? '여' : '남';
+    body.child.isDueDate = Boolean(body.child.isDueDate);
+    if (typeof body.child.name === 'string') {
+      body.child.name = body.child.name.trim().slice(0, 20);
+    }
   }
 
   /*

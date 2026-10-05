@@ -38,7 +38,7 @@ function 사진받는칸(product: Product): string {
       <p class="pd-jaegi-msg" id="pdFaceMsg" role="status"></p>
     </div>` : ''}
     ${손 ? `
-    <p class="pd-jaegi-hand">손은 <b>남자는 왼손, 여자는 오른손</b>을 올려 주십시오 (남좌여우). 반대 손도 괜찮습니다.</p>
+    <p class="pd-jaegi-hand">남자는 왼손, 여자는 오른손을 올려주십시오 (남좌여우).</p>
     <div class="pd-jaegi-box">
       <label class="pd-jaegi-btn" id="pdPalmLabel">
         <input type="file" accept="image/*" capture="environment" id="pdPalmInput" class="pd-jaegi-file">
@@ -1801,7 +1801,7 @@ ${cards}
     <span class="spirits-free-arrow">→</span>
   </a>
 </div>
-<a href="/invite" class="spirits-invite-bar">벗을 데려오시면 벗도 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원, 그대도 보답을 받습니다 →</a>
+<a href="/invite" class="spirits-invite-bar">벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고 그대도 보답을 받으시지요 →</a>
 <div class="pr-rule"></div>
 </div>
 ${groups}
