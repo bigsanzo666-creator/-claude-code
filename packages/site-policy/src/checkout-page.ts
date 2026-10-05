@@ -466,10 +466,9 @@ export function renderCheckoutPage(
         <div class="co-f">
           <label for="birthTime">태어난 시간 (시:분 직접 입력)</label>
           <div class="co-time-row">
-            <input type="time" name="birthTime" id="birthTime">
-            <label class="co-time-unknown" for="birthTimeUnknown">
-              <input type="checkbox" id="birthTimeUnknown"> 시각 모름
-            </label>
+            <input type="text" name="birthTime" id="birthTime" placeholder="예: 14:40 또는 1440" maxlength="5" autocomplete="off" inputmode="numeric">
+            <button type="button" class="co-btn-unknown" id="birthBtnUnknown">시간을 모릅니다</button>
+            <input type="checkbox" id="birthTimeUnknown" style="display:none;" aria-hidden="true">
           </div>
           <div id="birthTimeSlotWrap" style="display:none;margin-top:8px;">
             <label for="birthTimeSlot" style="font-size:13px;color:#c8c2d4;margin-bottom:4px;display:block;">대략적인 시간대 선택 (해당 시간의 한가운데로 봅니다)</label>
@@ -633,13 +632,30 @@ export function renderCheckoutPage(
     return hStr;
   }
 
+  function parseTimeInput(val){
+    if(!val) return null;
+    var trimmed = val.trim();
+    var m = /^(\d{1,2}):?(\d{2})$/.exec(trimmed);
+    if(!m) return null;
+    var h = parseInt(m[1], 10);
+    var min = parseInt(m[2], 10);
+    if(h >= 0 && h <= 23 && min >= 0 && min <= 59){
+      var hh = (h < 10 ? '0' : '') + h;
+      var mm = (min < 10 ? '0' : '') + min;
+      return hh + ':' + mm;
+    }
+    return null;
+  }
+
   function updateSummaryDisplay(){
     var name = val('buyerName');
     var date = val('birthDate');
     var gender = val('gender') || '남';
     var unkEl = document.getElementById('birthTimeUnknown');
-    var isUnk = unkEl && unkEl.checked;
-    var time = isUnk ? (val('birthTimeSlot') || '12:00') : val('birthTime');
+    var isUnk = Boolean(window.__birthTimeUnknown || (unkEl && unkEl.checked));
+    var rawT = val('birthTime');
+    var parsedT = parseTimeInput(rawT);
+    var time = isUnk ? (val('birthTimeSlot') || '12:00') : (parsedT || rawT || '12:00');
     var place = val('birthPlace') || '서울';
 
     var dName = document.getElementById('dispName');
@@ -1346,17 +1362,12 @@ export function renderCheckoutPage(
       set('buyerName', b.name);
       set('birthDate', b.date || b.birthDate);
       if(b.timeKnown === false || !b.time || b.time === '12:00'){
-        var unkEl = document.getElementById('birthTimeUnknown');
-        if(unkEl){
-          unkEl.checked = true;
-          var sw = document.getElementById('birthTimeSlotWrap');
-          if(sw) sw.style.display = 'block';
-          var ti = document.getElementById('birthTime');
-          if(ti) ti.disabled = true;
-          set('birthTimeSlot', b.time || '12:00');
-        }
+        setBirthTimeUnknown(true);
+        set('birthTimeSlot', b.time || '12:00');
       } else {
-        set('birthTime', b.time || b.birthTime);
+        setBirthTimeUnknown(false);
+        var parsed = parseTimeInput(b.time || b.birthTime);
+        set('birthTime', parsed || b.time || b.birthTime);
       }
       set('birthPlace', b.place || b.birthPlace);
       set('gender', b.gender);
@@ -1378,14 +1389,12 @@ export function renderCheckoutPage(
           }
         }
         if(saved.child.timeKnown === false){
-          window.__childTimeUnknown = true;
-          var cSlotWrap = document.getElementById('childTimeSlotWrap');
-          if(cSlotWrap) cSlotWrap.style.display = 'block';
+          setChildTimeUnknown(true);
           set('childTimeSlot', saved.child.time || '12:00');
-          var cBtn = document.getElementById('childBtnUnknown');
-          if(cBtn){ cBtn.style.borderColor = 'var(--nb-gold)'; cBtn.style.color = 'var(--nb-gold)'; }
         } else {
-          set('childTime', saved.child.time);
+          setChildTimeUnknown(false);
+          var cParsed = parseTimeInput(saved.child.time);
+          set('childTime', cParsed || saved.child.time);
         }
       }
 
@@ -1398,15 +1407,48 @@ export function renderCheckoutPage(
 
   var timeUnknownEl = document.getElementById('birthTimeUnknown');
   var timeSlotWrap = document.getElementById('birthTimeSlotWrap');
+  var birthBtnUnk = document.getElementById('birthBtnUnknown');
+  var timeUnknownEl = document.getElementById('birthTimeUnknown');
+  var timeSlotWrap = document.getElementById('birthTimeSlotWrap');
   var timeInp = document.getElementById('birthTime');
   var timeSlot = document.getElementById('birthTimeSlot');
+
+  function setBirthTimeUnknown(unk){
+    window.__birthTimeUnknown = unk;
+    if(timeUnknownEl) timeUnknownEl.checked = unk;
+    if(birthBtnUnk){
+      birthBtnUnk.style.borderColor = unk ? '#d4af37' : '';
+      birthBtnUnk.style.color = unk ? '#d4af37' : '';
+    }
+    if(timeSlotWrap) timeSlotWrap.style.display = unk ? 'block' : 'none';
+    if(timeInp){
+      timeInp.disabled = unk;
+      if(unk) timeInp.value = '';
+    }
+    updateSummaryDisplay();
+    checkCanPay();
+  }
+
+  if(birthBtnUnk){
+    birthBtnUnk.addEventListener('click', function(){
+      setBirthTimeUnknown(!window.__birthTimeUnknown);
+    });
+  }
   if(timeUnknownEl){
     timeUnknownEl.addEventListener('change', function(){
-      var unk = timeUnknownEl.checked;
-      if(timeSlotWrap) timeSlotWrap.style.display = unk ? 'block' : 'none';
-      if(timeInp) {
-        timeInp.disabled = unk;
-        if(unk) timeInp.value = '';
+      setBirthTimeUnknown(timeUnknownEl.checked);
+    });
+  }
+  if(timeInp){
+    timeInp.addEventListener('blur', function(){
+      var p = parseTimeInput(timeInp.value);
+      if(p) timeInp.value = p;
+      updateSummaryDisplay();
+    });
+    timeInp.addEventListener('input', function(){
+      var p = parseTimeInput(timeInp.value);
+      if(p && timeInp.value.length >= 4){
+        timeInp.value = p;
       }
       updateSummaryDisplay();
     });
@@ -1427,26 +1469,36 @@ export function renderCheckoutPage(
   var childBtnUnk = document.getElementById('childBtnUnknown');
   var childTimeInp = document.getElementById('childTime');
   var childTimeSlotWrap = document.getElementById('childTimeSlotWrap');
+
+  function setChildTimeUnknown(unk){
+    window.__childTimeUnknown = unk;
+    if(childBtnUnk){
+      childBtnUnk.style.borderColor = unk ? '#d4af37' : '';
+      childBtnUnk.style.color = unk ? '#d4af37' : '';
+    }
+    if(childTimeSlotWrap) childTimeSlotWrap.style.display = unk ? 'block' : 'none';
+    if(childTimeInp){
+      childTimeInp.disabled = unk;
+      if(unk) childTimeInp.value = '';
+    }
+    checkCanPay();
+  }
+
   if(childBtnUnk){
     childBtnUnk.addEventListener('click', function(){
-      window.__childTimeUnknown = !window.__childTimeUnknown;
-      if(window.__childTimeUnknown){
-        childBtnUnk.style.borderColor = 'var(--nb-gold)';
-        childBtnUnk.style.color = 'var(--nb-gold)';
-        if(childTimeSlotWrap) childTimeSlotWrap.style.display = 'block';
-        if(childTimeInp){
-          childTimeInp.value = '';
-          childTimeInp.disabled = true;
-        }
-      } else {
-        childBtnUnk.style.borderColor = '';
-        childBtnUnk.style.color = '';
-        if(childTimeSlotWrap) childTimeSlotWrap.style.display = 'none';
-        if(childTimeInp){
-          childTimeInp.disabled = false;
-        }
+      setChildTimeUnknown(!window.__childTimeUnknown);
+    });
+  }
+  if(childTimeInp){
+    childTimeInp.addEventListener('blur', function(){
+      var p = parseTimeInput(childTimeInp.value);
+      if(p) childTimeInp.value = p;
+    });
+    childTimeInp.addEventListener('input', function(){
+      var p = parseTimeInput(childTimeInp.value);
+      if(p && childTimeInp.value.length >= 4){
+        childTimeInp.value = p;
       }
-      checkCanPay();
     });
   }
 
@@ -1476,10 +1528,13 @@ export function renderCheckoutPage(
     doneBtn.addEventListener('click', function(){
       var name = val('buyerName'), date = val('birthDate');
       var gender = val('gender'), place = val('birthPlace');
-      var isUnk = timeUnknownEl ? timeUnknownEl.checked : false;
-      var time = isUnk ? (val('birthTimeSlot') || '12:00') : val('birthTime');
+      var isUnk = Boolean(window.__birthTimeUnknown || (timeUnknownEl && timeUnknownEl.checked));
+      var rawTime = val('birthTime');
+      var parsedTime = parseTimeInput(rawTime);
+      var time = isUnk ? (val('birthTimeSlot') || '12:00') : (parsedTime || rawTime || '12:00');
+      var tKnown = !isUnk && Boolean(parsedTime || rawTime);
       saveReading({
-        birth: { name: name, date: date, gender: gender, time: time, timeKnown: !isUnk && Boolean(val('birthTime')), place: place }
+        birth: { name: name, date: date, gender: gender, time: time, timeKnown: tKnown, place: place }
       });
       updateSummaryDisplay();
       editForm.style.display = 'none';
@@ -1492,15 +1547,18 @@ export function renderCheckoutPage(
     var el = document.getElementById(id);
     if(el){
       el.addEventListener('change', function(){
-        var isUnk = timeUnknownEl ? timeUnknownEl.checked : false;
-        var time = isUnk ? (val('birthTimeSlot') || '12:00') : val('birthTime');
+        var isUnk = Boolean(window.__birthTimeUnknown || (timeUnknownEl && timeUnknownEl.checked));
+        var rawTime = val('birthTime');
+        var parsedTime = parseTimeInput(rawTime);
+        var time = isUnk ? (val('birthTimeSlot') || '12:00') : (parsedTime || rawTime || '12:00');
+        var tKnown = !isUnk && Boolean(parsedTime || rawTime);
         saveReading({
           birth: {
             name: val('buyerName'),
             date: val('birthDate'),
             gender: val('gender'),
             time: time,
-            timeKnown: !isUnk && Boolean(val('birthTime')),
+            timeKnown: tKnown,
             place: val('birthPlace')
           }
         });
@@ -1928,14 +1986,19 @@ export function renderCheckoutPage(
     if(diffDays > 180) return say('기간은 최대 180일(여섯 달) 안으로 잡아 주세요.');
     ` : ''}
 
-    var isUnk = timeUnknownEl ? timeUnknownEl.checked : false;
-    var finalTime = '';
-    var finalTimeKnown = true;
+    var isUnk = Boolean(window.__birthTimeUnknown || (timeUnknownEl && timeUnknownEl.checked));
+    var finalTime = '12:00';
+    var finalTimeKnown = false;
+    var rawBirthTime = val('birthTime');
+    var parsedBirthTime = parseTimeInput(rawBirthTime);
     if(isUnk){
       finalTime = val('birthTimeSlot') || '12:00';
       finalTimeKnown = false;
-    } else if(val('birthTime')){
-      finalTime = val('birthTime');
+    } else if(parsedBirthTime){
+      finalTime = parsedBirthTime;
+      finalTimeKnown = true;
+    } else if(rawBirthTime){
+      finalTime = rawBirthTime;
       finalTimeKnown = true;
     } else if(val('birthTimeSlot')){
       finalTime = val('birthTimeSlot');
@@ -1954,23 +2017,15 @@ export function renderCheckoutPage(
     if(!cDate) return say('아이의 생년월일(또는 예정일)을 적어 주십시오.');
     var isChildUnk = Boolean(window.__childTimeUnknown);
     var cTimeInp = val('childTime');
+    var cParsed = parseTimeInput(cTimeInp);
     var cFinalTime = '12:00';
     var cTimeKnown = false;
-    if(!isChildUnk && cTimeInp){
-      var mTime = /^(\\d{1,2}):?(\\d{2})$/.exec(cTimeInp.trim());
-      if(mTime){
-        var ch = parseInt(mTime[1], 10), cmin = parseInt(mTime[2], 10);
-        if(ch >= 0 && ch <= 23 && cmin >= 0 && cmin <= 59){
-          cFinalTime = (ch < 10 ? '0' : '') + ch + ':' + (cmin < 10 ? '0' : '') + cmin;
-          cTimeKnown = true;
-        } else {
-          cFinalTime = cTimeInp;
-          cTimeKnown = true;
-        }
-      } else {
-        cFinalTime = cTimeInp;
-        cTimeKnown = true;
-      }
+    if(!isChildUnk && cParsed){
+      cFinalTime = cParsed;
+      cTimeKnown = true;
+    } else if(!isChildUnk && cTimeInp){
+      cFinalTime = cTimeInp;
+      cTimeKnown = true;
     } else if(val('childTimeSlot')){
       cFinalTime = val('childTimeSlot');
       cTimeKnown = false;

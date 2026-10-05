@@ -1721,6 +1721,34 @@ section('11. 문 — 신령계 들어가는 곳');
     `적발된 누락 약속: ${failedPromiseWords.join(', ')}`);
 }
 
+{
+  section('결제 화면 태어난 시간 직접 입력 및 모름 단추 검사 (5단계)');
+  const html = renderCheckoutPage(full, '', CATALOG['saju-report'], { storeId: 's', channelKey: 'c' });
+
+  // 1. 결제 화면에서 시:분 텍스트 입력 가능
+  check('결제 화면에서 birthTime이 텍스트(type="text") 입력칸이다',
+    html.includes('<input type="text" name="birthTime" id="birthTime"'));
+
+  check('결제 화면에 parseTimeInput 함수가 포함되어 있다',
+    html.includes('function parseTimeInput(val){'));
+
+  // 2. 「시간을 모릅니다」 큰 단추 제공
+  check('결제 화면에 「시간을 모릅니다」 큰 단추(birthBtnUnknown)가 있다',
+    html.includes('id="birthBtnUnknown"') && html.includes('시간을 모릅니다'));
+
+  // 3. 「모름」 단추 누르면 시간 칸 닫히고 시진 선택 노출 (setBirthTimeUnknown)
+  check('모름 단추 클릭 시 시진 선택 노출 및 시간 칸 비활성화 로직 존재',
+    html.includes('function setBirthTimeUnknown(unk){') &&
+    html.includes("timeSlotWrap.style.display = unk ? 'block' : 'none'") &&
+    html.includes("timeInp.disabled = unk"));
+
+  // 4. 1440 → 14:40 변환 및 timeKnown 정확한 저장 로직
+  check('parseTimeInput 정규식 및 시간 파싱 로직 포함',
+    html.includes('parseTimeInput(val)') && html.includes('parseInt(m[1], 10)'));
+
+  check('모름 선택 시 timeKnown: false, 시간 입력 시 timeKnown: true 로직 존재',
+    html.includes('finalTimeKnown = false') && html.includes('finalTimeKnown = true'));
+}
 
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
