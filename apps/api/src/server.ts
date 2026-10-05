@@ -2328,8 +2328,10 @@ export function createApi(deps: ApiDeps) {
       const 처음연다 = stored.status !== 'viewed';
       const viewed = 처음연다 ? markViewed(stored) : stored;
       await save(stored, viewed);
+      const buyerEmail = ((stored as any).email || (stored as any).reading?.birth?.email || '').trim().toLowerCase();
+      const inviteCode = buyerEmail ? generateInviteCode(buyerEmail) : null;
       const upsell = getUpsellDataForOrder(viewed, viewed.viewedAt);
-      send(res, 200, { text, order: strip(viewed), ready: true, upsell });
+      send(res, 200, { text, order: strip(viewed), ready: true, upsell, inviteCode });
 
       /*
        * 리포트 **전문**을 메일로도 보낸다.

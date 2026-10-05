@@ -72,6 +72,10 @@ export const REFERRAL_BADGE_CSS = `
   cursor: pointer;
   font-family: inherit;
   transition: opacity .15s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .nb-invite-btn:hover {
   opacity: .9;
@@ -97,8 +101,22 @@ export const REFERRAL_BADGE_CSS = `
 }
 `;
 
-export function renderInviteBadge(code: string): string {
+export function renderInviteBadge(code?: string | null): string {
   const safeCode = (code || '').trim().toLowerCase();
+  if (!safeCode) {
+    return `
+<div class="nb-invite-box">
+  <div class="nb-invite-head">벗에게 알려주게</div>
+  <div class="nb-invite-reward-box">
+    <div class="nb-invite-reward-main">벗은 <b>${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원</b> 할인 · 그대는 <b>${INVITE_REWARD_NAME}</b> 무료</div>
+  </div>
+  <p class="nb-invite-desc">증표를 받으시려면 받으실 메일 주소를 적어 주십시오.<br>벗이 첫 점사(${(INVITE_MIN_ORDER_KRW / 10000)}만원 이상)를 받으면, 그대에게 <b>${INVITE_REWARD_NAME}</b> 보답을 드린다네.</p>
+  <div class="nb-invite-actions">
+    <a href="/invite" class="nb-invite-btn" id="nbGoInviteBtn">증표 발급받기</a>
+  </div>
+</div>
+`;
+  }
   return `
 <div class="nb-invite-box">
   <div class="nb-invite-head">벗에게 알려주게</div>

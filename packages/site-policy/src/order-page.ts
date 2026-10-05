@@ -170,9 +170,12 @@ window.KAKAO_JS_KEY = ${JSON.stringify(process.env.KAKAO_JS_KEY ?? '')};
 
   <article class="od-report-box rp-article">${renderReportMarkdown(reportText)}</article>
   ${upsellHtml}
-  ${inviteCode ? renderInviteBadge(inviteCode) : ''}
+  ${renderInviteBadge(inviteCode)}
 </main>
 ${footer}
+<script>
+${REFERRAL_BADGE_SCRIPT}
+</script>
 <script>
 (function(){
   var btn = document.getElementById('odCopyBtn');
