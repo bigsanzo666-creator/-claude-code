@@ -1476,12 +1476,20 @@ document.addEventListener('DOMContentLoaded', () => {
     function fillMasked(target, section) {
       target.textContent = '';
       target.appendChild(tEl('h3', 'pd-h', section.title));
+      // 큰 글씨는 쉬운 말, 작은 글씨로 명리 용어. 용어를 던지고 끝내지 않는다
+      if (section.lead) {
+        const lead = tEl('p', 'taste-masked-lead', section.lead);
+        if (section.term) lead.appendChild(tEl('span', 'taste-term', section.term));
+        target.appendChild(lead);
+      }
       const p = tEl('p', 'taste-masked-line');
       section.parts.forEach((part) => {
         p.appendChild(tEl('span', part.hidden ? 'taste-mask-word' : '', part.hidden ? '▓'.repeat(Math.min([...part.text].length, 8)) : part.text));
         if (part.hidden) p.appendChild(tEl('span', 'taste-unlock', '🔒 리포트에서 풀어 드립니다'));
       });
       target.appendChild(p);
+      // 모든 결론에 근거를 단다. 어느 글자에서 나온 말인지 밝힌다
+      if (section.basis) target.appendChild(tEl('p', 'taste-masked-basis', '근거 · ' + section.basis));
     }
     reveal.addEventListener('click', async () => {
       const check = lockState();
@@ -1541,15 +1549,21 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!revealed) { reveal.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
           openTasteCheckout(productId);
         });
-        buy.appendChild(tEl('p', 'taste-price', product.priceKrw.toLocaleString('ko-KR') + '원'));
+        /*
+         * 터진 뒤에 적은 것 (2026-10-05): 펼친 칸에 값을 적으면 손님이 값부터 재고
+         * 나간다. **값은 결제 화면에서만 보인다.** 「11월 1일부터 얼마」 같은 띠도
+         * 값이므로 같이 걷어 낸다.
+         */
+        buy.querySelectorAll('.pd-launch-bar').forEach((el) => el.remove());
         buy.appendChild(button);
         detail.appendChild(buy);
       } else {
         // 오늘·한 달 상품은 별도 상세 양식을 쓴다. 이 경우에도 홈 안에서 값을 보고 결제창을 연다.
         const special = page.querySelector('.dp-price-card, .mp-price-card');
         const specialBuy = special || tEl('section', 'taste-special-buy');
-        specialBuy.querySelectorAll('a[href^="/checkout"]').forEach((el) => el.remove());
-        specialBuy.appendChild(tEl('p', 'taste-price', product.priceKrw.toLocaleString('ko-KR') + '원'));
+        specialBuy.querySelectorAll('a[href^="/checkout"], a[href^="/products"]').forEach((el) => el.remove());
+        // 값이 적힌 조각은 전부 걷어 낸다. 값은 결제 화면에서만 보인다
+        specialBuy.querySelectorAll('.pd-launch-bar, .dp-launch-bar, .mp-launch-bar, .dp-price-tag, .mp-price-tag, .dp-price-amount, .mp-price-amount').forEach((el) => el.remove());
         const button = tEl('button', 'taste-buy', '자세한 내용 받기');
         button.type = 'button';
         button.addEventListener('click', () => {

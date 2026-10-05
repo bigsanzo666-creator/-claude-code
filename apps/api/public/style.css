@@ -1186,9 +1186,11 @@ body {
 .taste-hanja-choice { padding: 7px 9px; border: 1px solid #967e44; border-radius: 7px; background: #28212a; color: #f3e8c9; font-size: 15px; cursor: pointer; }
 .taste-reveal-row { text-align: center; }
 .taste-reveal-row .taste-go, .taste-buy { display: block; box-sizing: border-box; width: 100%; min-height: 52px; padding: 12px; border: 0; border-radius: 8px; background: #d2ad50; color: #241d15; font-size: 17px; font-weight: 700; cursor: pointer; }
-.taste-price { margin: 14px 0 9px; color: #f4d571; font-size: 23px; font-weight: 800; }
 .taste-reveal-row .taste-go:disabled { background: #605a4c; color: #c9c4b9; cursor: not-allowed; }
+.taste-masked-lead { margin: 10px 0 8px; color: #f6e7bd; font-size: 17px; font-weight: 700; line-height: 1.6; word-break: keep-all; }
+.taste-masked-lead .taste-term { display: block; margin-top: 4px; color: #bda978; font-size: 13px; font-weight: 400; }
 .taste-masked-line { color: #f3ecde; font-size: 16px; line-height: 1.9; word-break: keep-all; }
+.taste-masked-basis { margin: 10px 0 0; color: #b6a788; font-size: 13px; line-height: 1.65; word-break: keep-all; }
 .taste-mask-word { padding: 1px 2px; color: #e7c86c; letter-spacing: 1px; }
 .taste-unlock { display: inline-block; margin: 0 6px; color: #d9bd74; font-size: 12px; white-space: nowrap; }
 .taste-detail .pd-gloss-body { display: block; }

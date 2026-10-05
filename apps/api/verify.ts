@@ -120,6 +120,39 @@ check('가림 표시가 있는 글에서도 문장은 읽힌다', (() => {
   const parts = maskPreviewText('손님은 [[가림:2027년 남쪽]]에 움직이시면 좋습니다.');
   return parts.some((p) => p.hidden) && parts.some((p) => !p.hidden && p.text.includes('손님은'));
 })());
+/*
+ * 터진 뒤에 적은 것 (2026-10-05): 가린 낱말이 「손님의」였고, 문장은
+ * 「…적습니다입니다」로 끝났다. 가릴 것은 결론을 가르는 말이고,
+ * 사람이 읽을 수 없는 문장은 안 내보낸다.
+ */
+check('조사·군더더기를 가리지 않는다', (() => {
+  const 군더더기 = ['손님의', '손님은', '자료', '결과', '그리고', '하지만'];
+  const parts = maskPreviewText('손님의 자료에서 나온 결과를 살펴보니 든든한 날개가 됩니다.');
+  return parts.filter((p) => p.hidden).every((p) => !군더더기.includes(p.text.trim()));
+})(), '가려 봐야 감출 것이 없는 말을 가리면 가린 척만 하는 것이다');
+check('끝 서술어가 받는 알맹이를 가린다', (() => {
+  const parts = maskPreviewText('모든 얽힌 실타래가 자연스럽게 풀립니다.');
+  return parts.some((p) => p.hidden && p.text.trim() === '실타래');
+})());
+check('표시한 자리를 잘라도 낱말이 반 토막 나지 않는다', (() => {
+  const 표시 = '2027년 남쪽';
+  const parts = maskPreviewText(`손님은 [[가림:${표시}]]에 움직이시면 좋습니다.`);
+  const hidden = parts.filter((p) => p.hidden).map((p) => p.text).join('');
+  /* 표시한 자리 전부이거나, 낱말 경계에서 끊긴 앞도막이어야 한다 */
+  return hidden === 표시 || 표시.startsWith(hidden + ' ');
+})(), '「2027년 남」처럼 낱말이 반 토막 나면 손님이 읽다가 멈춘다');
+check('세 대목의 문장이 사람이 읽을 수 있게 끝난다',
+  sections.length === 3 && sections.every((s: any) => {
+    const 글 = s.parts.map((p: any) => p.text).join('');
+    return !/(?:입니다|습니다|합니다)입니다/.test(글) && !/다입니다/.test(글) && /[.!?。]$/.test(글.trim());
+  }), '「…적습니다입니다」 같은 말이 손님 눈에 나갔다');
+check('가린 낱말이 큰 글씨에 그대로 비치지 않는다',
+  sections.length === 3 && sections.every((s: any) => {
+    const 위 = (s.title || '') + ' ' + (s.lead || '');
+    return s.parts.filter((p: any) => p.hidden).every((p: any) => !위.includes(p.text.trim()));
+  }), '가려도 위에서 다 보이면 가린 것이 아니다');
+check('세 대목이 근거를 데리고 온다',
+  sections.length === 3 && sections.every((s: any) => typeof s.basis === 'string' && s.basis.length > 0));
 const embeddedCheckout = renderCheckoutPage(business, '', CATALOG['compat-report'],
   { storeId: 'test', channelKey: 'test' }, false, true);
 check('결제 덮개에서 사주·상대 입력칸이 보이지 않는다',
@@ -146,8 +179,19 @@ check('합친 화면의 주요 덩어리가 정해진 차례로 놓인다', inOr
 }));
 check('오늘·한 달 운세도 같은 결제 덮개를 연다',
   mergedFlow.includes(".dp-price-card, .mp-price-card") && mergedFlow.includes('openTasteCheckout(productId)'));
-check('합친 화면의 값은 상품표에서 가져온다',
-  mergedFlow.includes("product.priceKrw.toLocaleString('ko-KR')") && !/taste-price[^\n]*[0-9],[0-9]{3}/.test(mergedFlow));
+/*
+ * 터진 뒤에 적은 것 (2026-10-05): 펼친 칸에 값을 적어 두었다. 사장님은
+ * 「값은 결제 화면에서만」이라 하셨다. 값 조각을 걷어 내는지 검증이 본다.
+ */
+check('펼친 칸에는 값이 적히지 않는다',
+  !mergedFlow.includes('taste-price') && !mergedFlow.includes("priceKrw.toLocaleString"),
+  '값을 먼저 보면 손님이 값부터 재고 나간다');
+check('값이 적힌 띠와 가격표를 걷어 낸다',
+  mergedFlow.includes('.pd-launch-bar') && mergedFlow.includes('dp-price-tag'),
+  '상세페이지에서 옮겨 온 조각에 값이 남는다');
+check('세 대목에 근거를 단다',
+  mergedFlow.includes("'근거 · '") && mergedFlow.includes('section.basis'),
+  '근거 없는 결론은 두지 않는다');
 check('이 사람의 실제 항목이 담김',
   preview.body.preview.contents.length > 0,
   `${preview.body.preview.contents.length}개 — ${preview.body.preview.contents[0]}`);
