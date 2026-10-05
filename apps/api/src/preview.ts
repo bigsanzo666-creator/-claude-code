@@ -314,6 +314,110 @@ const YONGSIN_PROFILES: Record<string, { title: string; term: string; termDesc: 
  * 손님의 실제 사주 룰 엔진 결과에서 뽑은 진짜 맛보기 점사.
  * 모델을 일절 부르지 않으며, 룰 결과의 근거 글자를 명확히 밝힌다.
  */
+/*
+ * 터진 뒤에 적은 것 (2026-10-05): 돈그릇을 눌러도, 사람운을 눌러도, 사주 종합을
+ * 눌러도 **똑같은 세 문장**이 나왔다. 제목만 바뀌었다. 손님이 돈 얘기가 궁금해
+ * 눌렀는데 돈 얘기가 한 마디도 없었다.
+ *
+ * 자료에는 이미 그 주제의 글자와 올해 흐름이 들어 있다. 쓰지를 않고 있었다.
+ */
+
+/** 받침이 있으면 을/이, 없으면 를/가 */
+function 조사(말: string, 받침있을때: string, 받침없을때: string): string {
+  const 끝 = [...String(말)].pop() ?? '';
+  const 코드 = 끝.charCodeAt(0);
+  if (코드 < 0xac00 || 코드 > 0xd7a3) return 받침있을때;
+  return (코드 - 0xac00) % 28 === 0 ? 받침없을때 : 받침있을때;
+}
+
+/** 주제마다 큰 글씨로 올릴 쉬운 말 */
+const 주제이름: Record<string, string> = {
+  재성: '돈이 들고 나는 자리', 관성: '자리와 이름이 서는 곳',
+  식상: '밖으로 내놓는 힘이 나오는 자리', 인성: '배움과 문서가 드는 자리',
+  비겁: '사람이 드나드는 자리', '도화·홍염': '사람을 끄는 기운이 나오는 자리',
+  역마: '움직임이 드는 자리', 천을귀인: '도움이 닿는 자리',
+};
+
+/** 많고 적음과 용신 관계로 한 문장을 짓는다. 없는 것을 「막혔다」고 쓰지 않는다 */
+function 주제문장(t: Record<string, any>): string {
+  const 이름 = String(t?.label ?? '이 자리');
+  const 많고적음 = String(t?.abundance ?? '');
+  const 숨은것 = Number(t?.hiddenCount ?? 0);
+  const 써야하나 = t?.favorable;
+  if (많고적음 === '없음' && 숨은것 > 0) {
+    return `${이름}의 글자가 겉으로는 드러나 있지 않고 글자 속에 ${숨은것}개 숨어 있어, 남들 눈에 잘 띄지 않는 방식으로 돌아갑니다.`;
+  }
+  if (많고적음 === '없음') {
+    return `${이름}의 글자를 타고나지 않았습니다. 없다는 것이 나쁘다는 뜻은 아니고, 이 자리는 스스로 만들어 가는 쪽이라는 뜻입니다.`;
+  }
+  if (많고적음 === '많음') {
+    return 써야하나 === false
+      ? `${이름}의 글자가 ${t.count}개로 많습니다. 많다고 다 좋은 것은 아니어서, 넓게 벌리기보다 고르고 덜어내는 쪽이 낫습니다.`
+      : `${이름}의 글자가 ${t.count}개로 많고, 이 명식이 써야 하는 기운이기도 합니다. 크게 벌릴수록 잘 돌아갑니다.`;
+  }
+  if (많고적음 === '적음') {
+    return `${이름}의 글자가 ${t.count}개로 적습니다. 여러 갈래로 벌리기보다 한 자리를 깊게 파는 쪽이 맞습니다.`;
+  }
+  return 써야하나 === true
+    ? `${이름}의 글자가 치우침 없이 놓여 있고, 이 명식이 써야 하는 기운입니다. 무리 없이 꾸준히 돌아갑니다.`
+    : `${이름}의 글자가 치우침 없이 놓여 있어, 기복 없이 꾸준히 돌아갑니다.`;
+}
+
+/** 어느 기둥 어느 글자에서 나왔는지 밝힌다 */
+function 주제근거(t: Record<string, any>): string {
+  const ev = Array.isArray(t?.evidence) ? t.evidence : [];
+  if (ev.length === 0) {
+    const 말 = String(t?.term ?? '이 자리');
+    return `명식 여덟 글자에서 ${말}${조사(말, '을', '를')} 세어 본 결과에서 나옴`;
+  }
+  const 적을것 = ev.slice(0, 3).map((e: any) => `${e.where}의 ${e.what}(${e.depth})`).join(', ');
+  return `${적을것}${ev.length > 3 ? ` 외 ${ev.length - 3}곳` : ''}에서 나옴`;
+}
+
+/** 손님이 누른 그 주제로 첫 대목을 짓는다. 주제가 없는 상품이면 null */
+function 주제점사(d: Record<string, any>): FortunePoint | null {
+  const 목록 = Array.isArray(d?.주제) ? d.주제
+    : Array.isArray(d?.여덟_주제) ? d.여덟_주제 : null;
+  if (!목록 || 목록.length === 0) return null;
+  /* 여러 주제가 오면 **할 말이 가장 많은 것**을 고른다 */
+  const t = [...목록].sort((a: any, b: any) => {
+    const 점 = (x: any) => (x?.abundance === '많음' ? 3 : x?.abundance === '없음' ? 2 : x?.abundance === '적음' ? 1 : 0)
+      + (x?.favorable === true ? 2 : x?.favorable === false ? 1 : 0);
+    return 점(b) - 점(a);
+  })[0];
+  if (!t) return null;
+  const 용어 = String(t.term ?? '');
+  return {
+    title: 주제이름[용어] ?? `${t.label ?? '이 자리'}가 서는 곳`,
+    term: `${용어}${t.termHanja ? `(${t.termHanja})` : ''}`,
+    termDesc: String(t.gloss ?? ''),
+    text: 주제문장(t),
+    basis: 주제근거(t),
+  };
+}
+
+/** 올해가 어떤 해인지. 세운이 있는 상품만 */
+function 흐름점사(d: Record<string, any>): FortunePoint | null {
+  const 세운 = Array.isArray(d?.세운) ? d.세운 : null;
+  if (!세운 || 세운.length === 0) return null;
+  const 올해 = 세운[0];
+  if (!올해?.pillar) return null;
+  const 간지 = `${올해.pillar.stem}${올해.pillar.branch}`;
+  const 유불리 = String(올해.favor ?? '중립');
+  const 말 = 유불리 === '유리'
+    ? '올해는 이 명식이 써야 하는 기운이 들어오는 해라, 벌여 놓은 것이 제 속도로 나아갑니다.'
+    : 유불리 === '불리'
+      ? '올해는 덜어내야 하는 기운이 드는 해라, 새로 벌이기보다 있는 것을 다지는 편이 낫습니다.'
+      : '올해는 어느 쪽으로도 크게 기울지 않는 해라, 하던 것을 그대로 이어 가기 좋습니다.';
+  return {
+    title: `올해(${올해.year}년)는 이런 해입니다`,
+    term: `${간지}년 · 천간 ${올해.stemGod} · 지지 ${올해.branchGod}`,
+    termDesc: '올해의 두 글자가 내 일간과 맺는 관계입니다',
+    text: 말,
+    basis: `${올해.year}년의 간지 ${간지}와 일간의 관계에서 나옴`,
+  };
+}
+
 export function extractFortunePoints(d: Record<string, any>, productId: ProductId): FortunePoint[] {
   const points: FortunePoint[] = [];
 
@@ -396,6 +500,13 @@ export function extractFortunePoints(d: Record<string, any>, productId: ProductI
     basis: `태어난 날의 중심 글자인 일주 천간 ${stemProfile.term.split(' ')[1] || dayStem}에서 비롯됨`,
   });
 
+  /*
+   * 손님이 누른 **그 상품의 주제**가 있으면 그것을 맨 앞에 세운다.
+   * 돈그릇을 눌렀으면 돈 자리 글자부터 말한다.
+   */
+  const 주제 = 주제점사(d);
+  if (주제) points.unshift(주제);
+
   // 두 번째 점사: 활동력과 현실의 강점 (신강/신약/중화 및 십신)
   const strengthVerdict = String(d?.강약?.verdict || d?.손님의_바탕?.강약?.verdict || d?.아이사주?.강약?.verdict || '');
   if (strengthVerdict === '신강') {
@@ -444,6 +555,21 @@ export function extractFortunePoints(d: Record<string, any>, productId: ProductI
     text: yongProfile.text,
     basis: `사주의 오행 균형과 흐름을 조율하는 용신(用神) 분석에서 비롯됨`,
   });
+
+  /*
+   * 올해 흐름이 있는 상품이면 가운데 자리를 그것으로 바꾼다.
+   * 대목 이름이 「지금 흐름」인데 타고난 기질을 적어 두면 말이 어긋난다.
+   */
+  const 흐름 = 흐름점사(d);
+  /*
+   * 주제가 앞에 섰으면 네 개가 된다. 맨 뒤 용신(손님이 **할 수 있는 일**)은
+   * 떨구지 않는다 — 떨구면 대목 셋이 전부 「타고난 것」만 말하게 된다.
+   */
+  if (주제) {
+    const 가운데 = 흐름 ?? points[1];
+    return [주제, 가운데, points[points.length - 1]];
+  }
+  if (흐름 && points.length >= 3) points[1] = 흐름;
 
   return points;
 }
