@@ -605,10 +605,6 @@ ${isLaunchSale() ? `
 </script>` : ''}
 ${STUDIO_CONTAINER_HTML}
 
-<div class="site-footer-wrapper">
-  ${renderFooter(business)}
-</div>
-
 <!-- 심사 및 시스템 검증용 보존 블록 (hidden 처리) -->
 <div id="legacyStageWrapper" style="display:none!important;" hidden>
 ${idleVideos(renderStage(business, scenes, { walk: walkVideo, open: gateVideo, walkWebm, openWebm: gateWebm }, faces, clips, clipWebms))}
@@ -619,6 +615,10 @@ ${renderTryHeading()}
 ${fragment}
 <style>${VIEWER_SKIN}</style>
 ${STAGE_SCRIPT}
+</div>
+
+<div class="site-footer-wrapper">
+  ${renderFooter(business)}
 </div>
 
 <script src="/engine.js"></script>

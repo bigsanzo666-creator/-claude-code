@@ -3816,6 +3816,35 @@ for (const pId of childProductIds) {
     data.예정일 === '예정일 2026-03-10 로 세운 명식입니다. 실제 태어난 날이 달라지면 명식도 달라집니다.');
 }
 
+// ── 4단계: 무료 사주 화면의 위치와 기둥 순서 ─────────────────────────
+section('무료 사주 화면 위치 및 기둥 순서 검증 (4단계)');
+
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const serverSrc = readFileSync(join(here, 'src', 'server.ts'), 'utf8');
+  const viewerIdx = serverSrc.indexOf('id="legacyStageWrapper"');
+  const footerIdx = serverSrc.indexOf('class="site-footer-wrapper"');
+
+  check('화면에서 뷰어가 .site-footer-wrapper 보다 앞에 온다', viewerIdx !== -1 && footerIdx !== -1 && viewerIdx < footerIdx);
+
+  // 기둥 순서 검증: 연주 -> 월주 -> 일주 -> 시주
+  const manseHtml = readFileSync(join(here, '..', 'manse-viewer', 'index.html'), 'utf8');
+
+  const yearPillarIdx = manseHtml.indexOf("pillarColumn(ms.year, byPos['연주'], '연주', false)");
+  const monthPillarIdx = manseHtml.indexOf("pillarColumn(ms.month, byPos['월주'], '월주', false)");
+  const dayPillarIdx = manseHtml.indexOf("pillarColumn(ms.day, byPos['일주'], '일주 · 나', true)");
+  const hourPillarIdx = manseHtml.indexOf("pillarColumn(ms.hour, byPos['시주'], '시주', false)");
+
+  check('기둥 순서가 연·월·일·시 순이다',
+    yearPillarIdx !== -1 &&
+    monthPillarIdx !== -1 &&
+    dayPillarIdx !== -1 &&
+    hourPillarIdx !== -1 &&
+    yearPillarIdx < monthPillarIdx &&
+    monthPillarIdx < dayPillarIdx &&
+    dayPillarIdx < hourPillarIdx);
+}
+
 
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
