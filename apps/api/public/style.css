@@ -1187,6 +1187,9 @@ body {
 .taste-reveal-row { text-align: center; }
 .taste-reveal-row .taste-go, .taste-buy { display: block; box-sizing: border-box; width: 100%; min-height: 52px; padding: 12px; border: 0; border-radius: 8px; background: #d2ad50; color: #241d15; font-size: 17px; font-weight: 700; cursor: pointer; }
 .taste-reveal-row .taste-go:disabled { background: #605a4c; color: #c9c4b9; cursor: not-allowed; }
+.taste-say-block { margin: 22px 0; padding: 4px 0 2px; border-top: 1px solid rgba(212,175,55,.35); border-bottom: 1px solid rgba(212,175,55,.35); }
+.taste-say-head { margin: 16px 0 4px; text-align: center; }
+.taste-say-block .taste-masked { margin: 14px 0; }
 .taste-masked-lead { margin: 10px 0 8px; color: #f6e7bd; font-size: 17px; font-weight: 700; line-height: 1.6; word-break: keep-all; }
 .taste-masked-lead .taste-term { display: block; margin-top: 4px; color: #bda978; font-size: 13px; font-weight: 400; }
 .taste-masked-line { color: #f3ecde; font-size: 16px; line-height: 1.9; word-break: keep-all; }

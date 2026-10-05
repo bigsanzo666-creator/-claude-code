@@ -166,9 +166,14 @@ check('결제 덮개에 상품 이름과 서버 가격이 있다',
   && embeddedCheckout.includes(CATALOG['compat-report'].priceKrw.toLocaleString('ko-KR') + '원'));
 const homeApp = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'public', 'app.js'), 'utf8');
 const mergedFlow = homeApp.slice(homeApp.indexOf('function drawTaste('), homeApp.indexOf('function closeTasteCheckout('));
+/*
+ * 터진 뒤에 적은 것 (2026-10-05): 세 대목이 상세 설명 사이사이에 흩어져 있었다.
+ * 신령이 하는 말은 **한 덩어리로** 붙어 있어야 한 사람이 말하는 것으로 들린다.
+ */
 const inOrder = ['taste-hero-slot', 'taste-say', '손님의 여덟 글자', 'tasteNeeds(panel, product)',
-  'taste-jaegi', 'previewOne', "take('.pd-fit')", 'previewTwo', "take('.pd-why')",
-  "page.querySelector('.pd-gloss')", 'previewThree', "page.querySelector('.pd-buy')",
+  'taste-jaegi', "'신령이 이렇게 말합니다'", '말함.append(previewOne, previewTwo, previewThree)',
+  "take('.pd-fit')", "take('.pd-why')",
+  "page.querySelector('.pd-gloss')", "page.querySelector('.pd-buy')",
   "take('.pd-cross-box')", "take('.pd-terms')", "doc.querySelector('footer')"];
 let lastPlace = -1;
 check('합친 화면의 주요 덩어리가 정해진 차례로 놓인다', inOrder.every((part) => {

@@ -642,12 +642,52 @@ ${STAGE_SCRIPT}
     if (stF) {
       stF.click();
     }
+    손님명식을옮긴다();
     var target = document.getElementById('try') || document.getElementById('panelA') || document.getElementById('date');
     if (target) {
       setTimeout(function(){
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 50);
     }
+  }
+
+  /*
+   * 터진 뒤에 적은 것 (2026-10-05): 손님이 첫 화면에서 명식을 넣고 들어와도
+   * 무료 사주 칸은 **보기용 기본값(1990-05-15)** 그대로였다. 눌러 보면 제 사주가
+   * 아니라 **남의 날짜로 계산된 명식**이 나온다. 공짜로 주는 것일수록 틀리면 안 된다.
+   */
+  function 손님명식을옮긴다() {
+    try {
+      var saved = JSON.parse(sessionStorage.getItem('nb_reading') || 'null');
+      var b = saved && (saved.birth || saved);
+      if (!b || !b.date) return;
+      var 넣는다 = function(id, 값) {
+        var el = document.getElementById(id);
+        if (el && 값) { el.value = 값; el.dispatchEvent(new Event('change', { bubbles: true })); }
+      };
+      넣는다('date', b.date);
+      넣는다('name', b.name);
+      넣는다('gender', (b.gender === '여' || b.gender === 'female') ? '여' : '남');
+      /* 시각을 모른다고 하신 분은 그 칸을 켜 둔다. 아무 시각이나 넣으면 시주가 거짓이 된다 */
+      var notime = document.getElementById('notime');
+      if (b.timeKnown === false) {
+        if (notime) { notime.checked = true; notime.dispatchEvent(new Event('change', { bubbles: true })); }
+      } else if (b.time) {
+        if (notime) { notime.checked = false; notime.dispatchEvent(new Event('change', { bubbles: true })); }
+        넣는다('time', b.time);
+      }
+      /* 태어난 곳은 고르는 칸이고 값이 경도라, 적힌 이름으로 찾는다 */
+      var place = document.getElementById('place');
+      if (place && b.place) {
+        for (var i = 0; i < place.options.length; i++) {
+          if (place.options[i].textContent.trim() === String(b.place).trim()) {
+            place.selectedIndex = i;
+            place.dispatchEvent(new Event('change', { bubbles: true }));
+            break;
+          }
+        }
+      }
+    } catch (err) {}
   }
 
   function closeFreeSaju() {

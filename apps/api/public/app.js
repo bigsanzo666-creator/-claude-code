@@ -1475,7 +1475,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewOne = tEl('section', 'taste-masked');
     const previewTwo = tEl('section', 'taste-masked');
     const previewThree = tEl('section', 'taste-masked');
-    panel.appendChild(previewOne);
+    /*
+     * 세 대목은 **한 덩어리로** 둔다.
+     *
+     * 전에는 상세 설명 사이사이에 하나씩 끼워 두었다. 손님이 첫 대목을 읽고
+     * 다른 글을 지나야 둘째가 나왔다. 신령이 하는 말은 신령이 하는 말끼리
+     * 붙어 있어야 한 사람이 말하는 것으로 들린다.
+     */
+    const 말함 = tEl('section', 'taste-say-block');
+    말함.appendChild(tEl('h3', 'pd-h taste-say-head', '신령이 이렇게 말합니다'));
+    말함.append(previewOne, previewTwo, previewThree);
+    panel.appendChild(말함);
     const detail = tEl('div', 'taste-detail');
     panel.appendChild(detail);
     detail.addEventListener('click', (event) => {
@@ -1556,13 +1566,10 @@ document.addEventListener('DOMContentLoaded', () => {
       take('.pd-fit');
       const contents = page.querySelector('.pd-contents-list');
       if (contents) detail.appendChild(contents.closest('.pd-sec'));
-      const sampleHead = tEl('h3', 'pd-h', '신령이 이렇게 말합니다');
-      detail.append(sampleHead, previewTwo);
       take('.pd-why');
       take('.pd-faq');
       const glossary = page.querySelector('.pd-gloss');
       if (glossary) { glossary.open = true; detail.appendChild(glossary); }
-      detail.appendChild(previewThree);
       const buy = page.querySelector('.pd-buy');
       if (buy) {
         buy.querySelectorAll('.pd-go, .pd-also').forEach((el) => {
