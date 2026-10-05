@@ -1779,6 +1779,25 @@ section('11. 문 — 신령계 들어가는 곳');
     listHtml.includes(`벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고 그대도 보답을 받으시지요`));
 }
 
+{
+  section('이메일 없는 주문 증표 안내 및 링크 검사 (4단계)');
+  const { renderOrderReportPage } = await import('./src/order-page.ts');
+  const sampleOrderNoEmail = { id: 'ord_test_no_email', productId: 'wealth-report' as const };
+  const orderHtmlNoEmail = renderOrderReportPage(full, '', sampleOrderNoEmail as any, '리포트 본문', null, null);
+
+  check('이메일 없는 주문의 리포트 화면에도 증표 상자(nb-invite-box)가 있다',
+    orderHtmlNoEmail.includes('nb-invite-box'));
+  check('이메일 없는 주문의 리포트 화면에 메일 입력 안내 문구가 있다',
+    orderHtmlNoEmail.includes('증표를 받으시려면 받으실 메일 주소를 적어 주십시오'));
+  check('이메일 없는 주문의 리포트 화면에 /invite 로 가는 단추가 있다',
+    orderHtmlNoEmail.includes('href="/invite"') && orderHtmlNoEmail.includes('id="nbGoInviteBtn"'));
+
+  const sampleOrderWithEmail = { id: 'ord_test_with_email', productId: 'wealth-report' as const };
+  const orderHtmlWithEmail = renderOrderReportPage(full, '', sampleOrderWithEmail as any, '리포트 본문', 'friend123', null);
+  check('이메일 있는 주문의 리포트 화면에는 증표 코드(friend123)가 노출된다',
+    orderHtmlWithEmail.includes('friend123') && orderHtmlWithEmail.includes('nbCopyInviteBtn'));
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }

@@ -1505,6 +1505,11 @@ check('/order/<진짜 주문번호> 는 리포트를 보여준다',
   orderPage.status === 200 &&
   orderPage.html.includes('이 주소를 저장해 두시면 언제든 다시 보실 수 있습니다') &&
   orderPage.html.includes(doubleId));
+check('이메일 없는 주문의 리포트 화면에도 증표 상자(nb-invite-box)와 안내/단추가 노출된다',
+  orderPage.html.includes('class="nb-invite-box"') &&
+  orderPage.html.includes('증표를 받으시려면 받으실 메일 주소를 적어 주십시오') &&
+  orderPage.html.includes('href="/invite"') &&
+  orderPage.html.includes('id="nbGoInviteBtn"'));
 
 // 터진 뒤에 적은 것 (2026-10-01): 풀이를 다 만들어 놓고도 화면은
 // 「결제 확인에 실패했습니다」라고 말했다. 처음 사는 손님만 당했다.
