@@ -48,13 +48,29 @@ export class ReportRefusedError extends Error {
   }
 }
 
+export class ReportTruncatedError extends Error {
+  readonly kind: string;
+  readonly productId: string | null;
+  readonly tokensUsed: number;
+  readonly maxTokens: number;
+
+  constructor(info: { kind: string; productId?: string | null; tokensUsed: number; maxTokens: number }) {
+    super(`리포트 생성이 최대 토큰 한도에 걸려 잘렸습니다 (종류: ${info.kind}, 상품: ${info.productId ?? '미상'}, 토큰: ${info.tokensUsed}/${info.maxTokens})`);
+    this.name = 'ReportTruncatedError';
+    this.kind = info.kind;
+    this.productId = info.productId ?? null;
+    this.tokensUsed = info.tokensUsed;
+    this.maxTokens = info.maxTokens;
+  }
+}
+
 export async function generateReport(
   input: ReportInput,
   options: GenerateOptions = {},
 ): Promise<GenerateResult> {
   const model = options.model ?? DEFAULT_MODEL;
   const effort = options.effort ?? (input.kind === '오늘운세' ? 'low' : DEFAULT_EFFORT);
-  const maxTokens = maxTokensFor(input.kind, input.productId ?? input.data);
+  let currentMaxTokens = maxTokensFor(input.kind, input.productId ?? input.data);
   const key = cacheKey({ input, model, effort });
 
   if (options.cache && !options.force) {
@@ -64,41 +80,64 @@ export async function generateReport(
 
   const client = options.client ?? new Anthropic();
 
-  // 스트리밍을 쓰는 이유: 적응형 사고가 켜져 있으면 출력 토큰이 늘어날 수 있고,
-  // 큰 max_tokens로 논스트리밍 요청을 보내면 HTTP 타임아웃에 걸릴 수 있다.
-  const stream = client.beta.messages.stream({
-    model,
-    max_tokens: maxTokens,
-    // 시스템 프롬프트는 입력과 무관하게 고정이라 캐시가 걸린다.
-    // 사용자 데이터는 이 뒤에 오므로 프리픽스가 깨지지 않는다.
-    system: [
-      {
-        type: 'text',
-        text: buildSystemPrompt(input.kind, input.productId ?? input.data),
-        cache_control: { type: 'ephemeral' },
-      },
-    ],
-    messages: [{ role: 'user', content: buildUserMessage(input) }],
-    ...(model.includes('opus')
-      ? {
-          thinking: { type: 'adaptive' as const },
-          output_config: { effort },
-          // Opus 5 권장 설정. 정책상 거절이 나면 같은 요청을 대체 모델로 이어 처리한다.
-          betas: ['server-side-fallback-2026-07-01'],
-          fallbacks: 'default' as const,
-        }
-      : {}),
-  });
+  let attempt = 0;
+  let response: Anthropic.Message;
 
-  const response = await stream.finalMessage();
+  while (true) {
+    attempt++;
+    // 스트리밍을 쓰는 이유: 적응형 사고가 켜져 있으면 출력 토큰이 늘어날 수 있고,
+    // 큰 max_tokens로 논스트리밍 요청을 보내면 HTTP 타임아웃에 걸릴 수 있다.
+    const stream = client.beta.messages.stream({
+      model,
+      max_tokens: currentMaxTokens,
+      // 시스템 프롬프트는 입력과 무관하게 고정이라 캐시가 걸린다.
+      // 사용자 데이터는 이 뒤에 오므로 프리픽스가 깨지지 않는다.
+      system: [
+        {
+          type: 'text',
+          text: buildSystemPrompt(input.kind, input.productId ?? input.data),
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
+      messages: [{ role: 'user', content: buildUserMessage(input) }],
+      ...(model.includes('opus')
+        ? {
+            thinking: { type: 'adaptive' as const },
+            output_config: { effort },
+            // Opus 5 권장 설정. 정책상 거절이 나면 같은 요청을 대체 모델로 이어 처리한다.
+            betas: ['server-side-fallback-2026-07-01'],
+            fallbacks: 'default' as const,
+          }
+        : {}),
+    });
 
-  // content를 읽기 전에 반드시 확인한다. 거절은 예외가 아니라 200으로 돌아온다.
-  if (response.stop_reason === 'refusal') {
-    const details = response.stop_details;
-    throw new ReportRefusedError(
-      details && 'category' in details ? (details.category as string | null) : null,
-      details && 'explanation' in details ? (details.explanation as string | null) : null,
-    );
+    response = await stream.finalMessage();
+
+    // content를 읽기 전에 반드시 확인한다. 거절은 예외가 아니라 200으로 돌아온다.
+    if (response.stop_reason === 'refusal') {
+      const details = response.stop_details;
+      throw new ReportRefusedError(
+        details && 'category' in details ? (details.category as string | null) : null,
+        details && 'explanation' in details ? (details.explanation as string | null) : null,
+      );
+    }
+
+    // max_tokens 로 잘린 경우: 캐시에 저장하지 않고, 1.5배로 한도를 올려 한 번만 재시도한다
+    if (response.stop_reason === 'max_tokens') {
+      console.warn(`[리포트] 토큰 한도 초과로 잘림: ${input.kind} (상품: ${input.productId ?? '미상'}, 시도: ${attempt}, maxTokens: ${currentMaxTokens}, 사용: ${response.usage?.output_tokens})`);
+      if (attempt < 2) {
+        currentMaxTokens = Math.min(128000, Math.round(currentMaxTokens * 1.5));
+        continue;
+      }
+      throw new ReportTruncatedError({
+        kind: input.kind,
+        productId: input.productId,
+        tokensUsed: response.usage?.output_tokens ?? currentMaxTokens,
+        maxTokens: currentMaxTokens,
+      });
+    }
+
+    break;
   }
 
   const text = response.content

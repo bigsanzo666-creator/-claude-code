@@ -100,7 +100,7 @@ export class MemoryOrderStore implements OrderStore {
 
 /** 리포트 생성기. 실제로는 @saju/report 의 generateReport 를 감싼다. */
 export type ReportGenerator = (args: {
-  kind: string; data: unknown; subject: string; question?: string;
+  kind: string; data: unknown; subject: string; question?: string; productId?: string;
 }) => Promise<{ text: string }>;
 
 /** 브라우저 결제창에 필요한 값. 비어 있으면 화면이 결제 버튼을 감춘다 */
@@ -1402,6 +1402,9 @@ export function createApi(deps: ApiDeps) {
 
         return fullText;
       } catch (err: any) {
+        if (err?.name === 'ReportTruncatedError') {
+          console.warn(`[리포트] 토큰 한도 초과 잘림 발생 (주문: ${id}, 상품: ${stored.productId}): ${err.message}`);
+        }
         reportErrors.set(id, err);
         return null as any;
       } finally {
@@ -2308,7 +2311,9 @@ export function createApi(deps: ApiDeps) {
       const lastErr = reportErrors.get(id);
       if (lastErr && !inFlightReports.has(id)) {
         reportErrors.delete(id);
-        send(res, 500, { ready: false, retryable: true, error: lastErr.message || '풀이 생성 실패' });
+        const isTruncated = lastErr?.name === 'ReportTruncatedError';
+        const errorMsg = isTruncated ? '다시 만들고 있습니다' : (lastErr.message || '풀이 생성 실패');
+        send(res, 500, { ready: false, retryable: true, truncated: isTruncated, error: errorMsg });
         return;
       }
 
