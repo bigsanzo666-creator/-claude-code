@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 import {
   EIGHTY_ONE, number81, fourFrames, readFrames, middleStrokeCandidates, frameRows, FRAME_PLAIN,
   popularYears, popularList, popularitySource, popularityOf,
-  nameField, byReading,
+  nameField, byReading, koreanHanjaMeaning,
 } from './src/index.ts';
 
 let passed = 0, failed = 0;
@@ -21,6 +21,10 @@ function check(label: string, ok: boolean, detail = '') {
   else { failed++; failures.push(label); console.log(`  ✗ ${label}${detail ? `  ${detail}` : ''}`); }
 }
 function section(t: string) { console.log(`\n${t}\n${'─'.repeat(60)}`); }
+
+section('한자 뜻 안내');
+check('자주 쓰는 한자의 뜻은 한글로 보인다', koreanHanjaMeaning('熙') === '빛날 희');
+check('확인하지 못한 한자는 뜻을 지어내지 않는다', koreanHanjaMeaning('咥') === null);
 
 section('81수 표');
 

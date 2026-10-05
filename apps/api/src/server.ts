@@ -52,8 +52,9 @@ import { buildPayload, buildPayloads, KIND_OF, sajuBundle, type ReadingRequest }
 import { pickDays, bestPerDay, mergeHours, buildDailyPreviewData, buildMonthPreviewData, parseInputTime, luckyNumbers, analyze } from '../../../packages/saju-rules/src/index.ts';
 import { calculate } from '../../../packages/manseryeok/src/index.ts';
 import { buildPreview, sampleFor, sampleNoticeFor } from './preview.ts';
+import { previewSections } from './preview-sections.ts';
 import { sendOrderMail, sendReportMail, sendTestMail, mailReady, redactKey } from './mail.ts';
-import { byReading, readSurname, goodPairs } from '../../../packages/naming/src/index.ts';
+import { byReading, readSurname, goodPairs, koreanHanjaMeaning } from '../../../packages/naming/src/index.ts';
 import { type ReferralStore, MemoryReferralStore } from '../../../packages/store/src/index.ts';
 
 /**
@@ -408,7 +409,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
           <div class="form-group">
             <label for="inputTime" style="white-space:nowrap;">태어난 시간 (시:분)</label>
             <div style="display:flex;gap:8px;align-items:center;">
-              <input type="time" id="inputTime" style="flex:1 1 auto;">
+              <input type="text" inputmode="numeric" id="inputTime" placeholder="예: 14:40, 1440, 905" style="flex:1 1 auto;">
               <label for="inputTimeUnknown" style="display:flex;align-items:center;gap:4px;font-size:12px;color:#c8c2d4;cursor:pointer;white-space:nowrap;margin-bottom:0;">
                 <input type="checkbox" id="inputTimeUnknown" style="width:auto;margin:0;"> 모름
               </label>
@@ -546,7 +547,11 @@ ${FOOTER_CSS}
 </style>
 <script>
 window.SAJU_CONFIG = ${config};
-window.__CATALOG_PRODUCTS__ = ${JSON.stringify(Object.values(CATALOG).map(p => ({ id: p.id, name: p.name, hook: p.hook, category: p.category, priceKrw: p.priceKrw, regularKrw: p.regularKrw })))};
+window.__CATALOG_PRODUCTS__ = ${JSON.stringify(Object.values(CATALOG).map(p => ({
+  id: p.id, name: p.name, hook: p.hook, category: p.category,
+  priceKrw: p.priceKrw, regularKrw: p.regularKrw,
+  ...Object.fromEntries(Object.entries(p).filter(([key]) => key.startsWith('needs'))),
+})))};
 window.__CATEGORIES__ = ${JSON.stringify(CATEGORY_MENU)};
 window.__IS_LAUNCH_SALE__ = ${isLaunchSale()};
 window.KAKAO_JS_KEY = ${JSON.stringify(process.env.KAKAO_JS_KEY ?? '')};
@@ -893,6 +898,18 @@ function upsellOffers(productId: string) {
      * 우리는 무엇이 있는지 보기 좋게 늘어놓을 뿐이다.
      */
     .sort((a, b) => (Number(b.recommended) - Number(a.recommended)) || (a.priceKrw - b.priceKrw));
+}
+
+const PHOTO_REQUIREMENTS: Record<string, [boolean, boolean]> = {
+  'cross-report': [true, true], 'face-palm-report': [true, true],
+  'saju-face-report': [true, false], 'saju-palm-report': [false, true],
+};
+
+function requireProductPhotos(body: any, productId: string): void {
+  const hasPhoto = (v: any) => Boolean(v && (typeof v !== 'object' || Object.keys(v).length > 0));
+  const [faceNeeded, palmNeeded] = PHOTO_REQUIREMENTS[productId] ?? [false, false];
+  if ((faceNeeded && !hasPhoto(body.face)) || (palmNeeded && !hasPhoto(body.palm)))
+    throw new HttpError(400, '이 상품에 필요한 얼굴·손 사진을 먼저 보여 주셔야 합니다.');
 }
 
 function validateReading(body: any): ReadingRequest {
@@ -1766,16 +1783,17 @@ export function createApi(deps: ApiDeps) {
     },
 
     'GET /checkout': async (req, res) => {
-      const want = new URL(req.url ?? '/', 'http://x').searchParams.get('product') ?? '';
+      const checkoutQuery = new URL(req.url ?? '/', 'http://x').searchParams;
+      const want = checkoutQuery.get('product') ?? '';
       if (!isOrderable(want)) throw new HttpError(404, `없는 상품입니다: ${want}`);
       const product = CATALOG[want as keyof typeof CATALOG];
       // 택일은 태어난 날이 없어 여기서 못 판다. 후보 날짜를 받는 화면으로 보낸다
-      if (product.needsPick) {
+      if (product.needsPick && checkoutQuery.get('embedded') !== '1') {
         res.writeHead(302, { Location: '/pick' });
         res.end();
         return;
       }
-      sendHtml(res, renderCheckoutPage(business, renderFooter(business), product, checkout, mailReady()));
+      sendHtml(res, renderCheckoutPage(business, renderFooter(business), product, checkout, mailReady(), checkoutQuery.get('embedded') === '1'));
     },
 
     'GET /pick': async (_req, res) => sendHtml(res, renderPickPage(
@@ -1881,7 +1899,9 @@ export function createApi(deps: ApiDeps) {
      * 전자상거래법상 "시험 사용 상품 제공" 요건을 채우는 자리이기도 하다.
      */
     'POST /api/preview': async (req, res) => {
-      const reading = validateReading(await readJson(req));
+      const body = await readJson(req);
+      const reading = validateReading(body);
+      requireProductPhotos(body, reading.productId);
       const item = orderable(reading.productId);
       const parts = buildPayloads(reading);
       const each = parts.map((part) => ({
@@ -1923,7 +1943,11 @@ export function createApi(deps: ApiDeps) {
       send(res, 200, {
         product: item,
         notice: WITHDRAWAL_NOTICE,
-        preview: { ...each[0].preview, contents },
+        preview: {
+          ...each[0].preview,
+          contents,
+          sections: previewSections(item.id, contents, each[0].preview.fortunePoints),
+        },
         dailyPreview,
         monthPreview,
         // 단품을 보고 있으면 이것을 품은 묶음을 함께 알려 준다
@@ -1964,11 +1988,7 @@ export function createApi(deps: ApiDeps) {
     'POST /api/orders': async (req, res) => {
       const body = await readJson(req);
       const reading = validateReading(body);
-      const PHOTO_PRODUCTS = ['cross-report', 'face-palm-report', 'saju-face-report', 'saju-palm-report'];
-      const hasPhoto = (v: any) => Boolean(v && (typeof v !== 'object' || Object.keys(v).length > 0));
-      if (PHOTO_PRODUCTS.includes(reading.productId) && !hasPhoto(body.face) && !hasPhoto(body.palm)) {
-        throw new HttpError(400, '얼굴과 손을 먼저 보여 주셔야 합니다.');
-      }
+      requireProductPhotos(body, reading.productId);
       if (body.acknowledgedNotice !== true) {
         throw new HttpError(400, '청약철회 제한 고지에 대한 확인이 필요합니다.');
       }
@@ -2343,7 +2363,8 @@ export function createApi(deps: ApiDeps) {
       if (!/^[\uac00-\ud7a3]$/.test(소리)) {
         throw new HttpError(400, '한글 한 글자를 적어 주십시오.');
       }
-      const 목록 = byReading(소리, { legal: true });
+      const 목록 = byReading(소리, { legal: true }).sort((a, b) =>
+        Number(Boolean(koreanHanjaMeaning(b.char))) - Number(Boolean(koreanHanjaMeaning(a.char))));
 
       let 앞획: Set<number> | null = null;
       let 끝획: Set<number> | null = null;
@@ -2361,7 +2382,7 @@ export function createApi(deps: ApiDeps) {
         글자들: 목록.map((h) => ({
           자: h.char,
           획: h.strokes,
-          뜻: h.meaning || null,
+          뜻: koreanHanjaMeaning(h.char),
           앞자리로_쓸_수_있나: 앞획 ? 앞획.has(h.strokes) : null,
           끝자리로_쓸_수_있나: 끝획 ? 끝획.has(h.strokes) : null,
         })),

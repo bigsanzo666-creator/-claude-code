@@ -150,10 +150,10 @@ ${UPSELL_CSS}
 .co-hanja-pick{margin:10px 0 4px;padding:10px 12px;border:1px solid var(--nb-line-soft);border-radius:10px;background:rgba(255,255,255,.03)}
 .co-hanja-head{margin:0 0 8px;font-size:13px;color:var(--nb-ink-3);line-height:1.6}
 .co-hanja-grid{display:flex;flex-wrap:wrap;gap:7px}
-.co-hanja-btn{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:52px;padding:7px 8px;
+.co-hanja-btn{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:76px;padding:7px 8px;
   border:1px solid var(--nb-line-soft);border-radius:9px;background:rgba(255,255,255,.04);color:var(--nb-ink);cursor:pointer}
 .co-hanja-btn .co-hanja-ja{font-size:22px;line-height:1.1;font-family:var(--nb-serif,serif)}
-.co-hanja-btn .co-hanja-sub{font-size:11px;color:var(--nb-ink-3)}
+.co-hanja-btn .co-hanja-sub{font-size:13px;color:var(--nb-ink-3)}
 .co-hanja-btn.on{border-color:#d4af37;background:rgba(212,175,55,.22);box-shadow:0 0 0 2px rgba(212,175,55,.45)}
 .co-hanja-btn.on .co-hanja-ja{color:#f0d77a}
 .co-hanja-btn.on .co-hanja-sub::after{content:' ✓';color:#d4af37}
@@ -262,7 +262,7 @@ export interface CheckoutKeys { storeId: string; channelKey: string }
  */
 export function renderCheckoutPage(
   info: BusinessInfo, footer: string, product: Product, keys: CheckoutKeys | null,
-  mailEnabled = false,
+  mailEnabled = false, embedded = false,
 ): string {
   const site = show(info, 'serviceName', '서비스 이름');
   const price = product.priceKrw.toLocaleString('ko-KR');
@@ -380,7 +380,7 @@ export function renderCheckoutPage(
     <form id="coForm" novalidate>
       <div id="coFields">
 
-      <!-- 1. 사주 정보 요약 카드 (맨 위 노출) -->
+      ${embedded ? '' : `<!-- 1. 사주 정보 요약 카드 (맨 위 노출) -->
       <div class="co-user-card" id="coUserCard">
         <div class="co-user-card-head">
           <span class="co-user-card-title">사주 정보</span>
@@ -426,13 +426,15 @@ export function renderCheckoutPage(
         <div class="co-f"><label for="birthPlace">태어난 곳</label>${placeOptions('birthPlace')}
           <span class="co-hint">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</span></div>
         <button type="button" class="co-user-done-btn" id="coUserDoneBtn">입력 완료</button>
-      </div>
+      </div>`}
 
+      ${embedded ? '' : `<div class="co-reading-fields">
       ${surname}
       ${partner}
       ${range}
       ${family}
       ${photoSection}
+      </div>`}
 
       <p class="co-sec">연락받으실 곳</p>
       <div class="co-f"><label for="email">이메일</label>
@@ -477,6 +479,8 @@ export function renderCheckoutPage(
 <script>
 (function(){
   var PRODUCT = ${JSON.stringify(product.id)};
+  var EMBEDDED = ${embedded};
+  var NEEDS_PICK = ${product.needsPick === true};
   var BASE_KRW = ${product.priceKrw};
   var FREE_UPTO = ${HOLIDAY_INCLUDED_MEMBERS};
   var EXTRA_KRW = ${HOLIDAY_EXTRA_MEMBER_KRW};
@@ -535,7 +539,24 @@ export function renderCheckoutPage(
   }
   function val(id){
     var el = document.getElementById(id);
-    return el ? el.value.trim() : '';
+    if(el) return el.value.trim();
+    if(!EMBEDDED) return '';
+    var saved = loadReading() || {};
+    var birth = saved.birth || saved;
+    var fields = {
+      buyerName: birth.name, birthDate: birth.date, birthTime: birth.time,
+      birthPlace: birth.place, gender: birth.gender,
+      surname: saved.name && saved.name.surname,
+      fixedChar: saved.name && saved.name.fixed && saved.name.fixed.char,
+      fixedAt: saved.name && saved.name.fixed && saved.name.fixed.at,
+      avoidChars: saved.name && saved.name.avoid && saved.name.avoid.join(', '),
+      partnerDate: saved.partner && saved.partner.date,
+      partnerTime: saved.partner && saved.partner.time,
+      rangeFrom: saved.range && saved.range.from,
+      rangeTo: saved.range && saved.range.to,
+      rangeAvoid: saved.range && saved.range.avoid && saved.range.avoid.join(', '),
+    };
+    return String(fields[id] || '').trim();
   }
   async function post(url, body){
     var r = await fetch(url, {
@@ -611,8 +632,8 @@ export function renderCheckoutPage(
     var reason = '';
     var dateVal = val('birthDate');
     // 사진은 여기서 묻지 않는다. 막지도 않는다
-    if(!dateVal && document.getElementById('birthDate')){
-      reason = '생년월일을 적으셔야 결제하실 수 있습니다';
+    if(!NEEDS_PICK && !dateVal){
+      reason = EMBEDDED ? '상품 화면에서 생년월일을 먼저 적어 주십시오' : '생년월일을 적으셔야 결제하실 수 있습니다';
     } else if(!agree.checked){
       reason = '위 안내에 동의하셔야 결제하실 수 있습니다';
     }
@@ -1296,8 +1317,17 @@ export function renderCheckoutPage(
       set('birthPlace', b.place || b.birthPlace);
       set('gender', b.gender);
       set('surname', saved.name && saved.name.surname);
+      ${product.needsName ? `
+      set('fixedChar', saved.name && saved.name.fixed && saved.name.fixed.char);
+      set('fixedAt', saved.name && saved.name.fixed && saved.name.fixed.at);
+      set('avoidChars', saved.name && saved.name.avoid && saved.name.avoid.join(', '));` : ''}
+      ${product.needsPartner ? `
       set('partnerDate', saved.partner && saved.partner.date);
-      set('partnerTime', saved.partner && saved.partner.time);
+      set('partnerTime', saved.partner && saved.partner.time);` : ''}
+      ${product.needsRange ? `
+      set('rangeFrom', saved.range && saved.range.from);
+      set('rangeTo', saved.range && saved.range.to);
+      set('rangeAvoid', saved.range && saved.range.avoid && saved.range.avoid.join(', '));` : ''}
 
       if(saved.face){ window.__nbFace = saved.face; faceUploaded = true; }
       else if(saved.보여줌 && saved.보여줌.face){ window.__nbFace = { shown: true }; faceUploaded = true; }
@@ -1393,7 +1423,7 @@ export function renderCheckoutPage(
   var addKin = document.getElementById('coAddKin');
   var won = function(n){ return n.toLocaleString('ko-KR'); };
 
-  function kinCount(){ return kinBox ? kinBox.querySelectorAll('.co-kin').length : 0; }
+  function kinCount(){ return kinBox ? kinBox.querySelectorAll('.co-kin').length : (EMBEDDED ? ((loadReading() || {}).family || []).length : 0); }
   function priceNow(){
     var people = Math.min(1 + kinCount(), MAX_MEMBERS);
     return BASE_KRW + Math.max(0, people - FREE_UPTO) * EXTRA_KRW;
@@ -1456,7 +1486,8 @@ export function renderCheckoutPage(
     var tag = document.querySelector('.co-price b');
     if(tag){
       if(inv && p >= ${INVITE_MIN_ORDER_KRW}){
-        tag.innerHTML = won(finalP) + '원 <span class="co-invite-tag" style="font-size:14px;color:#9fd8a8;font-weight:600;margin-left:6px">벗의 증표 −${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원</span>';
+        tag.innerHTML = '<span style="text-decoration:line-through;color:#aaa;font-size:16px">' + won(p) + '원</span> → '
+          + won(finalP) + '원 <span class="co-invite-tag" style="font-size:14px;color:#9fd8a8;font-weight:600;margin-left:6px">벗의 증표 −${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원</span>';
       }else{
         tag.textContent = won(finalP) + '원';
       }
@@ -1537,7 +1568,7 @@ export function renderCheckoutPage(
           var 쓸수없나 = (h.앞자리로_쓸_수_있나 === false && h.끝자리로_쓸_수_있나 === false);
           return '<button type="button" class="co-hanja-btn' + (쓸수없나 ? ' off' : '') + '" data-ja="' + h.자 + '"'
             + (쓸수없나 ? ' title="이 글자로는 길한 획수가 서지 않습니다"' : '')
-            + '><span class="co-hanja-ja">' + h.자 + '</span><span class="co-hanja-sub">' + h.획 + '획</span></button>';
+            + '><span class="co-hanja-ja">' + h.자 + '</span><span class="co-hanja-sub">' + (h.뜻 ? h.뜻 + ' · ' : '') + h.획 + '획</span></button>';
         }).join('');
         fxPick.style.display = 'block';
       })
@@ -1577,7 +1608,7 @@ export function renderCheckoutPage(
   var existingInv = (function(){ try { return sessionStorage.getItem('nb_invite'); } catch(e){ return null; } })();
   if(existingInv && invInput){
     invInput.value = existingInv;
-    if(invToggle) invToggle.textContent = '증표 적용 중 (' + existingInv + ')';
+    if(invToggle) invToggle.textContent = '증표 적용 중 (' + existingInv + ') · ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인';
   }
 
   if(invToggle && invFold){
@@ -1640,11 +1671,12 @@ export function renderCheckoutPage(
         if(data.ok && data.valid){
           clientFailCount = 0;
           try { sessionStorage.setItem('nb_invite', data.code); } catch(e){}
-          if(invToggle) invToggle.textContent = '증표 적용 중 (' + data.code + ')';
+          if(invToggle) invToggle.textContent = '증표 적용 중 (' + data.code + ') · ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인';
+          if(invFold) invFold.style.display = 'none';
           refreshPrice();
 
           if(invMsg){
-            if(p >= ${INVITE_MIN_ORDER_KRW}){
+            if(priceNow() >= ${INVITE_MIN_ORDER_KRW}){
               invMsg.className = 'co-invite-msg ok';
               invMsg.textContent = '증표가 적용되어 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인되었습니다.';
             } else {
@@ -1718,7 +1750,7 @@ export function renderCheckoutPage(
     for(var i=0;i<rows.length;i++) rows[i].querySelector('b').textContent = (i+2) + '번째 분';
   }
   function readFamily(){
-    if(!kinBox) return [];
+    if(!kinBox) return EMBEDDED ? ((loadReading() || {}).family || []) : [];
     return [].map.call(kinBox.querySelectorAll('.co-kin'), function(r){
       return {
         relation: r.querySelector('.kin-rel').value.trim() || '가족',
@@ -1728,7 +1760,11 @@ export function renderCheckoutPage(
     }).filter(function(f){ return !!f.date; });
   }
   if(addKin) addKin.addEventListener('click', function(){ addRow(null); });
-  if(NEEDS_FAMILY && kinBox && !kinCount()) addRow(null);
+  if(NEEDS_FAMILY && kinBox && !kinCount()){
+    var savedFamily = (loadReading() || {}).family || [];
+    if(savedFamily.length) savedFamily.forEach(function(person){ addRow(person); });
+    else addRow(null);
+  }
 
   f.addEventListener('submit', async function(ev){
     ev.preventDefault();
@@ -1737,7 +1773,7 @@ export function renderCheckoutPage(
     var name = val('buyerName'), date = val('birthDate');
     var email = val('email'), phone = val('phone').replace(/[^0-9]/g,'');
     if(!name) return say('성함을 적어 주십시오.');
-    if(!date) return say('생년월일을 적어 주십시오.');
+    if(!date && !NEEDS_PICK) return say('생년월일을 적어 주십시오.');
     if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) return say('이메일을 다시 확인해 주십시오.');
     if(phone.length < 10) return say('휴대전화 번호를 다시 확인해 주십시오.');
     ${product.needsName ? "if(!val('surname')) return say('아이의 성을 적어 주십시오.');" : ''}
@@ -1754,7 +1790,11 @@ export function renderCheckoutPage(
     var isUnk = timeUnknownEl ? timeUnknownEl.checked : false;
     var finalTime = '';
     var finalTimeKnown = true;
-    if(isUnk){
+    if(EMBEDDED){
+      var savedBirth = (loadReading() || {}).birth || {};
+      finalTime = savedBirth.time || '12:00';
+      finalTimeKnown = savedBirth.timeKnown !== false;
+    } else if(isUnk){
       finalTime = val('birthTimeSlot') || '12:00';
       finalTimeKnown = false;
     } else if(val('birthTime')){
@@ -1772,6 +1812,7 @@ export function renderCheckoutPage(
       productId: PRODUCT,
       birth: { date: date, time: finalTime, timeKnown: finalTimeKnown, place: val('birthPlace') || '서울', gender: val('gender'), name: name }
     };
+    if(NEEDS_PICK) reading.pick = (loadReading() || {}).pick;
     ${product.needsName ? `
     var nObj = { surname: val('surname') };
     var fChar = (고른한자 || val('fixedChar')).trim();
@@ -1803,8 +1844,12 @@ export function renderCheckoutPage(
       if(!kin.length) return say('같이 보실 분을 한 분 이상 넣어 주십시오.');
       reading.family = kin;
     }
-    if(window.__nbFace) reading.face = window.__nbFace;
-    if(window.__nbPalm) reading.palm = window.__nbPalm;
+    var savedBeforeOrder = loadReading() || {};
+    if(savedBeforeOrder.child) reading.child = savedBeforeOrder.child;
+    if(window.__nbFace || savedBeforeOrder.face || (savedBeforeOrder.보여줌 && savedBeforeOrder.보여줌.face))
+      reading.face = window.__nbFace || savedBeforeOrder.face || { shown: true };
+    if(window.__nbPalm || savedBeforeOrder.palm || (savedBeforeOrder.보여줌 && savedBeforeOrder.보여줌.palm))
+      reading.palm = window.__nbPalm || savedBeforeOrder.palm || { shown: true };
 
     saveReading(reading);
 
@@ -1918,6 +1963,8 @@ body{margin:0;background:#0b0912;color:#efeaf4}
 ${PRODUCTS_CSS}
 ${CHECKOUT_CSS}
 ${REFERRAL_BADGE_CSS}
+${embedded ? `.co-back,.co-user-card,.co-user-edit-form,.co-reading-fields{display:none!important}
+.co{padding-top:16px}.co-invite-toggle{font-size:16px!important;min-height:44px}` : ''}
 </style>
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" defer></script>
 <script>

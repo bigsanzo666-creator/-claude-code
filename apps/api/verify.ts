@@ -21,6 +21,7 @@ import { findSpiritVideos } from './src/images.ts';
 import { createApi, MemoryOrderStore, checkInviteRateLimit, recordInviteCheckFail, inviteCheckAttempts } from './src/server.ts';
 import { buildPayload } from './src/payload.ts';
 import { buildPreview } from './src/preview.ts';
+import { maskPreviewText } from './src/preview-sections.ts';
 import { cacheKey } from '../../packages/report/src/cache.ts';
 import { StandbyGateway, standbyGenerate } from './src/standby.ts';
 import { MemoryReferralStore } from '../../packages/store/src/index.ts';
@@ -106,6 +107,47 @@ check('목록에 청약철회 고지 포함', products.body.notice.includes('청
 
 const preview = await api('POST', '/api/preview', reading);
 check('미리보기 응답', preview.status === 200);
+const sections = preview.body.preview.sections || [];
+check('손님 자료로 만든 맛보기 세 대목', sections.length === 3);
+check('세 대목에 각각 가린 낱말이 있다', sections.length === 3 && sections.every((s: any) => s.parts.some((p: any) => p.hidden)));
+check('세 대목에서 가린 글자가 30% 이하다', sections.length === 3 && sections.every((s: any) => {
+  const all = s.parts.reduce((n: number, p: any) => n + [...p.text].length, 0);
+  const hidden = s.parts.filter((p: any) => p.hidden).reduce((n: number, p: any) => n + [...p.text].length, 0);
+  return all > 0 && hidden / all <= 0.3;
+}));
+check('가림 표시가 없는 글도 규칙으로 가린다', maskPreviewText('손님은 2027년에 남쪽으로 움직이시면 좋습니다.').some((p) => p.hidden));
+check('가림 표시가 있는 글에서도 문장은 읽힌다', (() => {
+  const parts = maskPreviewText('손님은 [[가림:2027년 남쪽]]에 움직이시면 좋습니다.');
+  return parts.some((p) => p.hidden) && parts.some((p) => !p.hidden && p.text.includes('손님은'));
+})());
+const embeddedCheckout = renderCheckoutPage(business, '', CATALOG['compat-report'],
+  { storeId: 'test', channelKey: 'test' }, false, true);
+check('결제 덮개에서 사주·상대 입력칸이 보이지 않는다',
+  !embeddedCheckout.includes('id="birthDate"')
+  && !embeddedCheckout.includes('id="partnerDate"')
+  && !embeddedCheckout.includes('id="coUserCard"'));
+check('결제 덮개의 광고 동의는 처음부터 꺼져 있다',
+  embeddedCheckout.includes('id="coAgreeMarketing"') && !/id="coAgreeMarketing"[^>]*checked/.test(embeddedCheckout));
+check('결제 덮개에 상품 이름과 서버 가격이 있다',
+  embeddedCheckout.includes(CATALOG['compat-report'].name)
+  && embeddedCheckout.includes(CATALOG['compat-report'].priceKrw.toLocaleString('ko-KR') + '원'));
+const homeApp = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'public', 'app.js'), 'utf8');
+const mergedFlow = homeApp.slice(homeApp.indexOf('function drawTaste('), homeApp.indexOf('function closeTasteCheckout('));
+const inOrder = ['taste-hero-slot', 'taste-say', '손님의 여덟 글자', 'tasteNeeds(panel, product)',
+  'taste-jaegi', 'previewOne', "take('.pd-fit')", 'previewTwo', "take('.pd-why')",
+  "page.querySelector('.pd-gloss')", 'previewThree', "page.querySelector('.pd-buy')",
+  "take('.pd-cross-box')", "take('.pd-terms')", "doc.querySelector('footer')"];
+let lastPlace = -1;
+check('합친 화면의 주요 덩어리가 정해진 차례로 놓인다', inOrder.every((part) => {
+  const place = mergedFlow.indexOf(part, lastPlace + 1);
+  if (place < 0) return false;
+  lastPlace = place;
+  return true;
+}));
+check('오늘·한 달 운세도 같은 결제 덮개를 연다',
+  mergedFlow.includes(".dp-price-card, .mp-price-card") && mergedFlow.includes('openTasteCheckout(productId)'));
+check('합친 화면의 값은 상품표에서 가져온다',
+  mergedFlow.includes("product.priceKrw.toLocaleString('ko-KR')") && !/taste-price[^\n]*[0-9],[0-9]{3}/.test(mergedFlow));
 check('이 사람의 실제 항목이 담김',
   preview.body.preview.contents.length > 0,
   `${preview.body.preview.contents.length}개 — ${preview.body.preview.contents[0]}`);
@@ -1309,9 +1351,9 @@ section('H2. 물어본 것이 리포트까지 간다');
 const Q = '올해 이직해도 괜찮을까요?';
 // 아무것도 안 물은 같은 손님. 이것과 견준다
 const quietBase = await api('POST', '/api/orders',
-  { productId: 'cross-report', birth: BIRTH, face: { foreheadWidth: 'wide' }, acknowledgedNotice: true, previewShown: true });
+  { productId: 'cross-report', birth: BIRTH, face: { foreheadWidth: 'wide' }, palm: { lifeLength: 'long' }, acknowledgedNotice: true, previewShown: true });
 const askOrder = await api('POST', '/api/orders',
-  { productId: 'cross-report', birth: BIRTH, face: { foreheadWidth: 'wide' }, question: Q, acknowledgedNotice: true, previewShown: true });
+  { productId: 'cross-report', birth: BIRTH, face: { foreheadWidth: 'wide' }, palm: { lifeLength: 'long' }, question: Q, acknowledgedNotice: true, previewShown: true });
 check('질문을 실은 주문이 생긴다', askOrder.status === 201, askOrder.body.error);
 check('질문이 다르면 다른 주문으로 친다',
   askOrder.body.order.inputHash !== quietBase.body.order.inputHash);
@@ -1343,15 +1385,15 @@ check('그 한 편은 마지막 편이다', generateArgs.at(-1)?.question === Q)
 // 안 물어도 된다. 그게 기본이다
 generateArgs.length = 0;
 const quiet = await api('POST', '/api/orders',
-  { productId: 'cross-report', birth: BIRTH, face: { foreheadWidth: 'wide' }, question: '   ', acknowledgedNotice: true });
+  { productId: 'cross-report', birth: BIRTH, face: { foreheadWidth: 'wide' }, palm: { lifeLength: 'long' }, question: '   ', acknowledgedNotice: true });
 check('빈 질문은 없는 것으로 친다', quiet.body.order.inputHash === quietBase.body.order.inputHash);
 
 const badQ = await api('POST', '/api/orders',
-  { productId: 'cross-report', birth: BIRTH, face: { foreheadWidth: 'wide' }, question: { 나쁜: '것' }, acknowledgedNotice: true });
+  { productId: 'cross-report', birth: BIRTH, face: { foreheadWidth: 'wide' }, palm: { lifeLength: 'long' }, question: { 나쁜: '것' }, acknowledgedNotice: true });
 check('글이 아닌 질문은 거부', badQ.status === 400, badQ.body.error);
 
 const longQ = await api('POST', '/api/orders',
-  { productId: 'cross-report', birth: BIRTH, face: { foreheadWidth: 'wide' }, question: '가'.repeat(600), acknowledgedNotice: true });
+  { productId: 'cross-report', birth: BIRTH, face: { foreheadWidth: 'wide' }, palm: { lifeLength: 'long' }, question: '가'.repeat(600), acknowledgedNotice: true });
 check('아주 긴 질문도 서버가 버틴다', longQ.status === 201, longQ.body.error);
 
 // ─── 택일 리포트 ──────────────────────────────────────────────
@@ -2090,9 +2132,10 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     check('사진이 필요 없는 상품에는 사진 칸이 안 생긴다',
       사진불필요상품.length > 0 && 사진불필요상품.every((id) => !사진판별(id)) &&
       appJs.includes('if (needsPhoto)'));
-    check('사진을 다 넣기 전에는 「자세히 보기」가 잠겨 있다',
-      appJs.includes("go.classList.add('locked')") &&
-      appJs.includes('얼굴과 손을 먼저 보여 주십시오 ↑'));
+    check('사진을 다 넣기 전에는 「신령께 보여 드리기」가 잠겨 있다',
+      appJs.includes('reveal.disabled = check.missing.length > 0') &&
+      appJs.includes("check.missing.push('얼굴 사진')") &&
+      appJs.includes("check.missing.push('손바닥 사진')"));
 
     /*
      * 터진 뒤에 적은 것 (2026-09-29): 갈래 칸의 신령 카드가 140px 짜리 납작한
@@ -2262,7 +2305,7 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
         previewShown: true,
       });
       check(`${pId}: face/palm 없이 주문하면 400 이 나온다`,
-        noPhotoRes.status === 400 && noPhotoRes.body.error === '얼굴과 손을 먼저 보여 주셔야 합니다.',
+        noPhotoRes.status === 400 && noPhotoRes.body.error === '이 상품에 필요한 얼굴·손 사진을 먼저 보여 주셔야 합니다.',
         `상태: ${noPhotoRes.status}, 메시지: ${noPhotoRes.body?.error}`);
 
       const withPhotoRes = await api('POST', '/api/orders', {
@@ -2338,11 +2381,11 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     check('이미 보여 준 손님에게 두 번 묻지 않는다',
       상세대본.includes('다시 올리지 않으셔도 됩니다'), '같은 것을 두 번 올리게 하면 나간다');
 
-    check('맛보기 글의 뒷부분을 가린다',
-      신령대화.includes('pd-locked-sentence') && 신령대화.includes('가린다'),
-      '손님 것으로 지은 글을 통째로 보여 주면 결제할 까닭이 없다');
+    check('맛보기 글은 알맹이 낱말만 가린다',
+      신령대화.includes('taste-mask-word') && 신령대화.includes('section.parts.forEach'),
+      '문장 전체를 흐리면 읽을 수 없다');
     check('가린 자리가 있다고 말해 준다',
-      신령대화.includes('가려진 자리는 리포트에서'), '왜 끊겼는지 손님이 모른다');
+      신령대화.includes('🔒 리포트에서 풀어 드립니다'), '왜 끊겼는지 손님이 모른다');
     check('가짜 글을 깔지 않는다',
       !/lorem|▒▒▒▒▒▒/.test(신령대화), '지어낸 글을 흐리게 깔면 속이는 것이다');
 

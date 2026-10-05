@@ -429,6 +429,13 @@ const TIME_MAP = {
   'unknown': '12:00'
 };
 
+function normalizeBirthTime(raw) {
+  const digits = String(raw || '').replace(/[^0-9]/g, '');
+  const padded = digits.padStart(4, '0');
+  const value = /^\d{3,4}$/.test(digits) ? padded.slice(0, 2) + ':' + padded.slice(2) : String(raw || '').trim();
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : '';
+}
+
 let userState = { name: "", birthDate: "", birthTime: "", birthPlace: "서울" };
 let currentSpirit = null;
 let currentProduct = null;
@@ -894,7 +901,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const slot = (inputTimeSlot && inputTimeSlot.value) || 'mi';
         finalTime = TIME_MAP[slot] || '12:00';
       } else if (inputTime && inputTime.value) {
-        finalTime = inputTime.value;
+        finalTime = normalizeBirthTime(inputTime.value);
+        if (!finalTime) { inputTime.setCustomValidity('시간을 다시 적어 주십시오.'); inputTime.reportValidity(); return; }
+        inputTime.setCustomValidity('');
         timeKnown = true;
       } else {
         timeKnown = false;
@@ -1000,7 +1009,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const date = (userState.birthDate || '').trim();
     if (!date) return null;
     const raw = userState.birthTime || '';
-    const time = TIME_MAP[raw] || (raw.includes(':') ? raw : null);
+    const time = TIME_MAP[raw] || normalizeBirthTime(raw) || null;
     const gender = (userState.gender === 'female' || userState.gender === '여') ? '여' : '남';
     return { date: date, time: time, gender: gender };
   }
@@ -1052,8 +1061,177 @@ document.addEventListener('DOMContentLoaded', () => {
     return e;
   }
 
+  // 상품표의 needs 항목만 보고 입력칸을 만든다. 새 항목이 생겨도 같은 길을 쓴다.
+  function tasteNeeds(panel, product) {
+    const box = tEl('section', 'taste-needs');
+    box.appendChild(tEl('h4', 'taste-t', '이 상품에 필요한 것'));
+    const saved = loadReading() || {};
+    const own = saved.birth || tasteBirth() || {};
+    const summary = tEl('p', 'taste-own',
+      (own.name || userState.name || '손님') + ' · ' + (own.date || '생년월일 없음') + ' · ' + (own.timeKnown === false ? '시간을 모름' : (own.time || '시간을 모름')));
+    box.appendChild(summary);
+    const edit = tEl('button', 'taste-edit', '내 명식 고치기');
+    edit.type = 'button';
+    edit.addEventListener('click', () => { if (sajuInputModal) sajuInputModal.style.display = 'flex'; });
+    box.appendChild(edit);
+    const fields = {};
+    function field(key, label, type, value) {
+      const wrap = tEl('label', 'taste-field');
+      wrap.appendChild(tEl('span', null, label));
+      const input = tEl('input');
+      input.type = type;
+      input.value = value || '';
+      input.dataset.tasteKey = key;
+      wrap.appendChild(input);
+      box.appendChild(wrap);
+      fields[key] = input;
+      return input;
+    }
+    function timeField(key, label, value) {
+      const input = field(key, label, 'text', value);
+      input.inputMode = 'numeric';
+      input.placeholder = '예: 14:40, 1440, 905';
+      const unknown = tEl('button', 'taste-time-unknown', '시간을 모릅니다');
+      unknown.type = 'button';
+      unknown.setAttribute('aria-pressed', 'false');
+      unknown.addEventListener('click', () => {
+        const on = unknown.getAttribute('aria-pressed') !== 'true';
+        unknown.setAttribute('aria-pressed', on ? 'true' : 'false');
+        input.disabled = on;
+        if (on) input.value = '';
+        box.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      input.parentNode.appendChild(unknown);
+      fields[key + 'Unknown'] = unknown;
+    }
+    const needsChild = product.needsChild || product.needsChildBirth;
+    if (needsChild) {
+      field('childDate', '아이 생년월일', 'date', saved.child && saved.child.date);
+      timeField('childTime', '아이가 태어난 시간', saved.child && saved.child.time);
+    }
+    if (product.needsPartner) {
+      field('partnerDate', '상대 생년월일', 'date', saved.partner && saved.partner.date);
+      timeField('partnerTime', '상대가 태어난 시간', saved.partner && saved.partner.time);
+    }
+    if (product.needsRange) {
+      field('rangeFrom', '시작 날짜', 'date', saved.range && saved.range.from);
+      field('rangeTo', '끝 날짜', 'date', saved.range && saved.range.to);
+      field('rangeAvoid', '피하고 싶은 날짜 (선택)', 'text', saved.range && (saved.range.avoid || []).join(', '));
+    }
+    if (product.needsPick) {
+      field('pickDates', '수술할 수 있는 날짜 (쉼표로 구분)', 'text', saved.pick && (saved.pick.dates || []).join(', ')).placeholder = '예: 2026-10-20, 2026-10-22';
+      field('pickTimes', '수술할 수 있는 시각 (쉼표로 구분)', 'text', saved.pick && (saved.pick.times || []).join(', ')).placeholder = '예: 09:00, 14:00';
+    }
+    if (product.needsName) {
+      field('surname', '아이의 성', 'text', saved.name && saved.name.surname);
+      const fixedInput = field('fixedChar', '꼭 넣을 글자 (선택)', 'text', saved.name && saved.name.fixed && saved.name.fixed.char);
+      const hanjaList = tEl('div', 'taste-hanja-list');
+      box.appendChild(hanjaList);
+      let hanjaTimer;
+      fixedInput.addEventListener('input', () => {
+        clearTimeout(hanjaTimer);
+        hanjaList.textContent = '';
+        const sound = fixedInput.value.trim();
+        if (!/^[가-힣]$/.test(sound)) return;
+        hanjaTimer = setTimeout(async () => {
+          try {
+            const url = '/api/naming/hanja?reading=' + encodeURIComponent(sound)
+              + '&surname=' + encodeURIComponent(fields.surname.value.trim());
+            const response = await fetch(url);
+            if (!response.ok) return;
+            const list = (await response.json()).글자들 || [];
+            if (fixedInput.value.trim() !== sound) return;
+            list.forEach((item) => {
+              const choice = tEl('button', 'taste-hanja-choice',
+                item.자 + '  ' + (item.뜻 ? item.뜻 + '  ' : '') + item.획 + '획');
+              choice.type = 'button';
+              choice.addEventListener('click', () => { fixedInput.value = item.자; box.dispatchEvent(new Event('input', { bubbles: true })); });
+              hanjaList.appendChild(choice);
+            });
+          } catch (err) { /* 뜻 표가 안 열려도 글자는 손으로 적을 수 있다 */ }
+        }, 250);
+      });
+      const at = tEl('select');
+      at.innerHTML = '<option value="">글자 자리 고르기</option><option value="앞">성 뒤</option><option value="뒤">이름 끝</option>';
+      at.value = saved.name && saved.name.fixed ? saved.name.fixed.at : '';
+      box.appendChild(at);
+      fields.fixedAt = at;
+      field('avoidChars', '피할 글자 (선택)', 'text', saved.name && (saved.name.avoid || []).join(', '));
+    }
+    if (product.needsFamily) {
+      const family = tEl('div', 'taste-family');
+      const add = tEl('button', 'taste-edit', '+ 가족 한 분 더 넣기');
+      add.type = 'button';
+      const rows = [];
+      function addRow(person) {
+        const row = tEl('div', 'taste-family-row');
+        const relation = tEl('input'); relation.placeholder = '관계'; relation.value = person && person.relation || '';
+        const date = tEl('input'); date.type = 'date'; date.value = person && person.date || '';
+        const time = tEl('input'); time.type = 'text'; time.placeholder = '태어난 시각'; time.value = person && person.time || '';
+        const unknown = tEl('button', 'taste-time-unknown', '시간을 모릅니다'); unknown.type = 'button';
+        unknown.addEventListener('click', () => { time.disabled = !time.disabled; if (time.disabled) time.value = ''; row.dispatchEvent(new Event('input', { bubbles: true })); });
+        row.append(relation, date, time, unknown); family.appendChild(row);
+        rows.push({ relation, date, time });
+      }
+      (saved.family && saved.family.length ? saved.family : [{}]).forEach(addRow);
+      add.addEventListener('click', () => addRow({}));
+      box.append(family, add);
+      fields.familyRows = rows;
+    }
+    panel.appendChild(box);
+    function normTime(input) {
+      if (!input || input.disabled) return '12:00';
+      return normalizeBirthTime(input.value);
+    }
+    function collect() {
+      const missing = [];
+      const data = { productId: product.id, birth: own };
+      if (!product.needsPick && !own.date) missing.push('내 생년월일');
+      if (needsChild) {
+        if (!fields.childDate.value) missing.push('아이 생년월일');
+        if (!normTime(fields.childTime)) missing.push('아이 태어난 시간');
+        data.child = { date: fields.childDate.value, time: normTime(fields.childTime) };
+      }
+      if (product.needsPartner) {
+        if (!fields.partnerDate.value) missing.push('상대 생년월일');
+        if (!normTime(fields.partnerTime)) missing.push('상대 태어난 시간');
+        data.partner = { date: fields.partnerDate.value, time: normTime(fields.partnerTime) };
+      }
+      if (product.needsRange) {
+        if (!fields.rangeFrom.value || !fields.rangeTo.value) missing.push('보고 싶은 기간');
+        data.range = { from: fields.rangeFrom.value, to: fields.rangeTo.value,
+          avoid: fields.rangeAvoid.value.split(/[,\s]+/).filter(Boolean) };
+      }
+      if (product.needsPick) {
+        data.pick = { dates: fields.pickDates.value.split(/[,\s]+/).filter(Boolean),
+          times: fields.pickTimes.value.split(/[,\s]+/).filter(Boolean) };
+        if (!data.pick.dates.length) missing.push('수술 후보 날짜');
+        if (!data.pick.times.length) missing.push('수술 후보 시각');
+      }
+      if (product.needsName) {
+        if (!fields.surname.value.trim()) missing.push('아이의 성');
+        if (fields.fixedChar.value.trim() && !fields.fixedAt.value) missing.push('글자를 넣을 자리');
+        data.name = { surname: fields.surname.value.trim(),
+          avoid: fields.avoidChars.value.split(/[,\s]+/).filter(Boolean) };
+        if (fields.fixedChar.value.trim()) data.name.fixed = { char: fields.fixedChar.value.trim(), at: fields.fixedAt.value };
+      }
+      if (product.needsFamily) {
+        data.family = fields.familyRows.map((row) => ({ relation: row.relation.value.trim() || '가족',
+          date: row.date.value, time: normTime(row.time) })).filter((row) => row.date);
+        if (!data.family.length) missing.push('가족 생년월일');
+      }
+      const photos = (window.NB재기 && window.NB재기.담긴값) ? window.NB재기.담긴값() : (loadReading() || {});
+      if (photos.face || (photos.보여줌 && photos.보여줌.face)) data.face = photos.face || { shown: true };
+      if (photos.palm || (photos.보여줌 && photos.보여줌.palm)) data.palm = photos.palm || { shown: true };
+      return { data, missing };
+    }
+    return { box, collect };
+  }
+
   function drawTaste(panel, href, res) {
     panel.textContent = '';
+    const heroSlot = tEl('div', 'taste-hero-slot');
+    panel.appendChild(heroSlot);
 
     if (res && res.lines && res.lines.length) {
       const say = tEl('div', 'taste-say');
@@ -1131,6 +1309,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (res && res.more) panel.appendChild(tEl('p', 'taste-cut', res.more));
 
     const productId = panel.dataset.of || '';
+    const product = catalogProducts.find((item) => item.id === productId);
+    if (!product) return;
+    const needs = tasteNeeds(panel, product);
     const needsFace = (productId === 'cross-report' || productId === 'face-palm-report' || productId === 'saju-face-report');
     const needsPalm = (productId === 'cross-report' || productId === 'face-palm-report' || productId === 'saju-palm-report');
     const needsPhoto = needsFace || needsPalm;
@@ -1149,10 +1330,6 @@ document.addEventListener('DOMContentLoaded', () => {
        * 유파마다 다르므로 우리가 정하지 않고, 흔히 쓰는 기준을 알려 준다.
        */
       jaegiSec.appendChild(promiseP);
-      if (needsPalm) {
-        jaegiSec.appendChild(tEl('p', 'taste-jaegi-hand',
-          '손은 남자는 왼손, 여자는 오른손을 올려 주십시오 (남좌여우). 반대 손도 괜찮습니다.'));
-      }
       /* 도구를 미리 받아 둔다. 사진을 고를 때쯤이면 준비돼 있다 */
       if (window.NB재기 && window.NB재기.미리받는다) window.NB재기.미리받는다(needsFace, needsPalm);
 
@@ -1160,87 +1337,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const 보여줌 = (savedReading && savedReading.보여줌) || {};
       faceDone = !!((savedReading && savedReading.face) || 보여줌.face);
       palmDone = !!((savedReading && savedReading.palm) || 보여줌.palm);
-
-      const previewBox = tEl('div', 'taste-preview-box');
-
-      let loadingPreview = false;
-      function loadBlindPreview() {
-        const allDone = (!needsFace || faceDone) && (!needsPalm || palmDone);
-        if (!allDone) return;
-
-        const curSaved = (window.NB재기 && window.NB재기.담긴값) ? window.NB재기.담긴값() : (loadReading() || {});
-        const b = curSaved.birth || (curSaved.date ? curSaved : null);
-        if (!b || !b.date) {
-          previewBox.textContent = '';
-          const note = tEl('p', 'taste-preview-note', '생년월일을 넣으시면 손님 것으로 보여 드립니다.');
-          previewBox.appendChild(note);
-          return;
-        }
-
-        if (loadingPreview) return;
-        loadingPreview = true;
-        previewBox.textContent = '';
-        const waitP = tEl('p', 'taste-preview-wait', '손님의 얼굴과 손을 사주에 겹쳐 보고 있습니다…');
-        previewBox.appendChild(waitP);
-
-        fetch('/api/preview', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            productId: productId,
-            birth: b,
-            face: curSaved.face,
-            palm: curSaved.palm,
-          }),
-        })
-          .then((r) => (r.ok ? r.json() : null))
-          .then((data) => {
-            loadingPreview = false;
-            previewBox.textContent = '';
-            const text = data && data.preview && data.preview.text;
-            if (!text) return;
-
-            const lead = tEl('p', 'taste-preview-lead', '손님의 얼굴과 손을 보고 말합니다');
-            previewBox.appendChild(lead);
-
-            const contentDiv = tEl('div', 'taste-preview-content');
-            const 막는다 = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            const 가린다 = (t) => '<span class="pd-locked-sentence">'
-              + '<span class="pd-blurred-text">' + 막는다(t) + '</span>'
-              + '<span class="pd-lock-badge">🔒 리포트에서 풀어 드립니다</span></span>';
-
-            /*
-             * 뒷부분은 **가린다.**
-             *
-             * 터진 뒤에 적은 것 (2026-10-03): 손님 것으로 지은 글을 **통째로** 보여 주고
-             * 있었다. 다 보여 주면 더 궁금할 것이 없어 결제할 까닭이 사라진다.
-             * 맛보기는 맛만 보여야 한다.
-             *
-             * 가리는 것은 **진짜 그 손님의 글**이다. 흐릿한 가짜 글을 깔면 그건 속이는 것이다.
-             */
-            let 안쪽;
-            if (/\[\[가림:/.test(text)) {
-              // 서버가 가릴 곳을 짚어 주면 그대로 따른다
-              안쪽 = 막는다(text).replace(/\[\[가림:([\s\S]+?)\]\]/g, (m, c) => 가린다(c));
-            } else {
-              const 문장 = String(text).split(/(?<=[.!?。])\s+/).filter((x) => x.trim());
-              const 보일수 = Math.max(1, Math.ceil(문장.length * 0.55));
-              const 앞 = 문장.slice(0, 보일수).join(' ');
-              const 뒤 = 문장.slice(보일수).join(' ');
-              안쪽 = 막는다(앞) + (뒤 ? ' ' + 가린다(뒤) : '');
-            }
-            contentDiv.innerHTML = '<p>' + 안쪽.replace(/\n{2,}/g, '</p><p>') + '</p>';
-            previewBox.appendChild(contentDiv);
-            if (!/\[\[가림:/.test(text)) {
-              previewBox.appendChild(tEl('p', 'taste-preview-more',
-                '가려진 자리는 리포트에서 끝까지 풀어 드립니다.'));
-            }
-          })
-          .catch(() => {
-            loadingPreview = false;
-            previewBox.textContent = '';
-          });
-      }
 
       if (needsFace) {
         const box = tEl('div', 'taste-jaegi-box');
@@ -1270,9 +1366,9 @@ document.addEventListener('DOMContentLoaded', () => {
           faceMsg.className = 'taste-jaegi-msg';
           if (!window.NB재기 || !window.NB재기.얼굴) {
             faceMsg.textContent = '사진은 받았습니다. 지금은 못 재었지만 풀이는 그대로 나옵니다.';
+            if (window.NB재기 && window.NB재기.보여줬다) window.NB재기.보여줬다('face');
             faceDone = true;
             if (updateGoLock) updateGoLock();
-            loadBlindPreview();
             return;
           }
           window.NB재기.얼굴(file).then(function(val) {
@@ -1281,7 +1377,6 @@ document.addEventListener('DOMContentLoaded', () => {
             span.textContent = '✓ 📷 얼굴 사진 확인됨';
             faceMsg.textContent = '얼굴을 다 재었습니다. 풀이에 그대로 씁니다.';
             if (updateGoLock) updateGoLock();
-            loadBlindPreview();
           }).catch(function(err) {
             faceMsg.textContent = '사진은 받았습니다. 지금은 못 재었지만 풀이는 그대로 나옵니다.';
             if (window.NB재기 && window.NB재기.보여줬다) window.NB재기.보여줬다('face');
@@ -1289,12 +1384,13 @@ document.addEventListener('DOMContentLoaded', () => {
             span.textContent = '✓ 📷 얼굴 사진 받음';
             faceDone = true;
             if (updateGoLock) updateGoLock();
-            loadBlindPreview();
           });
         });
       }
 
       if (needsPalm) {
+        jaegiSec.appendChild(tEl('p', 'taste-jaegi-hand',
+          '남자는 왼손, 여자는 오른손을 올려주십시오 (남좌여우).'));
         const box = tEl('div', 'taste-jaegi-box');
         const palmLabel = tEl('label', 'taste-jaegi-btn' + (palmDone ? ' done' : ''));
         const input = tEl('input', 'taste-jaegi-file');
@@ -1318,9 +1414,9 @@ document.addEventListener('DOMContentLoaded', () => {
           palmMsg.className = 'taste-jaegi-msg';
           if (!window.NB재기 || !window.NB재기.손) {
             palmMsg.textContent = '사진은 받았습니다. 지금은 못 재었지만 풀이는 그대로 나옵니다.';
+            if (window.NB재기 && window.NB재기.보여줬다) window.NB재기.보여줬다('palm');
             palmDone = true;
             if (updateGoLock) updateGoLock();
-            loadBlindPreview();
             return;
           }
           window.NB재기.손(file).then(function(val) {
@@ -1330,7 +1426,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const shape = (val && val.handShape) || '금형';
             palmMsg.textContent = '손 모양을 다 재었습니다 — ' + shape + '. 풀이에 그대로 씁니다.';
             if (updateGoLock) updateGoLock();
-            loadBlindPreview();
           }).catch(function(err) {
             palmMsg.textContent = '사진은 받았습니다. 지금은 못 재었지만 풀이는 그대로 나옵니다.';
             if (window.NB재기 && window.NB재기.보여줬다) window.NB재기.보여줬다('palm');
@@ -1338,66 +1433,169 @@ document.addEventListener('DOMContentLoaded', () => {
             span.textContent = '✓ ✋ 손바닥 사진 받음';
             palmDone = true;
             if (updateGoLock) updateGoLock();
-            loadBlindPreview();
           });
         });
       }
 
-      jaegiSec.appendChild(previewBox);
       panel.appendChild(jaegiSec);
 
-      if ((!needsFace || faceDone) && (!needsPalm || palmDone)) {
-        loadBlindPreview();
-      }
     }
 
-    const go = tEl('a', 'taste-go', '자세히 보기 →');
-    go.href = href;
-
-    if (needsPhoto) {
-      updateGoLock = function() {
-        const savedReading = (window.NB재기 && window.NB재기.담긴값) ? window.NB재기.담긴값() : (loadReading() || {});
-        const hasF = faceDone || !!(savedReading && savedReading.face);
-        const hasP = palmDone || !!(savedReading && savedReading.palm);
-        const allDone = (!needsFace || hasF) && (!needsPalm || hasP);
-
-        if (allDone) {
-          go.classList.remove('locked');
-          go.textContent = '자세히 보기 →';
-          go.removeAttribute('aria-disabled');
-        } else {
-          go.classList.add('locked');
-          let missingText = '얼굴과 손을 먼저 보여 주십시오 ↑';
-          if (!hasF && !hasP) {
-            missingText = (needsFace && needsPalm) ? '얼굴과 손을 먼저 보여 주십시오 ↑' : (needsFace ? '얼굴을 먼저 보여 주십시오 ↑' : '손을 먼저 보여 주십시오 ↑');
-          } else if (!hasF) {
-            missingText = '얼굴을 먼저 보여 주십시오 ↑';
-          } else if (!hasP) {
-            missingText = '손을 먼저 보여 주십시오 ↑';
-          }
-          go.textContent = missingText;
-          go.setAttribute('aria-disabled', 'true');
-        }
-      };
-
-      go.addEventListener('click', function(e) {
-        const savedReading = (window.NB재기 && window.NB재기.담긴값) ? window.NB재기.담긴값() : (loadReading() || {});
-        const hasF = faceDone || !!(savedReading && savedReading.face);
-        const hasP = palmDone || !!(savedReading && savedReading.palm);
-        const allDone = (!needsFace || hasF) && (!needsPalm || hasP);
-
-        if (!allDone) {
-          e.preventDefault();
-          jaegiSec.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
+    const revealRow = tEl('div', 'taste-reveal-row');
+    const reveal = tEl('button', 'taste-go', '신령께 보여 드리기');
+    reveal.type = 'button';
+    const missing = tEl('p', 'taste-missing');
+    revealRow.append(reveal, missing);
+    panel.appendChild(revealRow);
+    const previewOne = tEl('section', 'taste-masked');
+    const previewTwo = tEl('section', 'taste-masked');
+    const previewThree = tEl('section', 'taste-masked');
+    panel.appendChild(previewOne);
+    const detail = tEl('div', 'taste-detail');
+    panel.appendChild(detail);
+    detail.addEventListener('click', (event) => {
+      const link = event.target.closest && event.target.closest('a[href^="/products/"]');
+      if (!link) return;
+      const otherId = decodeURIComponent((link.getAttribute('href') || '').split('/').pop());
+      const card = productCarouselTrack && productCarouselTrack.querySelector('[data-product-id="' + otherId + '"]');
+      if (card) { event.preventDefault(); card.click(); }
+    });
+    let revealed = false;
+    function lockState() {
+      const check = needs.collect();
+      if (needsFace && !faceDone && !check.data.face) check.missing.push('얼굴 사진');
+      if (needsPalm && !palmDone && !check.data.palm) check.missing.push('손바닥 사진');
+      reveal.disabled = check.missing.length > 0;
+      missing.textContent = check.missing.length ? '먼저 적어 주세요: ' + check.missing.join(' · ') : '';
+      return check;
+    }
+    updateGoLock = lockState;
+    needs.box.addEventListener('input', lockState);
+    needs.box.addEventListener('change', lockState);
+    lockState();
+    function fillMasked(target, section) {
+      target.textContent = '';
+      target.appendChild(tEl('h3', 'pd-h', section.title));
+      const p = tEl('p', 'taste-masked-line');
+      section.parts.forEach((part) => {
+        p.appendChild(tEl('span', part.hidden ? 'taste-mask-word' : '', part.hidden ? '▓'.repeat(Math.min([...part.text].length, 8)) : part.text));
+        if (part.hidden) p.appendChild(tEl('span', 'taste-unlock', '🔒 리포트에서 풀어 드립니다'));
       });
-
-      updateGoLock();
+      target.appendChild(p);
     }
-
-    panel.appendChild(go);
+    reveal.addEventListener('click', async () => {
+      const check = lockState();
+      if (check.missing.length) return;
+      saveReading(check.data);
+      reveal.disabled = true;
+      reveal.textContent = '손님의 자료를 살피고 있습니다…';
+      try {
+        const response = await fetch('/api/preview', { method: 'POST',
+          headers: { 'content-type': 'application/json' }, body: JSON.stringify(check.data) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || '맛보기를 만들지 못했습니다.');
+        const sections = data.preview && data.preview.sections;
+        if (!sections || sections.length !== 3) throw new Error('맛보기 세 대목을 만들지 못했습니다.');
+        [previewOne, previewTwo, previewThree].forEach((target, i) => fillMasked(target, sections[i]));
+        revealed = true;
+        reveal.textContent = '다시 살펴보기';
+        missing.textContent = '';
+      } catch (err) {
+        missing.textContent = err.message || '잠시 뒤 다시 해 주십시오.';
+        reveal.textContent = '다시 보여 드리기';
+      } finally { lockState(); }
+    });
+    fetch(href).then((response) => response.text()).then((html) => {
+      if (!panel.isConnected) return;
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const style = doc.querySelector('style');
+      if (style && !document.getElementById('tasteProductStyle')) {
+        const copied = tEl('style'); copied.id = 'tasteProductStyle'; copied.textContent = style.textContent;
+        document.head.appendChild(copied);
+      }
+      const page = doc.querySelector('.pr');
+      if (!page) return;
+      ['.pd-hero-box', '.pd-pitch-box', '.pd-term', '.pr-desc'].forEach((selector) => {
+        const el = page.querySelector(selector);
+        if (el) heroSlot.appendChild(el);
+      });
+      function take(selector) { const el = page.querySelector(selector); if (el) detail.appendChild(el); }
+      take('.pd-fit');
+      const contents = page.querySelector('.pd-contents-list');
+      if (contents) detail.appendChild(contents.closest('.pd-sec'));
+      const sampleHead = tEl('h3', 'pd-h', '신령이 이렇게 말합니다');
+      detail.append(sampleHead, previewTwo);
+      take('.pd-why');
+      take('.pd-faq');
+      const glossary = page.querySelector('.pd-gloss');
+      if (glossary) { glossary.open = true; detail.appendChild(glossary); }
+      detail.appendChild(previewThree);
+      const buy = page.querySelector('.pd-buy');
+      if (buy) {
+        buy.querySelectorAll('.pd-go, .pd-also').forEach((el) => {
+          if (el.textContent.includes('결제 화면') || el.classList.contains('pd-go')) el.remove();
+        });
+        const button = tEl('button', 'taste-buy', '자세한 내용 받기');
+        button.type = 'button';
+        button.addEventListener('click', () => {
+          if (!revealed) { reveal.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+          openTasteCheckout(productId);
+        });
+        buy.appendChild(tEl('p', 'taste-price', product.priceKrw.toLocaleString('ko-KR') + '원'));
+        buy.appendChild(button);
+        detail.appendChild(buy);
+      } else {
+        // 오늘·한 달 상품은 별도 상세 양식을 쓴다. 이 경우에도 홈 안에서 값을 보고 결제창을 연다.
+        const special = page.querySelector('.dp-price-card, .mp-price-card');
+        const specialBuy = special || tEl('section', 'taste-special-buy');
+        specialBuy.querySelectorAll('a[href^="/checkout"]').forEach((el) => el.remove());
+        specialBuy.appendChild(tEl('p', 'taste-price', product.priceKrw.toLocaleString('ko-KR') + '원'));
+        const button = tEl('button', 'taste-buy', '자세한 내용 받기');
+        button.type = 'button';
+        button.addEventListener('click', () => {
+          if (!revealed) { reveal.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+          openTasteCheckout(productId);
+        });
+        specialBuy.appendChild(button);
+        detail.appendChild(specialBuy);
+      }
+      take('.pd-cross-box');
+      take('.pd-terms');
+      take('.pr-note');
+      const footer = doc.querySelector('footer');
+      if (footer) detail.appendChild(footer);
+    }).catch(() => { detail.appendChild(tEl('p', 'taste-missing', '상품 설명을 불러오지 못했습니다. 다시 눌러 주십시오.')); });
     panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
+
+  function closeTasteCheckout() {
+    const cover = document.getElementById('tasteCheckoutCover');
+    if (cover) cover.remove();
+  }
+
+  function openTasteCheckout(productId) {
+    closeTasteCheckout();
+    const cover = tEl('div', 'taste-checkout-cover');
+    cover.id = 'tasteCheckoutCover';
+    cover.setAttribute('role', 'dialog');
+    cover.setAttribute('aria-modal', 'true');
+    cover.setAttribute('aria-label', '결제창');
+    const close = tEl('button', 'taste-checkout-close', '← 상품으로 돌아가기');
+    close.type = 'button';
+    close.addEventListener('click', () => history.back());
+    const frame = tEl('iframe', 'taste-checkout-frame');
+    frame.title = '결제창';
+    frame.src = '/checkout?product=' + encodeURIComponent(productId) + '&embedded=1';
+    cover.append(close, frame);
+    document.body.appendChild(cover);
+    history.pushState({ nbCheckout: productId }, '', location.href);
+  }
+
+  window.addEventListener('popstate', () => {
+    if (document.getElementById('tasteCheckoutCover')) { closeTasteCheckout(); return; }
+    const open = productCarouselTrack && productCarouselTrack.querySelector('.taste-panel');
+    if (open) open.remove();
+  });
 
   // 트랙에 클릭 이벤트 위임 (카드를 누르면 그 자리에서 맛보기가 펼쳐진다)
   if (productCarouselTrack && !productCarouselTrack._hasClickBound) {
@@ -1410,7 +1608,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const href = '/products/' + encodeURIComponent(productId);
 
       const open = productCarouselTrack.querySelector('.taste-panel');
-      if (open && open.dataset.of === productId) { open.remove(); return; }
+      if (open && open.dataset.of === productId) { history.back(); return; }
       if (open) open.remove();
 
       // 기다리는 동안 빈 칸이면 손님은 고장 난 줄 안다
@@ -1418,6 +1616,7 @@ document.addEventListener('DOMContentLoaded', () => {
       panel.dataset.of = productId;
       panel.appendChild(tEl('p', 'taste-wait', '신령이 여덟 글자를 들여다보는 중…'));
       card.insertAdjacentElement('afterend', panel);
+      if (!open) history.pushState({ nbProduct: productId }, '', location.href);
       panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
       fetch('/api/taste', {

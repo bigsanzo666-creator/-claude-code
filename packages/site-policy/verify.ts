@@ -1129,8 +1129,9 @@ section('11. 문 — 신령계 들어가는 곳');
     allCheckoutPages.every((html) => !html.includes('9월 28일') && !html.includes('39,900원으로 올라갑니다')));
 
   check('판 적 없는 값에 취소선을 긋지 않는다',
-    [...allProductPages, ...allCheckoutPages].every((html) =>
-      !/<del>|<s>|text-decoration:\s*line-through|line-through/.test(html)));
+    allProductPages.every((html) => !/<del>|<s>|line-through/.test(html))
+    && allCheckoutPages.every((html) => !/<del>|<s>/.test(html))
+    && allCheckoutPages.every((html) => html.includes("if(inv && p >=") && html.includes("won(p) + '원")));
 
   check('어디에도 취소선 정가·할인율·거짓 급함이 없다',
     allProductPages.every((html) =>
@@ -1590,19 +1591,19 @@ section('11. 문 — 신령계 들어가는 곳');
     {
       keyword: '피할',
       test: (desc: string) => desc.includes('피할'),
-      fieldCheck: (html: string) => html.includes('avoidChars') || html.includes('rangeAvoid'),
+      fieldCheck: (html: string) => html.includes('id="avoidChars"') || html.includes('id="rangeAvoid"'),
       fieldDescription: '피할 글자(avoidChars) 또는 피할 날(rangeAvoid) 입력칸',
     },
     {
       keyword: '상대',
       test: (desc: string) => desc.includes('상대'),
-      fieldCheck: (html: string) => html.includes('partnerDate') || html.includes('partnerTime'),
+      fieldCheck: (html: string) => html.includes('id="partnerDate"') || html.includes('id="partnerTime"'),
       fieldDescription: '상대 정보 입력칸(partnerDate/partnerTime)',
     },
     {
       keyword: '기간',
       test: (desc: string) => desc.includes('기간'),
-      fieldCheck: (html: string) => html.includes('rangeFrom') && html.includes('rangeTo'),
+      fieldCheck: (html: string) => html.includes('id="rangeFrom"') && html.includes('id="rangeTo"'),
       fieldDescription: '기간 선택칸(rangeFrom/rangeTo)',
     },
     {

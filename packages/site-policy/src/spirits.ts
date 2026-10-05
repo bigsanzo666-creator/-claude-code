@@ -426,12 +426,15 @@ export const SPIRITS_CSS = `
   letter-spacing:-0.02em}
 
 /* 상품 하나짜리 페이지에서 거는 말 */
-.sp-pitch{display:flex;align-items:flex-start;gap:18px;margin:0 0 28px;padding:22px 22px 24px;
+.sp-pitch{display:grid;grid-template-columns:76px minmax(0,1fr);align-items:center;gap:12px 16px;margin:0 0 28px;padding:22px 22px 24px;
   border-radius:14px;border:1px solid rgba(212,175,55,.35);
   background:linear-gradient(135deg,rgba(26,26,38,.92) 0%,rgba(16,15,24,.96) 100%);
   box-shadow:0 8px 24px rgba(0,0,0,.5),0 0 20px rgba(212,175,55,.12)}
 .sp-pitch .sp-face{width:76px;height:76px;border:2px solid rgba(212,175,55,.45);
-  box-shadow:0 0 16px rgba(212,175,55,.2)}
+  border-radius:8px;box-shadow:0 0 16px rgba(212,175,55,.2)}
+.sp-pitch .sp-said{display:contents}
+.sp-pitch .sp-who{grid-column:2;grid-row:1;margin:0;font-size:20px;font-weight:700;line-height:1.4}
+.sp-pitch .sp-line{grid-column:1/-1;grid-row:2;margin:6px 0 0}
 .sp-pitch .sp-line{font-size:19px;font-weight:500;line-height:1.68;color:var(--nb-ink);letter-spacing:-0.02em;position:relative}
 .sp-pitch .sp-line::before{content:'“';font-size:24px;color:var(--nb-gold);margin-right:4px;font-family:var(--font-serif);line-height:1}
 .sp-pitch .sp-line::after{content:'”';font-size:24px;color:var(--nb-gold);margin-left:4px;font-family:var(--font-serif);line-height:1}
