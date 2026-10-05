@@ -1087,6 +1087,28 @@ document.addEventListener('DOMContentLoaded', () => {
       fields[key] = input;
       return input;
     }
+    /*
+     * 고르는 칸.
+     *
+     * 터진 뒤에 적은 것 (2026-10-05): 아이 성별을 「남아」로 미리 골라 두었다.
+     * 딸인데 그냥 지나치면 **대운이 거꾸로** 나간다 — 리포트 전체가 틀린다.
+     * 그래서 아무것도 안 골라진 채로 두고, 고르셔야 넘어가게 한다.
+     */
+    function pickField(key, label, choices, value) {
+      const wrap = tEl('label', 'taste-field');
+      wrap.appendChild(tEl('span', null, label));
+      const sel = tEl('select');
+      sel.dataset.tasteKey = key;
+      const blank = tEl('option', null, '— 고르지 않음 —');
+      blank.value = '';
+      sel.appendChild(blank);
+      choices.forEach(([v, t]) => { const o = tEl('option', null, t); o.value = v; sel.appendChild(o); });
+      sel.value = value || '';
+      wrap.appendChild(sel);
+      box.appendChild(wrap);
+      fields[key] = sel;
+      return sel;
+    }
     function timeField(key, label, value) {
       const input = field(key, label, 'text', value);
       input.inputMode = 'numeric';
@@ -1108,6 +1130,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (needsChild) {
       field('childDate', '아이 생년월일', 'date', saved.child && saved.child.date);
       timeField('childTime', '아이가 태어난 시간', saved.child && saved.child.time);
+      pickField('childGender', '아이 성별', [['남', '남아'], ['여', '여아']], saved.child && saved.child.gender);
     }
     if (product.needsPartner) {
       field('partnerDate', '상대 생년월일', 'date', saved.partner && saved.partner.date);
@@ -1190,7 +1213,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (needsChild) {
         if (!fields.childDate.value) missing.push('아이 생년월일');
         if (!normTime(fields.childTime)) missing.push('아이 태어난 시간');
-        data.child = { date: fields.childDate.value, time: normTime(fields.childTime) };
+        if (!fields.childGender.value) missing.push('아이 성별');
+        data.child = { date: fields.childDate.value, time: normTime(fields.childTime),
+          gender: fields.childGender.value };
       }
       if (product.needsPartner) {
         if (!fields.partnerDate.value) missing.push('상대 생년월일');

@@ -1024,7 +1024,18 @@ function validateReading(body: any): ReadingRequest {
       body.child.timeKnown = false;
       body.child.time = '12:00';
     }
-    body.child.gender = body.child.gender === '여' ? '여' : '남';
+    /*
+     * 터진 뒤에 적은 것 (2026-10-05): 아이 성별을 「남」으로 메워 넣고 있었다.
+     * 딸인데 그냥 넘어가면 **대운이 거꾸로** 나간다 — 리포트 전체가 틀린다.
+     * 메우지 않고 되묻는다.
+     */
+    const rawChildGender = String(body.child.gender ?? '').trim();
+    const childGender = /^(여|여아|여자|female|f)$/i.test(rawChildGender) ? '여'
+      : /^(남|남아|남자|male|m)$/i.test(rawChildGender) ? '남' : '';
+    if (!childGender) {
+      throw new HttpError(400, '아이가 아들인지 딸인지 골라 주셔야 합니다. 대운이 가는 방향이 달라집니다.');
+    }
+    body.child.gender = childGender;
     body.child.isDueDate = Boolean(body.child.isDueDate);
     if (typeof body.child.name === 'string') {
       body.child.name = body.child.name.trim().slice(0, 20);

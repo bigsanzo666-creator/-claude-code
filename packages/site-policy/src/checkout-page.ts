@@ -401,10 +401,12 @@ export function renderCheckoutPage(
         </div>
         <div class="co-f">
           <label for="childGender">아이 성별</label>
-          <select name="childGender" id="childGender">
+          <select name="childGender" id="childGender" required>
+            <option value="" selected>— 고르지 않음 —</option>
             <option value="남">남아</option>
             <option value="여">여아</option>
           </select>
+          <span class="co-hint">대운이 가는 방향이 달라져서 여쭙습니다</span>
         </div>
       </div>
       <div class="co-f">
@@ -708,6 +710,8 @@ export function renderCheckoutPage(
       reason = EMBEDDED ? '상품 화면에서 생년월일을 먼저 적어 주십시오' : '생년월일을 적으셔야 결제하실 수 있습니다';
     } else if(NEEDS_CHILD && !val('childDate') && document.getElementById('childDate')){
       reason = '아이의 생년월일(또는 예정일)을 적으셔야 결제하실 수 있습니다';
+    } else if(NEEDS_CHILD && !val('childGender') && document.getElementById('childGender')){
+      reason = '아이가 아들인지 딸인지 골라 주십시오';
     }
     if(!reason && NEEDS_NAME){
       var fChar = (typeof 고른한자 !== 'undefined' ? 고른한자 : '') || val('fixedChar');
@@ -2054,6 +2058,9 @@ export function renderCheckoutPage(
     ${product.needsChild ? `
     var cDate = val('childDate');
     if(!cDate) return say('아이의 생년월일(또는 예정일)을 적어 주십시오.');
+    /* 미리 골라 두지 않는다. 딸인데 넘어가면 대운이 거꾸로 나간다 */
+    var cGender = val('childGender');
+    if(!cGender) return say('아이가 아들인지 딸인지 골라 주십시오. 대운이 가는 방향이 달라집니다.');
     var isChildUnk = Boolean(window.__childTimeUnknown);
     var cTimeInp = val('childTime');
     var cParsed = parseTimeInput(cTimeInp);
@@ -2074,7 +2081,7 @@ export function renderCheckoutPage(
       time: cFinalTime,
       timeKnown: cTimeKnown,
       place: val('childPlace') || '서울',
-      gender: val('childGender') || '남',
+      gender: cGender,
       name: val('childName') || '',
       isDueDate: Boolean(childDueEl && childDueEl.checked)
     };

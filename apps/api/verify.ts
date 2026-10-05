@@ -252,7 +252,7 @@ check('ref 가 없어도 주문이 만들어진다',
 const namingNoFixed = await api('POST', '/api/orders', {
   productId: 'naming-report',
   birth: BIRTH,
-  child: { date: '2026-03-10' },
+  child: { date: '2026-03-10', gender: '남' },
   name: { surname: '김' },
   acknowledgedNotice: true,
   previewShown: true,
@@ -262,7 +262,7 @@ check('돌림자 없는 작명 주문 정상 생성', namingNoFixed.status === 2
 const namingWithFixed = await api('POST', '/api/orders', {
   productId: 'naming-report',
   birth: BIRTH,
-  child: { date: '2026-03-10' },
+  child: { date: '2026-03-10', gender: '남' },
   name: { surname: '김', fixed: { char: '준', at: '앞' }, avoid: ['철', '수'] },
   acknowledgedNotice: true,
   previewShown: true,
@@ -272,7 +272,7 @@ check('돌림자·피할글자 있는 작명 주문 정상 생성', namingWithFi
 const namingLongAvoid = await api('POST', '/api/orders', {
   productId: 'naming-report',
   birth: BIRTH,
-  child: { date: '2026-03-10' },
+  child: { date: '2026-03-10', gender: '남' },
   name: {
     surname: '김',
     avoid: ['가','나','다','라','마','바','사','아','자','차','카','타','파','하','거','너','더','러','머','버','서'], // 21자
@@ -285,16 +285,33 @@ check('피할 글자 21자 입력 시 400 반환', namingLongAvoid.status === 40
 const namingLongFixed = await api('POST', '/api/orders', {
   productId: 'naming-report',
   birth: BIRTH,
-  child: { date: '2026-03-10' },
+  child: { date: '2026-03-10', gender: '남' },
   name: { surname: '김', fixed: { char: '준희', at: '앞' } },
   acknowledgedNotice: true,
   previewShown: true,
 });
 check('돌림자 2자 이상 입력 시 400 반환', namingLongFixed.status === 400);
 
+/*
+ * 아이 성별은 메워 넣지 않는다.
+ * 터진 뒤에 적은 것 (2026-10-05): 「남」으로 채워 넣고 있었다. 딸이면
+ * 대운이 거꾸로 간다 — 리포트 전체가 틀린다.
+ */
+const 성별없는아이 = {
+  productId: 'child-report', birth: BIRTH,
+  child: { date: '2026-03-10', time: '10:00' },
+  acknowledgedNotice: true, previewShown: true,
+};
+check('아이 성별을 안 고르면 되묻는다',
+  (await api('POST', '/api/orders', 성별없는아이)).status === 400);
+check('아이 성별을 고르면 지나간다',
+  (await api('POST', '/api/orders', { ...성별없는아이,
+    child: { ...성별없는아이.child, gender: '여' } })).status === 201);
+
 const pLoad = buildPayload({
   productId: 'naming-report',
   birth: BIRTH,
+  child: { date: '2026-03-10', time: '10:00', gender: '남' },
   name: { surname: '김', fixed: { char: '준', at: '앞' }, avoid: ['철'] },
 });
 check('작명 페이로드에 돌림자가 반영된다', (pLoad.data as any).이름밭?.돌림자 === '준' || Boolean((pLoad.data as any).이름밭?.돌림자_분석));
@@ -1244,6 +1261,8 @@ section('H1. 값이 다르면 물건도 다르다');
     try {
       built = buildPayload({
         productId: p.id, birth: BIRTH2, partner: PARTNER2,
+        // 아이 상품은 아이의 명식으로 세운다. 아이 자료가 없으면 만들어지지 않는 게 맞다
+        child: { date: '2026-03-10', time: '10:00', gender: '여' },
         name: { surname: '김' }, pick: { dates: ['2027-04-30'], times: ['16:30'] },
         range: { from: '2026-10-01', to: '2026-10-31' },
         // 명절 가족운세는 한 상에 앉는 사람이 있어야 짝이 선다
@@ -1347,7 +1366,8 @@ section('H1. 값이 다르면 물건도 다르다');
     'exam-report': 5, 'job-report': 5,
   };
   for (const [id, want] of Object.entries(해수)) {
-    const d = buildPayload({ productId: id, birth: BIRTH2 } as never).data as { 세운: unknown[] };
+    const d = buildPayload({ productId: id, birth: BIRTH2,
+      child: { date: '2026-03-10', time: '10:00', gender: '여' } } as never).data as { 세운: unknown[] };
     const 말 = { 3: '세 해', 5: '다섯 해' }[want];
     const said = (CONTENTS_FOR(id) ?? []).some((t) => t.includes(`올해부터 ${말}`));
     check(`${CATALOG[id as never].name} — 적어 둔 해수와 자료가 맞는다`,
@@ -1367,6 +1387,8 @@ section('H1. 값이 다르면 물건도 다르다');
     try {
       pl = buildPayload({
         productId: p.id, birth: BIRTH2, partner: PARTNER2,
+        // 아이 상품은 아이의 명식으로 세운다. 아이 자료가 없으면 만들어지지 않는 게 맞다
+        child: { date: '2026-03-10', time: '10:00', gender: '여' },
         name: { surname: '김' }, pick: { dates: ['2027-04-30'], times: ['16:30'] },
         range: { from: '2026-10-01', to: '2026-10-31' },
         // 명절 가족운세는 한 상에 앉는 사람이 있어야 짝이 선다
@@ -3134,7 +3156,25 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
 
   // 아이 상품 생년월일 필수 검증 (1단계)
   {
-    const childProductIds = ['child-report', 'child-aptitude-report', 'naming-report', 'naming-plus-report'] as const;
+    /*
+ * 터진 뒤에 적은 것 (2026-10-05): 여기에 상품을 손으로 넷 적어 두었더니,
+ * 다섯째(진학운)가 붙었을 때 검사가 그것을 보지 않았다. 상품표에서 읽는다.
+ */
+const childProductIds = Object.values(CATALOG).filter((p) => p.needsChild).map((p) => p.id);
+check('아이를 약속한 상품은 모두 아이 칸을 받는다', childProductIds.length >= 5,
+  `아이 칸이 붙은 상품 ${childProductIds.length}개`);
+/*
+ * 아이를 약속했는데 받는 칸이 없으면 부모 사주로 아이를 적는다.
+ * 다만 부모·자식 궁합은 아이를 **상대 칸**으로 받고, 제왕절개 택일은
+ * 아이가 아직 안 태어나 생년월일이 없다 — 이 둘은 빼고 본다.
+ */
+{
+  const 칸없이약속한것 = Object.values(CATALOG).filter((p) => !p.isPackage
+    && /이 아이|아이의|우리 아이|아이가/.test(`${p.description} ${p.hook}`)
+    && !p.needsChild && !p.needsPartner && !p.needsPick);
+  check('설명에 「아이」가 든 상품에 아이 칸이 빠지지 않았다',
+    칸없이약속한것.length === 0, 칸없이약속한것.map((p) => p.id).join(', ') || '전부 붙음');
+}
     const parentBirth = { date: '1988-05-14', time: '14:40', gender: '남' as const, name: '이부모' };
     for (const pId of childProductIds) {
       const badOrder = await api('POST', '/api/orders', {
@@ -3164,7 +3204,7 @@ console.log(`\n${'═'.repeat(60)}`);
     kindOf('saju-report') === '사주' && kindOf('pick-report') === '택일');
 
   const birth = { date: '2026-03-14', time: '09:30', gender: '남' as const };
-  const built = buildPayload({ productId: 'naming-report', birth, name: { surname: '김' } });
+  const built = buildPayload({ productId: 'naming-report', birth, child: birth, name: { surname: '김' } });
   const d = built.data as any;
 
   check('아이의 사주를 함께 싣는다', !!d.아이사주?.명식?.연주);
@@ -3211,7 +3251,7 @@ console.log(`\n${'═'.repeat(60)}`);
 
   // 돌림자
   const dol = buildPayload({
-    productId: 'naming-report', birth,
+    productId: 'naming-report', birth, child: birth,
     name: { surname: '김', fixed: { char: '珉', at: '뒤' } },
   });
   const df = (dol.data as any).이름밭;
@@ -3222,7 +3262,7 @@ console.log(`\n${'═'.repeat(60)}`);
   // 신고 안 되는 글자는 막는다
   let bad = false;
   try {
-    buildPayload({ productId: 'naming-report', birth, name: { surname: '김', fixed: { char: '龘', at: '뒤' } } });
+    buildPayload({ productId: 'naming-report', birth, child: birth, name: { surname: '김', fixed: { char: '龘', at: '뒤' } } });
   } catch { bad = true; }
   check('신고 안 되는 돌림자는 막는다', bad);
 }
@@ -3871,7 +3911,25 @@ const parentBirth = { date: '1988-05-14', time: '14:40', gender: '남' as const,
 const childBirth = { date: '2026-03-10', time: '10:00', gender: '남' as const, name: '이도윤' };
 const childDueBirth = { date: '2026-03-10', time: '12:00', gender: '남' as const, isDueDate: true };
 
-const childProductIds = ['child-report', 'child-aptitude-report', 'naming-report', 'naming-plus-report'] as const;
+/*
+ * 터진 뒤에 적은 것 (2026-10-05): 여기에 상품을 손으로 넷 적어 두었더니,
+ * 다섯째(진학운)가 붙었을 때 검사가 그것을 보지 않았다. 상품표에서 읽는다.
+ */
+const childProductIds = Object.values(CATALOG).filter((p) => p.needsChild).map((p) => p.id);
+check('아이를 약속한 상품은 모두 아이 칸을 받는다', childProductIds.length >= 5,
+  `아이 칸이 붙은 상품 ${childProductIds.length}개`);
+/*
+ * 아이를 약속했는데 받는 칸이 없으면 부모 사주로 아이를 적는다.
+ * 다만 부모·자식 궁합은 아이를 **상대 칸**으로 받고, 제왕절개 택일은
+ * 아이가 아직 안 태어나 생년월일이 없다 — 이 둘은 빼고 본다.
+ */
+{
+  const 칸없이약속한것 = Object.values(CATALOG).filter((p) => !p.isPackage
+    && /이 아이|아이의|우리 아이|아이가/.test(`${p.description} ${p.hook}`)
+    && !p.needsChild && !p.needsPartner && !p.needsPick);
+  check('설명에 「아이」가 든 상품에 아이 칸이 빠지지 않았다',
+    칸없이약속한것.length === 0, 칸없이약속한것.map((p) => p.id).join(', ') || '전부 붙음');
+}
 
 // 1. 네 상품 모두 아이의 명식(2026-03-10)으로 세워져야 한다 (부모 1988-05-14 명식이면 안 됨)
 for (const pId of childProductIds) {
@@ -3901,6 +3959,29 @@ for (const pId of childProductIds) {
   const data: any = payload.data;
   check(`${pId} 예정일 주문에 예정일 안내 문구가 실린다`,
     data.예정일 === '예정일 2026-03-10 로 세운 명식입니다. 실제 태어난 날이 달라지면 명식도 달라집니다.');
+}
+
+// 3. 아들과 딸의 대운 방향이 반대다
+{
+  const parent = { date: '1988-05-14', time: '14:40', gender: '남' as const, name: '이부모' };
+  const dirs = (['남', '여'] as const).map((g) => {
+    const d: any = buildPayload({ productId: 'child-report', birth: parent,
+      child: { date: '2026-03-10', time: '10:00', gender: g } } as any).data;
+    return d.지금_대운?.방향;
+  });
+  check('아들과 딸의 대운 방향이 반대다', !!dirs[0] && !!dirs[1] && dirs[0] !== dirs[1], dirs.join(' / '));
+}
+
+// 4. 결제 화면의 아이 성별 칸은 아무것도 골라져 있지 않다
+{
+  const childCheckout = renderCheckoutPage(business, '', CATALOG['child-report'],
+    { storeId: 'test', channelKey: 'test' }, false, false);
+  check('아이 성별 칸이 미리 골라져 있지 않다',
+    /<option value="" selected>/.test(childCheckout)
+    && !/<option value="남"[^>]*selected/.test(childCheckout),
+    '딸인데 넘어가면 대운이 거꾸로 나간다');
+  check('아이 성별을 안 고르면 결제가 잠긴다',
+    childCheckout.includes("아이가 아들인지 딸인지 골라 주십시오"));
 }
 
 // ── 4단계: 무료 사주 화면의 위치와 기둥 순서 ─────────────────────────

@@ -703,8 +703,10 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
   if (kindOf(req.productId) === '작명') {
     const wish = req.name;
     if (!wish?.surname?.trim()) throw new Error('작명에는 아이의 성이 필요합니다.');
-    const targetBirth = req.child || req.birth;
-    const { ms, an } = sajuBundle(targetBirth);
+    if (!req.child?.date) {
+      throw new Error('작명에는 아이의 생년월일(또는 출산 예정일)이 필요합니다.');
+    }
+    const { ms, an } = sajuBundle(req.child);
     /*
      * 용신은 「식상이 필요하다」처럼 **십신**으로 나온다. 글자를 고르려면
      * 「그래서 무슨 기운의 글자냐」로 바꿔야 한다. 십신이 가리키는 오행은
@@ -915,8 +917,25 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
     };
   }
 
-  const isChildProd = req.productId === 'child-report' || req.productId === 'child-aptitude-report';
-  const targetBirth = (isChildProd && req.child) ? req.child : req.birth;
+  /*
+   * 아이 상품은 **아이의 명식**으로 세운다.
+   *
+   * 터진 뒤에 적은 것 (2026-10-05): 여기에 상품 아이디를 손으로 늘어놓았더니
+   * 상품이 하나 늘 때(진학운) 빠뜨렸다. 상품표의 표시를 읽는다.
+   * 아이 자료가 없으면 **조용히 부모 사주로 가지 않고** 던진다 —
+   * `sajuBundle` 의 1990-01-01 대체에 걸리면 가짜 날짜로 리포트가 나간다.
+   */
+  const isChildProd = CATALOG[req.productId]?.needsChild === true;
+  if (isChildProd && !req.child?.date) {
+    throw new Error('이 상품에는 아이의 생년월일(또는 출산 예정일)이 필요합니다.');
+  }
+  const targetBirth = isChildProd ? req.child : req.birth;
+  /* 아이 상품이면 풀이의 주인은 아이다. 부모 이름을 제목에 달지 않는다 */
+  const 풀이대상 = isChildProd ? (req.child?.name?.trim() || '아이') : subject;
+  /* 아직 안 태어났으면 그 사실을 리포트가 먼저 밝힌다 */
+  const 예정일안내 = isChildProd && req.child?.isDueDate
+    ? { 예정일: `예정일 ${req.child.date} 로 세운 명식입니다. 실제 태어난 날이 달라지면 명식도 달라집니다.` }
+    : {};
   const { ms, an, daeun, age, year, timeKnown } = sajuBundle(targetBirth);
 
   const base = {
@@ -1033,8 +1052,9 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
     const guides = guideFor(wantElements as Element[]);
     return {
       kind: '주제',
-      subject,
+      subject: 풀이대상,
       data: {
+        ...예정일안내,
         손님이_묻는_것: scope.asks,
         명식: base.명식,
         계산근거: base.계산근거,
