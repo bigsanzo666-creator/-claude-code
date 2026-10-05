@@ -163,7 +163,7 @@ startApi({
   // 열쇠가 없으면 신령은 대본으로 말한다. 상담 칸이 비지는 않는다
   talkModel: hasModelKey,
   generate: hasModelKey
-    ? async ({ kind, data, subject, question }) =>
-      generateReport({ kind: kind as any, data, subject, question }, { cache })
+    ? async ({ kind, data, subject, question, productId }: any) =>
+      generateReport({ kind: kind as any, data, subject, question, productId }, { cache })
     : standbyGenerate,
 });

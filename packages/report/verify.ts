@@ -13,7 +13,7 @@
 // 그쪽을 거치면 이 검증이 SDK 설치에 묶여버린다. 검증은 의존성 없이 돌아야 한다.
 import {
   buildSystemPrompt, buildUserMessage, canonicalize, cleanQuestion, PROMPT_VERSION, QUESTION_MAX,
-  LADDER_TIERS, lengthTargetOf,
+  LADDER_TIERS, lengthTargetOf, maxTokensFor,
   type ReportInput, type ReportKind,
 } from './src/prompt.ts';
 import { cacheKey, MemoryReportCache, estimateCostKrw } from './src/cache.ts';
@@ -345,6 +345,129 @@ check('약속한 이름 개수와 프롬프트가 맞는다',
   const sajuFace = buildSystemPrompt('교차검증', 'saju-face-report');
   check('사주×관상(saju-face-report)에는 4부(손)가 빠진다', !sajuFace.includes('4부 손으로 본 것') && !sajuFace.includes('손으로 본 것'));
   check('사주×관상(saju-face-report)에는 2부(사주)와 3부(얼굴)가 있다', sajuFace.includes('2부 사주로 본 것') && sajuFace.includes('3부 얼굴로 본 것'));
+
+  // ─── 4단계: 토큰 한도 사다리, 재시도, 잘림 방지 검증 ───────────────
+  section('4단계: 토큰 한도 사다리, 재시도, 잘림 방지 검증');
+
+  // 1. 상품마다 한도가 다르다. 사다리 칸마다 한 상품씩 골라 한도를 비교한다.
+  // 오늘의 운세와 작명의 한도가 같으면 실패다.
+  const tokenDaily = maxTokensFor('오늘운세');
+  const tokenNaming = maxTokensFor('작명', 'naming-plus-report');
+  const tokenSaju = maxTokensFor('사주', 'taste-report');
+  const tokenCross = maxTokensFor('교차검증', 'cross-report');
+
+  check('오늘의 운세와 작명의 한도가 서로 다르다', tokenDaily !== tokenNaming);
+  check('사다리 칸마다 한도가 점증한다 (오늘운세 < 사주 < 교차검증 < 작명)',
+    tokenDaily < tokenSaju && tokenSaju < tokenCross && tokenCross < tokenNaming);
+
+  // 2. 한도가 그 상품이 요구하는 글자 수를 넉넉히 덮는다 (요구 글자 수 × 2 이상)
+  const ladderCoversAll = LADDER_TIERS.every((tier) => {
+    const tokens = maxTokensFor('사주', tier.minPrice);
+    return tokens >= tier.maxChars * 2;
+  });
+  check('사다리의 모든 칸에서 한도가 요구 글자 수의 2배 이상이다', ladderCoversAll);
+  check('오늘의 운세 한도가 요구 글자 수의 2배를 넉넉히 덮는다',
+    tokenDaily >= lengthTargetOf('오늘운세').maxChars * 2);
+  check('작명 한도가 요구 글자 수의 2배를 넉넉히 덮는다',
+    tokenNaming >= lengthTargetOf('작명', 'naming-plus-report').maxChars * 2);
+
+  // 3. stop_reason: 'max_tokens' 를 받으면 다시 부른다. 한 번만.
+  const { generateReport, ReportTruncatedError } = await import('./src/generate.ts');
+
+  {
+    let callCount = 0;
+    const requestedMaxTokens: number[] = [];
+    const fakeClientSuccessOnRetry = {
+      beta: {
+        messages: {
+          stream: (params: any) => {
+            callCount++;
+            requestedMaxTokens.push(params.max_tokens);
+            return {
+              finalMessage: async () => {
+                if (callCount === 1) {
+                  return {
+                    stop_reason: 'max_tokens',
+                    usage: { output_tokens: params.max_tokens },
+                    content: [{ type: 'text', text: '앞부분만 생성된 잘린 글' }],
+                  };
+                }
+                return {
+                  stop_reason: 'end_turn',
+                  usage: { output_tokens: 25000 },
+                  content: [{ type: 'text', text: '재시도로 완성된 온전한 글입니다.' }],
+                };
+              },
+            };
+          },
+        },
+      },
+    };
+
+    const memCache = new MemoryReportCache();
+    const res = await generateReport(
+      { kind: '오늘운세', subject: '홍길동', data: {} },
+      { client: fakeClientSuccessOnRetry, cache: memCache }
+    );
+
+    check("stop_reason이 'max_tokens'이면 1회 재시도하여 총 2회 호출된다", callCount === 2);
+    check('재시도 시 max_tokens 한도가 1.5배로 증가한다',
+      requestedMaxTokens[1] === Math.min(128000, Math.round(requestedMaxTokens[0] * 1.5)));
+    check('재시도 성공 시 완성된 글이 정상 반환된다', res.text === '재시도로 완성된 온전한 글입니다.');
+  }
+
+  // 4. 두 번째도 잘리면 오류가 난다. 잘린 글이 돌아오지 않는다.
+  // 5. 잘린 글은 캐시에 저장되지 않는다.
+  {
+    let callCount = 0;
+    const requestedMaxTokens: number[] = [];
+    const fakeClientAlwaysTruncated = {
+      beta: {
+        messages: {
+          stream: (params: any) => {
+            callCount++;
+            requestedMaxTokens.push(params.max_tokens);
+            return {
+              finalMessage: async () => {
+                return {
+                  stop_reason: 'max_tokens',
+                  usage: { output_tokens: params.max_tokens },
+                  content: [{ type: 'text', text: '두 번 모두 잘린 글' }],
+                };
+              },
+            };
+          },
+        },
+      },
+    };
+
+    const memCache = new MemoryReportCache();
+    let threwExpected = false;
+    let returnedText: string | null = null;
+    const input: ReportInput = { kind: '사주', productId: 'naming-plus-report', subject: '이순신', data: {} };
+
+    try {
+      const res = await generateReport(
+        input,
+        { client: fakeClientAlwaysTruncated, cache: memCache }
+      );
+      returnedText = res.text;
+    } catch (err: any) {
+      if (err instanceof ReportTruncatedError) {
+        threwExpected = true;
+        check('ReportTruncatedError에 상품 및 토큰 정보가 포함된다',
+          err.productId === 'naming-plus-report' && err.maxTokens > 0);
+      }
+    }
+
+    check('두 번째도 max_tokens로 잘리면 ReportTruncatedError 오류를 던진다', threwExpected);
+    check('두 번 초과 시 잘린 글을 돌려주지 않는다', returnedText === null);
+    check('정확히 2회 호출 후 더 이상 부르지 않는다', callCount === 2);
+
+    // 5. 잘린 글은 캐시에 저장되지 않는다.
+    const cached = await memCache.get(cacheKey({ input, model: 'claude-opus-5', effort: 'medium' }));
+    check('잘린 글은 캐시에 저장되지 않는다 (캐시 조회 결과 null)', cached === null);
+  }
 
 console.log('전부 통과. (모델 호출 없음 — 이 검증은 비용이 들지 않는다)');
 
