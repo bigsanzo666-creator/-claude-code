@@ -1750,6 +1750,24 @@ section('11. 문 — 신령계 들어가는 곳');
     html.includes('finalTimeKnown = false') && html.includes('finalTimeKnown = true'));
 }
 
+{
+  section('손 사진 안내 위치 및 문구 검사 (6단계)');
+  const palmPage = renderProductPage(CATALOG['saju-palm-report'], full, true, '');
+
+  // 1. 문구에 "남좌여우" 포함, "반대 손" 제외
+  check('상세페이지 손 안내 문구에 남좌여우 포함',
+    palmPage.includes('남좌여우'));
+
+  check('상세페이지 손 안내 문구에서 「반대 손」이 빠져 있다',
+    !palmPage.includes('반대 손'));
+
+  // 2. 안내 문구 위치가 손 사진 box 바로 위인지
+  const handIdx = palmPage.indexOf('class="pd-jaegi-hand"');
+  const boxIdx = palmPage.indexOf('id="pdPalmLabel"');
+  check('손 사진 안내 문구가 손 사진 입력칸(pdPalmLabel) 바로 앞에 위치한다',
+    handIdx !== -1 && boxIdx !== -1 && handIdx < boxIdx && (boxIdx - handIdx) < 200);
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }

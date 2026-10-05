@@ -3845,6 +3845,27 @@ section('무료 사주 화면 위치 및 기둥 순서 검증 (4단계)');
     dayPillarIdx < hourPillarIdx);
 }
 
+// ── 6단계: 손 사진 안내의 위치 및 문구 ────────────────────────────────
+section('손 사진 안내 위치 및 문구 검증 (6단계)');
+
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const appJsCode = readFileSync(join(here, 'public', 'app.js'), 'utf8');
+
+  // 1. "남좌여우" 포함, "반대 손" 빠짐
+  check('app.js 손 안내 문구에 남좌여우 포함',
+    appJsCode.includes('남자는 왼손, 여자는 오른손을 올려주십시오 (남좌여우).'));
+
+  check('app.js 손 안내 문구에서 「반대 손」이 빠져 있다',
+    !appJsCode.includes('반대 손도 괜찮습니다'));
+
+  // 2. 안내 위치가 손 사진 box 바로 위
+  const handIdx = appJsCode.indexOf("'taste-jaegi-hand'");
+  const palmBoxIdx = appJsCode.indexOf("tEl('div', 'taste-jaegi-box')", handIdx);
+  check('app.js 손 사진 안내 문구가 손 사진 box 바로 앞에 위치한다',
+    handIdx !== -1 && palmBoxIdx !== -1 && handIdx < palmBoxIdx && (palmBoxIdx - handIdx) < 150);
+}
+
 
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }

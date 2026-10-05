@@ -1149,10 +1149,6 @@ document.addEventListener('DOMContentLoaded', () => {
        * 유파마다 다르므로 우리가 정하지 않고, 흔히 쓰는 기준을 알려 준다.
        */
       jaegiSec.appendChild(promiseP);
-      if (needsPalm) {
-        jaegiSec.appendChild(tEl('p', 'taste-jaegi-hand',
-          '손은 남자는 왼손, 여자는 오른손을 올려 주십시오 (남좌여우). 반대 손도 괜찮습니다.'));
-      }
       /* 도구를 미리 받아 둔다. 사진을 고를 때쯤이면 준비돼 있다 */
       if (window.NB재기 && window.NB재기.미리받는다) window.NB재기.미리받는다(needsFace, needsPalm);
 
@@ -1295,6 +1291,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (needsPalm) {
+        jaegiSec.appendChild(tEl('p', 'taste-jaegi-hand',
+          '남자는 왼손, 여자는 오른손을 올려주십시오 (남좌여우).'));
         const box = tEl('div', 'taste-jaegi-box');
         const palmLabel = tEl('label', 'taste-jaegi-btn' + (palmDone ? ' done' : ''));
         const input = tEl('input', 'taste-jaegi-file');
