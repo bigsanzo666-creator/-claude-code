@@ -1541,6 +1541,9 @@ section('11. 문 — 신령계 들어가는 곳');
       html.includes('.co-hanja-btn.on') && html.includes("content:' ✓'"));
     check(`${pid}: 자리를 고르지 않은 채로는 결제로 넘어가지 못한다`,
       html.includes('어디에 넣을지 골라 주십시오'));
+    check(`${pid}: 꼭 넣을 글자가 있고 자리가 없으면 checkCanPay가 결제 단추를 끈다`,
+      html.includes("fChar && !val('fixedAt')") &&
+      html.includes("reason = '꼭 넣을 글자를 어디에 넣을지 골라 주십시오'"));
   }
 
   const stdHtml = renderCheckoutPage(full, '', CATALOG['naming-report'], { storeId: 's', channelKey: 'c' });

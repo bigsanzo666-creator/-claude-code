@@ -534,6 +534,7 @@ export function renderCheckoutPage(
   var MAX_MEMBERS = ${HOLIDAY_MAX_MEMBERS};
   var NEEDS_FAMILY = ${product.needsFamily === true};
   var NEEDS_CHILD = ${product.needsChild === true};
+  var NEEDS_NAME = ${product.needsName === true};
   var NEEDS_FACE = ${needsFace ? 'true' : 'false'};
   var NEEDS_PALM = ${needsPalm ? 'true' : 'false'};
   var IS_PHOTO = ${isPhotoProduct ? 'true' : 'false'};
@@ -667,7 +668,14 @@ export function renderCheckoutPage(
       reason = '생년월일을 적으셔야 결제하실 수 있습니다';
     } else if(NEEDS_CHILD && !val('childDate') && document.getElementById('childDate')){
       reason = '아이의 생년월일(또는 예정일)을 적으셔야 결제하실 수 있습니다';
-    } else if(!agree.checked){
+    }
+    if(!reason && NEEDS_NAME){
+      var fChar = (typeof 고른한자 !== 'undefined' ? 고른한자 : '') || val('fixedChar');
+      if(fChar && !val('fixedAt')){
+        reason = '꼭 넣을 글자를 어디에 넣을지 골라 주십시오';
+      }
+    }
+    if(!reason && !agree.checked){
       reason = '위 안내에 동의하셔야 결제하실 수 있습니다';
     }
 
@@ -1674,6 +1682,7 @@ export function renderCheckoutPage(
       Array.prototype.forEach.call(fxGrid.querySelectorAll('.co-hanja-btn'), function(x){ x.classList.remove('on'); });
       if(이미){ 고른한자 = ''; } else { b.classList.add('on'); 고른한자 = b.getAttribute('data-ja'); }
       모양을그린다();
+      checkCanPay();
     });
   }
   if(fxInput){
@@ -1681,13 +1690,20 @@ export function renderCheckoutPage(
     fxInput.addEventListener('input', function(){
       고른한자 = '';
       모양을그린다();
+      checkCanPay();
       clearTimeout(늦게);
       늦게 = setTimeout(한자를보여준다, 250);
     });
   }
-  if(fxAt) fxAt.addEventListener('change', 모양을그린다);
+  if(fxAt) fxAt.addEventListener('change', function(){
+    모양을그린다();
+    checkCanPay();
+  });
   var 성칸 = document.getElementById('surname');
-  if(성칸) 성칸.addEventListener('input', function(){ 모양을그린다(); });
+  if(성칸) 성칸.addEventListener('input', function(){
+    모양을그린다();
+    checkCanPay();
+  });
   ` : ''}
 
   var invToggle = document.getElementById('coInviteToggle');
