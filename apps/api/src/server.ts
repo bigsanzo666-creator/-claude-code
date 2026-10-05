@@ -990,7 +990,12 @@ function validateReading(body: any): ReadingRequest {
    * 아무 뜻도 없어진다. 그래서 이 상품만은 후보 날짜와 시각을 받는다.
    */
   if (item.needsPick) {
-    if (!Array.isArray(body.pick?.dates) || !body.pick.dates.length) {
+    /*
+     * 터진 뒤에 적은 것 (2026-10-05): 후보 날짜를 하나하나 적으라고 했다.
+     * 기간을 받는 상품이 되었으니 날짜 목록은 더 받지 않는다. 기간은 아래
+     * `needsRange` 자리에서 본다.
+     */
+    if (!item.needsRange && (!Array.isArray(body.pick?.dates) || !body.pick.dates.length)) {
       throw new HttpError(400, '의사에게 받은 후보 날짜가 필요합니다.');
     }
     if (!Array.isArray(body.pick?.times) || !body.pick.times.length) {

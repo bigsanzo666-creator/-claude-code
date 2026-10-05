@@ -381,6 +381,28 @@ function luckyPrescription(elements: string[]) {
 }
 
 /** 상품별로 리포트에 실을 데이터를 조립한다. */
+/**
+ * 기간을 하루씩 펼친다.
+ *
+ * 「언제부터 언제까지」만 받고 그 안의 모든 날을 센다. 피하고 싶다고 적은 날은
+ * 뺀다. 여섯 달(180일)까지만 받는다 — 그보다 길면 고르는 것이 아니라 점치는 것이다.
+ * 기간이 없으면 예전처럼 적어 낸 날짜를 쓴다.
+ */
+function 기간을날로(range: ReadingRequest['range'], 적어낸날?: string[]): string[] {
+  const 날짜꼴 = /^\d{4}-\d{2}-\d{2}$/;
+  if (range?.from && range?.to && 날짜꼴.test(range.from) && 날짜꼴.test(range.to)) {
+    const 뺄날 = new Set((range.avoid ?? []).filter((d) => 날짜꼴.test(d)));
+    const out: string[] = [];
+    const 끝 = Date.parse(`${range.to}T00:00:00Z`);
+    for (let t = Date.parse(`${range.from}T00:00:00Z`); t <= 끝 && out.length < 180; t += 86400000) {
+      const 날 = new Date(t).toISOString().slice(0, 10);
+      if (!뺄날.has(날)) out.push(날);
+    }
+    return out;
+  }
+  return (적어낸날 ?? []).filter((d) => 날짜꼴.test(d));
+}
+
 export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unknown; subject: string } {
   const subject = req.birth?.name?.trim() || '이 분';
 
@@ -593,9 +615,15 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
    */
   if (req.productId === 'pick-report') {
     const pick = req.pick;
-    if (!pick?.dates?.length) throw new Error('택일에는 의사에게 받은 후보 날짜가 필요합니다.');
-    if (!pick.times?.length) throw new Error('택일에는 수술이 가능한 시각이 필요합니다.');
-    const scores = pickDays({ dates: pick.dates, times: pick.times, longitude: pick.longitude });
+    if (!pick?.times?.length) throw new Error('택일에는 수술이 가능한 시각이 필요합니다.');
+    /*
+     * 터진 뒤에 적은 것 (2026-10-05): 손님에게 후보 날짜를 하나하나 적으라고 했다.
+     * 산모가 그걸 알 리 없고, 적다가 「2027 04 28」처럼 모양이 어긋나면 화면은
+     * 아무 말 없이 빈 칸만 보여 줬다. **기간만 받고 그 안을 우리가 센다.**
+     */
+    const 후보날 = 기간을날로(req.range, pick.dates);
+    if (!후보날.length) throw new Error('택일에는 수술이 가능한 기간이 필요합니다.');
+    const scores = pickDays({ dates: 후보날, times: pick.times, longitude: pick.longitude });
     const ranked = mergeHours(scores);
     /*
      * 손님이 고른 것은 「16~17시」이지 16:30 이 아니다. 16:30 은 우리가 재려고
@@ -611,7 +639,8 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
       subject: pick.place ? `${pick.place}에서 태어날 아이` : '태어날 아이',
       data: {
         고른곳: pick.place ?? null,
-        후보날: pick.dates,
+        본기간: req.range ? `${req.range.from} ~ ${req.range.to}` : null,
+        후보날: 후보날,
         가능시각: pick.times.map(slotLabel),
         순위: ranked.map(say),
         날마다최고: bestPerDay(ranked).map(say),

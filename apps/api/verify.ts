@@ -1474,11 +1474,16 @@ check('아주 긴 질문도 서버가 버틴다', longQ.status === 201, longQ.bo
 // ─── 택일 리포트 ──────────────────────────────────────────────
 // 아직 태어나지 않은 아이의 날을 고르는 상품이라, 생년월일 없이도 서야 한다
 {
-  const PICK = { dates: ['2027-04-27', '2027-04-30'], times: ['15:30', '16:30'],
-    longitude: 126.705, place: '인천' };
+  /*
+   * 터진 뒤에 적은 것 (2026-10-05): 손님에게 후보 날짜를 하나하나 적으라고 했다.
+   * 이제 **기간만 받고** 그 안에서 우리가 고른다.
+   */
+  const PICK = { times: ['15:30', '16:30'], longitude: 126.705, place: '인천' };
+  const 기간 = { from: '2027-04-27', to: '2027-04-30' };
 
-  const noBirth = await api('POST', '/api/preview', { productId: 'pick-report', pick: PICK });
-  check('생년월일 없이도 미리보기가 선다', noBirth.status === 200);
+  const noBirth = await api('POST', '/api/preview',
+    { productId: 'pick-report', pick: PICK, range: 기간 });
+  check('생년월일 없이도 미리보기가 선다', noBirth.status === 200, noBirth.body?.error);
   const c = noBirth.body?.preview?.contents ?? [];
   check('무엇이 담기는지 미리 보여 준다', c.length >= 4, `${c.length}줄`);
   check('1순위와 까닭을 미리 보여 준다',
@@ -1492,10 +1497,15 @@ check('아주 긴 질문도 서버가 버틴다', longQ.status === 201, longQ.bo
     `${noBirth.body?.product?.priceKrw}원`);
 
   const noDates = await api('POST', '/api/preview', { productId: 'pick-report' });
-  check('후보 날짜가 없으면 거부', noDates.status === 400);
+  check('기간이 없으면 거부', noDates.status === 400);
   const noTimes = await api('POST', '/api/preview',
-    { productId: 'pick-report', pick: { dates: ['2027-04-27'], times: [] } });
+    { productId: 'pick-report', pick: { times: [] }, range: 기간 });
   check('가능한 시각이 없으면 거부', noTimes.status === 400);
+  /* 기간 안의 날을 하루도 빠짐없이 센다 */
+  check('기간 안의 날을 모두 센다', (() => {
+    const 센날 = noBirth.body?.preview?.contents?.join(' ') ?? '';
+    return 센날.includes('2027-04-27') || 센날.includes('후보 4날') || 센날.includes('4날');
+  })(), (noBirth.body?.preview?.contents ?? []).slice(0, 2).join(' / '));
   // 다른 상품은 그대로 생년월일을 받는다 — 택일 때문에 문이 열리면 안 된다
   const stillNeeds = await api('POST', '/api/preview', { productId: 'saju-report' });
   check('다른 상품은 여전히 생년월일이 있어야 한다', stillNeeds.status === 400);

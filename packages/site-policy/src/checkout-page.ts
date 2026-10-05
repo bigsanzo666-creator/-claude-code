@@ -285,7 +285,7 @@ export function renderCheckoutPage(
       ${hourOptions('partnerTime')}</div>` : '';
 
   const range = product.needsRange ? `
-    <p class="co-sec">언제부터 언제 사이에서 고를까요?</p>
+    <p class="co-sec">${product.needsPick ? '수술이 가능한 기간을 알려 주십시오' : '언제부터 언제 사이에서 고를까요?'}</p>
     <div class="co-two">
       <div class="co-f"><label for="rangeFrom">시작 날짜</label>
         <input type="date" name="rangeFrom" id="rangeFrom" required></div>
@@ -294,7 +294,11 @@ export function renderCheckoutPage(
     </div>
     <div class="co-f"><label for="rangeAvoid">피하고 싶은 날이 있으면 적어 주세요</label>
       <input type="text" name="rangeAvoid" id="rangeAvoid" placeholder="예: 2026-10-05, 2026-10-15 (선택)">
-      <span class="co-hint">없으시면 비워 두셔도 됩니다</span></div>` : '';
+      <span class="co-hint">없으시면 비워 두셔도 됩니다</span></div>
+    ${product.needsPick ? `
+    <div class="co-f"><label for="pickTimes">수술이 가능한 시각</label>
+      <input type="text" name="pickTimes" id="pickTimes" placeholder="예: 09:00, 14:00">
+      <span class="co-hint">병원에서 들으신 시각을 쉼표로 나눠 적어 주십시오</span></div>` : ''}` : '';
 
   /*
    * 한 상에 앉는 사람들.
@@ -2065,7 +2069,13 @@ export function renderCheckoutPage(
       productId: PRODUCT,
       birth: { date: date, time: finalTime, timeKnown: finalTimeKnown, place: val('birthPlace') || '서울', gender: val('gender'), name: name }
     };
-    if(NEEDS_PICK) reading.pick = (loadReading() || {}).pick;
+    if(NEEDS_PICK){
+      var 적은시각 = val('pickTimes').split(/[,\s]+/).filter(Boolean);
+      var 담긴 = (loadReading() || {}).pick || {};
+      var 쓸시각 = 적은시각.length ? 적은시각 : (담긴.times || []);
+      if(!쓸시각.length) return say('수술이 가능한 시각을 적어 주십시오.');
+      reading.pick = { times: 쓸시각 };
+    }
     ${product.needsChild ? `
     var cDate = val('childDate');
     if(!cDate) return say('아이의 생년월일(또는 예정일)을 적어 주십시오.');

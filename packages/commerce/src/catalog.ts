@@ -398,6 +398,12 @@ export const CATALOG: Record<ProductId, Product> = {
     category: '출산',
     hook: '언제 낳는 게 이 아이에게 좋을까?',
     needsPick: true,
+    /*
+     * 터진 뒤에 적은 것 (2026-10-05): 손님에게 **후보 날짜를 하나하나 적으라**고
+     * 했다. 산모가 그걸 어떻게 아는가. 「언제부터 언제까지」만 받고 그 안에서
+     * 좋은 날을 우리가 고른다. 혼인 택일은 이미 그렇게 돈다.
+     */
+    needsRange: true,
   },
   /*
    * 작명 — 두 벌로 나눈 이유.

@@ -1137,12 +1137,17 @@ document.addEventListener('DOMContentLoaded', () => {
       timeField('partnerTime', '상대가 태어난 시간', saved.partner && saved.partner.time);
     }
     if (product.needsRange) {
-      field('rangeFrom', '시작 날짜', 'date', saved.range && saved.range.from);
-      field('rangeTo', '끝 날짜', 'date', saved.range && saved.range.to);
+      const 택일 = product.needsPick === true;
+      field('rangeFrom', 택일 ? '수술할 수 있는 기간 — 언제부터' : '시작 날짜', 'date', saved.range && saved.range.from);
+      field('rangeTo', 택일 ? '언제까지' : '끝 날짜', 'date', saved.range && saved.range.to);
       field('rangeAvoid', '피하고 싶은 날짜 (선택)', 'text', saved.range && (saved.range.avoid || []).join(', '));
     }
     if (product.needsPick) {
-      field('pickDates', '수술할 수 있는 날짜 (쉼표로 구분)', 'text', saved.pick && (saved.pick.dates || []).join(', ')).placeholder = '예: 2026-10-20, 2026-10-22';
+      /*
+       * 터진 뒤에 적은 것 (2026-10-05): 후보 날짜를 쉼표로 적으라고 했다.
+       * 산모가 그걸 알 리 없고, 「2027 04 28」처럼 적으면 거절당하면서
+       * 화면은 아무 말도 안 했다. 날짜는 위 기간 칸으로 받는다.
+       */
       field('pickTimes', '수술할 수 있는 시각 (쉼표로 구분)', 'text', saved.pick && (saved.pick.times || []).join(', ')).placeholder = '예: 09:00, 14:00';
     }
     if (product.needsName) {
@@ -1228,10 +1233,8 @@ document.addEventListener('DOMContentLoaded', () => {
           avoid: fields.rangeAvoid.value.split(/[,\s]+/).filter(Boolean) };
       }
       if (product.needsPick) {
-        data.pick = { dates: fields.pickDates.value.split(/[,\s]+/).filter(Boolean),
-          times: fields.pickTimes.value.split(/[,\s]+/).filter(Boolean) };
-        if (!data.pick.dates.length) missing.push('수술 후보 날짜');
-        if (!data.pick.times.length) missing.push('수술 후보 시각');
+        data.pick = { times: fields.pickTimes.value.split(/[,\s]+/).filter(Boolean) };
+        if (!data.pick.times.length) missing.push('수술 가능한 시각');
       }
       if (product.needsName) {
         if (!fields.surname.value.trim()) missing.push('아이의 성');
