@@ -138,6 +138,8 @@ ${UPSELL_CSS}
 .co-time-row>input{flex:1 1 auto;min-width:0}
 .co-time-unknown{display:flex;align-items:center;gap:6px;font-size:13px;color:#c8c2d4;cursor:pointer;white-space:nowrap;user-select:none;margin-bottom:0 !important}
 .co-time-unknown input{width:auto !important;margin:0}
+.co-btn-unknown{padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.2);color:#c8c2d4;font-size:13px;white-space:nowrap;cursor:pointer;transition:all .15s ease}
+.co-btn-unknown:hover{background:rgba(255,255,255,.14);color:#f4f1f8;border-color:#d4af37}
 .co-addkin{display:block;width:100%;padding:11px;margin:0 0 14px;font-size:14px;
   border-radius:8px;border:1px dashed rgba(212,175,55,.5);background:transparent;
   color:#d4af37;cursor:pointer;font-family:inherit}
@@ -372,6 +374,54 @@ export function renderCheckoutPage(
    * 거기서 잰다. 여기서는 그 값을 조용히 가져다 쓰기만 하고, 사진 이야기를
    * 한 글자도 꺼내지 않는다.
    */
+  const childSection = product.needsChild ? `
+    <div class="co-child-card" id="coChildCard" style="margin:16px 0;padding:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(212,175,55,0.25);border-radius:12px;">
+      <p class="co-sec" style="margin-top:0;color:#ffdd88;font-size:16px;font-weight:700;">아이 사주</p>
+      <div class="co-note" style="margin:4px 0 14px;padding:9px 12px;background:rgba(212,175,55,0.08);border-radius:8px;">
+        <p style="margin:0;font-size:13px;color:#c8bfd6;line-height:1.7;">
+          어른의 사주가 아니라 <b>아이의 명식으로</b> 풀이를 적습니다.
+        </p>
+      </div>
+      <div class="co-f">
+        <label for="childName">아이 이름 또는 태명</label>
+        <input type="text" name="childName" id="childName" maxlength="10" placeholder="예: 도윤, 튼튼이 (선택)">
+      </div>
+      <div class="co-f" style="margin-bottom:10px;">
+        <label class="co-time-unknown" for="childIsDueDate" style="font-size:14px;color:#ffdd88;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" id="childIsDueDate" name="childIsDueDate"> 아직 태어나지 않았습니다 — 예정일로 봅니다
+        </label>
+      </div>
+      <div class="co-two">
+        <div class="co-f">
+          <label for="childDate" id="childDateLabel">아이 생년월일</label>
+          <input type="date" name="childDate" id="childDate" required>
+        </div>
+        <div class="co-f">
+          <label for="childGender">아이 성별</label>
+          <select name="childGender" id="childGender">
+            <option value="남">남아</option>
+            <option value="여">여아</option>
+          </select>
+        </div>
+      </div>
+      <div class="co-f">
+        <label for="childTime">태어난 시간 (시:분 직접 입력)</label>
+        <div class="co-time-row">
+          <input type="text" name="childTime" id="childTime" placeholder="예: 14:40 또는 1440" maxlength="5" autocomplete="off" inputmode="numeric">
+          <button type="button" class="co-btn-unknown" id="childBtnUnknown">시간을 모릅니다</button>
+        </div>
+        <div id="childTimeSlotWrap" style="display:none;margin-top:8px;">
+          <label for="childTimeSlot" style="font-size:13px;color:#c8c2d4;margin-bottom:4px;display:block;">대략적인 시간대 선택 (해당 시간의 한가운데로 봅니다)</label>
+          ${hourOptions('childTimeSlot')}
+        </div>
+      </div>
+      <div class="co-f">
+        <label for="childPlace">태어난 곳</label>
+        ${placeOptions('childPlace')}
+        <span class="co-hint">태어난 곳에 따라 시(時)가 갈릴 수 있어 여쭙습니다</span>
+      </div>
+    </div>` : '';
+
   const photoSection = '';
 
   const form = keys === null ? `
@@ -383,7 +433,7 @@ export function renderCheckoutPage(
       <!-- 1. 사주 정보 요약 카드 (맨 위 노출) -->
       <div class="co-user-card" id="coUserCard">
         <div class="co-user-card-head">
-          <span class="co-user-card-title">사주 정보</span>
+          <span class="co-user-card-title">${product.needsChild ? '손님(부모) 사주' : '사주 정보'}</span>
           <button type="button" class="co-user-edit-btn" id="coEditUserBtn">[고치기]</button>
         </div>
         <div class="co-user-summary" id="coUserSummary">
@@ -401,7 +451,7 @@ export function renderCheckoutPage(
 
       <!-- 1-B. 사주 정보 입력·수정 폼 (기본 숨김, 고치기 누르거나 비어 있는 칸이 있을 때만 노출) -->
       <div class="co-user-edit-form" id="coUserEditForm" style="display:none;">
-        <p class="co-sec">사주 정보 수정</p>
+        <p class="co-sec">${product.needsChild ? '손님(부모) 사주 수정' : '사주 정보 수정'}</p>
         <div class="co-f"><label for="buyerName">성함</label>
           <input type="text" name="buyerName" id="buyerName" autocomplete="name" required placeholder="성함"></div>
         <div class="co-two">
@@ -428,6 +478,7 @@ export function renderCheckoutPage(
         <button type="button" class="co-user-done-btn" id="coUserDoneBtn">입력 완료</button>
       </div>
 
+      ${childSection}
       ${surname}
       ${partner}
       ${range}
@@ -482,6 +533,7 @@ export function renderCheckoutPage(
   var EXTRA_KRW = ${HOLIDAY_EXTRA_MEMBER_KRW};
   var MAX_MEMBERS = ${HOLIDAY_MAX_MEMBERS};
   var NEEDS_FAMILY = ${product.needsFamily === true};
+  var NEEDS_CHILD = ${product.needsChild === true};
   var NEEDS_FACE = ${needsFace ? 'true' : 'false'};
   var NEEDS_PALM = ${needsPalm ? 'true' : 'false'};
   var IS_PHOTO = ${isPhotoProduct ? 'true' : 'false'};
@@ -613,6 +665,8 @@ export function renderCheckoutPage(
     // 사진은 여기서 묻지 않는다. 막지도 않는다
     if(!dateVal && document.getElementById('birthDate')){
       reason = '생년월일을 적으셔야 결제하실 수 있습니다';
+    } else if(NEEDS_CHILD && !val('childDate') && document.getElementById('childDate')){
+      reason = '아이의 생년월일(또는 예정일)을 적으셔야 결제하실 수 있습니다';
     } else if(!agree.checked){
       reason = '위 안내에 동의하셔야 결제하실 수 있습니다';
     }
@@ -1299,6 +1353,31 @@ export function renderCheckoutPage(
       set('partnerDate', saved.partner && saved.partner.date);
       set('partnerTime', saved.partner && saved.partner.time);
 
+      if(saved.child){
+        set('childName', saved.child.name);
+        set('childDate', saved.child.date);
+        set('childGender', saved.child.gender);
+        set('childPlace', saved.child.place);
+        if(saved.child.isDueDate){
+          var dueEl = document.getElementById('childIsDueDate');
+          if(dueEl){
+            dueEl.checked = true;
+            var lbl = document.getElementById('childDateLabel');
+            if(lbl) lbl.textContent = '출산 예정일';
+          }
+        }
+        if(saved.child.timeKnown === false){
+          window.__childTimeUnknown = true;
+          var cSlotWrap = document.getElementById('childTimeSlotWrap');
+          if(cSlotWrap) cSlotWrap.style.display = 'block';
+          set('childTimeSlot', saved.child.time || '12:00');
+          var cBtn = document.getElementById('childBtnUnknown');
+          if(cBtn){ cBtn.style.borderColor = 'var(--nb-gold)'; cBtn.style.color = 'var(--nb-gold)'; }
+        } else {
+          set('childTime', saved.child.time);
+        }
+      }
+
       if(saved.face){ window.__nbFace = saved.face; faceUploaded = true; }
       else if(saved.보여줌 && saved.보여줌.face){ window.__nbFace = { shown: true }; faceUploaded = true; }
       if(saved.palm){ window.__nbPalm = saved.palm; palmUploaded = true; }
@@ -1324,6 +1403,49 @@ export function renderCheckoutPage(
   if(timeSlot){
     timeSlot.addEventListener('change', updateSummaryDisplay);
   }
+
+  var childDueEl = document.getElementById('childIsDueDate');
+  if(childDueEl){
+    childDueEl.addEventListener('change', function(){
+      var lbl = document.getElementById('childDateLabel');
+      if(lbl) lbl.textContent = childDueEl.checked ? '출산 예정일' : '아이 생년월일';
+      checkCanPay();
+    });
+  }
+
+  var childBtnUnk = document.getElementById('childBtnUnknown');
+  var childTimeInp = document.getElementById('childTime');
+  var childTimeSlotWrap = document.getElementById('childTimeSlotWrap');
+  if(childBtnUnk){
+    childBtnUnk.addEventListener('click', function(){
+      window.__childTimeUnknown = !window.__childTimeUnknown;
+      if(window.__childTimeUnknown){
+        childBtnUnk.style.borderColor = 'var(--nb-gold)';
+        childBtnUnk.style.color = 'var(--nb-gold)';
+        if(childTimeSlotWrap) childTimeSlotWrap.style.display = 'block';
+        if(childTimeInp){
+          childTimeInp.value = '';
+          childTimeInp.disabled = true;
+        }
+      } else {
+        childBtnUnk.style.borderColor = '';
+        childBtnUnk.style.color = '';
+        if(childTimeSlotWrap) childTimeSlotWrap.style.display = 'none';
+        if(childTimeInp){
+          childTimeInp.disabled = false;
+        }
+      }
+      checkCanPay();
+    });
+  }
+
+  ['childName', 'childDate', 'childGender', 'childTime', 'childTimeSlot', 'childPlace'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){
+      el.addEventListener('input', checkCanPay);
+      el.addEventListener('change', checkCanPay);
+    }
+  });
 
   updateSummaryDisplay();
   checkCanPay();
@@ -1772,6 +1894,42 @@ export function renderCheckoutPage(
       productId: PRODUCT,
       birth: { date: date, time: finalTime, timeKnown: finalTimeKnown, place: val('birthPlace') || '서울', gender: val('gender'), name: name }
     };
+    ${product.needsChild ? `
+    var cDate = val('childDate');
+    if(!cDate) return say('아이의 생년월일(또는 예정일)을 적어 주십시오.');
+    var isChildUnk = Boolean(window.__childTimeUnknown);
+    var cTimeInp = val('childTime');
+    var cFinalTime = '12:00';
+    var cTimeKnown = false;
+    if(!isChildUnk && cTimeInp){
+      var mTime = /^(\\d{1,2}):?(\\d{2})$/.exec(cTimeInp.trim());
+      if(mTime){
+        var ch = parseInt(mTime[1], 10), cmin = parseInt(mTime[2], 10);
+        if(ch >= 0 && ch <= 23 && cmin >= 0 && cmin <= 59){
+          cFinalTime = (ch < 10 ? '0' : '') + ch + ':' + (cmin < 10 ? '0' : '') + cmin;
+          cTimeKnown = true;
+        } else {
+          cFinalTime = cTimeInp;
+          cTimeKnown = true;
+        }
+      } else {
+        cFinalTime = cTimeInp;
+        cTimeKnown = true;
+      }
+    } else if(val('childTimeSlot')){
+      cFinalTime = val('childTimeSlot');
+      cTimeKnown = false;
+    }
+    reading.child = {
+      date: cDate,
+      time: cFinalTime,
+      timeKnown: cTimeKnown,
+      place: val('childPlace') || '서울',
+      gender: val('childGender') || '남',
+      name: val('childName') || '',
+      isDueDate: Boolean(childDueEl && childDueEl.checked)
+    };
+    ` : ''}
     ${product.needsName ? `
     var nObj = { surname: val('surname') };
     var fChar = (고른한자 || val('fixedChar')).trim();

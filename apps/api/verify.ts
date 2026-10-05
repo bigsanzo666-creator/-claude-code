@@ -166,6 +166,7 @@ check('ref 가 없어도 주문이 만들어진다',
 const namingNoFixed = await api('POST', '/api/orders', {
   productId: 'naming-report',
   birth: BIRTH,
+  child: { date: '2026-03-10' },
   name: { surname: '김' },
   acknowledgedNotice: true,
   previewShown: true,
@@ -175,6 +176,7 @@ check('돌림자 없는 작명 주문 정상 생성', namingNoFixed.status === 2
 const namingWithFixed = await api('POST', '/api/orders', {
   productId: 'naming-report',
   birth: BIRTH,
+  child: { date: '2026-03-10' },
   name: { surname: '김', fixed: { char: '준', at: '앞' }, avoid: ['철', '수'] },
   acknowledgedNotice: true,
   previewShown: true,
@@ -184,6 +186,7 @@ check('돌림자·피할글자 있는 작명 주문 정상 생성', namingWithFi
 const namingLongAvoid = await api('POST', '/api/orders', {
   productId: 'naming-report',
   birth: BIRTH,
+  child: { date: '2026-03-10' },
   name: {
     surname: '김',
     avoid: ['가','나','다','라','마','바','사','아','자','차','카','타','파','하','거','너','더','러','머','버','서'], // 21자
@@ -196,6 +199,7 @@ check('피할 글자 21자 입력 시 400 반환', namingLongAvoid.status === 40
 const namingLongFixed = await api('POST', '/api/orders', {
   productId: 'naming-report',
   birth: BIRTH,
+  child: { date: '2026-03-10' },
   name: { surname: '김', fixed: { char: '준희', at: '앞' } },
   acknowledgedNotice: true,
   previewShown: true,
@@ -3040,6 +3044,24 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     const days = Math.round((expMs - Date.now()) / (24 * 60 * 60 * 1000));
     check('그 사람 만료일이 60일 뒤', c2.body.reward.grantCount === 2 && days >= 59 && days <= 61, `${days}일 뒤`);
   }
+
+  // 아이 상품 생년월일 필수 검증 (1단계)
+  {
+    const childProductIds = ['child-report', 'child-aptitude-report', 'naming-report', 'naming-plus-report'] as const;
+    const parentBirth = { date: '1988-05-14', time: '14:40', gender: '남' as const, name: '이부모' };
+    for (const pId of childProductIds) {
+      const badOrder = await api('POST', '/api/orders', {
+        reading: {
+          productId: pId,
+          birth: parentBirth,
+          name: { surname: '이' },
+        },
+        buyerEmail: 'parent@example.com',
+        buyerPhone: '01012345678',
+      });
+      check(`${pId} 아이 생년월일 없이 주문하면 400 반환`, badOrder.status === 400, `응답: ${badOrder.status}`);
+    }
+  }
 }
 
 server.close();
@@ -3754,6 +3776,44 @@ section('리포트 개편 — 시각 인지, 상세 가림막, 서버 계산 이
   const resultOn = new Function('Audio', 'localStorage', 'document', testScriptOn)(MockAudio, sandboxOn.localStorage, sandboxOn.document);
   check('소리를 켜면 /audio/bgm Audio 객체를 생성한다', resultOn.audioCount === 1);
   check('신령음 OFF(setSound false)를 누르면 음악이 멈춘다', resultOn.pausedAfterOff === true);
+}
+// ── 아이 상품 사주 분리 검증 (1단계) ───────────────────────────────
+section('아이 상품 사주 분리 검증 (1단계)');
+
+const parentBirth = { date: '1988-05-14', time: '14:40', gender: '남' as const, name: '이부모' };
+const childBirth = { date: '2026-03-10', time: '10:00', gender: '남' as const, name: '이도윤' };
+const childDueBirth = { date: '2026-03-10', time: '12:00', gender: '남' as const, isDueDate: true };
+
+const childProductIds = ['child-report', 'child-aptitude-report', 'naming-report', 'naming-plus-report'] as const;
+
+// 1. 네 상품 모두 아이의 명식(2026-03-10)으로 세워져야 한다 (부모 1988-05-14 명식이면 안 됨)
+for (const pId of childProductIds) {
+  const req = {
+    productId: pId,
+    birth: parentBirth,
+    child: childBirth,
+    name: { surname: '이' },
+  };
+  const payload = buildPayload(req as any);
+  const data: any = payload.data;
+  const myeongsik = data.명식 || data.아이사주?.명식;
+  check(`${pId}는 아이 명식(2026-03-10, 병오년)으로 계산된다`, myeongsik?.연주 === '병오', `실제 연주: ${myeongsik?.연주}`);
+  check(`${pId}는 부모 명식(1988-05-14, 무진년)을 쓰지 않는다`, myeongsik?.연주 !== '무진');
+  check(`${pId}의 subject는 부모 이름이 아니다`, payload.subject !== '이부모');
+}
+
+// 2. 예정일 주문인 경우 '예정일' 문구가 실리는지 검증
+for (const pId of childProductIds) {
+  const req = {
+    productId: pId,
+    birth: parentBirth,
+    child: childDueBirth,
+    name: { surname: '이' },
+  };
+  const payload = buildPayload(req as any);
+  const data: any = payload.data;
+  check(`${pId} 예정일 주문에 예정일 안내 문구가 실린다`,
+    data.예정일 === '예정일 2026-03-10 로 세운 명식입니다. 실제 태어난 날이 달라지면 명식도 달라집니다.');
 }
 
 

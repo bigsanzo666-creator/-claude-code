@@ -1553,6 +1553,23 @@ section('11. 문 — 신령계 들어가는 곳');
 }
 
 {
+  section('아이 상품 결제 화면 아이 사주 입력칸 검사 (1단계)');
+  const childPids = ['child-report', 'child-aptitude-report', 'naming-report', 'naming-plus-report'] as const;
+  for (const pid of childPids) {
+    const html = renderCheckoutPage(full, '', CATALOG[pid], { storeId: 's', channelKey: 'c' });
+    check(`${pid}: 아이 사주 영역(coChildCard) 존재`, html.includes('id="coChildCard"'));
+    check(`${pid}: 아이 생년월일 입력칸(childDate) 존재`, html.includes('id="childDate"'));
+    check(`${pid}: 아이 성별 선택(childGender) 존재`, html.includes('id="childGender"'));
+    check(`${pid}: 아이 태어난 시간 입력칸(childTime) 존재`, html.includes('id="childTime"'));
+    check(`${pid}: 아이 시간을 모릅니다 단추(childBtnUnknown) 존재`, html.includes('id="childBtnUnknown"'));
+    check(`${pid}: 출산 예정일 체크박스(childIsDueDate) 존재`, html.includes('id="childIsDueDate"'));
+    check(`${pid}: 부모 사주 카드 제목이 '손님(부모) 사주'`, html.includes('손님(부모) 사주'));
+  }
+  const adultHtml = renderCheckoutPage(full, '', CATALOG['saju-report'], { storeId: 's', channelKey: 'c' });
+  check('어른 상품에는 아이 사주 영역이 없다', !adultHtml.includes('id="coChildCard"'));
+}
+
+{
   section('2만원 미만 상품 증표 사전 안내 검사');
   const under20Html = renderCheckoutPage(full, '', CATALOG['daily-report'], { storeId: 's', channelKey: 'c' });
   const over20Html = renderCheckoutPage(full, '', CATALOG['saju-report'], { storeId: 's', channelKey: 'c' });

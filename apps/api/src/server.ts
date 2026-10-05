@@ -958,6 +958,53 @@ function validateReading(body: any): ReadingRequest {
     throw new HttpError(400, '이 상품에는 상대의 생년월일이 필요합니다.');
   }
 
+  // 아이 상품은 아이의 생년월일(또는 예정일)이 있어야 만들 수 있다.
+  if (item.needsChild) {
+    if (!body.child?.date) {
+      throw new HttpError(400, '이 상품에는 아이의 생년월일(또는 출산 예정일)이 필요합니다.');
+    }
+    const rawPlace = typeof body.child.place === 'string' ? body.child.place.trim() : '';
+    body.child.place = PLACES.some((p) => p.name === rawPlace) ? rawPlace : '서울';
+
+    const SIJIN_CENTER: Record<string, string> = {
+      자시: '00:30', 축시: '02:30', 인시: '04:30', 묘시: '06:30',
+      진시: '08:30', 사시: '10:30', 오시: '12:30', 미시: '14:30',
+      신시: '16:30', 유시: '18:30', 술시: '20:30', 해시: '22:30',
+      ja: '00:30', chuk: '02:30', in: '04:30', myo: '06:30',
+      jin: '08:30', sa: '10:30', o: '12:30', mi: '14:30',
+      sin: '16:30', yu: '18:30', sul: '20:30', hae: '22:30',
+    };
+
+    let timeKnown = body.child.timeKnown;
+    let rawTime = body.child.time;
+
+    if (rawTime === null || rawTime === undefined || rawTime === '' || rawTime === '모름' || rawTime === 'unknown') {
+      body.child.timeKnown = false;
+      body.child.time = '12:00';
+    } else if (typeof rawTime === 'string') {
+      rawTime = rawTime.trim();
+      const matchedSijin = SIJIN_CENTER[rawTime] || Object.entries(SIJIN_CENTER).find(([k]) => rawTime.includes(k) && !/^\d{1,2}:\d{2}$/.test(rawTime))?.[1];
+      if (timeKnown === false) {
+        body.child.timeKnown = false;
+        body.child.time = matchedSijin || parseInputTime(rawTime) || '12:00';
+      } else if (matchedSijin && timeKnown !== true) {
+        body.child.timeKnown = false;
+        body.child.time = matchedSijin;
+      } else {
+        body.child.time = parseInputTime(rawTime);
+        body.child.timeKnown = timeKnown !== false;
+      }
+    } else {
+      body.child.timeKnown = false;
+      body.child.time = '12:00';
+    }
+    body.child.gender = body.child.gender === '여' ? '여' : '남';
+    body.child.isDueDate = Boolean(body.child.isDueDate);
+    if (typeof body.child.name === 'string') {
+      body.child.name = body.child.name.trim().slice(0, 20);
+    }
+  }
+
   /*
    * 혼인 택일처럼 기간이 필요한 상품.
    *

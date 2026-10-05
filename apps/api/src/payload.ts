@@ -61,9 +61,16 @@ export interface NameInput {
   avoid?: string[];
 }
 
+export interface ChildInput extends BirthInput {
+  /** 아직 태어나지 않은 아이 — 출산 예정일로 본다 */
+  isDueDate?: boolean;
+}
+
 export interface ReadingRequest {
   productId: ProductId;
   birth: BirthInput;
+  /** 아이 상품(child-report, naming-report 등)에서 쓴다 */
+  child?: ChildInput;
   /** 택일 상품에서만 쓴다 */
   pick?: PickInput;
   /** 작명 상품에서만 쓴다 */
@@ -696,7 +703,8 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
   if (kindOf(req.productId) === '작명') {
     const wish = req.name;
     if (!wish?.surname?.trim()) throw new Error('작명에는 아이의 성이 필요합니다.');
-    const { ms, an } = sajuBundle(req.birth);
+    const targetBirth = req.child || req.birth;
+    const { ms, an } = sajuBundle(targetBirth);
     /*
      * 용신은 「식상이 필요하다」처럼 **십신**으로 나온다. 글자를 고르려면
      * 「그래서 무슨 기운의 글자냐」로 바꿔야 한다. 십신이 가리키는 오행은
@@ -728,10 +736,15 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
       pairLimit: plus ? NAMING_PLUS_PAIR_LIMIT : NAMING_STANDARD_PAIR_LIMIT,
       charLimit: plus ? NAMING_PLUS_PAIR_LIMIT : NAMING_STANDARD_PAIR_LIMIT,
     });
+    const childName = req.child?.name?.trim();
+    const namingSubject = childName || `${field.성.한글} 씨 아이`;
     return {
       kind: '작명',
-      subject: `${field.성.한글} 씨 아이`,
+      subject: namingSubject,
       data: {
+        ...(req.child?.isDueDate ? {
+          예정일: `예정일 ${req.child.date} 로 세운 명식입니다. 실제 태어난 날이 달라지면 명식도 달라집니다.`,
+        } : {}),
         /*
          * 손님이 적어 준 것을 **그대로** 싣는다.
          *
@@ -902,7 +915,9 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
     };
   }
 
-  const { ms, an, daeun, age, year, timeKnown } = sajuBundle(req.birth);
+  const isChildProd = req.productId === 'child-report' || req.productId === 'child-aptitude-report';
+  const targetBirth = (isChildProd && req.child) ? req.child : req.birth;
+  const { ms, an, daeun, age, year, timeKnown } = sajuBundle(targetBirth);
 
   const base = {
     명식: {
@@ -1095,11 +1110,15 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
    * 날부터다. 달력으로 끊으면 월주가 하루 이틀씩 어긋난다.
    */
   if (req.productId === 'child-report') {
+    const childSubject = req.child?.name?.trim() || '아이';
     return {
       kind: '아이',
-      subject,
+      subject: childSubject,
       data: {
         손님이_묻는_것: '우리 아이는 어떤 아이일까, 앞으로 세 해는 어떤가',
+        ...(req.child?.isDueDate ? {
+          예정일: `예정일 ${req.child.date} 로 세운 명식입니다. 실제 태어난 날이 달라지면 명식도 달라집니다.`,
+        } : {}),
         명식: base.명식,
         계산근거: base.계산근거,
         일간: base.일간,
@@ -1171,11 +1190,15 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
    * 진학운(14,900원)은 그중 둘만 본다. 여기는 여덟을 다 보므로 값이 두 배다.
    */
   if (req.productId === 'child-aptitude-report') {
+    const childSubject = req.child?.name?.trim() || '아이';
     return {
       kind: '적성',
-      subject,
+      subject: childSubject,
       data: {
         손님이_묻는_것: '이 아이는 뭘 시켜야 할까',
+        ...(req.child?.isDueDate ? {
+          예정일: `예정일 ${req.child.date} 로 세운 명식입니다. 실제 태어난 날이 달라지면 명식도 달라집니다.`,
+        } : {}),
         명식: base.명식,
         계산근거: base.계산근거,
         일간: base.일간,
