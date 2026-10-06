@@ -154,7 +154,11 @@ export const WHY_CSS = `
 
 /* 네 층 & 네 약속 카드 그리드 */
 .why-stack{margin:0 0 20px;padding:0;list-style:none}
-.why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+/*
+ * 터진 뒤에 적은 것 (2026-10-06): 칸 최소 너비를 300px로 박아 두어, 320px 폰에서
+ * 카드가 화면 밖으로 20px 삐져나갔다. 화면보다 넓어질 수 없게 묶는다.
+ */
+.why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:12px}
 
 .why-card{position:relative;overflow:hidden;min-height:210px;display:flex;flex-direction:column;
   justify-content:flex-end;box-sizing:border-box;border:1px solid var(--nb-line-soft);
@@ -176,6 +180,14 @@ export const WHY_CSS = `
   .why-card-left .why-scrim, .why-card-right .why-scrim{
     background:linear-gradient(to top,rgba(6,5,10,.96) 0%,rgba(6,5,10,.82) 45%,rgba(6,5,10,.2) 75%,transparent 95%);
   }
+  /*
+   * 터진 뒤에 적은 것 (2026-10-06): 폰에서는 그늘이 **아래**에 깔리는데 글은
+   * 위에 있었다. 글은 사진의 밝은 자리에 얹혀 읽기 힘들고, 아래 어두운 띠는
+   * 텅 비어 사진이 칸을 벗어난 것처럼 보였다. 글을 그늘 위로 내린다.
+   */
+  .why-card-left .why-card-body, .why-card-right .why-card-body{margin-top:auto}
+  /* 그만큼 사진이 보일 자리를 준다 */
+  .why-card{min-height:250px}
 }
 
 /* 층 카드 세부 요소 */

@@ -421,6 +421,13 @@ export const SPIRITS_CSS = `
    이름은 한 덩어리로 붙여 두고, 줄도 바꾸지 않는다 */
 .sp-who{margin:0 0 4px;font-size:15px;font-weight:700;letter-spacing:.04em;color:var(--nb-gold);
   white-space:nowrap}
+/*
+ * 터진 뒤에 적은 것 (2026-10-06): 「연신령 · 궁합 담당」이 폰에서 칸 밖으로
+ * 삐져나갔다. 이름은 한 덩어리로 붙여 두되, **담당 꼬리표는 줄을 바꾸게** 한다.
+ * 줄을 못 바꾸게 묶어 두면 긴 이름일수록 화면을 뚫고 나간다.
+ */
+.sp-pitch .sp-who{white-space:normal;word-break:keep-all;overflow-wrap:anywhere}
+.sp-pitch .sp-keeps,.sp-pitch .sp-place{white-space:nowrap}
 .sp-keeps{color:var(--nb-ink-3);letter-spacing:0}
 .sp-line{margin:0;font-size:18.5px;font-weight:500;line-height:1.68;color:var(--nb-ink);word-break:keep-all;
   letter-spacing:-0.02em}

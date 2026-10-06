@@ -934,10 +934,27 @@ section('11. 문 — 신령계 들어가는 곳');
   check('판의 CSS가 상품 묶음에 실린다', PRODUCTS_CSS.includes('.why-stack'));
   // 통이 좁으면 한 줄, 넓으면 두 줄. 칸 수를 화면 폭이 아니라 **통 폭**으로 정한다 —
   // 상품 화면은 480px 통 안에 들어가므로 화면이 넓어도 두 칸으로 쪼개면 글이 잘린다
+  /*
+   * 터진 뒤에 적은 것 (2026-10-06): 최소 너비를 300px로 박아 두니 320px 폰에서
+   * 카드가 화면 밖으로 나갔다. `min(300px,100%)` 로 묶어 화면보다 넓어질 수 없게 한다.
+   */
   check('칸 수를 통 폭에 맞춰 스스로 정한다',
-    /\.why-grid\{[^}]*grid-template-columns:repeat\(auto-fit,minmax\(\d+px,1fr\)\)/.test(WHY_CSS));
+    /\.why-grid\{[^}]*grid-template-columns:repeat\(auto-fit,minmax\(min\(\d+px,100%\),1fr\)\)/.test(WHY_CSS));
+  check('좁은 폰에서 칸이 화면 밖으로 나가지 않는다',
+    WHY_CSS.includes('minmax(min(300px,100%),1fr)'), '320px 폰에서 카드가 20px 삐져나갔다');
+  check('폰에서는 글이 그늘 위에 앉는다',
+    /@media \(max-width:600px\)[\s\S]*why-card-body\{margin-top:auto\}/.test(WHY_CSS),
+    '그늘은 아래인데 글이 위에 있으면 사진의 밝은 자리에 글이 얹힌다');
   // 칸 높이를 고정하면 글이 잘려 나간다. 실제로 제목이 통째로 사라진 적이 있다
-  check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
+  /*
+ * 터진 뒤에 적은 것 (2026-10-06): 「연신령 · 궁합 담당」이 폰에서 칸 밖으로
+ * 삐져나갔다. 이름을 줄 못 바꾸게 묶어 두면 긴 이름일수록 화면을 뚫는다.
+ */
+check('신령 이름이 칸 밖으로 나가지 않는다',
+  SPIRITS_CSS.includes('.sp-pitch .sp-who{white-space:normal'),
+  '줄을 못 바꾸게 묶으면 긴 이름이 화면을 뚫는다');
+
+check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
     !/\.why-card\{[^}]*aspect-ratio/.test(WHY_CSS) && /\.why-card\{[^}]*min-height/.test(WHY_CSS));
 }
 
