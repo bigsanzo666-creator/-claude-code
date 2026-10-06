@@ -397,7 +397,13 @@ export function renderCheckoutPage(
         <label class="co-time-unknown" for="childIsDueDate" style="font-size:14px;color:#ffdd88;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
           <input type="checkbox" id="childIsDueDate" name="childIsDueDate"> 아직 태어나지 않았습니다 — 예정일로 봅니다
         </label>
-      </div>
+      </div>${product.childDateOptional ? `
+      <div class="co-f" style="margin-bottom:10px;">
+        <label class="co-time-unknown" for="childDateUnknown" style="font-size:14px;color:#ffdd88;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" id="childDateUnknown" name="childDateUnknown"> 태어난 날도 예정일도 아직 모릅니다
+        </label>
+        <span class="co-hint" id="childDateUnknownHint" style="display:none;">아이 사주는 보지 않고, 성과 획수·뜻·소리로 지어 드립니다. 나중에 날짜를 알게 되시면 그 사주로 다시 봐 드립니다.</span>
+      </div>` : ''}
       <div class="co-two">
         <div class="co-f">
           <label for="childDate" id="childDateLabel">아이 생년월일</label>
@@ -546,6 +552,11 @@ export function renderCheckoutPage(
   var MAX_MEMBERS = ${HOLIDAY_MAX_MEMBERS};
   var NEEDS_FAMILY = ${product.needsFamily === true};
   var NEEDS_CHILD = ${product.needsChild === true};
+  var CHILD_DATE_OPTIONAL = ${product.childDateOptional === true};
+  function 아이날짜모름(){
+    var el = document.getElementById('childDateUnknown');
+    return Boolean(CHILD_DATE_OPTIONAL && el && el.checked);
+  }
   var NEEDS_NAME = ${product.needsName === true};
   var NEEDS_FACE = ${needsFace ? 'true' : 'false'};
   var NEEDS_PALM = ${needsPalm ? 'true' : 'false'};
@@ -712,9 +723,9 @@ export function renderCheckoutPage(
     // 사진은 여기서 묻지 않는다. 막지도 않는다
     if(!NEEDS_PICK && !dateVal && document.getElementById('birthDate')){
       reason = EMBEDDED ? '상품 화면에서 생년월일을 먼저 적어 주십시오' : '생년월일을 적으셔야 결제하실 수 있습니다';
-    } else if(NEEDS_CHILD && !val('childDate') && document.getElementById('childDate')){
+    } else if(NEEDS_CHILD && !아이날짜모름() && !val('childDate') && document.getElementById('childDate')){
       reason = '아이의 생년월일(또는 예정일)을 적으셔야 결제하실 수 있습니다';
-    } else if(NEEDS_CHILD && !val('childGender') && document.getElementById('childGender')){
+    } else if(NEEDS_CHILD && !아이날짜모름() && !val('childGender') && document.getElementById('childGender')){
       reason = '아이가 아들인지 딸인지 골라 주십시오';
     }
     if(!reason && NEEDS_NAME){
@@ -1429,6 +1440,10 @@ export function renderCheckoutPage(
         set('childDate', saved.child.date);
         set('childGender', saved.child.gender);
         set('childPlace', saved.child.place);
+        if(saved.child.dateUnknown){
+          var unkEl0 = document.getElementById('childDateUnknown');
+          if(unkEl0) unkEl0.checked = true;
+        }
         if(saved.child.isDueDate){
           var dueEl = document.getElementById('childIsDueDate');
           if(dueEl){
@@ -1515,6 +1530,40 @@ export function renderCheckoutPage(
     });
   }
 
+  /*
+   * 「태어난 날도 예정일도 아직 모릅니다」.
+   *
+   * 누르면 날짜·성별·시간·태어난 곳 칸을 **끈다.** 꺼 두지 않으면 적다 만
+   * 값이 섞여 들어가고, required 가 걸린 칸 때문에 결제 단추가 끝까지
+   * 안 켜진다.
+   */
+  var childUnkEl = document.getElementById('childDateUnknown');
+  function 아이날짜칸끄기(){
+    var unk = Boolean(childUnkEl && childUnkEl.checked);
+    var hint = document.getElementById('childDateUnknownHint');
+    if(hint) hint.style.display = unk ? 'block' : 'none';
+    ['childDate', 'childGender', 'childTime', 'childTimeSlot', 'childPlace'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(!el) return;
+      el.disabled = unk;
+      if(unk){
+        el.removeAttribute('required');
+        if(el.tagName === 'INPUT') el.value = '';
+      }
+      var f = el.closest ? el.closest('.co-f') : null;
+      if(f) f.style.opacity = unk ? '0.45' : '';
+    });
+    if(childDueEl){
+      childDueEl.disabled = unk;
+      if(unk) childDueEl.checked = false;
+    }
+    if(childBtnUnk) childBtnUnk.disabled = unk;
+    checkCanPay();
+  }
+  if(childUnkEl){
+    childUnkEl.addEventListener('change', 아이날짜칸끄기);
+  }
+
   var childBtnUnk = document.getElementById('childBtnUnknown');
   var childTimeInp = document.getElementById('childTime');
   var childTimeSlotWrap = document.getElementById('childTimeSlotWrap');
@@ -1558,6 +1607,8 @@ export function renderCheckoutPage(
       el.addEventListener('change', checkCanPay);
     }
   });
+
+  if(childUnkEl) 아이날짜칸끄기();
 
   updateSummaryDisplay();
   checkCanPay();
@@ -2089,9 +2140,14 @@ export function renderCheckoutPage(
     }
     ${product.needsChild ? `
     var cDate = val('childDate');
+    var cGender = val('childGender');
+    if(아이날짜모름()){
+      /* 날짜가 없으면 아이 사주를 세울 수 없다. 받은 것만 싣는다 */
+      reading.child = { dateUnknown: true, name: val('childName') || '' };
+      if(cGender) reading.child.gender = cGender;
+    } else {
     if(!cDate) return say('아이의 생년월일(또는 예정일)을 적어 주십시오.');
     /* 미리 골라 두지 않는다. 딸인데 넘어가면 대운이 거꾸로 나간다 */
-    var cGender = val('childGender');
     if(!cGender) return say('아이가 아들인지 딸인지 골라 주십시오. 대운이 가는 방향이 달라집니다.');
     var isChildUnk = Boolean(window.__childTimeUnknown);
     var cTimeInp = val('childTime');
@@ -2117,6 +2173,7 @@ export function renderCheckoutPage(
       name: val('childName') || '',
       isDueDate: Boolean(childDueEl && childDueEl.checked)
     };
+    }
     ` : ''}
     ${product.needsName ? `
     var 받아둔이름 = 받아둔것.name || {};

@@ -732,18 +732,30 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
   if (kindOf(req.productId) === '작명') {
     const wish = req.name;
     if (!wish?.surname?.trim()) throw new Error('작명에는 아이의 성이 필요합니다.');
-    if (!req.child?.date) {
+    /*
+     * 터진 뒤에 적은 것 (2026-10-06): 태어난 날도 예정일도 모르는 부모가
+     * 결제 화면에서 막혔다. 작명은 날짜 없이도 받는다.
+     *
+     * 날짜가 없으면 아이 사주를 세울 수 없다. **용신을 지어내지 않는다** —
+     * 채워야 할 기운을 비운 채로 밭을 펼치고, 사주를 보지 않았다고
+     * 리포트가 그대로 밝힌다.
+     */
+    const 날짜없이 = !req.child?.date;
+    if (날짜없이 && CATALOG[req.productId]?.childDateOptional !== true) {
       throw new Error('작명에는 아이의 생년월일(또는 출산 예정일)이 필요합니다.');
     }
-    const { ms, an } = sajuBundle(req.child);
+    const 꾸러미 = req.child?.date ? sajuBundle(req.child) : null;
     /*
      * 용신은 「식상이 필요하다」처럼 **십신**으로 나온다. 글자를 고르려면
      * 「그래서 무슨 기운의 글자냐」로 바꿔야 한다. 십신이 가리키는 오행은
      * 일간이 무엇이냐에 따라 달라진다 — 일간이 목이면 재성은 토고, 화면 금이다.
      */
-    const me = an.dayMaster.element;
-    const want = an.yongsin.primary.map((g) => groupElement(me, g)) as NameWish['elements'];
-    const avoidEl = an.yongsin.avoid.map((g) => groupElement(me, g));
+    const want = (꾸러미
+      ? 꾸러미.an.yongsin.primary.map((g) => groupElement(꾸러미.an.dayMaster.element, g))
+      : undefined) as NameWish['elements'];
+    const avoidEl = 꾸러미
+      ? 꾸러미.an.yongsin.avoid.map((g) => groupElement(꾸러미.an.dayMaster.element, g))
+      : [];
     /*
      * 밭을 얼마나 크게 펼칠 것인가.
      *
@@ -777,6 +789,20 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
           예정일: `예정일 ${req.child.date} 로 세운 명식입니다. 실제 태어난 날이 달라지면 명식도 달라집니다.`,
         } : {}),
         /*
+         * 날짜를 못 받았으면 **여기서 먼저 밝힌다.** 글을 쓰는 쪽이 자료
+         * 첫머리에서 이것을 보고, 사주를 봤다는 말을 한 줄도 쓰지 못한다.
+         */
+        ...(날짜없이 ? {
+          사주는보지않았음: {
+            까닭: '아이의 태어난 날(또는 출산 예정일)을 아직 받지 못했습니다.',
+            지은방식: '성의 획수와 이름 획수의 길한 짝(81수리), 한자의 뜻, 부르는 소리, '
+              + '대법원 인명용 한자 범위만으로 지었습니다.',
+            반드시적을것: '이 리포트는 아이의 사주를 보지 않고 지었다고 손님께 분명히 적으십시오. '
+              + '용신·오행 보완·대운 같은 사주 이야기는 한 줄도 쓰지 마십시오.',
+            나중에: '아이가 태어나 날짜를 알게 되시면, 그 사주로 다시 봐 드릴 수 있다고 적으십시오.',
+          },
+        } : {}),
+        /*
          * 손님이 적어 준 것을 **그대로** 싣는다.
          *
          * 터진 뒤에 적은 것 (2026-10-04): 리포트가 「돌림자 ○ 를 넣어 지음」
@@ -789,26 +815,28 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
           꼭_넣을_글자: wish.fixed ? { 글자: wish.fixed.char, 자리: wish.fixed.at } : null,
           피할_글자: (wish.avoid ?? []).length ? wish.avoid : null,
         },
-        채워야할기운: {
-          오행: want,
-          십신: an.yongsin.primary,
-          덜어낼기운: { 오행: avoidEl, 십신: an.yongsin.avoid },
-          까닭: an.yongsin.reasoning,
-          유파: an.yongsin.school,
-        },
-        아이사주: {
-          명식: {
-            연주: `${ms.year.stem}${ms.year.branch}`,
-            월주: `${ms.month.stem}${ms.month.branch}`,
-            일주: `${ms.day.stem}${ms.day.branch}`,
-            시주: ms.hour ? `${ms.hour.stem}${ms.hour.branch}` : null,
+        ...(꾸러미 ? {
+          채워야할기운: {
+            오행: want,
+            십신: 꾸러미.an.yongsin.primary,
+            덜어낼기운: { 오행: avoidEl, 십신: 꾸러미.an.yongsin.avoid },
+            까닭: 꾸러미.an.yongsin.reasoning,
+            유파: 꾸러미.an.yongsin.school,
           },
-          일간: an.dayMaster,
-          오행: an.elements,
-          강약: an.strength,
-          용신: an.yongsin,
-          없는_십신: an.missingGroups,
-        },
+          아이사주: {
+            명식: {
+              연주: `${꾸러미.ms.year.stem}${꾸러미.ms.year.branch}`,
+              월주: `${꾸러미.ms.month.stem}${꾸러미.ms.month.branch}`,
+              일주: `${꾸러미.ms.day.stem}${꾸러미.ms.day.branch}`,
+              시주: 꾸러미.ms.hour ? `${꾸러미.ms.hour.stem}${꾸러미.ms.hour.branch}` : null,
+            },
+            일간: 꾸러미.an.dayMaster,
+            오행: 꾸러미.an.elements,
+            강약: 꾸러미.an.strength,
+            용신: 꾸러미.an.yongsin,
+            없는_십신: 꾸러미.an.missingGroups,
+          },
+        } : {}),
         이름밭: slimField(field),
         /*
          * 「안 겹치게」에만 싣는다.
@@ -827,10 +855,17 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
               자료: popularitySource(),
               // 아이 성별 것만 싣는다. 딸 이름을 짓는데 남자 이름 100개를
               // 같이 보내면 값만 오르고 쓸모는 없다
-              성별: req.birth?.gender ?? '남',
+              /*
+               * 터진 뒤에 적은 것 (2026-10-06): 부모의 성별을 보고 있었다.
+               * 아버지가 맡기면 딸 이름을 짓는데 남자 이름 100개를 피했다.
+               * 아이의 성별을 본다. 성별을 안 받았으면 양쪽을 다 싣는다.
+               */
+              성별: req.child?.gender ?? '아직 모름 — 남녀 양쪽 이름을 다 피했습니다',
               해마다: popularYears().map((y) => ({
                 해: y,
-                순위: popularList(y, (req.birth?.gender ?? '남') as '남' | '여')
+                순위: (req.child?.gender
+                  ? popularList(y, req.child.gender as '남' | '여')
+                  : [...popularList(y, '남'), ...popularList(y, '여')])
                   .map((e) => `${e.rank}위 ${e.name}`),
               })),
               한자까지는_모름: '이 자료는 부르는 이름(한글)만 셉니다. '

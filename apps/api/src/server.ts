@@ -308,7 +308,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
           <span class="user-name-text">명식 봉인 해제</span>
         </div>
         <h2 class="spirits-menu-title">어떤 물음을 품고 오셨습니까</h2>
-        <p class="spirits-menu-desc">상품을 누르시면 신령이 그 자리에서 사주를 봐 드립니다</p>
+        <p class="spirits-menu-desc"><span class="nb-brk">상품을 누르시면 신령이</span><br><span class="nb-brk">그 자리에서 사주를 봐 드립니다</span></p>
         <div class="spirits-free-duo">
           <button type="button" class="spirits-free-btn" id="btnFreeEightLetters">
             <span class="spirits-free-badge">무료</span>
@@ -329,7 +329,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
             <span class="spirits-free-arrow">→</span>
           </a>
         </div>
-        <a href="/invite" class="spirits-invite-bar">벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고 그대도 보답을 받으시지요 →</a>
+        <a href="/invite" class="spirits-invite-bar"><span class="nb-brk">벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고</span><br><span class="nb-brk">그대도 보답을 받으시지요 →</span></a>
       </div>
 
       <!-- 갈래 탭 11개 (가로 스크롤) -->
@@ -529,6 +529,8 @@ body {
 .spirits-free-arrow{font-size:13px;font-weight:700;color:#d4af37;flex-shrink:0;margin-left:3px}
 .spirits-invite-bar{display:block;margin:0 auto 16px;max-width:440px;width:100%;box-sizing:border-box;padding:10px 14px;background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.25);border-radius:10px;color:#d4af37;font-size:13px;text-align:center;text-decoration:none;transition:background .2s,border-color .2s;font-weight:500;line-height:1.4}
 .spirits-invite-bar:hover{background:rgba(212,175,55,0.15);border-color:rgba(212,175,55,0.5);color:#f5f5f7}
+/* 터진 뒤에 적은 것 (2026-10-06): 문구가 아무 자리에서나 잘려 뜻이 끊겼다. 마디째로만 줄이 바뀌게 묶는다. */
+.nb-brk{display:inline-block;white-space:nowrap}
 .nb-invite-banner{width:100%;background:rgba(20,40,25,0.95);border-bottom:1px solid #4ade80;color:#d1fae5;padding:10px 16px;box-sizing:border-box;font-size:14px;font-weight:600;z-index:9999;position:relative;text-align:center}
 .nb-invite-banner-content{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:12px;text-align:center}
 .nb-invite-banner-text{word-break:keep-all;line-height:1.45}
@@ -979,7 +981,7 @@ function requireProductPhotos(body: any, productId: string): void {
     throw new HttpError(400, '이 상품에 필요한 얼굴·손 사진을 먼저 보여 주셔야 합니다.');
 }
 
-function validateReading(body: any): ReadingRequest {
+export function validateReading(body: any): ReadingRequest {
   if (!body || typeof body !== 'object') throw new HttpError(400, '요청 본문이 필요합니다.');
   const productId = String(body.productId ?? '');
   if (!isOrderable(productId)) throw new HttpError(400, `알 수 없는 상품입니다: ${body.productId}`);
@@ -1049,59 +1051,80 @@ function validateReading(body: any): ReadingRequest {
 
   // 아이 상품은 아이의 생년월일(또는 예정일)이 있어야 만들 수 있다.
   if (item.needsChild) {
-    if (!body.child?.date) {
-      throw new HttpError(400, '이 상품에는 아이의 생년월일(또는 출산 예정일)이 필요합니다.');
-    }
-    const rawPlace = typeof body.child.place === 'string' ? body.child.place.trim() : '';
-    body.child.place = PLACES.some((p) => p.name === rawPlace) ? rawPlace : '서울';
-
-    const SIJIN_CENTER: Record<string, string> = {
-      자시: '00:30', 축시: '02:30', 인시: '04:30', 묘시: '06:30',
-      진시: '08:30', 사시: '10:30', 오시: '12:30', 미시: '14:30',
-      신시: '16:30', 유시: '18:30', 술시: '20:30', 해시: '22:30',
-      ja: '00:30', chuk: '02:30', in: '04:30', myo: '06:30',
-      jin: '08:30', sa: '10:30', o: '12:30', mi: '14:30',
-      sin: '16:30', yu: '18:30', sul: '20:30', hae: '22:30',
-    };
-
-    let timeKnown = body.child.timeKnown;
-    let rawTime = body.child.time;
-
-    if (rawTime === null || rawTime === undefined || rawTime === '' || rawTime === '모름' || rawTime === 'unknown') {
-      body.child.timeKnown = false;
-      body.child.time = '12:00';
-    } else if (typeof rawTime === 'string') {
-      rawTime = rawTime.trim();
-      const matchedSijin = SIJIN_CENTER[rawTime] || Object.entries(SIJIN_CENTER).find(([k]) => rawTime.includes(k) && !/^\d{1,2}:\d{2}$/.test(rawTime))?.[1];
-      if (timeKnown === false) {
-        body.child.timeKnown = false;
-        body.child.time = matchedSijin || parseInputTime(rawTime) || '12:00';
-      } else if (matchedSijin && timeKnown !== true) {
-        body.child.timeKnown = false;
-        body.child.time = matchedSijin;
-      } else {
-        body.child.time = parseInputTime(rawTime);
-        body.child.timeKnown = timeKnown !== false;
-      }
-    } else {
-      body.child.timeKnown = false;
-      body.child.time = '12:00';
-    }
     /*
-     * 터진 뒤에 적은 것 (2026-10-05): 아이 성별을 「남」으로 메워 넣고 있었다.
-     * 딸인데 그냥 넘어가면 **대운이 거꾸로** 나간다 — 리포트 전체가 틀린다.
-     * 메우지 않고 되묻는다.
+     * 터진 뒤에 적은 것 (2026-10-06): 작명을 맡기는 부모 상당수가 아이가
+     * 태어나기 전이고, 예정일조차 모르는 분이 적지 않다. 날짜를 꼭 받으니
+     * 그분들이 여기서 막혀 그대로 돌아갔다.
+     *
+     * 작명만 날짜 없이 통과시킨다. 날짜가 없으면 아이 사주를 세울 수 없으니
+     * **사주를 봤다고 적지 않는다** — 리포트가 그렇게 밝힌다.
      */
-    const rawChildGender = String(body.child.gender ?? '').trim();
-    const childGender = /^(여|여아|여자|female|f)$/i.test(rawChildGender) ? '여'
-      : /^(남|남아|남자|male|m)$/i.test(rawChildGender) ? '남' : '';
-    if (!childGender) {
-      throw new HttpError(400, '아이가 아들인지 딸인지 골라 주셔야 합니다. 대운이 가는 방향이 달라집니다.');
-    }
-    body.child.gender = childGender;
-    body.child.isDueDate = Boolean(body.child.isDueDate);
-    if (typeof body.child.name === 'string') {
-      body.child.name = body.child.name.trim().slice(0, 20);
+    const 날짜없이맡긴다 = !body.child?.date && item.childDateOptional === true;
+    if (날짜없이맡긴다) {
+      const 적은이름 = typeof body.child?.name === 'string' ? body.child.name.trim().slice(0, 20) : '';
+      const 적은성별 = String(body.child?.gender ?? '').trim();
+      const 성별 = /^(여|여아|여자|female|f)$/i.test(적은성별) ? '여'
+        : /^(남|남아|남자|male|m)$/i.test(적은성별) ? '남' : '';
+      body.child = {
+        dateUnknown: true,
+        ...(적은이름 ? { name: 적은이름 } : {}),
+        ...(성별 ? { gender: 성별 } : {}),
+      };
+    } else {
+      if (!body.child?.date) {
+        throw new HttpError(400, '이 상품에는 아이의 생년월일(또는 출산 예정일)이 필요합니다.');
+      }
+      const rawPlace = typeof body.child.place === 'string' ? body.child.place.trim() : '';
+      body.child.place = PLACES.some((p) => p.name === rawPlace) ? rawPlace : '서울';
+
+      const SIJIN_CENTER: Record<string, string> = {
+        자시: '00:30', 축시: '02:30', 인시: '04:30', 묘시: '06:30',
+        진시: '08:30', 사시: '10:30', 오시: '12:30', 미시: '14:30',
+        신시: '16:30', 유시: '18:30', 술시: '20:30', 해시: '22:30',
+        ja: '00:30', chuk: '02:30', in: '04:30', myo: '06:30',
+        jin: '08:30', sa: '10:30', o: '12:30', mi: '14:30',
+        sin: '16:30', yu: '18:30', sul: '20:30', hae: '22:30',
+      };
+
+      let timeKnown = body.child.timeKnown;
+      let rawTime = body.child.time;
+
+      if (rawTime === null || rawTime === undefined || rawTime === '' || rawTime === '모름' || rawTime === 'unknown') {
+        body.child.timeKnown = false;
+        body.child.time = '12:00';
+      } else if (typeof rawTime === 'string') {
+        rawTime = rawTime.trim();
+        const matchedSijin = SIJIN_CENTER[rawTime] || Object.entries(SIJIN_CENTER).find(([k]) => rawTime.includes(k) && !/^\d{1,2}:\d{2}$/.test(rawTime))?.[1];
+        if (timeKnown === false) {
+          body.child.timeKnown = false;
+          body.child.time = matchedSijin || parseInputTime(rawTime) || '12:00';
+        } else if (matchedSijin && timeKnown !== true) {
+          body.child.timeKnown = false;
+          body.child.time = matchedSijin;
+        } else {
+          body.child.time = parseInputTime(rawTime);
+          body.child.timeKnown = timeKnown !== false;
+        }
+      } else {
+        body.child.timeKnown = false;
+        body.child.time = '12:00';
+      }
+      /*
+       * 터진 뒤에 적은 것 (2026-10-05): 아이 성별을 「남」으로 메워 넣고 있었다.
+       * 딸인데 그냥 넘어가면 **대운이 거꾸로** 나간다 — 리포트 전체가 틀린다.
+       * 메우지 않고 되묻는다.
+       */
+      const rawChildGender = String(body.child.gender ?? '').trim();
+      const childGender = /^(여|여아|여자|female|f)$/i.test(rawChildGender) ? '여'
+        : /^(남|남아|남자|male|m)$/i.test(rawChildGender) ? '남' : '';
+      if (!childGender) {
+        throw new HttpError(400, '아이가 아들인지 딸인지 골라 주셔야 합니다. 대운이 가는 방향이 달라집니다.');
+      }
+      body.child.gender = childGender;
+      body.child.isDueDate = Boolean(body.child.isDueDate);
+      if (typeof body.child.name === 'string') {
+        body.child.name = body.child.name.trim().slice(0, 20);
+      }
     }
   }
 

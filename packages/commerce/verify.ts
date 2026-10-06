@@ -67,6 +67,24 @@ check('아이 상품 네 개는 아이 생년월일을 요구한다',
 check('아이 상품 묶음도 아이 생년월일을 요구한다',
   orderable('child-2').needsChild && orderable('child-3').needsChild && orderable('birth-2').needsChild && orderable('birth-3').needsChild);
 check('어른 상품은 아이 생년월일을 요구하지 않는다', !needsChild('saju-report') && !orderable('saju-report').needsChild);
+/*
+ * 터진 뒤에 적은 것 (2026-10-06): 작명은 아이가 태어나기 전에 맡기는 일이
+ * 많고 예정일조차 모르는 부모가 적지 않다. 작명만 날짜 없이 받는다.
+ *
+ * 아이의 사주로 풀이를 적는 상품(아이 사주·적성·진학)은 날짜가 없으면
+ * 아무것도 못 쓴다. 그쪽은 그대로 받는다.
+ */
+check('작명 둘만 아이 생년월일 없이 받는다',
+  Object.values(CATALOG).filter((p) => p.childDateOptional === true).map((p) => p.id).sort().join(',')
+  === 'naming-plus-report,naming-report');
+check('작명은 단품으로도 날짜 없이 받는다',
+  orderable('naming-report').childDateOptional && orderable('naming-plus-report').childDateOptional);
+check('아이 사주 리포트는 날짜를 꼭 받는다', !orderable('child-report').childDateOptional);
+check('아이 사주가 든 묶음은 날짜를 꼭 받는다',
+  !orderable('child-2').childDateOptional && !orderable('child-3').childDateOptional);
+check('날짜 없이 받는 상품은 설명에 그 길을 적어 둔다',
+  Object.values(CATALOG).filter((p) => p.childDateOptional === true)
+    .every((p) => p.description.includes('「아직 모릅니다」') && p.description.includes('사주를 보지 않고')));
 check('모든 상품에 갈래가 있다', Object.values(CATALOG).every((p) => CATEGORIES.some((c) => c.key === p.category)));
 check('모든 상품에 후킹 질문이 있다', Object.values(CATALOG).every((p) => p.hook.endsWith('?')),
   '「재물운」이라고만 쓰면 안 눌린다');

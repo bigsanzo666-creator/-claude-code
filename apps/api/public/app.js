@@ -1109,6 +1109,24 @@ document.addEventListener('DOMContentLoaded', () => {
       fields[key] = sel;
       return sel;
     }
+    /*
+     * 눌러서 켜는 칸.
+     *
+     * 터진 뒤에 적은 것 (2026-10-06): 작명을 맡기는 부모 상당수가 아이가
+     * 태어나기 전이고, 예정일조차 모르는 분이 적지 않다. 날짜를 꼭 받으니
+     * 그분들이 여기서 막혀 그대로 돌아갔다.
+     */
+    function tickField(key, label) {
+      const wrap = tEl('label', 'taste-field taste-tick');
+      const input = tEl('input');
+      input.type = 'checkbox';
+      input.dataset.tasteKey = key;
+      wrap.appendChild(input);
+      wrap.appendChild(tEl('span', null, label));
+      box.appendChild(wrap);
+      fields[key] = input;
+      return input;
+    }
     function timeField(key, label, value) {
       const input = field(key, label, 'text', value);
       input.inputMode = 'numeric';
@@ -1131,6 +1149,27 @@ document.addEventListener('DOMContentLoaded', () => {
       field('childDate', '아이 생년월일', 'date', saved.child && saved.child.date);
       timeField('childTime', '아이가 태어난 시간', saved.child && saved.child.time);
       pickField('childGender', '아이 성별', [['남', '남아'], ['여', '여아']], saved.child && saved.child.gender);
+      if (product.childDateOptional) {
+        const 모름 = tickField('childDateUnknown', '태어난 날도 예정일도 아직 모릅니다');
+        모름.checked = Boolean(saved.child && saved.child.dateUnknown);
+        const 안내 = tEl('p', 'taste-tick-note',
+          '아이 사주는 보지 않고, 성과 획수·뜻·소리로 지어 드립니다. 나중에 날짜를 알게 되시면 그 사주로 다시 봐 드립니다.');
+        box.appendChild(안내);
+        const 끄기 = () => {
+          const unk = 모름.checked;
+          안내.style.display = unk ? 'block' : 'none';
+          [fields.childDate, fields.childTime, fields.childGender].forEach((el) => {
+            if (!el) return;
+            el.disabled = unk;
+            if (unk) el.value = '';
+            if (el.parentNode) el.parentNode.style.opacity = unk ? '0.45' : '';
+          });
+          if (fields.childTimeUnknown) fields.childTimeUnknown.disabled = unk;
+          box.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        모름.addEventListener('change', 끄기);
+        끄기();
+      }
     }
     if (product.needsPartner) {
       field('partnerDate', '상대 생년월일', 'date', saved.partner && saved.partner.date);
@@ -1215,7 +1254,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const missing = [];
       const data = { productId: product.id, birth: own };
       if (!product.needsPick && !own.date) missing.push('내 생년월일');
-      if (needsChild) {
+      if (needsChild && fields.childDateUnknown && fields.childDateUnknown.checked) {
+        // 날짜가 없으면 아이 사주를 세울 수 없다. 받은 것만 싣는다
+        data.child = { dateUnknown: true };
+      } else if (needsChild) {
         if (!fields.childDate.value) missing.push('아이 생년월일');
         if (!normTime(fields.childTime)) missing.push('아이 태어난 시간');
         if (!fields.childGender.value) missing.push('아이 성별');

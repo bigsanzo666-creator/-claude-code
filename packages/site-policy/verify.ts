@@ -284,6 +284,27 @@ check('상세 페이지도 그림이 있을 때만 크게 건다',
   const sajuRules = await import('../../packages/saju-rules/src/index.ts');
   check('PLACES 를 내보내는 곳이 저장소에 하나뿐이다', PLACES === sajuRules.PLACES);
 
+  /*
+   * 설명에 적은 약속은 **받는 칸이 화면에 있어야** 한다.
+   *
+   * 터진 뒤에 적은 것 (2026-10-06): 작명 설명에 「아직 모릅니다를 눌러
+   * 날짜 없이 맡기실 수 있습니다」를 적었다. 그 칸이 없으면 거짓 광고다.
+   */
+  const 약속만한상품 = Object.values(CATALOG).filter((p) => {
+    if (!p.description.includes('「아직 모릅니다」')) return false;
+    const pPage = renderCheckoutPage({} as any, '', p, { storeId: 's', channelKey: 'c' });
+    return !pPage.includes('id="childDateUnknown"');
+  }).map((p) => p.name);
+  check('설명이 약속한 「아직 모릅니다」 칸이 결제 화면에 있다',
+    약속만한상품.length === 0, 약속만한상품.join(', '));
+
+  const 칸만있는상품 = Object.values(CATALOG).filter((p) => {
+    const pPage = renderCheckoutPage({} as any, '', p, { storeId: 's', channelKey: 'c' });
+    return pPage.includes('id="childDateUnknown"') && p.childDateOptional !== true;
+  }).map((p) => p.name);
+  check('날짜를 꼭 받아야 하는 상품에는 그 칸이 없다',
+    칸만있는상품.length === 0, 칸만있는상품.join(', '));
+
   const notReady = renderCheckoutPage({} as any, '', CATALOG['daily-report'], null);
   check('결제가 꺼져 있어도 값은 보인다',
     notReady.includes(`${CATALOG['daily-report'].priceKrw.toLocaleString('ko-KR')}원`));
@@ -1798,8 +1819,16 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
   check('"누루시면" 오타가 없다',
     !listHtml.includes('누루시면'));
 
+  // 터진 뒤에 적은 것 (2026-10-06): 마디 묶음(span)을 넣자 옛 검사가 문구를 못 찾았다. 묶음을 걷고 본다.
+  const 묶음걷은목록 = listHtml
+    .replace(/<span class="nb-brk">/g, '').replace(/<\/span>/g, '').replace(/<br>/g, ' ');
+
   check('벗 증표 바에 신령 말투 및 INVITE_DISCOUNT_KRW 반영',
-    listHtml.includes(`벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고 그대도 보답을 받으시지요`));
+    묶음걷은목록.includes(`벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고 그대도 보답을 받으시지요`));
+
+  check('벗 증표 바가 마디째로만 줄이 바뀐다',
+    listHtml.includes('할인증표 보내고</span><br><span class="nb-brk">그대도 보답을 받으시지요')
+    && /\.nb-brk\{[^}]*white-space:nowrap/.test(PRODUCTS_CSS));
 }
 
 {

@@ -1180,6 +1180,11 @@ body {
 .taste-field input, .taste-needs select, .taste-family-row input { box-sizing: border-box; width: 100%; min-height: 44px; padding: 9px 11px; border: 1px solid #8c7a57; border-radius: 7px; background: #241d28; color: #fff; font-size: 16px; }
 .taste-edit, .taste-time-unknown { min-height: 42px; margin: 7px 0; padding: 8px 13px; border: 1px solid #c9a84f; border-radius: 7px; background: transparent; color: #f0dc9a; font-size: 15px; cursor: pointer; }
 .taste-time-unknown[aria-pressed=true] { background: #c9a84f; color: #211b19; }
+/* 터진 뒤에 적은 것 (2026-10-06): 날짜를 모르는 부모가 여기서 막혀 돌아갔다 */
+.taste-tick { display: flex; flex-direction: row; align-items: center; gap: 8px; cursor: pointer; margin: 10px 0 2px; }
+.taste-tick input { width: 18px; height: 18px; min-height: 18px; flex: 0 0 auto; padding: 0; accent-color: #c9a84f; }
+.taste-tick span { display: inline; margin: 0; font-size: 15px; color: #f0dc9a; }
+.taste-tick-note { margin: 4px 0 10px; font-size: 13px; line-height: 1.7; color: #c8bfd6; word-break: keep-all; }
 .taste-own, .taste-missing { color: #e7d9bd; line-height: 1.65; }
 .taste-family-row { display: grid; gap: 8px; margin: 10px 0; }
 .taste-hanja-list { display: flex; flex-wrap: wrap; gap: 7px; max-height: 260px; overflow: auto; }

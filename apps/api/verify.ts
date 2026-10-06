@@ -18,7 +18,7 @@ import {
 import { loadBusinessInfo, SPIRITS, CONTENTS_FOR, renderCheckoutPage } from '../../packages/site-policy/src/index.ts';
 import { CATEGORIES, maxLaunchDiscountPercent, isLaunchSale } from '../../packages/commerce/src/catalog.ts';
 import { findSpiritVideos } from './src/images.ts';
-import { createApi, MemoryOrderStore, checkInviteRateLimit, recordInviteCheckFail, inviteCheckAttempts } from './src/server.ts';
+import { createApi, MemoryOrderStore, checkInviteRateLimit, recordInviteCheckFail, inviteCheckAttempts, validateReading } from './src/server.ts';
 import { buildPayload } from './src/payload.ts';
 import { buildPreview } from './src/preview.ts';
 import { maskPreviewText } from './src/preview-sections.ts';
@@ -4019,6 +4019,75 @@ for (const pId of childProductIds) {
     childCheckout.includes("아이가 아들인지 딸인지 골라 주십시오"));
 }
 
+/*
+ * 5. 작명은 아이의 태어난 날을 몰라도 통과한다.
+ *
+ * 터진 뒤에 적은 것 (2026-10-06): 작명을 맡기는 부모 상당수가 아이가
+ * 태어나기 전이고, 예정일조차 모르는 분이 적지 않다. 날짜를 꼭 받으니
+ * 그분들이 결제 화면에서 막혀 그대로 돌아갔다.
+ *
+ * 날짜가 없으면 아이 사주를 세울 수 없다. **사주를 봤다고 적지 않는 것**까지
+ * 같이 본다 — 안 본 것을 봤다고 적으면 그게 거짓 광고다.
+ */
+{
+  const parent = { date: '1988-05-14', time: '14:40', gender: '남' as const, name: '이부모' };
+
+  /** 통과하면 0, 막히면 그 번호 */
+  const 받아보기 = (body: any): number => {
+    try { validateReading(body); return 0; } catch (e: any) { return e?.status ?? 500; }
+  };
+
+  for (const pId of ['naming-report', 'naming-plus-report'] as const) {
+    const body: any = { productId: pId, birth: parent, name: { surname: '이' } };
+    check(`${pId}는 아이 생년월일 없이도 통과한다`, 받아보기(body) === 0, `막힘 ${받아보기(body)}`);
+    check(`${pId}는 날짜를 못 받았다고 표시해 둔다`, body.child?.dateUnknown === true);
+  }
+
+  check('아이 리포트는 아이 생년월일 없이 통과하지 않는다',
+    받아보기({ productId: 'child-report', birth: parent }) === 400);
+  check('작명도 성을 안 적으면 통과하지 않는다',
+    받아보기({ productId: 'naming-report', birth: parent }) === 400);
+
+  const 날짜없이: any = buildPayload({ productId: 'naming-report', birth: parent,
+    child: { dateUnknown: true }, name: { surname: '이' } } as any).data;
+  check('날짜 없는 작명 자료에는 아이 사주가 없다',
+    !날짜없이.아이사주 && !날짜없이.채워야할기운);
+  check('날짜 없는 작명 자료가 사주를 안 봤다고 밝힌다',
+    typeof 날짜없이.사주는보지않았음?.반드시적을것 === 'string'
+    && 날짜없이.사주는보지않았음.반드시적을것.includes('사주를 보지 않고'));
+  check('날짜 없는 작명도 이름밭은 펼쳐진다',
+    Array.isArray(날짜없이.이름밭?.후보) && 날짜없이.이름밭.후보.length > 0,
+    `후보 ${날짜없이.이름밭?.후보?.length ?? 0}가지`);
+
+  const 날짜있는: any = buildPayload({ productId: 'naming-report', birth: parent,
+    child: { date: '2026-03-10', time: '10:00', gender: '여' }, name: { surname: '이' } } as any).data;
+  check('날짜가 있으면 아이 사주가 실린다', 날짜있는.아이사주?.명식?.연주 === '병오',
+    `연주: ${날짜있는.아이사주?.명식?.연주}`);
+  check('날짜가 있으면 사주를 안 봤다는 말이 없다', !날짜있는.사주는보지않았음);
+
+  const 딸: any = buildPayload({ productId: 'naming-plus-report', birth: parent,
+    child: { date: '2026-03-10', time: '10:00', gender: '여' }, name: { surname: '이' } } as any).data;
+  check('「안 겹치게」는 부모가 아니라 아이의 성별로 흔한 이름을 피한다',
+    딸.요즘_흔한_이름?.성별 === '여', `${딸.요즘_흔한_이름?.성별}`);
+
+  check('상품 화면 패널에도 「아직 모릅니다」 칸이 있다',
+    homeApp.includes("tickField('childDateUnknown', '태어난 날도 예정일도 아직 모릅니다')")
+    && homeApp.includes('product.childDateOptional'));
+  check('패널에서 그 칸을 누르면 날짜를 묻지 않는다',
+    homeApp.includes('fields.childDateUnknown && fields.childDateUnknown.checked')
+    && homeApp.includes("data.child = { dateUnknown: true }"));
+
+  const namingCheckout = renderCheckoutPage(business, '', CATALOG['naming-report'],
+    { storeId: 'test', channelKey: 'test' }, false, false);
+  check('작명 결제 화면에 「아직 모릅니다」 칸이 있다',
+    namingCheckout.includes('id="childDateUnknown"')
+    && namingCheckout.includes('태어난 날도 예정일도 아직 모릅니다'));
+  const childOnly = renderCheckoutPage(business, '', CATALOG['child-report'],
+    { storeId: 'test', channelKey: 'test' }, false, false);
+  check('아이 리포트 결제 화면에는 그 칸이 없다',
+    !childOnly.includes('id="childDateUnknown"'));
+}
+
 // ── 4단계: 무료 사주 화면의 위치와 기둥 순서 ─────────────────────────
 section('무료 사주 화면 위치 및 기둥 순서 검증 (4단계)');
 
@@ -4085,11 +4154,24 @@ section('첫 화면 문구 다듬기 검증 (7단계)');
   check('첫 화면에 "누루시면" 오타가 없다',
     !serverSrc.includes('누루시면'));
 
+  // 터진 뒤에 적은 것 (2026-10-06): 마디 묶음(span)을 넣자 옛 검사가 문구를 못 찾았다. 묶음을 걷고 본다.
+  const 묶음걷은서버 = serverSrc
+    .replace(/<span class="nb-brk">/g, '').replace(/<\/span>/g, '').replace(/<br>/g, ' ');
+
   check('첫 화면 안내 문구가 올바르다',
-    serverSrc.includes('상품을 누르시면 신령이 그 자리에서 사주를 봐 드립니다'));
+    묶음걷은서버.includes('상품을 누르시면 신령이 그 자리에서 사주를 봐 드립니다'));
+
+  check('첫 화면 안내 문구는 마디째로만 줄이 바뀐다',
+    serverSrc.includes('<span class="nb-brk">상품을 누르시면 신령이</span><br><span class="nb-brk">그 자리에서 사주를 봐 드립니다</span>'));
 
   check('첫 화면 벗 증표 바에 신령 말투 및 INVITE_DISCOUNT_KRW 반영',
-    serverSrc.includes('벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString(\'ko-KR\')}원 할인증표 보내고 그대도 보답을 받으시지요'));
+    묶음걷은서버.includes('벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString(\'ko-KR\')}원 할인증표 보내고 그대도 보답을 받으시지요'));
+
+  check('첫 화면 벗 증표 바도 마디째로만 줄이 바뀐다',
+    serverSrc.includes('할인증표 보내고</span><br><span class="nb-brk">그대도 보답을 받으시지요'));
+
+  check('마디 묶음에 줄바꿈 금지가 걸려 있다',
+    /\.nb-brk\{[^}]*white-space:nowrap/.test(serverSrc));
 }
 
 // ── 8단계: 뒤로가기 제어 ──────────────────────────────────────────────

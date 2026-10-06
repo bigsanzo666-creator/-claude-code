@@ -42,6 +42,8 @@ export interface Orderable {
   needsName: boolean;
   /** 아이의 생년월일이 필요한가 */
   needsChild: boolean;
+  /** 아이의 생년월일을 안 받아도 되는가 (작명) */
+  childDateOptional: boolean;
 }
 
 function fromPackage(id: PackageId): Orderable {
@@ -63,6 +65,13 @@ function fromPackage(id: PackageId): Orderable {
     needsFace: pack.members.some((m) => CATALOG[m].needsFace === true),
     needsName: pack.members.some((m) => CATALOG[m].needsName === true),
     needsChild: pack.members.some((m) => CATALOG[m].needsChild === true),
+    /*
+     * 묶음은 **한 구성이라도 날짜를 쓰면** 날짜를 받는다.
+     * 작명만 든 묶음이면 날짜 없이 넘어갈 수 있다.
+     */
+    childDateOptional: pack.members
+      .filter((m) => CATALOG[m].needsChild === true)
+      .every((m) => CATALOG[m].childDateOptional === true),
   };
 }
 
@@ -84,6 +93,7 @@ export function orderable(id: string): Orderable {
       needsFace: single.needsFace === true,
       needsName: single.needsName === true,
       needsChild: single.needsChild === true,
+      childDateOptional: single.childDateOptional === true,
     };
   }
   if (PACKAGES[id as PackageId]) return fromPackage(id as PackageId);

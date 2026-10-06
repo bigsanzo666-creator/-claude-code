@@ -906,6 +906,8 @@ body{background:var(--nb-paper)}
 .spirits-free-arrow{font-size:13px;font-weight:700;color:#d4af37;flex-shrink:0;margin-left:3px}
 .spirits-invite-bar{display:block;margin:0 auto 16px;max-width:440px;width:100%;box-sizing:border-box;padding:10px 14px;background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.25);border-radius:10px;color:#d4af37;font-size:13px;text-align:center;text-decoration:none;transition:background .2s,border-color .2s;font-weight:500;line-height:1.4}
 .spirits-invite-bar:hover{background:rgba(212,175,55,0.15);border-color:rgba(212,175,55,0.5);color:#f5f5f7}
+/* 터진 뒤에 적은 것 (2026-10-06): 문구가 아무 자리에서나 잘려 뜻이 끊겼다. 마디째로만 줄이 바뀌게 묶는다. */
+.nb-brk{display:inline-block;white-space:nowrap}
 .pr-soon{display:block;margin:2px 0 0;font-size:14px;color:var(--nb-ink-3);letter-spacing:0.2px}
 .pr-save{display:block;margin-top:4px;font-size:15px;color:var(--nb-ink-3);letter-spacing:0.2px}
 
@@ -1801,7 +1803,7 @@ ${cards}
     <span class="spirits-free-arrow">→</span>
   </a>
 </div>
-<a href="/invite" class="spirits-invite-bar">벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고 그대도 보답을 받으시지요 →</a>
+<a href="/invite" class="spirits-invite-bar"><span class="nb-brk">벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고</span><br><span class="nb-brk">그대도 보답을 받으시지요 →</span></a>
 <div class="pr-rule"></div>
 </div>
 ${groups}
