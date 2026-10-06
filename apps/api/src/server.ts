@@ -329,7 +329,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
             <span class="spirits-free-arrow">→</span>
           </a>
         </div>
-        <a href="/invite" class="spirits-invite-bar"><span class="nb-brk">벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고</span><br><span class="nb-brk">그대도 보답을 받으시지요 →</span></a>
+        <a href="/invite" class="spirits-invite-bar"><span class="nb-brk">벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고</span><br><span class="nb-brk">그대도 역대급 보답을 받으시지요 →</span></a>
       </div>
 
       <!-- 갈래 탭 11개 (가로 스크롤) -->

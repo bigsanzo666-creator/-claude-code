@@ -4165,10 +4165,10 @@ section('첫 화면 문구 다듬기 검증 (7단계)');
     serverSrc.includes('<span class="nb-brk">상품을 누르시면 신령이</span><br><span class="nb-brk">그 자리에서 사주를 봐 드립니다</span>'));
 
   check('첫 화면 벗 증표 바에 신령 말투 및 INVITE_DISCOUNT_KRW 반영',
-    묶음걷은서버.includes('벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString(\'ko-KR\')}원 할인증표 보내고 그대도 보답을 받으시지요'));
+    묶음걷은서버.includes('벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString(\'ko-KR\')}원 할인증표 보내고 그대도 역대급 보답을 받으시지요'));
 
   check('첫 화면 벗 증표 바도 마디째로만 줄이 바뀐다',
-    serverSrc.includes('할인증표 보내고</span><br><span class="nb-brk">그대도 보답을 받으시지요'));
+    serverSrc.includes('할인증표 보내고</span><br><span class="nb-brk">그대도 역대급 보답을 받으시지요'));
 
   check('마디 묶음에 줄바꿈 금지가 걸려 있다',
     /\.nb-brk\{[^}]*white-space:nowrap/.test(serverSrc));

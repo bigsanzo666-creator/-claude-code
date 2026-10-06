@@ -1824,10 +1824,10 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
     .replace(/<span class="nb-brk">/g, '').replace(/<\/span>/g, '').replace(/<br>/g, ' ');
 
   check('벗 증표 바에 신령 말투 및 INVITE_DISCOUNT_KRW 반영',
-    묶음걷은목록.includes(`벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고 그대도 보답을 받으시지요`));
+    묶음걷은목록.includes(`벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고 그대도 역대급 보답을 받으시지요`));
 
   check('벗 증표 바가 마디째로만 줄이 바뀐다',
-    listHtml.includes('할인증표 보내고</span><br><span class="nb-brk">그대도 보답을 받으시지요')
+    listHtml.includes('할인증표 보내고</span><br><span class="nb-brk">그대도 역대급 보답을 받으시지요')
     && /\.nb-brk\{[^}]*white-space:nowrap/.test(PRODUCTS_CSS));
 }
 
