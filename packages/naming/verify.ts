@@ -412,6 +412,37 @@ section('한자 한글 뜻 (훈음)');
   check('소나무 송 같은 훈음 형식을 갖춘다', koreanHanjaMeaning('松') === '소나무 송', `${koreanHanjaMeaning('松')}`);
 }
 
+section('알려진 글자 스무 개 고정 시험 (터진 뒤에 적은 것, 2026-10-07)');
+{
+  const FIXED_TEST: Record<string, string> = {
+    天: '하늘 천',
+    地: '땅 지',
+    人: '사람 인',
+    水: '물 수',
+    火: '불 화',
+    木: '나무 목',
+    金: '쇠 금',
+    土: '흙 토',
+    日: '해 일',
+    月: '달 월',
+    龍: '용 룡',
+    鳳: '봉새 봉',
+    虎: '범 호',
+    松: '소나무 송',
+    河: '물 하',
+    雪: '눈 설',
+    愛: '사랑 애',
+    鐵: '쇠 철',
+    母: '어미 모',
+    父: '아비 부',
+  };
+
+  for (const [char, expected] of Object.entries(FIXED_TEST)) {
+    const actual = koreanHanjaMeaning(char);
+    check(`고정 시험: ${char} = ${expected}`, actual === expected, `기대: '${expected}', 실제: '${actual}'`);
+  }
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} / 실패 ${failed}`);
 if (failed) { console.log('\n실패 항목:'); for (const x of failures) console.log(`  - ${x}`); process.exit(1); }
