@@ -8,7 +8,7 @@
  * B가 통과해도 A가 틀리면 전체가 무의미하므로 A를 먼저 돌린다.
  */
 
-import { calculate, formatMyeongsik, solveSolarLongitude, toJulianDay, fromJulianDay } from './src/index.ts';
+import { calculate, formatMyeongsik, solveSolarLongitude, toJulianDay, fromJulianDay, solarToLunar } from './src/index.ts';
 
 let passed = 0;
 let failed = 0;
@@ -240,6 +240,38 @@ const noTime = calculate({ date: '2024-06-15', time: null });
 check('시각 미상이면 시주 없음', noTime.hour === null);
 check('시각 미상이어도 나머지 3주는 나옴',
   !!(noTime.year && noTime.month && noTime.day), `→ ${formatMyeongsik(noTime)}`);
+
+// ── C. 양력·음력 변환 (2020~2040년 20개 날짜 및 윤달) ─────────
+section('C. 양력·음력 변환 (2020~2040년 20개 날짜 및 윤달 검증)');
+
+const LUNAR_CASES = [
+  { s: [2020, 1, 25], exp: { y: 2020, m: 1, d: 1, leap: false }, name: '2020 설날' },
+  { s: [2020, 5, 23], exp: { y: 2020, m: 4, d: 1, leap: true },  name: '2020 윤4월 1일' },
+  { s: [2020, 10, 1], exp: { y: 2020, m: 8, d: 15, leap: false }, name: '2020 추석' },
+  { s: [2021, 2, 12], exp: { y: 2021, m: 1, d: 1, leap: false }, name: '2021 설날' },
+  { s: [2021, 9, 21], exp: { y: 2021, m: 8, d: 15, leap: false }, name: '2021 추석' },
+  { s: [2022, 2, 1],  exp: { y: 2022, m: 1, d: 1, leap: false }, name: '2022 설날' },
+  { s: [2022, 9, 10], exp: { y: 2022, m: 8, d: 15, leap: false }, name: '2022 추석' },
+  { s: [2023, 1, 22], exp: { y: 2023, m: 1, d: 1, leap: false }, name: '2023 설날' },
+  { s: [2023, 4, 5],  exp: { y: 2023, m: 2, d: 15, leap: true },  name: '2023 윤2월 15일' },
+  { s: [2023, 9, 29], exp: { y: 2023, m: 8, d: 15, leap: false }, name: '2023 추석' },
+  { s: [2024, 2, 10], exp: { y: 2024, m: 1, d: 1, leap: false }, name: '2024 설날' },
+  { s: [2024, 9, 17], exp: { y: 2024, m: 8, d: 15, leap: false }, name: '2024 추석' },
+  { s: [2025, 1, 29], exp: { y: 2025, m: 1, d: 1, leap: false }, name: '2025 설날' },
+  { s: [2025, 7, 25], exp: { y: 2025, m: 6, d: 1, leap: true },  name: '2025 윤6월 1일' },
+  { s: [2025, 10, 6], exp: { y: 2025, m: 8, d: 15, leap: false }, name: '2025 추석' },
+  { s: [2028, 1, 27], exp: { y: 2028, m: 1, d: 1, leap: false }, name: '2028 설날' },
+  { s: [2028, 6, 23], exp: { y: 2028, m: 5, d: 1, leap: true },  name: '2028 윤5월 1일' },
+  { s: [2031, 1, 23], exp: { y: 2031, m: 1, d: 1, leap: false }, name: '2031 설날' },
+  { s: [2033, 1, 31], exp: { y: 2033, m: 1, d: 1, leap: false }, name: '2033 설날' },
+  { s: [2033, 12, 22], exp: { y: 2033, m: 11, d: 1, leap: true }, name: '2033 윤11월 1일' },
+];
+
+for (const c of LUNAR_CASES) {
+  const got = solarToLunar(c.s[0], c.s[1], c.s[2]);
+  const match = got.year === c.exp.y && got.month === c.exp.m && got.day === c.exp.d && got.isLeapMonth === c.exp.leap;
+  check(`${c.name} (${c.s.join('-')}) → ${got.text}`, match, match ? '' : `기대 ${JSON.stringify(c.exp)} 실제 ${JSON.stringify(got)}`);
+}
 
 // ── 요약 ───────────────────────────────────────────────────────
 console.log(`\n${'═'.repeat(60)}`);

@@ -17,6 +17,7 @@ import type { BirthInput, Myeongsik } from './types.ts';
 export * from './ganzhi.ts';
 export * from './solarTerms.ts';
 export * from './astro.ts';
+export * from './lunar.ts';
 export type { BirthInput, Myeongsik, MyeongsikMeta, YajaMode } from './types.ts';
 
 const SEOUL_LONGITUDE = 126.978;
