@@ -161,6 +161,8 @@ export async function sendReportMail(args: SendReportMailArgs): Promise<SendOrde
     const from = formatMailFrom(process.env.MAIL_FROM);
     const siteUrl = (process.env.SITE_URL || '').trim().replace(/\/+$/, '') || 'https://neulbomsaju.co.kr';
     const orderUrl = `${siteUrl}/order/${encodeURIComponent(orderId)}`;
+    const certUrl = `${siteUrl}/작명서/${encodeURIComponent(orderId)}`;
+    const isNaming = productName.includes('작명');
     const biz = loadBusinessInfo();
     const contact = biz.landline || biz.phone || biz.email || '';
 
@@ -180,6 +182,15 @@ export async function sendReportMail(args: SendReportMailArgs): Promise<SendOrde
     <h1 style="font-size:20px;font-weight:700;margin:0 0 6px;color:#111111;">${esc(productName)}</h1>
     <p style="margin:0 0 24px;font-size:13px;color:#86868b;">주문 번호 ${esc(orderId)}</p>
     ${본문}
+    <div style="margin:24px 0 12px 0;">
+      <a href="${orderUrl}" style="display:inline-block;padding:12px 20px;background:#242426;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:600;">리포트 바로보기</a>
+    </div>
+    ${isNaming ? `
+    <div style="margin:0 0 12px 0;">
+      <a href="${certUrl}" style="display:inline-block;padding:12px 20px;background:#b78103;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:600;">작명서 보기</a>
+    </div>
+    <p style="margin:0 0 16px;font-size:13px;color:#86868b;word-break:break-all;">작명서 주소: <a href="${certUrl}" style="color:#0066cc;">${certUrl}</a></p>
+    ` : ''}
     <div style="border-top:1px solid #e5e5ea;padding-top:16px;margin:24px 0 0;font-size:13px;color:#86868b;line-height:1.6;">
       <p style="margin:0 0 12px;">사이트에서도 언제든 다시 보실 수 있습니다 — <a href="${orderUrl}" style="color:#0066cc;">${orderUrl}</a></p>
       <p style="margin:0 0 12px;">리포트 전문을 열람하신 뒤에는 청약철회가 제한됩니다.</p>
@@ -230,6 +241,8 @@ export async function sendOrderMail(args: SendOrderMailArgs): Promise<SendOrderM
     const from = formatMailFrom(process.env.MAIL_FROM);
     const siteUrl = (process.env.SITE_URL || '').trim().replace(/\/+$/, '') || 'https://neulbomsaju.co.kr';
     const orderUrl = `${siteUrl}/order/${encodeURIComponent(orderId)}`;
+    const certUrl = `${siteUrl}/작명서/${encodeURIComponent(orderId)}`;
+    const isNaming = productName.includes('작명');
 
     const biz = loadBusinessInfo();
     const contact = biz.landline || biz.phone || biz.email || '';
@@ -253,6 +266,14 @@ export async function sendOrderMail(args: SendOrderMailArgs): Promise<SendOrderM
       <div style="margin-top:12px;">
         <a href="${orderUrl}" style="display:inline-block;padding:12px 20px;background:#242426;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:600;">리포트 바로보기</a>
       </div>
+      ${isNaming ? `
+      <div style="margin-top:10px;">
+        <a href="${certUrl}" style="display:inline-block;padding:12px 20px;background:#b78103;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:600;">작명서 보기</a>
+      </div>
+      <p style="margin:8px 0 0;font-size:13px;color:#86868b;word-break:break-all;">
+        작명서 주소: <a href="${certUrl}" style="color:#0066cc;">${certUrl}</a>
+      </p>
+      ` : ''}
       <p style="margin:12px 0 0;font-size:13px;color:#86868b;word-break:break-all;">
         접속 주소: <a href="${orderUrl}" style="color:#0066cc;">${orderUrl}</a>
       </p>

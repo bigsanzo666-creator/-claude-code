@@ -4230,6 +4230,24 @@ section('무의미한 늘봄 워터마크 정리 검증 (9단계)');
     serverSrc.includes('class="site-footer-wrapper"'));
 }
 
+// ── 10단계: 작명서 라우트 및 메일 연동 검증 ──────────────────────
+section('작명서 라우트 및 메일 연동 검증 (6·7·8단계)');
+
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const serverSrc = readFileSync(join(here, 'src', 'server.ts'), 'utf8');
+  const mailSrc = readFileSync(join(here, 'src', 'mail.ts'), 'utf8');
+
+  check('server.ts 에 /작명서/:id 라우트 핸들러가 등록되어 있다',
+    serverSrc.includes("'GET /작명서/:id'"));
+  check('server.ts 에 renderNamingCertificatePage 가 import 및 호출된다',
+    serverSrc.includes('renderNamingCertificatePage'));
+  check('mail.ts 에 작명 상품 시 certUrl (/작명서/) 구성이 포함되어 있다',
+    mailSrc.includes('/작명서/'));
+  check('mail.ts 에 「작명서 보기」 단추가 포함되어 있다',
+    mailSrc.includes('작명서 보기') && mailSrc.includes('작명서 주소:'));
+}
+
 
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
