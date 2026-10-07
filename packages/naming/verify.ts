@@ -123,7 +123,7 @@ check('줄 순서는 초년부터 전체까지',
 
 // ─── 한자 낱글자 표 ───────────────────────────────────────────
 {
-  const { hanja, hanjaCount, byReading, hasReading, hanjaLegal,
+  const { hanja, hanjaCount, hanjaWithElementCount, byReading, hasReading, hanjaLegal,
           hanjaLegalReading, hanjaLegalCount, hanjaCommon, hanjaCommonCount } =
     await import('./src/hanja.ts');
 
@@ -159,10 +159,8 @@ check('줄 순서는 초년부터 전체까지',
     JSON.stringify(byReading('은').map((h) => h.char))
     === JSON.stringify(byReading('은').map((h) => h.char)));
 
-  // 갈리는 것을 갈리지 않는 척하지 않는다
-  const withEl = byReading('도').filter((h) => h.element !== null).length;
-  check('자원오행은 분명한 부수에만 붙는다', withEl > 0 && withEl < byReading('도').length,
-    `도 ${byReading('도').length}자 중 ${withEl}자`);
+  check('자원오행이 있는 글자가 7,500자 이상', hanjaWithElementCount() >= 7500,
+    `${hanjaWithElementCount()}자`);
 
   /*
    * 인명용 한자표. 목록 밖 글자로 지은 이름은 출생신고가 반려된다.

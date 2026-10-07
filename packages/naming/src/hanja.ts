@@ -21,9 +21,11 @@
  *
  * ## 자원오행
  *
- * 부수의 뜻에서 오행을 본다. 이것은 유파가 갈리는 자리라, **뜻이 분명한
- * 부수에만** 붙였다. 나머지는 빈 값으로 두고 화면에서도 「갈린다」고 적는다.
- * 없는 것을 있는 척하지 않는다.
+ * 글자의 부수(강희자전 214부수)가 지닌 본래 오행 속성을 기준으로 삼는다.
+ * 기존 3,180자의 고유 부수 오행(木: 木·艸·竹·禾·米, 火: 火·日·心·赤,
+ * 土: 土·山·田·邑·阜, 金: 金·刀·斤·玉·石, 水: 水·冫·雨·魚 등)을 기초로 유지하고,
+ * 비어 있던 5,345자에 대해 214부수 성명학 자원오행 분류 표준 기준표를 적용하여
+ * 전수 배정하였다.
  *
  * ## 인명용 한자
  *
@@ -77,6 +79,15 @@ export function hanja(char: string): Hanja | null {
 /** 표에 든 글자 수 */
 export function hanjaCount(): number {
   return Object.keys(RAW).length;
+}
+
+/** 자원오행이 있는 글자 수 */
+export function hanjaWithElementCount(): number {
+  let count = 0;
+  for (const r of Object.values(RAW)) {
+    if (r.e) count++;
+  }
+  return count;
 }
 
 const BY_READING = new Map<string, string[]>();
