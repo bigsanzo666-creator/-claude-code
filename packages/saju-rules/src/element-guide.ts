@@ -96,3 +96,58 @@ export function guideFor(elements: Element[]): ElementGuide[] {
   }
   return list;
 }
+
+export interface ElementCorrespondence {
+  element: Element;
+  /** 맞는 방향 (목=동, 화=남, 토=중앙, 금=서, 수=북) */
+  direction: string;
+  /** 맞는 색 (목=청·초록, 화=적, 토=황, 금=백, 수=흑·남색) */
+  color: string;
+  /** 맞는 숫자 (목=3·8, 화=2·7, 토=5·10, 금=4·9, 수=1·6) */
+  numbers: string;
+  /** 안내 문구: 고를 일이 있을 때 기울이면 되는 쪽 */
+  guide: string;
+}
+
+export const ELEMENT_CORRESPONDENCES: Record<Element, ElementCorrespondence> = {
+  목: {
+    element: '목',
+    direction: '동',
+    color: '청·초록',
+    numbers: '3·8',
+    guide: '고를 일이 있을 때 마음을 편히 기울이면 되는 쪽입니다.',
+  },
+  화: {
+    element: '화',
+    direction: '남',
+    color: '적',
+    numbers: '2·7',
+    guide: '고를 일이 있을 때 마음을 편히 기울이면 되는 쪽입니다.',
+  },
+  토: {
+    element: '토',
+    direction: '중앙',
+    color: '황',
+    numbers: '5·10',
+    guide: '고를 일이 있을 때 마음을 편히 기울이면 되는 쪽입니다.',
+  },
+  금: {
+    element: '금',
+    direction: '서',
+    color: '백',
+    numbers: '4·9',
+    guide: '고를 일이 있을 때 마음을 편히 기울이면 되는 쪽입니다.',
+  },
+  수: {
+    element: '수',
+    direction: '북',
+    color: '흑·남색',
+    numbers: '1·6',
+    guide: '고를 일이 있을 때 마음을 편히 기울이면 되는 쪽입니다.',
+  },
+};
+
+/** 오행 하나를 넣으면 맞는 방향·색·숫자를 돌려준다 */
+export function elementCorrespondence(element: Element): ElementCorrespondence {
+  return ELEMENT_CORRESPONDENCES[element];
+}

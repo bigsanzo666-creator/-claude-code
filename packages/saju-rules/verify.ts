@@ -16,6 +16,7 @@ import {
   allTopics, extractTopic, ALL_TOPICS, TOPIC_LABELS,
   freeReading, GOD_PLAIN, ELEMENT_PLAIN,
   pickScore, pickDays, bestPerDay, bandOf, BANDS, mergeHours,
+  elementCorrespondence, ELEMENT_CORRESPONDENCES,
 } from './src/index.ts';
 import { readFace, NEUTRAL_FEATURES } from '../physiognomy/src/index.ts';
 import { readPalm, NEUTRAL_PALM_FEATURES } from '../palmistry/src/index.ts';
@@ -907,6 +908,40 @@ section('오행 가이드 (ELEMENT_GUIDE)');
   const forbiddenWords = ['부적', '개운', '구매', '돌을 사라', '보석'];
   check('값비싼 물건을 권하는 낱말이 표에 없다',
     forbiddenWords.every((word) => !guideText.includes(word)));
+}
+
+section('오행 방향·색·숫자 (ELEMENT_CORRESPONDENCES)');
+{
+  check('목=동/청·초록/3·8',
+    elementCorrespondence('목').direction === '동' &&
+    elementCorrespondence('목').color === '청·초록' &&
+    elementCorrespondence('목').numbers === '3·8');
+
+  check('화=남/적/2·7',
+    elementCorrespondence('화').direction === '남' &&
+    elementCorrespondence('화').color === '적' &&
+    elementCorrespondence('화').numbers === '2·7');
+
+  check('토=중앙/황/5·10',
+    elementCorrespondence('토').direction === '중앙' &&
+    elementCorrespondence('토').color === '황' &&
+    elementCorrespondence('토').numbers === '5·10');
+
+  check('금=서/백/4·9',
+    elementCorrespondence('금').direction === '서' &&
+    elementCorrespondence('금').color === '백' &&
+    elementCorrespondence('금').numbers === '4·9');
+
+  check('수=북/흑·남색/1·6',
+    elementCorrespondence('수').direction === '북' &&
+    elementCorrespondence('수').color === '흑·남색' &&
+    elementCorrespondence('수').numbers === '1·6');
+
+  const text = JSON.stringify(ELEMENT_CORRESPONDENCES);
+  check('지키면 복이 오고 어기면 해롭다는 말을 절대 쓰지 않는다',
+    !text.includes('지키면 복') && !text.includes('어기면 해롭'));
+  check('고를 일이 있을 때 기울이면 되는 쪽이라고만 쓴다',
+    text.includes('기울이면'));
 }
 
 console.log(`통과 ${passed} / 실패 ${failed}`);
