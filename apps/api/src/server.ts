@@ -38,6 +38,7 @@ import {
   type BusinessInfo,
   renderOrderNotFoundPage, renderOrderUnpaidPage,
   renderOrderPendingReportPage, renderOrderReportPage, renderInvitePage, renderAdminInvitePage,
+  renderNamingCertificatePage,
 } from '../../../packages/site-policy/src/index.ts';
 import {
   findProductImages, findHeroImage, findHeroVideo, findSpiritImages, findSceneImages,
@@ -2023,6 +2024,49 @@ export function createApi(deps: ApiDeps) {
       sendHtml(res, renderOrderReportPage(business, renderFooter(business), viewed, text, inviteCode, upsellData));
     },
 
+    'GET /작명서/:id': async (req, res, id) => {
+      const order = await deps.orders.get(id);
+      if (!order) {
+        sendHtml(res, renderOrderNotFoundPage(business, renderFooter(business)), 404);
+        return;
+      }
+      if (!hasEntitlement(order, order.inputHash)) {
+        sendHtml(res, renderOrderUnpaidPage(business, renderFooter(business), order));
+        return;
+      }
+      const reading = (order as any).reading;
+      const child = reading?.child;
+      const birth = reading?.birth;
+      const nameWish = reading?.name;
+      const url = new URL(req.url ?? '/', 'http://localhost');
+      const qName = url.searchParams.get('name');
+      const qHanja = url.searchParams.get('hanja');
+      const qDateUnknown = url.searchParams.get('dateUnknown');
+
+      const isDateUnknown = qDateUnknown === 'true' || Boolean(child?.dateUnknown || reading?.dateUnknown);
+      const childName = (qName || child?.name || birth?.name || nameWish?.surname || '늘봄').trim();
+      const childHanja = (qHanja || (order as any).hanja || child?.hanja || '').trim();
+      const buyerName = ((order as any).email ? (order as any).reading?.birth?.name : '') || '부모님';
+      const paidDate = order.paidAt ? new Date(order.paidAt) : new Date();
+      const orderDateStr = `${paidDate.getFullYear()}년 ${paidDate.getMonth() + 1}월 ${paidDate.getDate()}일`;
+
+      const certHtml = renderNamingCertificatePage({
+        business,
+        orderId: order.id,
+        orderDate: orderDateStr,
+        buyerName,
+        childName,
+        childHanja,
+        gender: child?.gender || birth?.gender || '남',
+        birthDate: child?.date || birth?.date,
+        birthTime: child?.time || birth?.time,
+        birthPlace: child?.place || birth?.place || '대한민국',
+        dateUnknown: isDateUnknown,
+      });
+
+      sendHtml(res, certHtml);
+    },
+
     'GET /robots.txt': async (_req, res) => {
       const body = renderRobots(business);
       res.writeHead(200, {
@@ -2818,9 +2862,15 @@ export function createApi(deps: ApiDeps) {
       let key = `${req.method} ${url.pathname}`;
       let id = '';
 
+      const p0 = (() => { try { return decodeURIComponent(parts[0] ?? ''); } catch { return parts[0] ?? ''; } })();
+      const p1 = (() => { try { return decodeURIComponent(parts[1] ?? ''); } catch { return parts[1] ?? ''; } })();
+
       if (parts[0] === 'api' && parts[1] === 'orders' && parts[2]) {
         id = parts[2];
         key = `${req.method} /api/orders/:id${parts[3] ? `/${parts[3]}` : ''}`;
+      } else if (p0 === '작명서' && p1 && !parts[2]) {
+        id = p1;
+        key = `${req.method} /작명서/:id`;
       } else if (parts[0] === 'order' && parts[1] && !parts[2]) {
         id = parts[1];
         key = `${req.method} /order/:id`;

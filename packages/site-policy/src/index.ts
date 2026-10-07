@@ -21,3 +21,4 @@ export * from './invite-page.ts';
 export * from './admin-invite-page.ts';
 export * from './report-render.ts';
 export * from './upsell-section.ts';
+export * from './naming-certificate-page.ts';

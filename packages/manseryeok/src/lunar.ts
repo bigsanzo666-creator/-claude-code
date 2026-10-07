@@ -1394,9 +1394,22 @@ export { KoreanLunarCalendar as default };
 
 //# sourceMappingURL=korean-lunar-calendar.mjs.map
 
-export function solarToLunar(solarYear: number, solarMonth: number, solarDay: number): LunarDate {
+export function solarToLunar(solarYearOrDate: number | string, solarMonth?: number, solarDay?: number): LunarDate {
+  let y: number;
+  let m: number;
+  let d: number;
+  if (typeof solarYearOrDate === 'string') {
+    const parts = solarYearOrDate.split('-').map(Number);
+    y = parts[0];
+    m = parts[1];
+    d = parts[2];
+  } else {
+    y = solarYearOrDate;
+    m = solarMonth ?? 1;
+    d = solarDay ?? 1;
+  }
   const cal = new KoreanLunarCalendar();
-  cal.setLunarDateBySolarDate(solarYear, solarMonth, solarDay);
+  cal.setLunarDateBySolarDate(y, m, d);
   const res = cal.getLunarCalendar();
   const leapText = res.intercalation ? '윤' : '';
   const text = `${res.year}년 음력 ${leapText}${res.month}월 ${res.day}일`;

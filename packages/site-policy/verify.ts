@@ -1850,6 +1850,81 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
     orderHtmlWithEmail.includes('friend123') && orderHtmlWithEmail.includes('nbCopyInviteBtn'));
 }
 
+{
+  section('6-7단계. 작명서 화면 및 날짜 미상 작명서 검증');
+  const { renderNamingCertificatePage } = await import('./src/naming-certificate-page.ts');
+
+  // 6단계 정상 작명서
+  const normalHtml = renderNamingCertificatePage({
+    business: full,
+    orderId: 'ord_test_cert_01',
+    buyerName: '김철수',
+    childName: '김도윤',
+    childHanja: '金道潤',
+    gender: '남',
+    birthDate: '2024-05-10',
+    birthTime: '14:30',
+    birthPlace: '서울특별시',
+    dateUnknown: false,
+  });
+
+  check('작명서 제목 作名書 및 늘봄사주 작명서 포함',
+    normalHtml.includes('作名書') && normalHtml.includes('늘봄사주 작명서'));
+  check('작명서 두 장 분리 규격 (certPage1, certPage2)',
+    normalHtml.includes('id="certPage1"') && normalHtml.includes('id="certPage2"'));
+  check('아이 정보(이름, 성별, 양력·음력, 시각, 장소, 맡기신 분) 포함',
+    normalHtml.includes('김도윤') && normalHtml.includes('金道潤') &&
+    normalHtml.includes('남아') && normalHtml.includes('2024-05-10 (양력)') &&
+    normalHtml.includes('음력') && normalHtml.includes('14:30') &&
+    normalHtml.includes('서울특별시') && normalHtml.includes('김철수'));
+  check('사주 네 기둥 표(시주, 일주, 월주, 연주) 포함',
+    normalHtml.includes('시주(時柱)') && normalHtml.includes('일주(日柱)') &&
+    normalHtml.includes('월주(月柱)') && normalHtml.includes('연주(年柱)'));
+  check('오행 비중 막대와 숫자, 쇠(금) 빗금(fill-metal) 포함',
+    normalHtml.includes('오행 비중 분석 (실제 비율)') && normalHtml.includes('fill-metal'));
+  check('이름 세 글자 표(한글, 한자, 뜻, 획수, 자원오행, 발음오행, 음양) 포함',
+    normalHtml.includes('구분') && normalHtml.includes('한글') &&
+    normalHtml.includes('한자') && normalHtml.includes('뜻(훈음)') &&
+    normalHtml.includes('획수') && normalHtml.includes('자원오행') &&
+    normalHtml.includes('발음오행') && normalHtml.includes('음양') &&
+    normalHtml.includes('쇠 금') && normalHtml.includes('길 도') && normalHtml.includes('젖을 윤'));
+  check('필요한 기운, 덜어낼 기운, 까닭과 유파 관점 포함',
+    normalHtml.includes('필요한 기운:') && normalHtml.includes('덜어낼 기운:') &&
+    normalHtml.includes('판단 까닭:') && normalHtml.includes('유파 관점:'));
+  check('수리 네 격(원·형·이·정)과 격 이름, 뜻 포함',
+    normalHtml.includes('원격(元格) 초년운') && normalHtml.includes('형격(亨格) 청년운') &&
+    normalHtml.includes('이격(利格) 장년운') && normalHtml.includes('정격(貞格) 전체운'));
+  check('이름을 한 줄로 푼 글 포함',
+    normalHtml.includes('cert-summary-box'));
+  check('발행일자, 상호, 대표자, 도장(늘봄도장누끼.png) 포함',
+    normalHtml.includes(full.companyName) && normalHtml.includes(full.representative) &&
+    normalHtml.includes('/assets/늘봄도장누끼.png'));
+  check('둘째 장: 타고난 바탕과 근거, 10년 단위 대운 표(좋음/보통/조심), 맞는 방향·색·숫자 포함',
+    normalHtml.includes('타고난 바탕과 그 근거') && normalHtml.includes('10년 단위 기운의 흐름 표') &&
+    normalHtml.includes('기운을 돕는 맞는 방향·색·숫자 안내'));
+  check('금기어 방어: 지키면 복이 오고 어기면 해롭다는 단정 표현 없음',
+    !normalHtml.includes('지키면 복이 오고 어기면 해롭다'));
+
+  // 7단계 날짜 없는 작명서
+  const unknownHtml = renderNamingCertificatePage({
+    business: full,
+    orderId: 'ord_test_cert_unknown',
+    childName: '김도윤',
+    childHanja: '金道潤',
+    dateUnknown: true,
+  });
+
+  check('날짜 없는 작명서: 사주 칸에 「이 이름은 아이의 사주를 보지 않고 지었습니다」 크게 표시',
+    unknownHtml.includes('이 이름은 아이의 사주를 보지 않고 지었습니다'));
+  check('날짜 없는 작명서: 수리와 글자 뜻만 남김 (이름 한자 뜻 및 원형이정 해설 유지)',
+    unknownHtml.includes('이름 글자의 깊은 뜻과 상생(相生)') &&
+    unknownHtml.includes('수리성명학 원형이정(元亨利貞) 길흉 상세'));
+  check('날짜 없는 작명서에 명식·대운·용신 글자가 하나도 없다',
+    !unknownHtml.includes('명식') &&
+    !unknownHtml.includes('대운') &&
+    !unknownHtml.includes('용신'));
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }
