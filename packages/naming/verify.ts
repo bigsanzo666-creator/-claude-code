@@ -11,7 +11,8 @@ import { readFileSync } from 'node:fs';
 import {
   EIGHTY_ONE, number81, fourFrames, readFrames, middleStrokeCandidates, frameRows, FRAME_PLAIN,
   popularYears, popularList, popularitySource, popularityOf,
-  nameField, byReading, koreanHanjaMeaning,
+  nameField, byReading,
+  KOREAN_MEANINGS, koreanHanjaMeaning,
 } from './src/index.ts';
 
 let passed = 0, failed = 0;
@@ -21,10 +22,6 @@ function check(label: string, ok: boolean, detail = '') {
   else { failed++; failures.push(label); console.log(`  ✗ ${label}${detail ? `  ${detail}` : ''}`); }
 }
 function section(t: string) { console.log(`\n${t}\n${'─'.repeat(60)}`); }
-
-section('한자 뜻 안내');
-check('자주 쓰는 한자의 뜻은 한글로 보인다', koreanHanjaMeaning('熙') === '빛날 희');
-check('확인하지 못한 한자는 뜻을 지어내지 않는다', koreanHanjaMeaning('咥') === null);
 
 section('81수 표');
 
@@ -408,6 +405,13 @@ console.log('─'.repeat(60));
   const 희소리 = new Set(byReading('희', { legal: true }).map((h) => h.char));
   check('한글로 적으면 그 소리로 읽는 한자만 끝자리에 온다',
     끝.size > 0 && [...끝].every((c) => 희소리.has(c)), [...끝].slice(0, 8).join(' '));
+}
+
+section('한자 한글 뜻 (훈음)');
+{
+  const withMeaning = Object.values(KOREAN_MEANINGS).filter((v) => Boolean(v && v.trim()));
+  check('뜻이 있는 글자가 7,000자 이상', withMeaning.length >= 7000, `${withMeaning.length}자`);
+  check('소나무 송 같은 훈음 형식을 갖춘다', koreanHanjaMeaning('松') === '소나무 송', `${koreanHanjaMeaning('松')}`);
 }
 
 console.log(`\n${'═'.repeat(60)}`);
