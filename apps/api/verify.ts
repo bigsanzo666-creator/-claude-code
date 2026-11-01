@@ -20,6 +20,7 @@ import { CATEGORIES, maxLaunchDiscountPercent, isLaunchSale } from '../../packag
 import { findSpiritVideos } from './src/images.ts';
 import { createApi, MemoryOrderStore, checkInviteRateLimit, recordInviteCheckFail, inviteCheckAttempts, validateReading } from './src/server.ts';
 import { buildPayload } from './src/payload.ts';
+const serverSrcForChild = (await import('node:fs')).readFileSync(new URL('./src/server.ts', import.meta.url), 'utf8');
 import { buildPreview } from './src/preview.ts';
 import { maskPreviewText } from './src/preview-sections.ts';
 import { cacheKey } from '../../packages/report/src/cache.ts';
@@ -4086,6 +4087,62 @@ for (const pId of childProductIds) {
     { storeId: 'test', channelKey: 'test' }, false, false);
   check('아이 리포트 결제 화면에는 그 칸이 없다',
     !childOnly.includes('id="childDateUnknown"'));
+}
+
+/*
+ * 시험운은 본인 것도, 자녀 것도 본다.
+ *
+ * 터진 뒤에 적은 것 (2026-11-01): 수능 광고를 부모에게 내려고 보니, 시험
+ * 합격운이 산 사람 생일만 받고 있었다. 엄마가 아이 시험운을 사면 엄마 사주로
+ * 시험운이 나갔다. 누구 것인지 묻고, 고른 사람의 명식으로 푸는지 본다.
+ */
+{
+  const 엄마 = { date: '1975-03-02', time: '09:00', gender: '여' as const, name: '김엄마' };
+  const 아이 = { date: '2008-06-15', time: '14:30', gender: '남' as const, name: '도윤' };
+  const 받아보기 = (body: any): number => {
+    try { validateReading(body); return 0; } catch (e: any) { return e?.status ?? 500; }
+  };
+
+  check('시험운은 본인 것도 자녀 것도 고를 수 있다', CATALOG['exam-report'].childOptional === true);
+  check('시험운을 자녀 것으로 골랐는데 아이 생일이 없으면 막는다',
+    받아보기({ productId: 'exam-report', birth: 엄마, forChild: true }) === 400);
+  check('자녀 것인데 아이 성별을 안 고르면 막는다',
+    받아보기({ productId: 'exam-report', birth: 엄마, forChild: true,
+      child: { date: 아이.date, time: 아이.time } }) === 400);
+
+  const 자녀것: any = { productId: 'exam-report', birth: 엄마, forChild: true, child: { ...아이 } };
+  check('자녀 것은 아이 생일을 받고 통과한다', 받아보기(자녀것) === 0, `막힘 ${받아보기(자녀것)}`);
+  check('자녀 것은 아이 자료를 남겨 둔다', 자녀것.child?.date === 아이.date);
+
+  const 본인것: any = { productId: 'exam-report', birth: 엄마, forChild: false, child: { ...아이 } };
+  check('본인 것은 엄마 생일만으로 통과한다', 받아보기(본인것) === 0);
+  check('본인 것을 고르면 남아 있던 아이 자료를 버린다', 본인것.child === undefined);
+
+  const 아이명식: any = buildPayload(자녀것).data;
+  const 엄마명식: any = buildPayload(본인것).data;
+  check('자녀 것은 아이의 명식으로 푼다', 아이명식.명식?.연주 === '무자', `연주: ${아이명식.명식?.연주}`);
+  check('본인 것은 엄마의 명식으로 푼다', 엄마명식.명식?.연주 === '을묘', `연주: ${엄마명식.명식?.연주}`);
+
+  const 시험결제 = renderCheckoutPage(business, '', CATALOG['exam-report'],
+    { storeId: 'test', channelKey: 'test' }, false, false);
+  check('시험운 결제 화면이 누구 것인지 묻는다',
+    시험결제.includes('id="whoseSelf"') && 시험결제.includes('id="whoseChild"'));
+  check('누구 것인지 미리 골라 두지 않는다',
+    !/id="whose(Self|Child)"[^>]*checked/.test(시험결제) && !/checked[^>]*id="whose/.test(시험결제));
+  check('고르기 전에는 아이 칸을 접어 둔다', /id="coChildCard" style="display:none;/.test(시험결제));
+  check('누구 것인지 안 고르면 결제를 막는다', 시험결제.includes('누구의 것을 볼지 먼저 골라 주십시오'));
+  check('아이 리포트에는 누구 것인지 묻지 않는다', !childOnly2(CATALOG).includes('id="whoseSelf"'));
+
+  check('상품 화면 패널도 누구 것인지 묻는다',
+    homeApp.includes("pickField('whose', '누구의 것을 볼까요?'")
+    && homeApp.includes('data.forChild = 아이것'));
+  check('첫 화면 상품표에 아이 칸 표시가 실려 간다 (childDateOptional·childOptional)',
+    serverSrcForChild.includes("key.startsWith('needs') || key.startsWith('child')"));
+
+  function childOnly2(cat: typeof CATALOG) {
+    return renderCheckoutPage(business, '', cat['child-report'],
+      { storeId: 'test', channelKey: 'test' }, false, false);
+  }
 }
 
 // ── 4단계: 무료 사주 화면의 위치와 기둥 순서 ─────────────────────────

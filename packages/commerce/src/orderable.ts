@@ -44,6 +44,8 @@ export interface Orderable {
   needsChild: boolean;
   /** 아이의 생년월일을 안 받아도 되는가 (작명) */
   childDateOptional: boolean;
+  /** 본인 것도 자녀 것도 볼 수 있는가 (시험운) */
+  childOptional: boolean;
 }
 
 function fromPackage(id: PackageId): Orderable {
@@ -72,6 +74,8 @@ function fromPackage(id: PackageId): Orderable {
     childDateOptional: pack.members
       .filter((m) => CATALOG[m].needsChild === true)
       .every((m) => CATALOG[m].childDateOptional === true),
+    /* 묶음은 누구 것인지 하나로 정할 수 없다. 아이를 꼭 받거나, 안 받는다 */
+    childOptional: false,
   };
 }
 
@@ -94,6 +98,7 @@ export function orderable(id: string): Orderable {
       needsName: single.needsName === true,
       needsChild: single.needsChild === true,
       childDateOptional: single.childDateOptional === true,
+      childOptional: single.childOptional === true,
     };
   }
   if (PACKAGES[id as PackageId]) return fromPackage(id as PackageId);

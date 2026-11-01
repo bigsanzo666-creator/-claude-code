@@ -1144,7 +1144,18 @@ document.addEventListener('DOMContentLoaded', () => {
       input.parentNode.appendChild(unknown);
       fields[key + 'Unknown'] = unknown;
     }
-    const needsChild = product.needsChild || product.needsChildBirth;
+    /*
+     * 본인 것도 자녀 것도 되는 상품(시험운)은 누구 것인지 먼저 묻는다.
+     * 미리 골라 두지 않는다 — 본인으로 깔려 있으면 엄마가 못 보고 지나가
+     * 엄마 사주로 아이 시험운을 받는다.
+     */
+    const childOptional = product.childOptional === true && !product.needsChild;
+    if (childOptional) {
+      pickField('whose', '누구의 것을 볼까요?',
+        [['self', '제 것 — 제 생일로 봅니다'], ['child', '자녀의 것 — 아이 생일로 봅니다']],
+        typeof saved.forChild === 'boolean' ? (saved.forChild ? 'child' : 'self') : '');
+    }
+    const needsChild = product.needsChild || product.needsChildBirth || childOptional;
     if (needsChild) {
       field('childDate', '아이 생년월일', 'date', saved.child && saved.child.date);
       timeField('childTime', '아이가 태어난 시간', saved.child && saved.child.time);
@@ -1170,6 +1181,16 @@ document.addEventListener('DOMContentLoaded', () => {
         모름.addEventListener('change', 끄기);
         끄기();
       }
+    }
+    if (childOptional) {
+      const 아이칸보이기 = () => {
+        const 보임 = fields.whose.value === 'child';
+        [fields.childDate, fields.childTime, fields.childGender].forEach((el) => {
+          if (el && el.parentNode) el.parentNode.style.display = 보임 ? '' : 'none';
+        });
+      };
+      fields.whose.addEventListener('change', 아이칸보이기);
+      아이칸보이기();
     }
     if (product.needsPartner) {
       field('partnerDate', '상대 생년월일', 'date', saved.partner && saved.partner.date);
@@ -1254,10 +1275,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const missing = [];
       const data = { productId: product.id, birth: own };
       if (!product.needsPick && !own.date) missing.push('내 생년월일');
-      if (needsChild && fields.childDateUnknown && fields.childDateUnknown.checked) {
+      let 아이것 = needsChild;
+      if (childOptional) {
+        if (!fields.whose.value) missing.push('누구의 것을 볼지');
+        아이것 = fields.whose.value === 'child';
+        data.forChild = 아이것;
+      }
+      if (아이것 && fields.childDateUnknown && fields.childDateUnknown.checked) {
         // 날짜가 없으면 아이 사주를 세울 수 없다. 받은 것만 싣는다
         data.child = { dateUnknown: true };
-      } else if (needsChild) {
+      } else if (아이것) {
         if (!fields.childDate.value) missing.push('아이 생년월일');
         if (!normTime(fields.childTime)) missing.push('아이 태어난 시간');
         if (!fields.childGender.value) missing.push('아이 성별');

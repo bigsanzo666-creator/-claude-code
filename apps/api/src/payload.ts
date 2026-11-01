@@ -71,6 +71,8 @@ export interface ReadingRequest {
   birth: BirthInput;
   /** 아이 상품(child-report, naming-report 등)에서 쓴다 */
   child?: ChildInput;
+  /** 본인 것도 자녀 것도 되는 상품(시험운)에서 자녀를 골랐는가 */
+  forChild?: boolean;
   /** 택일 상품에서만 쓴다 */
   pick?: PickInput;
   /** 작명 상품에서만 쓴다 */
@@ -989,7 +991,12 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
    * 아이 자료가 없으면 **조용히 부모 사주로 가지 않고** 던진다 —
    * `sajuBundle` 의 1990-01-01 대체에 걸리면 가짜 날짜로 리포트가 나간다.
    */
-  const isChildProd = CATALOG[req.productId]?.needsChild === true;
+  /*
+   * 본인 것도 자녀 것도 되는 상품은 **아이 자료가 실려 왔을 때만** 아이 것이다.
+   * 서버가 본인을 고른 주문에서는 아이 자료를 지우고 넘긴다.
+   */
+  const isChildProd = CATALOG[req.productId]?.needsChild === true
+    || (CATALOG[req.productId]?.childOptional === true && Boolean(req.child?.date));
   if (isChildProd && !req.child?.date) {
     throw new Error('이 상품에는 아이의 생년월일(또는 출산 예정일)이 필요합니다.');
   }

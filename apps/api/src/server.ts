@@ -542,7 +542,12 @@ window.SAJU_CONFIG = ${config};
 window.__CATALOG_PRODUCTS__ = ${JSON.stringify(Object.values(CATALOG).map(p => ({
   id: p.id, name: p.name, hook: p.hook, category: p.category,
   priceKrw: p.priceKrw, regularKrw: p.regularKrw,
-  ...Object.fromEntries(Object.entries(p).filter(([key]) => key.startsWith('needs'))),
+  /*
+   * 터진 뒤에 적은 것 (2026-11-01): 「needs」로 시작하는 표만 실어 보냈더니
+   * 작명의 「아직 모릅니다」(childDateOptional)가 첫 화면에서 빠져 있었다.
+   * 아이 칸을 정하는 표(child…)도 같이 싣는다.
+   */
+  ...Object.fromEntries(Object.entries(p).filter(([key]) => key.startsWith('needs') || key.startsWith('child'))),
 })))};
 window.__CATEGORIES__ = ${JSON.stringify(CATEGORY_MENU)};
 window.__IS_LAUNCH_SALE__ = ${isLaunchSale()};
@@ -1050,8 +1055,24 @@ export function validateReading(body: any): ReadingRequest {
     throw new HttpError(400, '이 상품에는 상대의 생년월일이 필요합니다.');
   }
 
+  /*
+   * 본인 것도 자녀 것도 되는 상품(시험운)은 손님이 고른 대로 간다.
+   * 자녀를 골랐으면 아이 상품과 똑같이 받고, 본인을 골랐으면 아이 자료를
+   * **버린다** — 남아 있으면 리포트가 아이 사주로 새어 나간다.
+   */
+  if (item.childOptional) {
+    if (body.forChild === true) {
+      if (!body.child?.date) {
+        throw new HttpError(400, '자녀의 시험이면 아이의 생년월일을 적어 주셔야 합니다.');
+      }
+    } else {
+      delete body.child;
+    }
+  }
+  const 아이것 = item.needsChild || (item.childOptional && body.forChild === true);
+
   // 아이 상품은 아이의 생년월일(또는 예정일)이 있어야 만들 수 있다.
-  if (item.needsChild) {
+  if (아이것) {
     /*
      * 터진 뒤에 적은 것 (2026-10-06): 작명을 맡기는 부모 상당수가 아이가
      * 태어나기 전이고, 예정일조차 모르는 분이 적지 않다. 날짜를 꼭 받으니

@@ -381,8 +381,23 @@ export function renderCheckoutPage(
    * 거기서 잰다. 여기서는 그 값을 조용히 가져다 쓰기만 하고, 사진 이야기를
    * 한 글자도 꺼내지 않는다.
    */
-  const childSection = product.needsChild ? `
-    <div class="co-child-card" id="coChildCard" style="margin:16px 0;padding:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(212,175,55,0.25);border-radius:12px;">
+  /*
+   * 본인 것도 자녀 것도 되는 상품(시험운)은 **누구 것인지 먼저** 묻는다.
+   * 미리 골라 두지 않는다 — 본인으로 깔아 두면 엄마가 못 보고 지나가
+   * 엄마 사주로 아이 시험운을 받는다.
+   */
+  const whoseSection = product.childOptional ? `
+    <div class="co-f" id="coWhose" style="margin:16px 0 8px;">
+      <p class="co-sec" style="margin-top:0;color:#ffdd88;font-size:16px;font-weight:700;">누구의 것을 볼까요?</p>
+      <label class="co-time-unknown" for="whoseSelf" style="font-size:15px;display:flex;align-items:center;gap:8px;cursor:pointer;margin:6px 0;">
+        <input type="radio" name="whose" id="whoseSelf" value="self"> 제 것입니다 — 제 생일로 봅니다
+      </label>
+      <label class="co-time-unknown" for="whoseChild" style="font-size:15px;display:flex;align-items:center;gap:8px;cursor:pointer;margin:6px 0;">
+        <input type="radio" name="whose" id="whoseChild" value="child"> 자녀의 것입니다 — 아이 생일로 봅니다
+      </label>
+    </div>` : '';
+  const childSection = (product.needsChild || product.childOptional) ? whoseSection + `
+    <div class="co-child-card" id="coChildCard" style="${product.childOptional ? 'display:none;' : ''}margin:16px 0;padding:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(212,175,55,0.25);border-radius:12px;">
       <p class="co-sec" style="margin-top:0;color:#ffdd88;font-size:16px;font-weight:700;">아이 사주</p>
       <div class="co-note" style="margin:4px 0 14px;padding:9px 12px;background:rgba(212,175,55,0.08);border-radius:8px;">
         <p style="margin:0;font-size:13px;color:#c8bfd6;line-height:1.7;">
@@ -553,6 +568,15 @@ export function renderCheckoutPage(
   var NEEDS_FAMILY = ${product.needsFamily === true};
   var NEEDS_CHILD = ${product.needsChild === true};
   var CHILD_DATE_OPTIONAL = ${product.childDateOptional === true};
+  var CHILD_OPTIONAL = ${product.childOptional === true};
+  function 누구것고름(){
+    return Boolean(document.querySelector('input[name="whose"]:checked'));
+  }
+  function 아이것(){
+    if(NEEDS_CHILD) return true;
+    var el = document.getElementById('whoseChild');
+    return Boolean(CHILD_OPTIONAL && el && el.checked);
+  }
   function 아이날짜모름(){
     var el = document.getElementById('childDateUnknown');
     return Boolean(CHILD_DATE_OPTIONAL && el && el.checked);
@@ -723,9 +747,11 @@ export function renderCheckoutPage(
     // 사진은 여기서 묻지 않는다. 막지도 않는다
     if(!NEEDS_PICK && !dateVal && document.getElementById('birthDate')){
       reason = EMBEDDED ? '상품 화면에서 생년월일을 먼저 적어 주십시오' : '생년월일을 적으셔야 결제하실 수 있습니다';
-    } else if(NEEDS_CHILD && !아이날짜모름() && !val('childDate') && document.getElementById('childDate')){
+    } else if(CHILD_OPTIONAL && !누구것고름()){
+      reason = '누구의 것을 볼지 먼저 골라 주십시오';
+    } else if(아이것() && !아이날짜모름() && !val('childDate') && document.getElementById('childDate')){
       reason = '아이의 생년월일(또는 예정일)을 적으셔야 결제하실 수 있습니다';
-    } else if(NEEDS_CHILD && !아이날짜모름() && !val('childGender') && document.getElementById('childGender')){
+    } else if(아이것() && !아이날짜모름() && !val('childGender') && document.getElementById('childGender')){
       reason = '아이가 아들인지 딸인지 골라 주십시오';
     }
     if(!reason && NEEDS_NAME){
@@ -1435,6 +1461,10 @@ export function renderCheckoutPage(
       set('rangeTo', saved.range && saved.range.to);
       set('rangeAvoid', saved.range && saved.range.avoid && saved.range.avoid.join(', '));` : ''}
 
+      if(CHILD_OPTIONAL && typeof saved.forChild === 'boolean'){
+        var whoseEl0 = document.getElementById(saved.forChild ? 'whoseChild' : 'whoseSelf');
+        if(whoseEl0) whoseEl0.checked = true;
+      }
       if(saved.child){
         set('childName', saved.child.name);
         set('childDate', saved.child.date);
@@ -1609,6 +1639,16 @@ export function renderCheckoutPage(
   });
 
   if(childUnkEl) 아이날짜칸끄기();
+
+  function 누구것보이기(){
+    var card = document.getElementById('coChildCard');
+    if(card && CHILD_OPTIONAL) card.style.display = 아이것() ? '' : 'none';
+    checkCanPay();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="whose"]'), function(el){
+    el.addEventListener('change', 누구것보이기);
+  });
+  if(CHILD_OPTIONAL) 누구것보이기();
 
   updateSummaryDisplay();
   checkCanPay();
@@ -2138,7 +2178,10 @@ export function renderCheckoutPage(
       if(!쓸시각.length) return say('수술이 가능한 시각을 적어 주십시오.');
       reading.pick = { times: 쓸시각 };
     }
-    ${product.needsChild ? `
+    ${(product.needsChild || product.childOptional) ? `
+    if(CHILD_OPTIONAL && !누구것고름()) return say('누구의 것을 볼지 먼저 골라 주십시오.');
+    if(CHILD_OPTIONAL) reading.forChild = 아이것();
+    if(아이것()){
     var cDate = val('childDate');
     var cGender = val('childGender');
     if(아이날짜모름()){
@@ -2173,6 +2216,7 @@ export function renderCheckoutPage(
       name: val('childName') || '',
       isDueDate: Boolean(childDueEl && childDueEl.checked)
     };
+    }
     }
     ` : ''}
     ${product.needsName ? `

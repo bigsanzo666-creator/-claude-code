@@ -80,6 +80,12 @@ check('작명 둘만 아이 생년월일 없이 받는다',
 check('작명은 단품으로도 날짜 없이 받는다',
   orderable('naming-report').childDateOptional && orderable('naming-plus-report').childDateOptional);
 check('아이 사주 리포트는 날짜를 꼭 받는다', !orderable('child-report').childDateOptional);
+// 터진 뒤에 적은 것 (2026-11-01): 엄마가 아이 시험운을 사면 엄마 사주로 나갔다
+check('시험운은 본인 것도 자녀 것도 고를 수 있다', orderable('exam-report').childOptional === true);
+check('본인·자녀를 고르는 상품은 시험운뿐이다',
+  Object.values(CATALOG).filter((p) => p.childOptional === true).map((p) => p.id).join(',') === 'exam-report');
+check('아이를 꼭 받는 상품은 고르게 두지 않는다',
+  Object.values(CATALOG).every((p) => !(p.childOptional === true && p.needsChild === true)));
 check('아이 사주가 든 묶음은 날짜를 꼭 받는다',
   !orderable('child-2').childDateOptional && !orderable('child-3').childDateOptional);
 check('날짜 없이 받는 상품은 설명에 그 길을 적어 둔다',
