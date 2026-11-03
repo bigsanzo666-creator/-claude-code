@@ -1232,8 +1232,33 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
     !holidayPay.includes('서버 오픈 기념가입니다.'));
   시각을바꾼다(null);
 
+  // 수능달 기념가 기간 — 값은 기념가, 띠·문구는 「수능달 기념가」, 할인율은 적지 않는다
+  시각을바꾼다(() => Date.UTC(2026, 10, 10, 3, 0, 0));
+  {
+    const 어긋남: string[] = [];
+    for (const p of Object.values(CATALOG)) {
+      const reg = (p as any).regularKrw ?? p.priceKrw;
+      if (reg === p.priceKrw) continue;
+      const page = renderProductPage(p, full, true, '');
+      const pay = renderCheckoutPage({} as any, '', p, { storeId: 's', channelKey: 'c' });
+      const 정가 = reg.toLocaleString('ko-KR');
+      if (!page.includes(`수능달 기념가 · 11월 30일까지<br>12월 1일부터 ${정가}원`)) 어긋남.push(`${p.name}: 상세 띠`);
+      if (!pay.includes(`수능달 기념가입니다. 12월 1일부터 <b>${정가}원</b>으로 올라갑니다.`)) 어긋남.push(`${p.name}: 결제 문구`);
+      if (/싸게 드립니다|\d+% 할인/.test(page + pay)) 어긋남.push(`${p.name}: 할인율이 적혀 있다`);
+      if (/서버 오픈 기념/.test(page + pay)) 어긋남.push(`${p.name}: 오픈 기념 문구가 남았다`);
+    }
+    check('수능달 기념가 기간: 할인 상품마다 「수능달 기념가 · 12월 1일부터 정가」만 적고 할인율은 적지 않는다',
+      어긋남.length === 0, 어긋남.slice(0, 5).join(', '));
+    const list = renderProductsPage(full, true, '');
+    check('수능달 기념가 기간: 상품 목록 배지도 「수능달 기념가」다',
+      list.includes('pr-badge-launch">수능달 기념가<') && !list.includes('서버 오픈 기념가'));
+    check('수능달 기념가 기간: 결제 금액이 기념가(오픈 때 값)다',
+      renderCheckoutPage({} as any, '', CATALOG['wealth-report'], { storeId: 's', channelKey: 'c' }).includes('14,900원 결제하기'));
+  }
+  시각을바꾼다(null);
+
   // 기념가가 끝난 뒤 — 끝난 할인을 계속 띄우면 거짓 표시다
-  시각을바꾼다(() => Date.UTC(2026, 10, 3, 3, 0, 0));
+  시각을바꾼다(() => Date.UTC(2026, 11, 3, 3, 0, 0));
   {
     const 남은띠: string[] = [];
     for (const p of Object.values(CATALOG)) {

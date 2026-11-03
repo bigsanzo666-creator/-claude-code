@@ -2331,14 +2331,35 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     check('배너가 실제보다 큰 할인율을 적지 않는다',
       실제들.every((n) => n <= 최대), `${실제들.filter((n) => n > 최대).join(', ')}`);
 
-    const home = await page('/');
-    if (isLaunchSale()) {
+    // 터진 뒤에 적은 것 (2026-11-03): 이 검사가 오늘 날짜로 돌아 기간이 바뀔 때마다 틀렸다. 기간마다 시계를 고정해 본다.
+    시각을바꾼다(() => Date.UTC(2026, 9, 20, 3, 0, 0));
+    {
+      const home = await page('/');
       check('배너에 「모든 점괘」처럼 전부라고 적지 않는다',
         !home.html.includes('모든 점괘'),
         '할인이 없는 상품이 하나라도 있으면 「모든」은 거짓이다');
-      check(`배너가 「최대 ${최대}%」로 적힌다`,
-        home.html.includes(`최대 ${최대}% 할인 중`), '배너 문구가 값에서 오지 않는다');
+      check(`오픈 기념가 기간: 배너가 「최대 ${maxLaunchDiscountPercent()}%」로 적힌다`,
+        home.html.includes(`최대 ${maxLaunchDiscountPercent()}% 할인 중`), '배너 문구가 값에서 오지 않는다');
     }
+    /*
+     * 수능달 기념가는 10월에 팔던 값과 같다. 최근 20일 동안 판 가장 싼 값이 「원래 값」이므로
+     * (공정위 고시 · 대법원 2019두36001) 몇 % 할인이라고 적으면 거짓 할인 광고다.
+     */
+    시각을바꾼다(() => Date.UTC(2026, 10, 10, 3, 0, 0));
+    {
+      const home = await page('/');
+      check('수능달 기념가 기간: 배너에 「수능달 기념가」와 끝나는 날이 적힌다',
+        home.html.includes('수능달 기념가') && home.html.includes('11월 30일까지'));
+      check('수능달 기념가 기간: 배너에 할인율(%)을 적지 않는다',
+        !/% 할인 중/.test(home.html), '20일 안에 같은 값에 팔았으므로 할인이라 쓸 수 없다');
+    }
+    시각을바꾼다(() => Date.UTC(2026, 11, 3, 3, 0, 0));
+    {
+      const home = await page('/');
+      check('기념가가 모두 끝난 뒤: 첫 화면에 기념가 띠가 없다',
+        !home.html.includes('nbLaunchBanner') && !home.html.includes('기념가'));
+    }
+    시각을바꾼다(null);
 
     const co = renderCheckoutPage(business, '', CATALOG['charm-report'],
       { storeId: 'test_store', channelKey: 'test_channel' });
@@ -3877,14 +3898,14 @@ section('리포트 개편 — 시각 인지, 상세 가림막, 서버 계산 이
   시각을바꾼다(null);
 
   // 정가 기간(11월 1일 이후) — 값은 catalog.ts 에서 꺼내 같은 규칙으로 본다
-  시각을바꾼다(() => Date.UTC(2026, 10, 3, 5, 0, 0));
+  시각을바꾼다(() => Date.UTC(2026, 11, 3, 5, 0, 0));
   if (wealthUpsell) {
     const { renderOrderReportPage } = await import('../../packages/site-policy/src/order-page.ts');
     const { cutPrice, upgradeCostKrw } = await import('../../packages/commerce/src/orderable.ts');
     const { UPSELL_PROMO_RATE } = await import('../../packages/commerce/src/catalog.ts');
     const 차액 = upgradeCostKrw('wealth-report', wealthUpsell.id);
     const 특가 = cutPrice(차액, UPSELL_PROMO_RATE);
-    const viewedAt = '2026-11-03T03:00:00.000Z';
+    const viewedAt = '2026-12-03T03:00:00.000Z';
     const order2 = { ...mockOrder, amountKrw: CATALOG['wealth-report'].priceKrw, viewedAt };
     const 그릴 = (now: Date) => {
       const info = calculateUpsellPrice('wealth-report', wealthUpsell.id, viewedAt, now);
@@ -3894,8 +3915,8 @@ section('리포트 개편 — 시각 인지, 상세 가림막, 서버 계산 이
       });
       return { info, html };
     };
-    const 안 = 그릴(new Date('2026-11-03T07:00:00.000Z'));
-    const 밖 = 그릴(new Date('2026-11-03T16:00:00.000Z'));
+    const 안 = 그릴(new Date('2026-12-03T07:00:00.000Z'));
+    const 밖 = 그릴(new Date('2026-12-03T16:00:00.000Z'));
     const 따로 = 안.info.singlePriceKrw;
     check('정가 기간: 리포트 끝 이어사기 값이 catalog.ts 에서 계산한 12시간 값과 같다',
       !isLaunchSale() && 안.info.currentPriceKrw === 특가 &&

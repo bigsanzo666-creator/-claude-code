@@ -480,8 +480,28 @@ section('H. 이어사기 12시간 한정 할인 — 전자상거래법 및 표�
 }
 시각을바꾼다(null);
 
-// 정가 기간(11월 1일 이후) — 같은 규칙을 catalog.ts 값으로 본다
-시각을바꾼다(() => Date.UTC(2026, 10, 3, 3, 0, 0));
+// 기념가 기간들 — 언제 어떤 값인지 (한국 시간 기준)
+{
+  const { currentSale } = await import('./src/catalog.ts');
+  const 값 = (utc: number) => { 시각을바꾼다(() => utc); const r = { p: CATALOG['wealth-report'].priceKrw, s: currentSale()?.name ?? null }; 시각을바꾼다(null); return r; };
+  const 오픈끝직전 = 값(Date.UTC(2026, 9, 31, 14, 59, 59));
+  const 정가1 = 값(Date.UTC(2026, 9, 31, 15, 0, 0));      // 11월 1일 0시
+  const 정가2 = 값(Date.UTC(2026, 10, 2, 14, 59, 59));    // 11월 2일 23:59:59
+  const 수능시작 = 값(Date.UTC(2026, 10, 2, 15, 0, 0));    // 11월 3일 0시
+  const 수능끝직전 = 값(Date.UTC(2026, 10, 30, 14, 59, 59)); // 11월 30일 23:59:59
+  const 수능끝 = 값(Date.UTC(2026, 10, 30, 15, 0, 0));      // 12월 1일 0시
+  check('10월 31일까지는 서버 오픈 기념가 14,900원', 오픈끝직전.p === 14900 && 오픈끝직전.s === '서버 오픈 기념가');
+  check('11월 1일~2일은 정가 26,900원 (기념가 없음)', 정가1.p === 26900 && 정가2.p === 26900 && 정가1.s === null && 정가2.s === null);
+  check('11월 3일 0시부터 수능달 기념가 14,900원', 수능시작.p === 14900 && 수능시작.s === '수능달 기념가');
+  check('11월 30일 끝까지 수능달 기념가', 수능끝직전.p === 14900 && 수능끝직전.s === '수능달 기념가');
+  check('12월 1일 0시에 저절로 정가 26,900원', 수능끝.p === 26900 && 수능끝.s === null);
+  시각을바꾼다(() => Date.UTC(2026, 10, 10));
+  check('수능달 기념가는 할인율을 적지 않게 되어 있다', currentSale()?.showPercent === false);
+  시각을바꾼다(null);
+}
+
+// 정가 기간(기념가가 모두 끝난 뒤) — 같은 규칙을 catalog.ts 값으로 본다
+시각을바꾼다(() => Date.UTC(2026, 11, 3, 3, 0, 0));
 {
   const baseProductId = 'wealth-report';
   const packOffer = upsellFor(baseProductId);
@@ -494,9 +514,9 @@ section('H. 이어사기 12시간 한정 할인 — 전자상거래법 및 표�
       regularUpgrade > 0 && promoPrice < regularUpgrade,
       `정규차액: ${regularUpgrade}원, 12시간특가: ${promoPrice}원`);
 
-    const viewTime = new Date('2026-11-03T03:00:00Z');
-    const within12h = new Date('2026-11-03T11:00:00Z');
-    const after12h = new Date('2026-11-03T16:00:00Z');
+    const viewTime = new Date('2026-12-03T03:00:00Z');
+    const within12h = new Date('2026-12-03T11:00:00Z');
+    const after12h = new Date('2026-12-03T16:00:00Z');
     const promoCalc = calculateUpsellPrice(baseProductId, packOffer.id, viewTime, within12h);
     const expiredCalc = calculateUpsellPrice(baseProductId, packOffer.id, viewTime, after12h);
     check('정가 기간: 12시간 안이면 차액에서 깎은 값이다', promoCalc.isPromo === true && promoCalc.currentPriceKrw === promoPrice,
@@ -646,12 +666,12 @@ section('J. 리포트 끝 추천 3개 — 손님 질문에 맞춰 고르고 할�
   check('③ 14,900원짜리는 12시간 안 9,900원, 지난 뒤 11,900원이다', check3Ok);
   시각을바꾼다(null);
 
-  // ③-정가: 11월 1일 뒤에도 같은 비율로 깎인다 (값은 catalog.ts 에서 꺼낸다)
-  시각을바꾼다(() => Date.UTC(2026, 10, 3, 3, 0, 0));
+  // ③-정가: 기념가가 끝난 뒤에도 같은 비율로 깎인다 (값은 catalog.ts 에서 꺼낸다)
+  시각을바꾼다(() => Date.UTC(2026, 11, 3, 3, 0, 0));
   {
-    const nowR = new Date('2026-11-03T05:00:00Z');
-    const viewR = new Date('2026-11-03T03:00:00Z');
-    const afterR = new Date('2026-11-03T16:00:00Z');
+    const nowR = new Date('2026-12-03T05:00:00Z');
+    const viewR = new Date('2026-12-03T03:00:00Z');
+    const afterR = new Date('2026-12-03T16:00:00Z');
     const otherId = Object.keys(CATALOG)[0];
     const inR = recommendNext(otherId, null, viewR, nowR);
     const outR = recommendNext(otherId, null, viewR, afterR);
@@ -659,7 +679,7 @@ section('J. 리포트 끝 추천 3개 — 손님 질문에 맞춰 고르고 할�
       inR.every((r) => r.currentPriceKrw === cutPrice(r.singlePriceKrw, UPSELL_PROMO_RATE)) &&
       outR.every((r) => r.currentPriceKrw === cutPrice(r.singlePriceKrw, UPSELL_AFTER_RATE)) &&
       inR.every((r) => r.singlePriceKrw === CATALOG[r.nextProduct.id].priceKrw);
-    check('③-정가: 11월 1일 뒤에도 추천값은 catalog.ts 정가에서 같은 비율로 깎인다', ok,
+    check('③-정가: 기념가가 끝난 뒤에도 추천값은 catalog.ts 정가에서 같은 비율로 깎인다', ok,
       inR.map((r) => `${r.nextProduct.id}:${r.singlePriceKrw}→${r.currentPriceKrw}`).join(', '));
   }
   시각을바꾼다(null);

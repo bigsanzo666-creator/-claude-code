@@ -20,7 +20,7 @@ import {
   orderable, isOrderable, upsellFor, packagesContaining, makePreview,
   calculateUpsellPrice, UPSELL_PROMO_HOURS, recommendNext,
   HOLIDAY_MAX_MEMBERS, HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, extraMemberKrw,
-  WITHDRAWAL_NOTICE, CATEGORIES, isLaunchSale, maxLaunchDiscountPercent, type Order, type PaymentGateway, type ProductId,
+  WITHDRAWAL_NOTICE, CATEGORIES, isLaunchSale, currentSale, maxLaunchDiscountPercent, type Order, type PaymentGateway, type ProductId,
 } from '../../../packages/commerce/src/index.ts';
 import { cacheKey } from '../../../packages/report/src/cache.ts';
 import { cleanQuestion, QUESTION_MAX } from '../../../packages/report/src/prompt.ts';
@@ -551,6 +551,7 @@ window.__CATALOG_PRODUCTS__ = ${JSON.stringify(Object.values(CATALOG).map(p => (
 })))};
 window.__CATEGORIES__ = ${JSON.stringify(CATEGORY_MENU)};
 window.__IS_LAUNCH_SALE__ = ${isLaunchSale()};
+window.__SALE__ = ${JSON.stringify(currentSale() && { name: currentSale()!.name, regularFrom: currentSale()!.regularFrom })};
 window.KAKAO_JS_KEY = ${JSON.stringify(process.env.KAKAO_JS_KEY ?? '')};
 </script>
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
@@ -583,7 +584,9 @@ window.KAKAO_JS_KEY = ${JSON.stringify(process.env.KAKAO_JS_KEY ?? '')};
 ${isLaunchSale() ? `
 <div class="nb-launch-banner" id="nbLaunchBanner" style="display:none">
   <div class="nb-launch-banner-content">
-    <span class="nb-launch-banner-text">서버 오픈 기념 — <b class="nb-launch-banner-hit">최대 ${maxLaunchDiscountPercent()}% 할인 중</b><span class="nb-launch-banner-until"> · 11월 1일까지</span></span>
+    <span class="nb-launch-banner-text">${currentSale()!.showPercent
+      ? `${currentSale()!.short} — <b class="nb-launch-banner-hit">최대 ${maxLaunchDiscountPercent()}% 할인 중</b><span class="nb-launch-banner-until"> · ${currentSale()!.regularFrom}까지</span>`
+      : `<b class="nb-launch-banner-hit">${currentSale()!.name}</b>로 드립니다<span class="nb-launch-banner-until"> · ${currentSale()!.lastDay}까지</span>`}</span>
     <button type="button" class="nb-launch-banner-close" id="nbCloseLaunchBanner" aria-label="닫기">✕</button>
   </div>
 </div>
