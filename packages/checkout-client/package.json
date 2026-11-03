@@ -1,0 +1,10 @@
+{
+  "name": "@saju/checkout-client",
+  "version": "0.1.0",
+  "description": "브라우저 결제 흐름 — 결제창과 서버 호출을 주입받아 테스트 가능하게",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "verify": "node --experimental-strip-types verify.ts" },
+  "license": "UNLICENSED"
+}

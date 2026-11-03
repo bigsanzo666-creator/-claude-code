@@ -1,0 +1,10 @@
+{
+  "name": "@saju/dream",
+  "version": "0.1.0",
+  "description": "꿈에 나온 것 → 전통 해몽 (룰 기반, 모델 호출 없음)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "verify": "node --experimental-strip-types verify.ts" },
+  "license": "UNLICENSED"
+}

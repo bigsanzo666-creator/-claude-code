@@ -1,0 +1,10 @@
+{
+  "name": "@saju/rules",
+  "version": "0.1.0",
+  "description": "명식 → 십신·강약·용신·합충·신살 해석 룰 엔진 (결정론)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "verify": "node --experimental-strip-types verify.ts" },
+  "license": "UNLICENSED"
+}

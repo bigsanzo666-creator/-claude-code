@@ -1,0 +1,10 @@
+{
+  "name": "@saju/site-policy",
+  "version": "0.1.0",
+  "description": "사업자 정보 표시와 약관·개인정보·환불 정책 문서 (PG 심사 요건)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "verify": "node --experimental-strip-types verify.ts" },
+  "license": "UNLICENSED"
+}

@@ -1,0 +1,1454 @@
+/* ==========================================================================
+   늘봄사주: 9:16 모바일 뷰포트 & 16:9 와이드 파노라마 드래그 시스템
+   - No Italic, 선명하고 단정한 Noto Sans KR 폰트
+   - 16:9 가로 와이드 전경을 모바일에서 매끄럽게 좌우 스와이프/드래그
+   - 신령 핫스팟 핀 및 하단 인장 트레이
+   ========================================================================== */
+
+:root {
+  --bg-deep: #06060a;
+  --bg-card: rgba(18, 18, 28, 0.95);
+  --gold-primary: #d4af37;
+  --gold-light: #f3e5ab;
+  --crimson: #9e1b32;
+  --crimson-glow: rgba(158, 27, 50, 0.4);
+  --text-main: #f5f5f7;
+  --text-muted: #a0a0b2;
+  --border-gold: rgba(212, 175, 55, 0.4);
+  --border-glass: rgba(255, 255, 255, 0.12);
+  --font-serif: 'Noto Serif KR', serif;
+  --font-main: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --transition: all 0.25s ease;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  font-style: normal !important;
+}
+
+body {
+  background: #020205;
+  color: var(--text-main);
+  font-family: var(--font-main);
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* 9:16 스마트폰 규격 중앙 고정 뷰포트 */
+#mobileContainer {
+  width: 100%;
+  max-width: 460px;
+  height: 100vh;
+  height: 100dvh;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-deep);
+  box-shadow: 0 0 80px rgba(0, 0, 0, 0.95);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 상단 글로벌 오디오 배지 */
+.global-audio-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 100;
+  background: rgba(8, 8, 14, 0.85);
+  border: 1px solid var(--border-gold);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--gold-light);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  user-select: none;
+}
+
+.global-audio-badge.active {
+  background: rgba(212, 175, 55, 0.2);
+  border-color: var(--gold-primary);
+  color: #fff;
+}
+
+/* 스테이지 공통 */
+.stage-section {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: 5;
+}
+
+.stage-section.active {
+  display: flex;
+  opacity: 1;
+  z-index: 10;
+}
+
+/* ================= STAGE 1: 신령계 진입문 (루프 없음) ================= */
+#stageGate {
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.gate-bg-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.gate-bg-wrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(6, 6, 12, 0.2) 0%, rgba(6, 6, 12, 0.4) 50%, rgba(6, 6, 12, 0.95) 100%);
+}
+
+.gate-content {
+  position: relative;
+  z-index: 10;
+  padding: 32px 24px 44px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.badge-tag {
+  display: inline-block;
+  padding: 5px 14px;
+  background: rgba(212, 175, 55, 0.2);
+  border: 1px solid var(--gold-primary);
+  border-radius: 16px;
+  color: var(--gold-light);
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 14px;
+}
+
+.main-title {
+  font-size: 1.75rem;
+  font-weight: 900;
+  line-height: 1.35;
+  color: #ffffff;
+  margin-bottom: 12px;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.9);
+}
+
+.gold-text {
+  color: var(--gold-primary);
+  text-shadow: 0 0 20px rgba(212, 175, 55, 0.6);
+}
+
+.sub-desc-original {
+  margin-bottom: 24px;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: #f0f0fa;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
+}
+
+.gold-highlight {
+  color: var(--gold-light);
+  font-weight: 700;
+}
+
+.enter-actions {
+  width: 100%;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, var(--gold-primary), #a37c15);
+  border: none;
+  border-radius: 14px;
+  color: #120d04;
+  font-weight: 900;
+  font-size: 1.05rem;
+  cursor: pointer;
+  box-shadow: 0 8px 30px rgba(212, 175, 55, 0.4);
+  transition: var(--transition);
+}
+
+.pulse-gold {
+  animation: pulseGold 2s infinite;
+}
+
+@keyframes pulseGold {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 8px 30px rgba(212, 175, 55, 0.4);
+  }
+
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 10px 40px rgba(212, 175, 55, 0.7);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 8px 30px rgba(212, 175, 55, 0.4);
+  }
+}
+
+/* ================= STAGE 2: 신령계 입장 연출 ================= */
+#stageEnter {
+  background: #000;
+}
+
+.enter-video-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.enter-video-wrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* ================= STAGE 3: 10대 신령 메뉴판 ================= */
+.spirits-menu-section {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 50% 12%, rgba(28, 22, 38, 0.98) 0%, rgba(10, 8, 14, 0.99) 65%, #050408 100%);
+  display: none;
+  flex-direction: column;
+  box-sizing: border-box;
+  /* 위쪽 여백은 소리 버튼(.global-audio-badge) 아래로 배치 */
+  padding: 48px 14px 20px 14px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  z-index: 10;
+}
+
+.spirits-menu-section::-webkit-scrollbar {
+  display: none;
+}
+
+.spirits-menu-section.active {
+  display: flex !important;
+}
+
+/* 상단 벗의 증표 수동 입력 */
+.stage-invite-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 100;
+  max-width: 250px;
+}
+.stage-invite-btn {
+  background: rgba(18, 14, 24, 0.88);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 16px;
+  padding: 5px 11px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gold-light, #f5d77f);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.stage-invite-btn:hover {
+  border-color: var(--gold-primary, #d4af37);
+  background: rgba(28, 22, 38, 0.95);
+}
+.stage-invite-fold {
+  margin-top: 6px;
+  background: rgba(14, 11, 20, 0.96);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: 10px;
+  padding: 8px 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
+}
+.stage-invite-input-row {
+  display: flex;
+  gap: 6px;
+}
+.stage-invite-input-row input {
+  flex: 1 1 0;
+  min-width: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 0.8rem;
+  color: #fff;
+  font-family: inherit;
+}
+.stage-invite-input-row button {
+  background: #d4af37;
+  color: #120e18;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.stage-invite-msg {
+  font-size: 0.75rem;
+  margin: 6px 0 0;
+  line-height: 1.4;
+  color: #c8c2d4;
+  word-break: keep-all;
+}
+.stage-invite-msg.ok {
+  color: #9fd8a8;
+  font-weight: 600;
+}
+.stage-invite-msg.err {
+  color: #fca5a5;
+}
+
+/* 메뉴판 상단 헤더 */
+.spirits-menu-header {
+  text-align: center;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.spirits-menu-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(22, 19, 28, 0.88);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 20px;
+  padding: 2px 10px;
+  margin-bottom: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.user-seal-mark {
+  background: #a92020;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 900;
+  padding: 1px 5px;
+  border-radius: 4px;
+  letter-spacing: -0.02em;
+}
+
+.user-name-text {
+  font-size: 0.88rem;
+  color: var(--gold-light, #f5d77f);
+  font-weight: 600;
+}
+
+.spirits-menu-title {
+  font-family: var(--font-main, sans-serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 2px 0;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.spirits-menu-desc {
+  font-size: 0.88rem;
+  color: rgba(212, 175, 55, 0.88);
+  margin: 0;
+  letter-spacing: 0.2px;
+}
+
+/* 갈래 탭 래퍼 & 좌우 화살표 & 우측 그늘 */
+.spirits-tabs-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.spirits-tabs-wrapper::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 32px;
+  background: linear-gradient(to right, transparent, rgba(10, 8, 14, 0.95));
+  pointer-events: none;
+  z-index: 5;
+}
+
+.tabs-arrow-btn {
+  display: none;
+  background: rgba(28, 22, 38, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: var(--gold-light, #f5d77f);
+  font-size: 1.1rem;
+  font-weight: 700;
+  width: 28px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  z-index: 6;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.tabs-arrow-btn:hover {
+  background: rgba(212, 175, 55, 0.2);
+  border-color: var(--gold-primary);
+}
+
+@media (min-width: 768px) {
+  .tabs-arrow-btn {
+    display: flex;
+  }
+}
+
+/* 갈래 탭 11개 (가로 스크롤) */
+.spirits-category-tabs {
+  display: flex !important;
+  gap: 4px !important;
+  overflow-x: auto !important;
+  scroll-snap-type: x mandatory !important;
+  padding: 0 34px 6px 8px !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.22) !important;
+  flex: 1 !important;
+  box-sizing: border-box !important;
+}
+
+.spirits-category-tabs::-webkit-scrollbar {
+  display: none !important;
+}
+
+.category-tab {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 6px 10px !important;
+  font-family: 'Pretendard', sans-serif !important;
+  font-size: 0.92rem !important;
+  font-weight: 600 !important;
+  color: rgba(245, 245, 247, 0.88) !important;
+  cursor: pointer !important;
+  position: relative !important;
+  white-space: nowrap !important;
+  transition: color 0.2s ease !important;
+  flex-shrink: 0 !important;
+  scroll-snap-align: start !important;
+}
+
+.category-tab:hover {
+  color: rgba(245, 245, 247, 0.9) !important;
+}
+
+.category-tab.active {
+  color: var(--gold-light, #f5d77f) !important;
+  font-weight: 700 !important;
+}
+
+.category-tab.active::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: -1px !important;
+  left: 12% !important;
+  width: 76% !important;
+  height: 2.5px !important;
+  background: linear-gradient(90deg, transparent, #d4af37, #f5d77f, #d4af37, transparent) !important;
+  border-radius: 2px !important;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.8) !important;
+}
+
+/* 세로 상품 목록 */
+.product-vertical-container {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.product-vertical-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 2px 0 16px 0 !important;
+}
+
+.product-card {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  /*
+   * 신령 얼굴이 보여야 카드다.
+   *
+   * 터진 뒤에 적은 것 (2026-09-29): 140px 짜리 납작한 띠라 세로로 긴 신령
+   * 그림에서 가로 한 줄만 보였다. 얼굴이 손톱만 하게 나와 누구인지 모른다.
+   * 화면 너비에 맞춰 높이를 따라가게 두고, 좁은 폰에서도 얼굴이 사는
+   * 크기까지는 반드시 확보한다.
+   */
+  height: clamp(200px, 56vw, 260px) !important;
+  min-height: 200px !important;
+  flex-shrink: 0 !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(212, 175, 55, 0.38) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 12px rgba(212, 175, 55, 0.12) !important;
+  cursor: pointer !important;
+  background: #08060c !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+}
+
+.product-card:active {
+  transform: scale(0.99) !important;
+}
+
+.product-card-bg {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center 20% !important;
+  display: block !important;
+  filter: none !important;
+}
+
+.product-card-scrim {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 100% !important;
+  background: linear-gradient(to top, rgba(0,0,0,.85) 0%, rgba(0,0,0,.35) 45%, transparent 100%) !important;
+  pointer-events: none !important;
+}
+
+.product-card-info {
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  padding: 12px 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  text-align: left !important;
+  box-sizing: border-box !important;
+  pointer-events: none !important;
+}
+
+.product-card-spirit {
+  font-family: 'Pretendard', sans-serif !important;
+  font-size: 0.88rem !important;
+  font-weight: 600 !important;
+  color: var(--gold-light, #f5d77f) !important;
+  letter-spacing: 0.02em !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9) !important;
+}
+
+.product-card-title {
+  margin: 0 !important;
+  font-family: var(--font-main, 'Pretendard', sans-serif) !important;
+  font-size: 1.35rem !important;
+  line-height: 1.3 !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  background: linear-gradient(180deg, #ffffff 15%, #f5d77f 70%, #d4af37 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.95)) !important;
+  word-break: keep-all !important;
+}
+
+.product-card-hook {
+  margin: 0 !important;
+  font-family: 'Pretendard', sans-serif !important;
+  font-size: 0.88rem !important;
+  color: rgba(245, 245, 247, 0.95) !important;
+  line-height: 1.4 !important;
+  word-break: keep-all !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9) !important;
+}
+
+.carousel-dots {
+  display: none !important;
+}
+
+.carousel-empty {
+  width: 100% !important;
+  text-align: center !important;
+  padding: 40px 20px !important;
+  color: rgba(245, 245, 247, 0.88) !important;
+  font-size: 0.9rem !important;
+  font-family: 'Pretendard', sans-serif !important;
+}
+
+/* AI 생성 워터마크 가림막 */
+.watermark-mask-bl {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 150px;
+  height: 60px;
+  /* 영상(1)·티끌(2) 위, 상담칸(18) 아래. 30 으로 두면 「다음으로」 버튼
+     왼쪽 아래를 검게 덮는다 — 실제로 그렇게 나갔다 */
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(ellipse at bottom left, rgba(4, 3, 8, 0.92) 0%, rgba(4, 3, 8, 0.6) 50%, rgba(4, 3, 8, 0) 100%);
+}
+
+
+/* ================= SAJU INPUT MODAL (사주 신상 정보 입력 창) ================= */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  z-index: 200;
+  display: none;
+  justify-content: center;
+  align-items: flex-end;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.modal-backdrop.active {
+  display: flex !important;
+  opacity: 1;
+}
+
+.modal-dialog {
+  width: 100%;
+  max-width: 460px;
+  max-height: 88vh;
+  background: rgba(16, 16, 26, 0.98);
+  border-top: 2px solid var(--border-gold, rgba(212, 175, 55, 0.4));
+  border-radius: 28px 28px 0 0;
+  padding: 24px 20px 36px 20px;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.9);
+}
+
+.saju-modal-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.saju-modal-title {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--gold-light, #f5d77f);
+  line-height: 1.45;
+  font-family: var(--font-main, sans-serif);
+}
+
+.saju-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-row {
+  display: flex;
+  gap: 10px;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.flex-2 {
+  flex: 2;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--gold-light, #f5d77f);
+  margin-bottom: 6px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(8, 8, 14, 0.85);
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.15));
+  border-radius: 10px;
+  color: #fff;
+  font-family: var(--font-main, sans-serif);
+  font-size: 0.9rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.gender-toggle {
+  display: flex;
+  gap: 10px;
+}
+
+.gender-btn {
+  flex: 1;
+  padding: 12px;
+  text-align: center;
+  background: rgba(8, 8, 14, 0.85);
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.15));
+  border-radius: 10px;
+  color: var(--text-muted, #999);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gender-btn.active {
+  background: rgba(212, 175, 55, 0.25);
+  border-color: var(--gold-primary, #d4af37);
+  color: var(--gold-light, #f5d77f);
+}
+
+/* ================= STAGE 4: 100% 2K 신령 1:1 대면 처소 (9:16 세로 풀스크린) ================= */
+#stageChamber {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background: #000;
+}
+
+#stageChamber.active {
+  display: flex !important;
+  opacity: 1 !important;
+}
+
+/* 10대 신령 1080p 대면 영상: 검은 배경 위에서 로드 완료 후 서서히 페이드인 (중간 포스터 사진 없음) */
+.chamber-bg-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.chamber-bg-video.is-ready {
+  opacity: 1;
+}
+
+/* 정지 화면 위 신령 기운 파티클: 영상보다 위, 상단 HUD보다는 아래 */
+.chamber-particle-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* 상단 뒤로가기 & 신령 명패: 뒤로가기 버튼 바로 옆에 나란히 배치. right를 96px로 잡아 우측 신령음 버튼(.global-audio-badge)과 겹칠 여지 자체를 없앰 */
+.chamber-top-bar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 96px;
+  z-index: 20;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-back-courtyard {
+  background: rgba(12, 10, 20, 0.82);
+  border: 1px solid rgba(212, 175, 55, 0.6);
+  border-radius: 999px;
+  padding: 8px 16px;
+  color: #ffd700;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.btn-back-courtyard:hover {
+  background: rgba(30, 20, 45, 0.95);
+  transform: scale(1.04);
+}
+
+.chamber-spirit-badge {
+  background: rgba(12, 10, 20, 0.82);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: 999px;
+  padding: 6px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  max-width: 42%;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.chamber-spirit-badge .badge-title,
+.chamber-spirit-badge .badge-role {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.chamber-spirit-badge .badge-title {
+  color: #ffd700;
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.chamber-spirit-badge .badge-role {
+  color: #ccc;
+  font-size: 0.88rem;
+  letter-spacing: 0.2px;
+}
+
+/* ================= 신령 1:1 상담 대화 (영상 정지 후 하단에서 떠오름) ================= */
+.chamber-consult {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  z-index: 18;
+  padding: 60px 22px calc(26px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, rgba(4, 3, 10, 0.95) 0%, rgba(6, 4, 14, 0.82) 62%, rgba(6, 4, 14, 0) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  animation: consultRise 0.6s ease both;
+}
+
+@keyframes consultRise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.consult-say {
+  margin: 0;
+  text-align: center;
+  color: #fff;
+  font-family: var(--font-main, sans-serif);
+  font-size: 1.12rem;
+  font-weight: 700;
+  line-height: 1.85;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+  white-space: pre-line;
+}
+
+.consult-note {
+  margin: 0;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.88rem;
+  letter-spacing: 0.2px;
+}
+
+.consult-fields {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+/* "지금은 [기혼] 상태예요." 처럼 문장 안에 선택 칸이 들어가는 형태 */
+.consult-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #eae6f5;
+  font-size: 0.95rem;
+}
+
+.consult-row select {
+  background: rgba(28, 22, 45, 0.92);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 10px 14px;
+  min-width: 120px;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, rgba(212, 175, 55, 0.9) 50%), linear-gradient(135deg, rgba(212, 175, 55, 0.9) 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(50% - 2px), calc(100% - 13px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+/* 문장 안에 들어가는 짧게 쓰는 칸 · 날짜 칸 */
+.consult-inline-input {
+  background: rgba(28, 22, 45, 0.92);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: inherit;
+  padding: 10px 12px;
+  min-width: 96px;
+  max-width: 170px;
+  text-align: center;
+}
+
+.consult-inline-input::placeholder {
+  color: rgba(255, 255, 255, 0.38);
+  font-weight: 400;
+}
+
+.consult-inline-input[type="date"] {
+  min-width: 140px;
+  color-scheme: dark;
+}
+
+/* 사진 올리는 칸 */
+.consult-photo {
+  width: 100%;
+  min-height: 64px;
+  border: 1px dashed rgba(212, 175, 55, 0.55);
+  border-radius: 14px;
+  background: rgba(28, 22, 45, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  color: var(--gold-light, #ffd700);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.consult-photo.has-photo {
+  border-style: solid;
+  justify-content: flex-start;
+}
+
+/* 사진을 잰 결과를 한 줄로 알려 준다 */
+.consult-photo-msg {
+  display: block;
+  margin: 6px 2px 2px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #cfc7da;
+}
+.consult-photo-msg.bad { color: #ffb8b8; }
+
+.consult-photo-thumb {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  flex: 0 0 auto;
+}
+
+.consult-textwrap {
+  width: 100%;
+  position: relative;
+}
+
+.consult-textwrap textarea {
+  width: 100%;
+  min-height: 108px;
+  resize: none;
+  background: rgba(28, 22, 45, 0.9);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 14px;
+  color: #fff;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  padding: 14px 14px 28px;
+  font-family: inherit;
+}
+
+.consult-textwrap textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.consult-counter {
+  position: absolute;
+  right: 12px;
+  bottom: 8px;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.88);
+  letter-spacing: 0.2px;
+}
+
+.consult-cta {
+  width: 100%;
+  margin-top: 4px;
+  padding: 15px 20px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f0dfa0 0%, #d4af37 100%);
+  color: #1a1206;
+  font-size: 1.02rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 6px 22px rgba(212, 175, 55, 0.45);
+}
+
+.consult-cta:active {
+  transform: translateY(1px);
+}
+
+/* ================= AI 워터마크 커버 (영상 재생 스테이지 우측 하단) ================= */
+.watermark-seal-cover {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  z-index: 3;
+  height: 30px;
+  width: auto;
+  opacity: 0.92;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+}
+
+/* ── 컴퓨터에서 카드를 넘기는 화살표 ──────────────────────────
+   손가락으로 미는 것만 있어서, 마우스로 들어온 손님은 첫 장만 보고
+   끝났다. 좌우에 세워 두고 넘길 장이 없으면 흐려진다. */
+.carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 6;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: rgba(10, 8, 14, 0.78);
+  color: #f3e5ab;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: opacity .18s ease, border-color .18s ease;
+}
+.carousel-arrow:hover { border-color: #d4af37; }
+.carousel-arrow-prev { left: 6px; }
+.carousel-arrow-next { right: 6px; }
+.carousel-arrow.is-off { opacity: .28; pointer-events: none; }
+
+/* 손가락으로 미는 기기에서는 화살표가 자리만 차지한다 */
+@media (hover: none) and (pointer: coarse) {
+  .carousel-arrow { display: none !important; }
+}
+
+/* 마우스로 끌 수 있다는 것을 커서로 알린다 */
+.product-carousel-track { cursor: grab; }
+.product-carousel-track.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none !important;   /* 끄는 동안은 칸에 붙지 않게 */
+  scroll-behavior: auto !important;
+}
+.product-carousel-track.is-dragging .product-card { pointer-events: none; }
+
+/* 점도 눌러서 넘길 수 있다 */
+.carousel-dots .dot { cursor: pointer; }
+
+/* ──────────────────────────────────────────────────────────────────
+ * 맛보기 — 상품 카드 밑에서 신령이 손님 사주를 조금 풀어 준다.
+ *
+ * 값을 보러 가기 전에 손님이 받아 가는 자리다. 그래서 카드와 같은 폭,
+ * 같은 금색으로 붙어 한 덩어리처럼 보이게 한다.
+ * ────────────────────────────────────────────────────────────────── */
+.taste-panel {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 4px;
+  padding: 18px 18px 20px;
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  border-radius: 12px;
+  background: rgba(12, 10, 18, 0.97);
+  color: var(--text-main);
+  font-family: var(--font-main);
+  animation: tasteIn 0.28s ease both;
+}
+.taste-panel .pr { max-width: 100%; padding: 0; }
+.taste-hero-slot .pd-hero-box { margin: -18px -18px 20px; }
+.taste-needs, .taste-masked, .taste-reveal-row { margin: 22px 0; padding: 18px; border: 1px solid rgba(212,175,55,.35); border-radius: 12px; background: #17131c; }
+.taste-needs .taste-field { display: block; margin: 14px 0; color: #eee6d8; font-size: 16px; }
+.taste-field span { display: block; margin-bottom: 6px; }
+.taste-field input, .taste-needs select, .taste-family-row input { box-sizing: border-box; width: 100%; min-height: 44px; padding: 9px 11px; border: 1px solid #8c7a57; border-radius: 7px; background: #241d28; color: #fff; font-size: 16px; }
+.taste-edit, .taste-time-unknown { min-height: 42px; margin: 7px 0; padding: 8px 13px; border: 1px solid #c9a84f; border-radius: 7px; background: transparent; color: #f0dc9a; font-size: 15px; cursor: pointer; }
+.taste-time-unknown[aria-pressed=true] { background: #c9a84f; color: #211b19; }
+/* 터진 뒤에 적은 것 (2026-10-06): 날짜를 모르는 부모가 여기서 막혀 돌아갔다 */
+.taste-tick { display: flex; flex-direction: row; align-items: center; gap: 8px; cursor: pointer; margin: 10px 0 2px; }
+.taste-tick input { width: 18px; height: 18px; min-height: 18px; flex: 0 0 auto; padding: 0; accent-color: #c9a84f; }
+.taste-tick span { display: inline; margin: 0; font-size: 15px; color: #f0dc9a; }
+.taste-tick-note { margin: 4px 0 10px; font-size: 13px; line-height: 1.7; color: #c8bfd6; word-break: keep-all; }
+.taste-own, .taste-missing { color: #e7d9bd; line-height: 1.65; }
+.taste-family-row { display: grid; gap: 8px; margin: 10px 0; }
+.taste-hanja-list { display: flex; flex-wrap: wrap; gap: 7px; max-height: 260px; overflow: auto; }
+.taste-hanja-choice { padding: 7px 9px; border: 1px solid #967e44; border-radius: 7px; background: #28212a; color: #f3e8c9; font-size: 15px; cursor: pointer; }
+.taste-reveal-row { text-align: center; }
+.taste-reveal-row .taste-go, .taste-buy { display: block; box-sizing: border-box; width: 100%; min-height: 52px; padding: 12px; border: 0; border-radius: 8px; background: #d2ad50; color: #241d15; font-size: 17px; font-weight: 700; cursor: pointer; }
+.taste-reveal-row .taste-go:disabled { background: #605a4c; color: #c9c4b9; cursor: not-allowed; }
+.taste-say-block { margin: 22px 0; padding: 4px 0 2px; border-top: 1px solid rgba(212,175,55,.35); border-bottom: 1px solid rgba(212,175,55,.35); }
+.taste-say-head { margin: 16px 0 4px; text-align: center; }
+.taste-say-block .taste-masked { margin: 14px 0; }
+.taste-masked-lead { margin: 10px 0 8px; color: #f6e7bd; font-size: 17px; font-weight: 700; line-height: 1.6; word-break: keep-all; }
+.taste-masked-lead .taste-term { display: block; margin-top: 4px; color: #bda978; font-size: 13px; font-weight: 400; }
+.taste-masked-line { color: #f3ecde; font-size: 16px; line-height: 1.9; word-break: keep-all; }
+.taste-masked-basis { margin: 10px 0 0; color: #b6a788; font-size: 13px; line-height: 1.65; word-break: keep-all; }
+.taste-mask-word { padding: 1px 2px; color: #e7c86c; letter-spacing: 1px; }
+.taste-unlock { display: inline-block; margin: 0 6px; color: #d9bd74; font-size: 12px; white-space: nowrap; }
+.taste-detail .pd-gloss-body { display: block; }
+.taste-checkout-cover { position: fixed; inset: 0; z-index: 99999; display: flex; flex-direction: column; background: #100e14; }
+.taste-checkout-close { flex: none; min-height: 48px; border: 0; border-bottom: 1px solid #725f37; background: #1a1520; color: #f3e4b7; font-size: 16px; text-align: left; padding: 10px 18px; cursor: pointer; }
+.taste-checkout-frame { flex: 1; width: 100%; border: 0; background: #100e14; }
+@keyframes tasteIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+.taste-wait {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--gold-light);
+}
+.taste-say { margin: 0; }
+.taste-say p {
+  margin: 0 0 10px;
+  font-size: 1.02rem;
+  line-height: 1.85;
+  color: #f0ecdf;
+  word-break: keep-all;
+}
+.taste-say p:last-child { margin-bottom: 0; }
+.taste-b {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.taste-t {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--gold-primary);
+}
+.taste-b p {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: rgba(245, 245, 247, 0.9);
+  word-break: keep-all;
+}
+.taste-b p:last-child { margin-bottom: 0; }
+.taste-verdict {
+  font-size: 1.05rem !important;
+  font-weight: 700;
+  color: var(--gold-light) !important;
+}
+.taste-tb {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.taste-tb th {
+  padding: 6px 4px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  word-break: keep-all;
+}
+.taste-tb td {
+  padding: 9px 4px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.taste-pos { font-size: 0.82rem; color: var(--text-muted); }
+.taste-ch {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 1.28rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--gold-light);
+}
+/* 용어를 던지고 끝내지 않는다 — 한자 밑에 십신을 작은 글씨로 붙인다 */
+.taste-god { display: block; margin-top: 2px; font-size: 0.72rem; color: var(--text-muted); }
+.taste-cut {
+  margin: 16px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: rgba(245, 245, 247, 0.82);
+  word-break: keep-all;
+}
+.taste-go {
+  display: block;
+  margin: 18px 0 0;
+  padding: 13px 0;
+  text-align: center;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f5d77f 0%, #d4af37 100%);
+  color: #1a1206;
+  font-weight: 700;
+  font-size: 1rem;
+  text-decoration: none;
+}
+/* 큰 글씨는 쉬운 말, 옆에 작은 글씨로 명리 용어 */
+.taste-term {
+  display: inline-block;
+  margin-left: 7px;
+  font-family: var(--font-main);
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0;
+}
+.taste-tb th .taste-term { display: block; margin: 2px 0 0; font-size: 0.66rem; }
+
+/* 맛보기 펼침 칸 — 얼굴·손 사진 받기 */
+.taste-jaegi {
+  margin: 16px 0 0;
+  padding: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.25);
+}
+.taste-jaegi-promise {
+  font-size: 0.85rem;
+  color: #dcdce6;
+  line-height: 1.6;
+  margin: 0 0 14px;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+.taste-jaegi-box {
+  margin-bottom: 12px;
+}
+.taste-jaegi-btn {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 16px;
+  border-radius: 10px;
+  border: 1px dashed rgba(212, 175, 55, 0.6);
+  background: rgba(212, 175, 55, 0.08);
+  color: #f3e5ab;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.taste-jaegi-btn:hover {
+  background: rgba(212, 175, 55, 0.14);
+}
+.taste-jaegi-btn.done {
+  border-style: solid;
+  border-color: rgba(120, 200, 140, 0.6);
+  background: rgba(120, 200, 140, 0.12);
+  color: #bfe8c8;
+}
+.taste-jaegi-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.taste-jaegi-msg {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: #cfc7da;
+  margin: 8px 4px 0;
+}
+.taste-preview-box {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.taste-preview-lead {
+  font-size: 0.95rem;
+  color: #f3e5ab;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+.taste-preview-note {
+  font-size: 0.88rem;
+  color: #a79fb5;
+  margin: 0;
+}
+.taste-preview-wait {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+.taste-preview-content {
+  font-size: 0.92rem;
+  line-height: 1.85;
+  color: rgba(245, 245, 247, 0.88);
+  word-break: keep-all;
+}
+.taste-preview-content p {
+  margin: 0 0 10px;
+}
+
+/* 블라인드 사주 (상세페이지와 동일한 효과) */
+.pd-locked-sentence {
+  position: relative;
+  display: inline-block;
+  margin: 4px 0;
+  vertical-align: middle;
+}
+.pd-blurred-text {
+  filter: blur(5px);
+  user-select: none;
+  opacity: 0.65;
+  display: inline;
+}
+.pd-lock-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(18, 14, 25, 0.92);
+  border: 1px solid rgba(212, 175, 55, 0.7);
+  color: #f3e5ab;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+/* 사진 다 넣기 전 잠긴 자세히 보기 링크 */
+.taste-go.locked {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(245, 245, 247, 0.45);
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+
+/* 맛보기에서 가린 자리 뒤에 붙이는 한 줄 */
+.taste-preview-more {
+  margin: 10px 2px 0;
+  font-size: 13px;
+  color: #a79fb5;
+  line-height: 1.6;
+}
+
+/* 어느 손을 올려야 하는지 */
+.taste-jaegi-hand {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #e4dfea;
+}

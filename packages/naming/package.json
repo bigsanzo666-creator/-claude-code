@@ -1,0 +1,10 @@
+{
+  "name": "@saju/naming",
+  "version": "0.1.0",
+  "description": "작명 — 수리성명학(81수·네 격)과 이름 짓기",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "verify": "node --experimental-strip-types verify.ts" },
+  "license": "UNLICENSED"
+}
