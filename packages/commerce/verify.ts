@@ -429,6 +429,12 @@ section('H. 이어사기 12시간 한정 할인 — 전자상거래법 및 표�
  * 전자상거래법 및 표시광고법 위반이므로, 가격 셋(단품가, 정규차액, 12시간할인가)은 catalog.ts 에서만 오고,
  * viewedAt 기준 12시간 판정으로 5,900원/8,900원으로 엄격히 갈리며, 단품가를 절대 초과하지 않음을 검증한다.
  */
+/*
+ * 터진 뒤에 적은 것 (2026-11-03): 오픈 기념가가 11월 1일에 끝나자 아래 숫자(14,900·8,900·5,900)가
+ * 날짜 탓에 틀렸다고 나왔다. 검사가 오늘 날짜에 기대면 안 된다. 기념가 기간으로 시계를 고정해 그 값을 보고,
+ * 바로 뒤에서 정가 기간 값을 catalog.ts 에서 꺼내 같은 규칙으로 따로 본다.
+ */
+시각을바꾼다(() => Date.UTC(2026, 9, 20, 3, 0, 0));
 {
   const baseProductId = 'wealth-report';
   const packOffer = upsellFor(baseProductId);
@@ -472,6 +478,43 @@ section('H. 이어사기 12시간 한정 할인 — 전자상거래법 및 표�
     check('어떤 경우에도 이어사기 금액이 단품값(14,900원 등)보다 비싸지지 않는다', neverExceedsSingle);
   }
 }
+시각을바꾼다(null);
+
+// 정가 기간(11월 1일 이후) — 같은 규칙을 catalog.ts 값으로 본다
+시각을바꾼다(() => Date.UTC(2026, 10, 3, 3, 0, 0));
+{
+  const baseProductId = 'wealth-report';
+  const packOffer = upsellFor(baseProductId);
+  if (packOffer) {
+    const regularUpgrade = upgradeCostKrw(baseProductId, packOffer.id);
+    const promoPrice = cutPrice(regularUpgrade, UPSELL_PROMO_RATE);
+    check('정가 기간: 이어사기 차액이 묶음값 − 단품값 그대로다',
+      !isLaunchSale() &&
+      regularUpgrade === PACKAGES[packOffer.id as PackageId].priceKrw - CATALOG[baseProductId].priceKrw &&
+      regularUpgrade > 0 && promoPrice < regularUpgrade,
+      `정규차액: ${regularUpgrade}원, 12시간특가: ${promoPrice}원`);
+
+    const viewTime = new Date('2026-11-03T03:00:00Z');
+    const within12h = new Date('2026-11-03T11:00:00Z');
+    const after12h = new Date('2026-11-03T16:00:00Z');
+    const promoCalc = calculateUpsellPrice(baseProductId, packOffer.id, viewTime, within12h);
+    const expiredCalc = calculateUpsellPrice(baseProductId, packOffer.id, viewTime, after12h);
+    check('정가 기간: 12시간 안이면 차액에서 깎은 값이다', promoCalc.isPromo === true && promoCalc.currentPriceKrw === promoPrice,
+      `현재가: ${promoCalc.currentPriceKrw}원 / 기대: ${promoPrice}원`);
+    check('정가 기간: 12시간이 지나면 차액 그대로다', expiredCalc.isPromo === false && expiredCalc.currentPriceKrw === regularUpgrade,
+      `현재가: ${expiredCalc.currentPriceKrw}원 / 기대: ${regularUpgrade}원`);
+
+    const neverExceedsSingle = Object.keys(CATALOG).every((pid) => {
+      const u = upsellFor(pid);
+      if (!u) return true;
+      const a = calculateUpsellPrice(pid, u.id, viewTime, within12h);
+      const b = calculateUpsellPrice(pid, u.id, viewTime, after12h);
+      return a.currentPriceKrw <= a.singlePriceKrw && b.currentPriceKrw <= b.singlePriceKrw;
+    });
+    check('정가 기간: 어떤 경우에도 이어사기 금액이 단품값보다 비싸지지 않는다', neverExceedsSingle);
+  }
+}
+시각을바꾼다(null);
 
 // ── I. 오픈 기념가 자동 전환 검증 ─────────────────────────
 section('I. 오픈 기념가 자동 전환 — 11월 1일 0시에 자동으로 정가로 전환');
@@ -583,6 +626,8 @@ section('J. 리포트 끝 추천 3개 — 손님 질문에 맞춰 고르고 할�
   check('② 돌려준 값이 그 상품 값보다 절대 크지 않다', neverExceedsOriginal);
 
   // ③ 14,900원짜리는 12시간 안 5,900원, 지난 뒤 8,900원이다
+  // 터진 뒤에 적은 것 (2026-11-03): 11월 1일부터 14,900원짜리가 없어져 날짜 탓에 틀렸다. 기념가 기간으로 고정해 본다.
+  시각을바꾼다(() => Date.UTC(2026, 9, 20, 3, 0, 0));
   const p14900 = Object.values(CATALOG).find((p) => p.priceKrw === 14900);
   let check3Ok = false;
   if (p14900) {
@@ -599,6 +644,25 @@ section('J. 리포트 끝 추천 3개 — 손님 질문에 맞춰 고르고 할�
     }
   }
   check('③ 14,900원짜리는 12시간 안 9,900원, 지난 뒤 11,900원이다', check3Ok);
+  시각을바꾼다(null);
+
+  // ③-정가: 11월 1일 뒤에도 같은 비율로 깎인다 (값은 catalog.ts 에서 꺼낸다)
+  시각을바꾼다(() => Date.UTC(2026, 10, 3, 3, 0, 0));
+  {
+    const nowR = new Date('2026-11-03T05:00:00Z');
+    const viewR = new Date('2026-11-03T03:00:00Z');
+    const afterR = new Date('2026-11-03T16:00:00Z');
+    const otherId = Object.keys(CATALOG)[0];
+    const inR = recommendNext(otherId, null, viewR, nowR);
+    const outR = recommendNext(otherId, null, viewR, afterR);
+    const ok = !isLaunchSale() && inR.length > 0 && outR.length > 0 &&
+      inR.every((r) => r.currentPriceKrw === cutPrice(r.singlePriceKrw, UPSELL_PROMO_RATE)) &&
+      outR.every((r) => r.currentPriceKrw === cutPrice(r.singlePriceKrw, UPSELL_AFTER_RATE)) &&
+      inR.every((r) => r.singlePriceKrw === CATALOG[r.nextProduct.id].priceKrw);
+    check('③-정가: 11월 1일 뒤에도 추천값은 catalog.ts 정가에서 같은 비율로 깎인다', ok,
+      inR.map((r) => `${r.nextProduct.id}:${r.singlePriceKrw}→${r.currentPriceKrw}`).join(', '));
+  }
+  시각을바꾼다(null);
 
   /*
    * 이어보기 값이 제값의 절반 아래로 내려가면 안 된다.
