@@ -41,9 +41,51 @@ export function 시각을바꾼다(f: (() => number) | null): void {
   지금 = f ?? (() => Date.now());
 }
 
-/** 오픈 기념가 기간인가 */
+/**
+ * 기념가 기간들. 값은 둘 다 같은 「기념가」(오픈 때 팔던 값)를 쓴다.
+ *
+ * 터진 뒤에 적은 것 (2026-11-03): 11월 1일에 정가로 올린 뒤 수능달 기념가로 다시 내린다.
+ * 할인 광고의 「원래 값」은 최근 20일 동안 실제로 판 값 중 가장 싼 값이다
+ * (공정위 고시 · 대법원 2019두36001). 수능달 기념가는 10월에 팔던 값과 같으므로
+ * **「몇 % 싸게」라고 쓸 수 없다.** 그래서 비율은 끄고 「언제부터 얼마」만 적는다.
+ */
+export interface SalePeriod {
+  /** 배지에 쓰는 이름 — 「서버 오픈 기념가」 */
+  name: string;
+  /** 띠 머리 — 「서버 오픈 기념」 */
+  short: string;
+  startMs: number;
+  endMs: number;
+  /** 정가로 돌아가는 날 — 「12월 1일」 */
+  regularFrom: string;
+  /** 마지막 날 — 「11월 30일」 */
+  lastDay: string;
+  /** 「지금 몇 % 싸게」를 적어도 되는가 */
+  showPercent: boolean;
+}
+export const SALE_PERIODS: readonly SalePeriod[] = [
+  {
+    name: '서버 오픈 기념가', short: '서버 오픈 기념',
+    startMs: 0, endMs: LAUNCH_END_MS,
+    regularFrom: '11월 1일', lastDay: '10월 31일', showPercent: true,
+  },
+  {
+    // 한국 시간 2026년 11월 3일 0시 ~ 12월 1일 0시
+    name: '수능달 기념가', short: '수능달 기념',
+    startMs: Date.UTC(2026, 10, 2, 15, 0, 0), endMs: Date.UTC(2026, 10, 30, 15, 0, 0),
+    regularFrom: '12월 1일', lastDay: '11월 30일', showPercent: false,
+  },
+];
+
+/** 지금 걸린 기념가 기간. 없으면 null */
+export function currentSale(): SalePeriod | null {
+  const t = 지금();
+  return SALE_PERIODS.find((s) => t >= s.startMs && t < s.endMs) ?? null;
+}
+
+/** 기념가 기간인가 (오픈 기념가·수능달 기념가 모두) */
 export function isLaunchSale(): boolean {
-  return 지금() < LAUNCH_END_MS;
+  return currentSale() !== null;
 }
 
 /** 지금 파는 값 → 11월 1일부터 받을 값. 25% 올려 끝자리를 900으로 맞춘 것이다 */

@@ -16,7 +16,7 @@ import {
   INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW,
 } from '../../packages/commerce/src/index.ts';
 import { loadBusinessInfo, SPIRITS, CONTENTS_FOR, renderCheckoutPage } from '../../packages/site-policy/src/index.ts';
-import { CATEGORIES, maxLaunchDiscountPercent, isLaunchSale } from '../../packages/commerce/src/catalog.ts';
+import { CATEGORIES, maxLaunchDiscountPercent, isLaunchSale, REGULAR_BY_LAUNCH, 시각을바꾼다 } from '../../packages/commerce/src/catalog.ts';
 import { findSpiritVideos } from './src/images.ts';
 import { createApi, MemoryOrderStore, checkInviteRateLimit, recordInviteCheckFail, inviteCheckAttempts, validateReading } from './src/server.ts';
 import { buildPayload } from './src/payload.ts';
@@ -1807,8 +1807,12 @@ section('J. 월운세 · 행운의 번호 · 친구 추천');
   // 1. 월운세 값이 catalog.ts 한 곳에서만 온다
   const catalogPath = join(here, '../../packages/commerce/src/catalog.ts');
   const catalogSrc = readFileSync(catalogPath, 'utf8');
+  // 터진 뒤에 적은 것 (2026-11-03): 아래 값들을 9,900·1,900 으로 박아 두어, 11월 1일 정가로 바뀌자
+  // 날짜 탓에 틀렸다고 나왔다. 값은 그때그때 catalog.ts 에서 꺼내 비교한다.
   check('월운세 값이 catalog.ts 한 곳에서만 온다',
-    CATALOG['month-report']?.priceKrw === 9900 && catalogSrc.includes('priceKrw: 9900'));
+    CATALOG['month-report']?.priceKrw === (isLaunchSale() ? 9900 : REGULAR_BY_LAUNCH[9900])
+    && catalogSrc.includes('priceKrw: 9900'),
+    `지금 값: ${CATALOG['month-report']?.priceKrw}원`);
 
   // 2. 2만원 미만 주문에 invite 를 붙여도 값이 깎이지 않는다
   const inviterEmail = 'inviter_spec@example.com';
@@ -1823,7 +1827,9 @@ section('J. 월운세 · 행운의 번호 · 친구 추천');
     birth: { date: '1990-01-01', time: '12:00', place: '서울', gender: '남' },
   });
   check('2만원 미만 주문에 invite 를 붙여도 값이 깎이지 않는다',
-    cheapOrder.status === 201 && cheapOrder.body.order.amountKrw === 9900);
+    CATALOG['month-report'].priceKrw < INVITE_MIN_ORDER_KRW &&
+    cheapOrder.status === 201 && cheapOrder.body.order.amountKrw === CATALOG['month-report'].priceKrw,
+    `주문값: ${cheapOrder.body?.order?.amountKrw}원`);
 
   // 3. 2만원 이상 주문에 invite 를 붙이면 값이 3,000원 깎인다
   const expOrder = await api('POST', '/api/orders', {
@@ -1981,7 +1987,11 @@ section('J. 월운세 · 행운의 번호 · 친구 추천');
   check('결제 화면 금액 아래에 「증표 있으십니까?」 접힌 칸 존재',
     checkoutRes.html.includes('coInviteToggle') && checkoutRes.html.includes('증표 있으십니까?'));
 
-  const checkoutUnder20Res = await page(`/checkout?product=wealth-report`);
+  // 그때 2만원 미만인 단품을 catalog.ts 에서 고른다 (오늘의 운세·월운세는 따로 생긴 화면이라 뺀다)
+  const under20 = Object.values(CATALOG).find((p) =>
+    p.priceKrw > 0 && p.priceKrw < INVITE_MIN_ORDER_KRW && p.id !== 'daily-report' && p.id !== 'month-report')
+    ?? CATALOG['month-report'];
+  const checkoutUnder20Res = await page(`/checkout?product=${under20.id}`);
   check('2만원 미만 결제 화면 금액 아래에 사전 안내 접힌 칸 존재',
     checkoutUnder20Res.html.includes('coInviteToggle') && checkoutUnder20Res.html.includes('증표는 2만원 이상 점사에서 쓰실 수 있습니다'));
 
@@ -2075,7 +2085,8 @@ section('J2. 소개 보답 「바로 쓰기」 무료 이용권 검증');
     birth: birthSample,
   });
   check('30일이 지난 이용권으로는 0원이 안 된다',
-    orderExpired.status === 201 && orderExpired.body.order.amountKrw === 1900);
+    orderExpired.status === 201 && orderExpired.body.order.amountKrw === CATALOG['daily-report'].priceKrw
+    && CATALOG['daily-report'].priceKrw > 0);
 
   // 3. 5명 보답으로 월운세를 받으면 0원이 되고, 같은 달 두 번째는 막힌다
   const user5 = 'reward_tester_5@example.com';
@@ -2129,7 +2140,8 @@ section('J2. 소개 보답 「바로 쓰기」 무료 이용권 검증');
     birth: birthSample,
   });
   check('여섯 번을 다 쓰면 더 안 된다',
-    orderExhausted.status === 201 && orderExhausted.body.order.amountKrw === 9900);
+    orderExhausted.status === 201 && orderExhausted.body.order.amountKrw === CATALOG['month-report'].priceKrw
+    && CATALOG['month-report'].priceKrw > 0);
 
   // 5. 이용권이 없는 사람은 0원이 안 된다
   const userNoRew = 'user_no_rew@example.com';
@@ -2141,7 +2153,8 @@ section('J2. 소개 보답 「바로 쓰기」 무료 이용권 검증');
     birth: birthSample,
   });
   check('이용권이 없는 사람은 0원이 안 된다',
-    orderNoRew.status === 201 && orderNoRew.body.order.amountKrw === 1900);
+    orderNoRew.status === 201 && orderNoRew.body.order.amountKrw === CATALOG['daily-report'].priceKrw
+    && CATALOG['daily-report'].priceKrw > 0);
 
   // 6. 남의 이메일로는 남의 이용권을 못 쓴다
   const userOther = 'other_stranger@example.com';
@@ -2153,7 +2166,8 @@ section('J2. 소개 보답 「바로 쓰기」 무료 이용권 검증');
     birth: birthSample,
   });
   check('남의 이메일로는 남의 이용권을 못 쓴다',
-    orderOther.status === 201 && orderOther.body.order.amountKrw === 1900);
+    orderOther.status === 201 && orderOther.body.order.amountKrw === CATALOG['daily-report'].priceKrw
+    && CATALOG['daily-report'].priceKrw > 0);
 
   // 7. 0원 주문은 결제창을 띄우지 않는다
   // (1) 0원 주문 confirm 은 gateway 를 타지 않고 바로 200 성공 및 리포트가 생성된다
@@ -2317,14 +2331,35 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
     check('배너가 실제보다 큰 할인율을 적지 않는다',
       실제들.every((n) => n <= 최대), `${실제들.filter((n) => n > 최대).join(', ')}`);
 
-    const home = await page('/');
-    if (isLaunchSale()) {
+    // 터진 뒤에 적은 것 (2026-11-03): 이 검사가 오늘 날짜로 돌아 기간이 바뀔 때마다 틀렸다. 기간마다 시계를 고정해 본다.
+    시각을바꾼다(() => Date.UTC(2026, 9, 20, 3, 0, 0));
+    {
+      const home = await page('/');
       check('배너에 「모든 점괘」처럼 전부라고 적지 않는다',
         !home.html.includes('모든 점괘'),
         '할인이 없는 상품이 하나라도 있으면 「모든」은 거짓이다');
-      check(`배너가 「최대 ${최대}%」로 적힌다`,
-        home.html.includes(`최대 ${최대}% 할인 중`), '배너 문구가 값에서 오지 않는다');
+      check(`오픈 기념가 기간: 배너가 「최대 ${maxLaunchDiscountPercent()}%」로 적힌다`,
+        home.html.includes(`최대 ${maxLaunchDiscountPercent()}% 할인 중`), '배너 문구가 값에서 오지 않는다');
     }
+    /*
+     * 수능달 기념가는 10월에 팔던 값과 같다. 최근 20일 동안 판 가장 싼 값이 「원래 값」이므로
+     * (공정위 고시 · 대법원 2019두36001) 몇 % 할인이라고 적으면 거짓 할인 광고다.
+     */
+    시각을바꾼다(() => Date.UTC(2026, 10, 10, 3, 0, 0));
+    {
+      const home = await page('/');
+      check('수능달 기념가 기간: 배너에 「수능달 기념가」와 끝나는 날이 적힌다',
+        home.html.includes('수능달 기념가') && home.html.includes('11월 30일까지'));
+      check('수능달 기념가 기간: 배너에 할인율(%)을 적지 않는다',
+        !/% 할인 중/.test(home.html), '20일 안에 같은 값에 팔았으므로 할인이라 쓸 수 없다');
+    }
+    시각을바꾼다(() => Date.UTC(2026, 11, 3, 3, 0, 0));
+    {
+      const home = await page('/');
+      check('기념가가 모두 끝난 뒤: 첫 화면에 기념가 띠가 없다',
+        !home.html.includes('nbLaunchBanner') && !home.html.includes('기념가'));
+    }
+    시각을바꾼다(null);
 
     const co = renderCheckoutPage(business, '', CATALOG['charm-report'],
       { storeId: 'test_store', channelKey: 'test_channel' });
@@ -2885,7 +2920,9 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
           return evalRes.result?.value ? true : null;
         }, 5000, 50);
 
-        // 1) 2만원 이상 상품 선택하여 결제 화면으로 이동 (saju-report: 34,900원 -> 31,900원)
+        // 1) 2만원 이상 상품 선택하여 결제 화면으로 이동 (saju-report 값에서 증표 값만큼 깎인다)
+        // 터진 뒤에 적은 것 (2026-11-03): 「31,900」을 박아 두어 11월 1일 정가로 바뀌자 틀렸다. catalog.ts 에서 계산한다.
+        const 깎인값 = (CATALOG['saju-report'].priceKrw - INVITE_DISCOUNT_KRW).toLocaleString('ko-KR');
         await pageSend('Page.navigate', { url: `http://127.0.0.1:${coPort}/checkout?product=saju-report` });
         const waitInvite = await pollUntil(async () => {
           const evalRes = await pageSend('Runtime.evaluate', {
@@ -2897,7 +2934,7 @@ section('K. 모든 화면의 스크립트가 문법 오류 없이 통과한다')
               var text = ((tag && tag.textContent) || '') + ' ' + ((note && note.textContent) || '') + ' ' + ((pay && pay.textContent) || '');
               var hasMinus = text.includes('3,000') || text.includes('−3,000') || text.includes('-3,000');
               var hasBadge = text.includes('벗의 증표');
-              var isDiscounted = text.includes('31,900');
+              var isDiscounted = text.includes(${JSON.stringify(깎인값)});
               return {
                 ok: hasBadge && hasMinus && isDiscounted,
                 text: text,
@@ -3794,6 +3831,9 @@ section('리포트 개편 — 시각 인지, 상세 가림막, 서버 계산 이
     wealthHtml.includes('가려진 곳은 손님의 실제 명식으로 채워집니다'));
 
   // 3) 리포트 끝 이어사기 값이 서버가 계산한 값과 같다
+  // 터진 뒤에 적은 것 (2026-11-03): 주문 날짜(9월 30일)는 기념가 기간인데 값은 오늘 날짜로 읽혀
+  // 11월 1일부터 틀렸다고 나왔다. 주문 날짜에 맞춰 시계를 고정한다. 정가 기간은 아래에서 따로 본다.
+  시각을바꾼다(() => Date.UTC(2026, 8, 30, 14, 0, 0));
   const mockOrder = {
     id: 'ord_upsell_test',
     productId: 'wealth-report' as const,
@@ -3855,6 +3895,42 @@ section('리포트 개편 — 시각 인지, 상세 가림막, 서버 계산 이
       expiredUpsellInfo.currentPriceKrw === 8900 &&
       expiredHtml.includes('할인 시간이 지났습니다'));
   }
+  시각을바꾼다(null);
+
+  // 정가 기간(11월 1일 이후) — 값은 catalog.ts 에서 꺼내 같은 규칙으로 본다
+  시각을바꾼다(() => Date.UTC(2026, 11, 3, 5, 0, 0));
+  if (wealthUpsell) {
+    const { renderOrderReportPage } = await import('../../packages/site-policy/src/order-page.ts');
+    const { cutPrice, upgradeCostKrw } = await import('../../packages/commerce/src/orderable.ts');
+    const { UPSELL_PROMO_RATE } = await import('../../packages/commerce/src/catalog.ts');
+    const 차액 = upgradeCostKrw('wealth-report', wealthUpsell.id);
+    const 특가 = cutPrice(차액, UPSELL_PROMO_RATE);
+    const viewedAt = '2026-12-03T03:00:00.000Z';
+    const order2 = { ...mockOrder, amountKrw: CATALOG['wealth-report'].priceKrw, viewedAt };
+    const 그릴 = (now: Date) => {
+      const info = calculateUpsellPrice('wealth-report', wealthUpsell.id, viewedAt, now);
+      const html = renderOrderReportPage(business, '', order2 as any, '리포트 본문 내용', null, {
+        info, reason: '관성 19.9%가 재성 17.5%보다 두껍습니다',
+        checkoutUrl: `/checkout?product=${info.nextProduct?.id}&fromOrder=${order2.id}`,
+      });
+      return { info, html };
+    };
+    const 안 = 그릴(new Date('2026-12-03T07:00:00.000Z'));
+    const 밖 = 그릴(new Date('2026-12-03T16:00:00.000Z'));
+    const 따로 = 안.info.singlePriceKrw;
+    check('정가 기간: 리포트 끝 이어사기 값이 catalog.ts 에서 계산한 12시간 값과 같다',
+      !isLaunchSale() && 안.info.currentPriceKrw === 특가 &&
+      안.html.includes(`${특가.toLocaleString('ko-KR')}원`) &&
+      안.html.includes(`따로 사면 ${따로.toLocaleString('ko-KR')}원`) &&
+      안.html.includes('남은 시간'),
+      `특가 ${특가}원 · 따로 사면 ${따로}원`);
+    check('정가 기간: 12시간이 지나면 차액 그대로 화면에 표기된다',
+      밖.info.currentPriceKrw === 차액 &&
+      밖.html.includes(`${차액.toLocaleString('ko-KR')}원`) &&
+      밖.html.includes('할인 시간이 지났습니다'),
+      `차액 ${차액}원`);
+  }
+  시각을바꾼다(null);
 }
 
 {

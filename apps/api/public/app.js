@@ -2410,8 +2410,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="font-size:14px;color:#d4af37;font-weight:700;margin-bottom:12px;">
               ${Number(pInfo.priceKrw).toLocaleString()}원 (부가세 포함)
               ${(window.__IS_LAUNCH_SALE__ && pInfo.regularKrw && pInfo.regularKrw !== pInfo.priceKrw)
-                ? `<span class="pr-badge-launch" style="display:inline-block;padding:2px 6px;margin-left:6px;font-size:11px;font-weight:700;color:#12121c;background:#d4af37;border-radius:4px;vertical-align:middle;">서버 오픈 기념가</span>
-                   <div class="pr-regular-note" style="font-size:12px;color:rgba(243,229,171,0.7);margin-top:4px;font-weight:400;">11월 1일부터 ${Number(pInfo.regularKrw).toLocaleString()}원</div>`
+                ? `<span class="pr-badge-launch" style="display:inline-block;padding:2px 6px;margin-left:6px;font-size:11px;font-weight:700;color:#12121c;background:#d4af37;border-radius:4px;vertical-align:middle;">${(window.__SALE__ && window.__SALE__.name) || '기념가'}</span>
+                   <div class="pr-regular-note" style="font-size:12px;color:rgba(243,229,171,0.7);margin-top:4px;font-weight:400;">${(window.__SALE__ && window.__SALE__.regularFrom) || ''}부터 ${Number(pInfo.regularKrw).toLocaleString()}원</div>`
                 : ''}
             </div>
             ${fortuneHtml}
@@ -2456,8 +2456,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="font-size:14px;color:#d4af37;font-weight:700;margin-bottom:10px;">
               ${Number(pInfo.priceKrw).toLocaleString()}원 (부가세 포함)
               ${(window.__IS_LAUNCH_SALE__ && pInfo.regularKrw && pInfo.regularKrw !== pInfo.priceKrw)
-                ? `<span class="pr-badge-launch" style="display:inline-block;padding:2px 6px;margin-left:6px;font-size:11px;font-weight:700;color:#12121c;background:#d4af37;border-radius:4px;vertical-align:middle;">서버 오픈 기념가</span>
-                   <div class="pr-regular-note" style="font-size:12px;color:rgba(243,229,171,0.7);margin-top:4px;font-weight:400;">11월 1일부터 ${Number(pInfo.regularKrw).toLocaleString()}원</div>`
+                ? `<span class="pr-badge-launch" style="display:inline-block;padding:2px 6px;margin-left:6px;font-size:11px;font-weight:700;color:#12121c;background:#d4af37;border-radius:4px;vertical-align:middle;">${(window.__SALE__ && window.__SALE__.name) || '기념가'}</span>
+                   <div class="pr-regular-note" style="font-size:12px;color:rgba(243,229,171,0.7);margin-top:4px;font-weight:400;">${(window.__SALE__ && window.__SALE__.regularFrom) || ''}부터 ${Number(pInfo.regularKrw).toLocaleString()}원</div>`
                 : ''}
             </div>
           </div>

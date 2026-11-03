@@ -21,7 +21,7 @@ import {
   renderPickPage, PICK_CSS, PLACES, TIMES, DATE_SLOTS, slotLabel, slotSpan,
   renderRobots, renderSitemap, packageCard,
 } from './src/index.ts';
-import { CATALOG, CATEGORIES } from '../commerce/src/catalog.ts';
+import { CATALOG, CATEGORIES, 시각을바꾼다 } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
 import { orderable } from '../commerce/src/orderable.ts';
 import { WITHDRAWAL_WINDOW_DAYS, REFUND_DUE_BUSINESS_DAYS } from '../commerce/src/refund.ts';
@@ -1183,6 +1183,9 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
       !/<del>|<s>|할인율|오늘 마감|지금만|선착순|마감 임박/.test(html)));
 
   // 오픈 기념가 표시 검증
+  // 터진 뒤에 적은 것 (2026-11-03): 기념가가 11월 1일에 끝나자 이 검사들이 날짜 탓에 틀렸다.
+  // 기념가 기간으로 시계를 고정해 보고, 끝난 뒤에는 띠·문구가 **사라지는지** 따로 본다.
+  시각을바꾼다(() => Date.UTC(2026, 9, 20, 3, 0, 0));
   const samplePage = renderProductPage(CATALOG['wealth-report'], full, true, '');
   const samplePay = renderCheckoutPage({} as any, '', CATALOG['wealth-report'], { storeId: 's', channelKey: 'c' });
   check('상품 상세 화면에 오픈 기념가 띠가 나온다',
@@ -1227,6 +1230,74 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
   check('명절 가족운세에는 오픈 기념가 띠와 결제 문구가 나오지 않는다',
     !holidayPage.includes('서버 오픈 기념 — 지금') &&
     !holidayPay.includes('서버 오픈 기념가입니다.'));
+  시각을바꾼다(null);
+
+  // 수능달 기념가 기간 — 값은 기념가, 띠·문구는 「수능달 기념가」, 할인율은 적지 않는다
+  시각을바꾼다(() => Date.UTC(2026, 10, 10, 3, 0, 0));
+  {
+    const 어긋남: string[] = [];
+    for (const p of Object.values(CATALOG)) {
+      const reg = (p as any).regularKrw ?? p.priceKrw;
+      if (reg === p.priceKrw) continue;
+      const page = renderProductPage(p, full, true, '');
+      const pay = renderCheckoutPage({} as any, '', p, { storeId: 's', channelKey: 'c' });
+      const 정가 = reg.toLocaleString('ko-KR');
+      if (!page.includes(`수능달 기념가 · 11월 30일까지<br>12월 1일부터 ${정가}원`)) 어긋남.push(`${p.name}: 상세 띠`);
+      if (!pay.includes(`수능달 기념가입니다. 12월 1일부터 <b>${정가}원</b>으로 올라갑니다.`)) 어긋남.push(`${p.name}: 결제 문구`);
+      if (/싸게 드립니다|\d+% 할인/.test(page + pay)) 어긋남.push(`${p.name}: 할인율이 적혀 있다`);
+      if (/서버 오픈 기념/.test(page + pay)) 어긋남.push(`${p.name}: 오픈 기념 문구가 남았다`);
+    }
+    check('수능달 기념가 기간: 할인 상품마다 「수능달 기념가 · 12월 1일부터 정가」만 적고 할인율은 적지 않는다',
+      어긋남.length === 0, 어긋남.slice(0, 5).join(', '));
+    const list = renderProductsPage(full, true, '');
+    check('수능달 기념가 기간: 상품 목록 배지도 「수능달 기념가」다',
+      list.includes('pr-badge-launch">수능달 기념가<') && !list.includes('서버 오픈 기념가'));
+    check('수능달 기념가 기간: 결제 금액이 기념가(오픈 때 값)다',
+      renderCheckoutPage({} as any, '', CATALOG['wealth-report'], { storeId: 's', channelKey: 'c' }).includes('14,900원 결제하기'));
+  }
+  시각을바꾼다(null);
+
+  // 기념가가 끝난 뒤 — 끝난 할인을 계속 띄우면 거짓 표시다
+  시각을바꾼다(() => Date.UTC(2026, 11, 3, 3, 0, 0));
+  {
+    const 남은띠: string[] = [];
+    for (const p of Object.values(CATALOG)) {
+      const page = renderProductPage(p, full, true, '');
+      const pay = renderCheckoutPage({} as any, '', p, { storeId: 's', channelKey: 'c' });
+      if (/서버 오픈 기념|싸게 드립니다|올라갑니다/.test(page + pay)) 남은띠.push(p.name);
+    }
+    check('기념가가 끝난 뒤에는 어느 상품 화면에도 오픈 기념가 띠·문구가 없다', 남은띠.length === 0, 남은띠.join(', '));
+    const afterPay = renderCheckoutPage({} as any, '', CATALOG['wealth-report'], { storeId: 's', channelKey: 'c' });
+    const 정가 = CATALOG['wealth-report'].regularKrw;
+    check('기념가가 끝난 뒤 결제 화면 값은 catalog.ts 정가 그대로다',
+      CATALOG['wealth-report'].priceKrw === 정가 &&
+      afterPay.includes(`<b>${정가.toLocaleString('ko-KR')}원</b>`) &&
+      afterPay.includes(`${정가.toLocaleString('ko-KR')}원 결제하기`),
+      `${정가}원`);
+  }
+  시각을바꾼다(null);
+}
+
+// ─── 「궁합·관상·손금은 값 없이」 약속과 첫 화면 칸이 맞는가 ─────────
+{
+  section('무료라고 적은 궁합·관상·손금 칸이 첫 화면에 실제로 있다');
+  /*
+   * 터진 뒤에 적은 것 (2026-11-03): 결제 화면·상품 목록·첫 화면 설명이 「사주 명식·궁합·관상·손금은
+   * 값 없이 보실 수 있습니다」라고 적는다. 그 칸은 첫 화면(만세력 뷰어)의 탭에 있어서, 주소로 찾으면
+   * 없는 줄 알고 문구를 지울 뻔했다. 약속을 적으면 그 칸이 화면에 있어야 한다 — 둘을 같이 본다.
+   */
+  const { readFileSync: 읽기 } = await import('node:fs');
+  const 뷰어 = 읽기(new URL('../../apps/manse-viewer/index.template.html', import.meta.url), 'utf8');
+  const 약속하는곳 = [
+    renderCheckoutPage({} as any, '', CATALOG['wealth-report'], null),
+    renderProductsPage(full, true, ''),
+  ].join('\n');
+  const 약속함 = /궁합·관상·손금/.test(약속하는곳);
+  check('무료라고 적었으면 첫 화면에 「궁합」 탭이 있다',
+    !약속함 || /id="tabPair"[^>]*>\s*궁합/.test(뷰어), '적은 약속을 받는 칸이 없다');
+  check('무료라고 적었으면 첫 화면에 「관상 · 손금」 탭이 있다',
+    !약속함 || /id="tabFace"[^>]*>[^<]*관상[^<]*손금/.test(뷰어), '적은 약속을 받는 칸이 없다');
+  check('약속하는 문구가 실제로 화면에 있다 (위 두 검사가 빈 검사가 아니다)', 약속함);
 }
 
 // ─── 무료 꿈해몽 노출 검증 ────────────────────────────────
