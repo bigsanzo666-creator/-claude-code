@@ -7,7 +7,7 @@ import {
   type Analysis,
   type YongsinResult,
 } from './index.ts';
-import { parseInputTime } from './daily-preview.ts';
+import { parseInputTime, sijinLabelOf } from './daily-preview.ts';
 import { extractTopic } from './topics.ts';
 
 export interface MonthPreviewPillar {
@@ -87,10 +87,15 @@ function seoulTodayISO(): string {
   return kst.toISOString().slice(0, 10);
 }
 
-function formatKoreanBirthHeader(dateStr: string, timeStr: string | null | undefined, place: string | undefined): string {
+// 터진 뒤에 적은 것 (2026-11-03): 오늘의 운세와 같은 탈 — 적은 글자를 그대로 쪼개 「NaN」이 찍혔다
+function formatKoreanBirthHeader(dateStr: string, rawTime: string | null | undefined, place: string | undefined): string {
   const [y, m, d] = dateStr.split('-').map(Number);
   let tStr = '시간 모름';
-  if (timeStr && timeStr !== '모름') {
+  const 시진 = sijinLabelOf(rawTime);
+  const timeStr = parseInputTime(rawTime);
+  if (시진) {
+    tStr = 시진;
+  } else if (timeStr && /^\d{1,2}:\d{2}$/.test(timeStr)) {
     const [hh, mm] = timeStr.split(':').map(Number);
     let label = '낮';
     let h12 = hh;
