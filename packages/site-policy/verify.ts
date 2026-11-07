@@ -20,6 +20,7 @@ import {
   renderWhy, WHY_CSS, LAYERS, CLAIMS,
   renderPickPage, PICK_CSS, PLACES, TIMES, DATE_SLOTS, slotLabel, slotSpan,
   renderRobots, renderSitemap, packageCard,
+  renderMetaPixelHead, renderMetaInitiateCheckoutScript, renderMetaPurchaseScript, renderOrderReportPage,
 } from './src/index.ts';
 import { CATALOG, CATEGORIES, 시각을바꾼다 } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
@@ -1960,6 +1961,63 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
     !(coSoonBlock.includes('궁합') && coSoonBlock.includes('값 없이')));
   check('결제 키가 없을 때 화면 안내에 「손금」+「값 없이」가 함께 나오지 않는다',
     !(coSoonBlock.includes('손금') && coSoonBlock.includes('값 없이')));
+}
+
+// ─── 메타 픽셀(Meta Pixel) 및 전환 이벤트 3종 검증 (BIG-16) ──────────
+{
+  section('메타 픽셀 및 전환 이벤트 3종 · 개인정보 처리방침 고지 검증 (BIG-16)');
+  const origPixel = process.env.META_PIXEL_ID;
+
+  try {
+    // 1. META_PIXEL_ID 가 없을 때는 아무 픽셀 코드도 나오지 않는다 (기본 꺼짐)
+    delete process.env.META_PIXEL_ID;
+    const coOff = renderCheckoutPage(full, '', CATALOG['wealth-report'], { storeId: 's', channelKey: 'c' });
+    check('META_PIXEL_ID 가 없을 때 결제 화면에 fbevents.js 나 fbq 코드가 전혀 없다',
+      !coOff.includes('connect.facebook.net') && !coOff.includes("fbq('init'"));
+
+    // 2. META_PIXEL_ID 가 있을 때 픽셀 기본 코드와 세 이벤트 도우미가 들어간다
+    process.env.META_PIXEL_ID = '123456789012345';
+    const headOn = renderMetaPixelHead();
+    check('META_PIXEL_ID 가 있을 때 픽셀 스크립트와 init 호출이 생성된다',
+      headOn.includes('https://connect.facebook.net/en_US/fbevents.js') &&
+      headOn.includes('fbq(\'init\', "123456789012345")'));
+
+    const coOn = renderCheckoutPage(full, '', CATALOG['wealth-report'], { storeId: 's', channelKey: 'c' });
+    const expectedPrice = CATALOG['wealth-report'].priceKrw;
+    check('결제 화면 진입 시 서버 계산 금액으로 InitiateCheckout 스크립트가 들어간다',
+      coOn.includes('__NB_META_CHECKOUT__') &&
+      coOn.includes(JSON.stringify(CATALOG['wealth-report'].name)) &&
+      coOn.includes(String(expectedPrice)) &&
+      coOn.includes("currency: 'KRW'"));
+
+    const repOn = renderOrderReportPage(full, '', {
+      id: 'ord_pixel_test_1',
+      productId: 'wealth-report',
+      amountKrw: expectedPrice,
+      status: 'viewed',
+      inputHash: 'h',
+      paymentId: 'p',
+      noticeGiven: true,
+      previewProvided: true,
+      createdAt: '2026-11-05T00:00:00Z',
+      paidAt: '2026-11-05T00:01:00Z',
+      viewedAt: '2026-11-05T00:02:00Z',
+      refundedAt: null,
+      failureReason: null,
+    }, '리포트 본문');
+    check('결제 완료 리포트 화면에 주문 번호(eventID)와 실제 결제 금액으로 Purchase 스크립트가 들어간다',
+      repOn.includes('__NB_META_PURCHASE__("ord_pixel_test_1", ' + expectedPrice + ')') &&
+      repOn.includes('eventID: String(orderId)'));
+
+    // 3. 개인정보 처리방침에 메타 픽셀 사용 고지 및 개인정보 미전송 원칙이 적혀 있다
+    const privHtml = renderPrivacy(full);
+    check('개인정보처리방침에 광고 효과 측정을 위해 메타(Meta) 픽셀을 사용할 수 있다는 고지가 있다',
+      privHtml.includes('광고 효과 측정을 위해 메타(Meta) 픽셀을 사용할 수 있습니다') &&
+      privHtml.includes('개인정보는 메타로 전송하지 않습니다'));
+  } finally {
+    if (origPixel === undefined) delete process.env.META_PIXEL_ID;
+    else process.env.META_PIXEL_ID = origPixel;
+  }
 }
 
 console.log(`\n${'═'.repeat(60)}`);

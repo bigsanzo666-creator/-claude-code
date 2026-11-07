@@ -3,6 +3,7 @@ import { type BusinessInfo } from './business.ts';
 import { renderInviteBadge, REFERRAL_BADGE_CSS, REFERRAL_BADGE_SCRIPT } from './referral-badge.ts';
 import { esc, renderReportMarkdown, REPORT_CSS } from './report-render.ts';
 import { renderUpsellSection, UPSELL_CSS, type UpsellViewData } from './upsell-section.ts';
+import { renderMetaPixelHead, renderMetaPurchaseScript } from './meta-pixel.ts';
 
 export const ORDER_CSS = `
 p, li, label, h1, h2, h3, h4, h5,
@@ -91,6 +92,7 @@ export function renderOrderPendingReportPage(business: BusinessInfo, footer: str
 <meta http-equiv="refresh" content="3">
 <title>풀이 작성 중 — ${esc(site)}</title>
 <style>${ORDER_CSS}</style>
+${renderMetaPixelHead()}
 </head>
 <body>
 <main class="od-main">
@@ -99,6 +101,7 @@ export function renderOrderPendingReportPage(business: BusinessInfo, footer: str
   <p class="od-desc">결제가 정상 확인되었습니다. 리포트를 정성껏 작성하고 있으니 잠시만 기다려 주십시오. (3초마다 자동으로 확인합니다)</p>
   <p class="od-order-info">주문번호: ${esc(order.id)}</p>
 </main>
+${renderMetaPurchaseScript(order.id, order.amountKrw)}
 <script>
 (function(){
   var orderId = ${JSON.stringify(order.id)};
@@ -152,6 +155,8 @@ ${REFERRAL_BADGE_CSS}</style>
 <script>
 window.KAKAO_JS_KEY = ${JSON.stringify(process.env.KAKAO_JS_KEY ?? '')};
 </script>
+${renderMetaPixelHead()}
+${renderMetaPurchaseScript(order.id, order.amountKrw)}
 </head>
 <body>
 <main class="od-main">

@@ -35,6 +35,7 @@ import { PACKAGES } from '../../commerce/src/packages.ts';
 import { NAMING_FIELD_RATIO, NAMING_POPULAR_TOP_RANK } from '../../naming/src/index.ts';
 import { REPORT_CSS } from './report-render.ts';
 import { UPSELL_CSS } from './upsell-section.ts';
+import { renderMetaPixelHead, renderMetaInitiateCheckoutScript } from './meta-pixel.ts';
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -1070,6 +1071,12 @@ export function renderCheckoutPage(
         if(r.status === 200){
           var report = await r.json();
           if(report && report.text){
+            try {
+              var pVal = (report.order && typeof report.order.amountKrw === 'number') ? report.order.amountKrw : currentDisplayedAmount;
+              if (typeof window.__NB_META_PURCHASE__ === 'function') {
+                window.__NB_META_PURCHASE__(oid, pVal);
+              }
+            } catch(e){}
             showReport(oid, report.text, (cf && cf.inviteCode) || (report.order && report.order.inviteCode), (cf && cf.upsell) || report.upsell);
             return;
           }
@@ -2317,6 +2324,12 @@ export function renderCheckoutPage(
         }catch(e){
           console.log('[무료 주문 확인 통신 오류, 풀이 확인 계속]', e);
         }
+        try {
+          var pVal0 = (cf && cf.order && typeof cf.order.amountKrw === 'number') ? cf.order.amountKrw : created.order.amountKrw;
+          if (typeof window.__NB_META_PURCHASE__ === 'function') {
+            window.__NB_META_PURCHASE__(orderId, pVal0);
+          }
+        } catch(e){}
         await waitForReport(orderId, cf);
         if(pay) pay.style.display = 'none';
         return;
@@ -2355,6 +2368,12 @@ export function renderCheckoutPage(
       var cf = null;
       try{
         cf = await post('/api/orders/' + orderId + '/confirm', { paymentId: (res && res.paymentId) || orderId });
+        try {
+          var pValPaid = (cf && cf.order && typeof cf.order.amountKrw === 'number') ? cf.order.amountKrw : created.order.amountKrw;
+          if (typeof window.__NB_META_PURCHASE__ === 'function') {
+            window.__NB_META_PURCHASE__(orderId, pValPaid);
+          }
+        } catch(e){}
       }catch(confirmErr){
         console.log('[결제 확인 통신 오류, 풀이 확인 계속]', confirmErr);
       }
@@ -2399,6 +2418,8 @@ ${embedded ? `.co-back,.co-user-card,.co-user-edit-form,.co-reading-fields{displ
 <script>
 window.KAKAO_JS_KEY = ${JSON.stringify(process.env.KAKAO_JS_KEY ?? '')};
 </script>
+${renderMetaPixelHead()}
+${renderMetaInitiateCheckoutScript(product.name, product.priceKrw)}
 ${isPhotoProduct ? `<script>
 (function(){
   try {

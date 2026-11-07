@@ -39,7 +39,7 @@ import {
   type BusinessInfo,
   renderOrderNotFoundPage, renderOrderUnpaidPage,
   renderOrderPendingReportPage, renderOrderReportPage, renderInvitePage, renderAdminInvitePage,
-  renderNamingCertificatePage,
+  renderNamingCertificatePage, renderMetaPixelHead,
 } from '../../../packages/site-policy/src/index.ts';
 import {
   findProductImages, findHeroImage, findHeroVideo, findSpiritImages, findSceneImages,
@@ -558,6 +558,7 @@ window.__CATEGORIES__ = ${JSON.stringify(CATEGORY_MENU)};
 window.__IS_LAUNCH_SALE__ = ${isLaunchSale()};
 window.KAKAO_JS_KEY = ${JSON.stringify(process.env.KAKAO_JS_KEY ?? '')};
 </script>
+${renderMetaPixelHead()}
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" defer></script>
 </head>
@@ -707,6 +708,13 @@ ${fragment}
       stF.click();
     }
     손님명식을옮긴다();
+    try {
+      if (typeof window.__NB_META_LEAD__ === 'function') {
+        window.__NB_META_LEAD__();
+      } else if (typeof window.fbq === 'function') {
+        window.fbq('track', 'Lead');
+      }
+    } catch(e) {}
     try {
       var utmPayload = window.__NB_GET_UTM__ ? window.__NB_GET_UTM__() : null;
       fetch('/api/free-reading', {
