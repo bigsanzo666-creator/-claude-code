@@ -2,6 +2,12 @@ export function parseInputTime(val?: string | null): string | null {
   if (!val || val === '모름') return null;
   val = val.trim();
   if (/^\d{1,2}:\d{2}$/.test(val)) return val;
+  // 터진 뒤에 적은 것 (2026-11-03): 「1440」처럼 쌍점 없이 적으면 그대로 넘어가 계산이 죽었다.
+  const digits = val.match(/^(\d{1,2})(\d{2})$/);
+  if (digits) {
+    const h = parseInt(digits[1], 10), m = parseInt(digits[2], 10);
+    if (h <= 23 && m <= 59) return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
   const matchKorean = val.match(/(오전|오후|낮|새벽|저녁|밤)?\s*(\d{1,2})시\s*(\d{1,2})?분?/);
   if (matchKorean) {
     const prefix = matchKorean[1];
@@ -9,7 +15,8 @@ export function parseInputTime(val?: string | null): string | null {
     const m = matchKorean[3] ? parseInt(matchKorean[3], 10) : 0;
     if ((prefix === '오후' || prefix === '낮' || prefix === '저녁' || prefix === '밤') && h < 12) {
       h += 12;
-    } else if ((prefix === '새벽' || prefix === '자정') && h === 12) {
+    } else if ((prefix === '새벽' || prefix === '밤') && h === 12) {
+      // 「밤 12시」는 자정이다. 낮 12시로 읽으면 시 기둥이 오시로 통째로 바뀐다
       h = 0;
     }
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
@@ -159,10 +166,25 @@ const TIME_SLOTS_DEF = [
   { time: '21:30', 시진: '해시', 시각: '밤 9:30 ~ 11:30', hanja: '亥' },
 ];
 
-function formatKoreanBirthHeader(dateStr: string, timeStr: string | null | undefined, place: string | undefined): string {
+/*
+ * 터진 뒤에 적은 것 (2026-11-03): 머리글이 손님이 적은 글자를 그대로 쪼개 썼다.
+ * 「미시」「오후 2시 40분」을 적으면 「밤 NaN시 undefined분」이 찍혔다.
+ * 계산과 같은 값(parseInputTime)으로 쓰고, 시진 이름으로 적었으면 시진 이름과 시간 폭을 쓴다.
+ */
+/** 시진 이름으로 적었으면 「미시(낮 1:30~3:30)」, 아니면 null */
+export function sijinLabelOf(rawTime: string | null | undefined): string | null {
+  const 시진 = rawTime ? TIME_SLOTS_DEF.find((s) => rawTime.includes(s.시진)) : undefined;
+  return 시진 ? `${시진.시진}(${시진.시각.replace(/\s*~\s*/, '~')})` : null;
+}
+
+function formatKoreanBirthHeader(dateStr: string, rawTime: string | null | undefined, place: string | undefined): string {
   const [y, m, d] = dateStr.split('-').map(Number);
   let tStr = '시간 모름';
-  if (timeStr && timeStr !== '모름') {
+  const 시진 = sijinLabelOf(rawTime);
+  const timeStr = parseInputTime(rawTime);
+  if (시진) {
+    tStr = 시진;
+  } else if (timeStr && /^\d{1,2}:\d{2}$/.test(timeStr)) {
     const [hh, mm] = timeStr.split(':').map(Number);
     let label = '낮';
     let h12 = hh;

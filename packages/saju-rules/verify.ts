@@ -944,6 +944,38 @@ section('오행 방향·색·숫자 (ELEMENT_CORRESPONDENCES)');
     text.includes('기울이면'));
 }
 
+section('오늘의 운세 머리글 — 손님이 적은 시각을 계산과 같은 값으로 쓴다');
+{
+  /*
+   * 터진 뒤에 적은 것 (2026-11-03): 「미시」「오후 2시 40분」을 적으면 머리글이
+   * 「밤 NaN시 undefined분」이 되었고, 「1440」을 적으면 계산이 죽었다.
+   */
+  const { parseInputTime, buildDailyPreviewData } = await import('./src/daily-preview.ts');
+  check('「1440」은 14:40 으로 읽는다', parseInputTime('1440') === '14:40', String(parseInputTime('1440')));
+  check('「0930」은 09:30 으로 읽는다', parseInputTime('0930') === '09:30');
+  check('「오후 2시 40분」은 14:40 으로 읽는다', parseInputTime('오후 2시 40분') === '14:40');
+  check('「밤 12시」는 자정(00:00)이다', parseInputTime('밤 12시') === '00:00', String(parseInputTime('밤 12시')));
+  check('「낮 12시」는 정오(12:00)다', parseInputTime('낮 12시') === '12:00');
+  const 머리 = (t: string | undefined) => JSON.stringify(
+    buildDailyPreviewData({ date: '1990-09-25', time: t, place: '서울', gender: '남' }, '2026-11-03'));
+  for (const t of ['미시', '오후 2시 40분', '1440', '14:40']) {
+    let h = '';
+    try { h = 머리(t); } catch (e) { h = `죽음: ${(e as Error).message}`; }
+    check(`「${t}」을 적어도 머리글에 NaN·undefined 가 없다`, h.length > 0 && !h.includes('NaN') && !h.includes('undefined') && !h.startsWith('죽음'), h.slice(0, 80));
+  }
+  check('시진 이름으로 적으면 시진 이름과 시간 폭을 쓴다', 머리('미시').includes('미시(낮 1:30~3:30)'));
+  check('「오후 2시 40분」은 머리글에 낮 2시 40분으로 나온다', 머리('오후 2시 40분').includes('낮 2시 40분'));
+  check('「1440」도 머리글에 낮 2시 40분으로 나온다', 머리('1440').includes('낮 2시 40분'));
+
+  const { buildMonthPreviewData } = await import('./src/month-preview.ts');
+  for (const t of ['미시', '오후 2시 40분', '1440']) {
+    let h = '';
+    try { h = JSON.stringify(buildMonthPreviewData({ date: '1990-09-25', time: t, place: '서울', gender: '남' } as any)); }
+    catch (e) { h = `죽음: ${(e as Error).message}`; }
+    check(`월운세: 「${t}」을 적어도 머리글에 NaN·undefined 가 없다`, h.length > 0 && !h.includes('NaN') && !h.includes('undefined') && !h.startsWith('죽음'), h.slice(0, 80));
+  }
+}
+
 console.log(`통과 ${passed} / 실패 ${failed}`);
 if (failed) {
   console.log('\n실패 항목:');
