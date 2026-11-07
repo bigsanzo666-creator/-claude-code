@@ -4361,6 +4361,51 @@ section('작명서 라우트 및 메일 연동 검증 (6·7·8단계)');
 }
 
 
+
+// ── BIG-19: 광고 랜딩 모바일 접근성 및 나비신령 공유 미리보기(og-nabi.jpg) 검증 ──
+section('광고 랜딩 모바일 점검 및 공유 미리보기(og-nabi.jpg) 검증 (BIG-19)');
+
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const serverSrc = readFileSync(join(here, 'src', 'server.ts'), 'utf8');
+  const styleSrc = readFileSync(join(here, 'public', 'style.css'), 'utf8');
+  const appJsSrc = readFileSync(join(here, 'public', 'app.js'), 'utf8');
+  const ogNabiFile = join(here, 'public', 'og-nabi.jpg');
+
+  check('public/og-nabi.jpg 파일 자리가 준비되어 있다', readFileSync(ogNabiFile).length > 0);
+  check('첫 화면 viewport 메타태그가 화면 확대를 막지 않는다 (user-scalable=no 제거)',
+    !serverSrc.includes('user-scalable=no'));
+  check('모바일 주요 버튼 터치 영역(44px 이상) 및 보조 글씨 크기(11.5px)가 확보되어 있다',
+    styleSrc.includes('min-height: 44px') && serverSrc.includes('font-size:11.5px'));
+  check('인앱 브라우저 세션 저장 차단 시 __nbReadingFallback 예비 경로가 app.js 에 있다',
+    appJsSrc.includes('__nbReadingFallback'));
+
+  const s19 = createServer(createApi({
+    gateway,
+    orders,
+    business,
+    referrals,
+    generate: async () => ({ text: 'ok' }),
+  }));
+  await new Promise<void>((r) => s19.listen(0, r));
+  try {
+    const p19 = (s19.address() as { port: number }).port;
+    const homeRes = await fetch(`http://127.0.0.1:${p19}/`);
+    const homeHtml = await homeRes.text();
+    check('첫 화면 HTML 에 og:title, og:description, og:image(/og-nabi.jpg) 가 모두 들어 있다',
+      homeHtml.includes('property="og:title"') &&
+      homeHtml.includes('property="og:description"') &&
+      homeHtml.includes('property="og:image"') &&
+      homeHtml.includes('/og-nabi.jpg'));
+    const imgRes = await fetch(`http://127.0.0.1:${p19}/og-nabi.jpg`);
+    check('GET /og-nabi.jpg 요청이 200 image/jpeg 로 응답한다',
+      imgRes.status === 200 && (imgRes.headers.get('content-type') ?? '').includes('image/jpeg'));
+    await imgRes.arrayBuffer();
+  } finally {
+    s19.close();
+  }
+}
+
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
 console.log('전부 통과.');

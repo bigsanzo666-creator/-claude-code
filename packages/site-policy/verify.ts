@@ -1962,6 +1962,26 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
     !(coSoonBlock.includes('손금') && coSoonBlock.includes('값 없이')));
 }
 
+
+// ─── BIG-19: 공유 미리보기(나비신령 og-nabi.jpg) 및 인앱 브라우저 예비 경로 검증 ───
+{
+  section('BIG-19: 공유 미리보기(나비신령) 및 인앱 브라우저 저장소 예비 경로');
+  const { OG_NABI_IMAGE_PATH } = await import('./src/social.ts');
+  const nabiHead = renderSocialHead(full, {
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+    path: '/',
+    image: OG_NABI_IMAGE_PATH,
+  });
+  check('나비신령 공유 미리보기 og:image 가 /og-nabi.jpg 전체 주소로 들어간다',
+    nabiHead.includes('content="https://example.kr/og-nabi.jpg"'));
+  check('공유 설명 문구에 금지 표현(100%, 반드시, 액운, 재앙)이 없다',
+    !/(100%|반드시|절대|액운|재앙|큰일)/.test(HOME_DESCRIPTION));
+  const coHtml = renderCheckoutPage(full, '', CATALOG['wealth-report'], { storeId: 's', channelKey: 'c' });
+  check('결제 화면에 인앱 브라우저 저장소 차단 대비 __nbReadingFallback 예비 경로가 있다',
+    coHtml.includes('__nbReadingFallback') && coHtml.includes('window.parent.__nbReadingFallback'));
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }
