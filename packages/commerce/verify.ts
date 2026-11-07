@@ -18,6 +18,7 @@ import {
   priceOf, HOLIDAY_EXTRA_MEMBER_KRW, HOLIDAY_MAX_MEMBERS,
   UPSELL_PROMO_HOURS, UPSELL_PROMO_RATE, UPSELL_AFTER_RATE, recommendNext, cutPrice,
   시각을바꾼다, isLaunchSale, REGULAR_BY_LAUNCH,
+  INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW,
 } from './src/index.ts';
 import { TOPIC_LABELS } from '../saju-rules/src/topics.ts';
 
@@ -712,6 +713,41 @@ section('J. 리포트 끝 추천 3개 — 손님 질문에 맞춰 고르고 할�
     return ids.length === uniqueIds.size;
   });
   check('⑤ 돌려준 셋 안에 같은 상품이 두 번 들어가지 않는다', noDuplicates);
+}
+
+// ─── H. 현재 가격표(docs/price-sheet.md)와 catalog.ts 일치 검증 ───────
+{
+  section('H. 현재 가격표 내보내기 (docs/price-sheet.md)');
+  const { readFileSync: 읽기 } = await import('node:fs');
+  const { buildPriceSheetMarkdown } = await import('./scripts/price-sheet.ts');
+  const savedSheet = 읽기(new URL('../../docs/price-sheet.md', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  const generatedSheet = buildPriceSheetMarkdown().replace(/\r\n/g, '\n');
+
+  check('저장된 docs/price-sheet.md 가 스크립트 출력과 한 글자도 다르지 않다',
+    savedSheet === generatedSheet);
+
+  const allProductsMatch = Object.values(CATALOG).every((p) => {
+    const promo = cutPrice(p.priceKrw, UPSELL_PROMO_RATE).toLocaleString('ko-KR') + '원';
+    const after = cutPrice(p.priceKrw, UPSELL_AFTER_RATE).toLocaleString('ko-KR') + '원';
+    const cur = p.priceKrw.toLocaleString('ko-KR') + '원';
+    return savedSheet.includes(`| \`${p.id}\` | ${p.name} | **${cur}** | ${promo} | ${after} |`);
+  });
+  check('단품 34종의 현재 가격·12시간 안/후 이어사기 가격이 catalog.ts 와 일치한다', allProductsMatch);
+
+  const allPackagesMatch = Object.values(PACKAGES).every((pack) => {
+    const m = bundleMath(pack.id);
+    const cur = pack.priceKrw.toLocaleString('ko-KR') + '원';
+    const ind = m.individualKrw.toLocaleString('ko-KR') + '원';
+    return savedSheet.includes(`| \`${pack.id}\` | ${pack.name} |`) && savedSheet.includes(`| ${ind} | **${cur}** |`);
+  });
+  check('묶음 16종의 현재 가격·합계가 catalog.ts 와 일치한다', allPackagesMatch);
+
+  check('월운세 이용권 가격·기간(30일)·횟수(6회) 및 소개 코드 할인(3,000원, 20,000원 이상)이 일치한다',
+    savedSheet.includes(`**${CATALOG['month-report'].priceKrw.toLocaleString('ko-KR')}원**`) &&
+    savedSheet.includes('**30일**') &&
+    savedSheet.includes('**6회**') &&
+    savedSheet.includes(`**${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인**`) &&
+    savedSheet.includes(`**${INVITE_MIN_ORDER_KRW.toLocaleString('ko-KR')}원 이상**`));
 }
 
 console.log(`\n${'═'.repeat(60)}`);
