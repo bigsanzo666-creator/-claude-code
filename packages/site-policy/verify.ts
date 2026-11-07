@@ -1949,6 +1949,19 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
     !unknownHtml.includes('용신'));
 }
 
+// ─── 결제 준비 중 안내 문구 검증 (무료인 사주 명식만 안내) ──────────
+{
+  section('결제 준비 중 안내 — 무료인 사주 명식만 안내');
+  const noKeyCheckout = renderCheckoutPage(full, '', CATALOG['wealth-report'], null);
+  const coSoonBlock = noKeyCheckout.match(/<div class="co-soon">[\s\S]*?<\/div>/)?.[0] ?? '';
+  check('결제 키가 없을 때 무료 사주 명식 안내가 나온다',
+    coSoonBlock.includes('사주 명식 풀이는 지금도 값 없이 보실 수 있습니다'));
+  check('결제 키가 없을 때 화면 안내에 「궁합」+「값 없이」가 함께 나오지 않는다',
+    !(coSoonBlock.includes('궁합') && coSoonBlock.includes('값 없이')));
+  check('결제 키가 없을 때 화면 안내에 「손금」+「값 없이」가 함께 나오지 않는다',
+    !(coSoonBlock.includes('손금') && coSoonBlock.includes('값 없이')));
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }

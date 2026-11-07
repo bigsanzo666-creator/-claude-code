@@ -456,7 +456,7 @@ export function renderCheckoutPage(
 
   const form = keys === null ? `
     <div class="co-soon"><b>결제 준비 중입니다.</b><br>
-    사주 명식·궁합·관상·손금 풀이는 지금도 값 없이 보실 수 있습니다.</div>` : `
+    사주 명식 풀이는 지금도 값 없이 보실 수 있습니다.</div>` : `
     <form id="coForm" novalidate>
       <div id="coFields">
 
