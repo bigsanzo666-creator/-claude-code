@@ -35,9 +35,28 @@ CREATE TABLE IF NOT EXISTS orders (
 -- 기존 테이블에 ref, email 컬럼이 없을 때 안전하게 추가
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS ref TEXT;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS utm_source TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS utm_medium TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS utm_campaign TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS utm_content TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS fbclid TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS utm_first_seen_at TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS orders_payment_id_idx ON orders (payment_id);
 -- 정산·분쟁 대응에서 기간으로 훑는다
 CREATE INDEX IF NOT EXISTS orders_created_at_idx ON orders (created_at);
+
+-- 무료 사주 명식 조회 기록 (생년월일·이름·성별·이메일 등 개인정보 칸을 일절 두지 않고 유입 정보만 분리 저장)
+CREATE TABLE IF NOT EXISTS free_reading_logs (
+  id                TEXT PRIMARY KEY,
+  utm_source        TEXT,
+  utm_medium        TEXT,
+  utm_campaign      TEXT,
+  utm_content       TEXT,
+  fbclid            TEXT,
+  utm_first_seen_at TIMESTAMPTZ,
+  created_at        TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS free_reading_logs_created_at_idx ON free_reading_logs (created_at);
 
 CREATE TABLE IF NOT EXISTS reports (
   order_id    TEXT PRIMARY KEY REFERENCES orders(id) ON DELETE CASCADE,

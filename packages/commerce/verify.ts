@@ -10,6 +10,7 @@ import {
   CATALOG, getProduct, makePreview, CATEGORIES, productsIn,
   PACKAGES, bundleMath, packagesContaining, assertPackagesValid, needsPartner, needsChild, type PackageId,
   ALLOWED_REFS, cleanRef, createOrder, markPending, markPaid, markFulfilled, markViewed, markRefunded,
+  UTM_RETENTION_DAYS, cleanUtmValue, sanitizeUtm, hasAnyUtm, isUtmFresh, extractUtmFromSearchParams, mergeFirstTouchUtm,
   hasEntitlement, OrderTransitionError,
   assessRefund, addBusinessDays, WITHDRAWAL_NOTICE, WITHDRAWAL_WINDOW_DAYS, refundNotice,
   FakeGateway, confirmPayment, refundOrder, PaymentVerificationError,
@@ -712,6 +713,72 @@ section('J. 리포트 끝 추천 3개 — 손님 질문에 맞춰 고르고 할�
     return ids.length === uniqueIds.size;
   });
   check('⑤ 돌려준 셋 안에 같은 상품이 두 번 들어가지 않는다', noDuplicates);
+}
+
+// ── K. 광고 유입 추적(UTM) — 처음 들어온 광고 기준 7일 유지 ───────
+section('K. 광고 유입 추적(UTM) — 처음 들어온 광고 기준 7일 유지');
+{
+  const day0 = new Date('2026-11-01T00:00:00Z');
+  const day3 = new Date('2026-11-04T00:00:00Z'); // 3일 뒤 (7일 안)
+  const day8 = new Date('2026-11-09T00:00:00Z'); // 8일 뒤 (7일 지남)
+
+  const incoming1 = extractUtmFromSearchParams(
+    new URLSearchParams('utm_source=meta&utm_medium=paid&utm_campaign=test&utm_content=nabi01&fbclid=fb_abc_123'),
+    day0.toISOString(),
+  );
+  check('주소창 쿼리에서 UTM 5가지와 첫 방문 시각을 뽑아낸다',
+    incoming1?.utmSource === 'meta' &&
+    incoming1?.utmMedium === 'paid' &&
+    incoming1?.utmCampaign === 'test' &&
+    incoming1?.utmContent === 'nabi01' &&
+    incoming1?.fbclid === 'fb_abc_123' &&
+    incoming1?.utmFirstSeenAt === day0.toISOString());
+
+  const incoming2 = extractUtmFromSearchParams(
+    new URLSearchParams('utm_source=google&utm_medium=cpc&utm_campaign=other&utm_content=other02'),
+    day3.toISOString(),
+  );
+  const mergedWithin7d = mergeFirstTouchUtm(incoming1, incoming2, day3.getTime());
+  check('처음 들어온 광고 기준 7일 안에는 새 UTM 이 와도 첫 광고를 유지한다',
+    mergedWithin7d?.utmSource === 'meta' &&
+    mergedWithin7d?.utmContent === 'nabi01' &&
+    mergedWithin7d?.utmFirstSeenAt === day0.toISOString());
+
+  const incomingAfter7d = extractUtmFromSearchParams(
+    new URLSearchParams('utm_source=google&utm_medium=cpc&utm_campaign=other&utm_content=other02'),
+    day8.toISOString(),
+  );
+  const mergedAfter7d = mergeFirstTouchUtm(incoming1, incomingAfter7d, day8.getTime());
+  check('7일이 지난 뒤에 새 광고로 들어오면 새 UTM 으로 갈아끼운다',
+    mergedAfter7d?.utmSource === 'google' &&
+    mergedAfter7d?.utmContent === 'other02' &&
+    mergedAfter7d?.utmFirstSeenAt === day8.toISOString());
+
+  const expiredNoNew = mergeFirstTouchUtm(incoming1, null, day8.getTime());
+  check('7일이 지났고 새 UTM 도 없으면 빈 값(null)이 된다', expiredNoNew === null);
+
+  const oWithUtm = newOrder({ utm: incoming1, now: day3 });
+  check('주문에 UTM 칸이 모두 그대로 저장된다',
+    oWithUtm.utmSource === 'meta' &&
+    oWithUtm.utmMedium === 'paid' &&
+    oWithUtm.utmCampaign === 'test' &&
+    oWithUtm.utmContent === 'nabi01' &&
+    oWithUtm.fbclid === 'fb_abc_123' &&
+    oWithUtm.utmFirstSeenAt === day0.toISOString());
+
+  const oWithoutUtm = newOrder({ now: day3 });
+  check('UTM 없이 들어온 손님의 주문은 UTM 칸이 모두 빈 값(null)이다',
+    oWithoutUtm.utmSource === null &&
+    oWithoutUtm.utmMedium === null &&
+    oWithoutUtm.utmCampaign === null &&
+    oWithoutUtm.utmContent === null &&
+    oWithoutUtm.fbclid === null &&
+    oWithoutUtm.utmFirstSeenAt === null);
+
+  check('이상한 제어문자나 너무 긴 값은 깔끔히 다듬거나 버린다',
+    cleanUtmValue('  nabi<\r\n>_01  ') === 'nabi_01' &&
+    cleanUtmValue('   ') === null &&
+    (cleanUtmValue('a'.repeat(300))?.length ?? 0) === 120);
 }
 
 console.log(`\n${'═'.repeat(60)}`);

@@ -4360,6 +4360,137 @@ section('작명서 라우트 및 메일 연동 검증 (6·7·8단계)');
     mailSrc.includes('작명서 보기') && mailSrc.includes('작명서 주소:'));
 }
 
+// ── 11단계: 광고 유입 추적(UTM) · 무료 명식 본 수 검증 (BIG-15) ──────────
+section('광고 유입 추적(UTM) 및 무료 사주 명식 기록 검증 (BIG-15)');
+
+{
+  const BIRTH_UTM = { date: '1991-04-12', time: '09:30', longitude: 126.978, gender: '여' as const };
+  const utmSrv = createServer(createApi({
+    gateway: new FakeGateway(),
+    orders: new MemoryOrderStore(),
+    generate: async () => ({ text: '리포트 본문' }),
+    business,
+  }));
+  await new Promise<void>((r) => utmSrv.listen(0, r));
+  const utmBase = `http://127.0.0.1:${(utmSrv.address() as { port: number }).port}`;
+  const utmApi = async (method: string, path: string, body?: unknown) => {
+    const res = await fetch(`${utmBase}${path}`, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : {},
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return { status: res.status, body: await res.json() as any };
+  };
+
+  try {
+    // 1. 광고 주소로 들어왔을 때 Set-Cookie(nb_utm)가 내려가고, 그 쿠키/UTM 으로 주문하면 주문에 UTM 칸이 채워진다
+    const landingRes = await fetch(`${utmBase}/?utm_source=meta&utm_medium=paid&utm_campaign=test&utm_content=nabi01&fbclid=IwAR_test_123`);
+    check('광고 주소(/?utm_source=meta...)로 첫 화면에 들어오면 200 응답이 온다', landingRes.status === 200);
+    const setCookieHeader = landingRes.headers.get('set-cookie') ?? '';
+    check('첫 화면 진입 시 7일짜리 nb_utm 쿠키가 구워진다',
+      setCookieHeader.includes('nb_utm=') && setCookieHeader.includes('Max-Age=604800'));
+
+    const cookiePair = setCookieHeader.split(';')[0] ?? '';
+
+    // 7일 안에 다른 광고(google)로 다시 들어와도 처음 들어온 광고(meta/nabi01)가 유지된다 (새 Set-Cookie로 덮어쓰지 않음)
+    const secondLanding = await fetch(`${utmBase}/?utm_source=google&utm_medium=cpc&utm_campaign=second&utm_content=other99`, {
+      headers: { Cookie: cookiePair },
+    });
+    const secondCookieHeader = secondLanding.headers.get('set-cookie') ?? '';
+    check('처음 들어온 광고 기준 7일 안에는 다른 UTM 으로 들어와도 첫 광고 쿠키가 덮어써지지 않는다',
+      secondCookieHeader === '');
+
+    // 쿠키를 들고 주문을 만들면 주문에 UTM 이 그대로 저장된다 (인스타 인앱 브라우저 등 쿠키가 막힌 경우 body.utm 으로도 저장됨)
+    const utmOrderRes = await fetch(`${utmBase}/api/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookiePair,
+      },
+      body: JSON.stringify({
+        productId: 'saju-report',
+        birth: BIRTH_UTM,
+        acknowledgedNotice: true,
+        previewShown: true,
+      }),
+    });
+    const utmOrderJson = await utmOrderRes.json() as any;
+    check('광고로 들어와 결제(주문)까지 마친 주문에 utm_source=meta, utm_content=nabi01 이 저장된다',
+      utmOrderRes.status === 201 &&
+      utmOrderJson.order?.utmSource === 'meta' &&
+      utmOrderJson.order?.utmMedium === 'paid' &&
+      utmOrderJson.order?.utmCampaign === 'test' &&
+      utmOrderJson.order?.utmContent === 'nabi01' &&
+      utmOrderJson.order?.fbclid === 'IwAR_test_123' &&
+      typeof utmOrderJson.order?.utmFirstSeenAt === 'string');
+
+    // 쿠키가 막힌 인앱 브라우저에서도 body.utm 으로 넘기면 똑같이 주문에 남는다
+    const bodyUtmOrderRes = await utmApi('POST', '/api/orders', {
+      productId: 'saju-report',
+      birth: BIRTH_UTM,
+      acknowledgedNotice: true,
+      previewShown: true,
+      utm: {
+        utmSource: 'meta',
+        utmMedium: 'paid',
+        utmCampaign: 'inapp_camp',
+        utmContent: 'nabi02',
+        fbclid: 'fb_inapp_1',
+        utmFirstSeenAt: new Date().toISOString(),
+      },
+    });
+    check('쿠키가 막힌 인앱 브라우저에서도 본문(utm)으로 전달된 광고 꼬리표가 주문에 저장된다',
+      bodyUtmOrderRes.status === 201 &&
+      bodyUtmOrderRes.body.order?.utmSource === 'meta' &&
+      bodyUtmOrderRes.body.order?.utmCampaign === 'inapp_camp' &&
+      bodyUtmOrderRes.body.order?.utmContent === 'nabi02');
+
+    // 2. 그냥 / 로 들어와 주문하면 UTM 칸이 모두 빈 값(null)이고 오류가 나지 않는다
+    await fetch(`${utmBase}/`);
+    const plainOrderRes = await utmApi('POST', '/api/orders', {
+      productId: 'saju-report',
+      birth: BIRTH_UTM,
+      acknowledgedNotice: true,
+      previewShown: true,
+    });
+    check('UTM 없이 그냥 들어와 주문하면 UTM 칸은 빈 값(null)이고 오류 없이 만들어진다',
+      plainOrderRes.status === 201 &&
+      plainOrderRes.body.order?.utmSource === null &&
+      plainOrderRes.body.order?.utmMedium === null &&
+      plainOrderRes.body.order?.utmCampaign === null &&
+      plainOrderRes.body.order?.utmContent === null &&
+      plainOrderRes.body.order?.fbclid === null &&
+      plainOrderRes.body.order?.utmFirstSeenAt === null);
+
+    // 3. 무료 사주 명식 결과를 한 번 보면 기록이 1건 남고, 이름·생년월일 같은 개인정보는 절대 저장되지 않는다
+    const freeRes = await fetch(`${utmBase}/api/free-reading`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookiePair,
+      },
+      body: JSON.stringify({
+        // 설령 클라이언트가 실수로 개인정보를 보내더라도 서버가 버려야 한다
+        name: '홍길동',
+        birth: BIRTH_UTM,
+        email: 'secret@example.com',
+      }),
+    });
+    const freeJson = await freeRes.json() as any;
+    check('무료 사주 명식 열람 기록(POST /api/free-reading)이 201로 남는다',
+      freeRes.status === 201 && freeJson.ok === true && freeJson.log?.utmContent === 'nabi01');
+
+    const freeRecordStr = JSON.stringify(freeJson.log ?? {});
+    check('무료 사주 명식 기록에는 시각과 UTM 만 남고 이름·생년월일·이메일은 절대 남지 않는다',
+      !freeRecordStr.includes('홍길동') &&
+      !freeRecordStr.includes('1991-04-12') &&
+      !freeRecordStr.includes('secret@example.com') &&
+      typeof freeJson.log?.createdAt === 'string');
+  } finally {
+    utmSrv.close();
+  }
+}
+
 
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
