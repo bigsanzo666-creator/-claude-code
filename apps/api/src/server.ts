@@ -39,7 +39,7 @@ import {
   type BusinessInfo,
   renderOrderNotFoundPage, renderOrderUnpaidPage,
   renderOrderPendingReportPage, renderOrderReportPage, renderInvitePage, renderAdminInvitePage,
-  renderNamingCertificatePage,
+  renderNamingCertificatePage, renderAdminFunnelPage, computeFunnelMetrics,
 } from '../../../packages/site-policy/src/index.ts';
 import {
   findProductImages, findHeroImage, findHeroVideo, findSpiritImages, findSceneImages,
@@ -2998,6 +2998,69 @@ export function createApi(deps: ApiDeps) {
         sent: result.sent,
         reason: result.reason ? redactKey(result.reason) : undefined,
       });
+    },
+
+    'GET /admin/funnel': async (req, res) => {
+      const url = new URL(req.url ?? '/', 'http://localhost');
+      const token = url.searchParams.get('token') || (req.headers['authorization']?.replace(/^Bearer\s+/, '') ?? '');
+      const pass = url.searchParams.get('pass') ?? '';
+      const adminToken = (process.env.ADMIN_TOKEN ?? '').trim();
+
+      const isAdminAuthed = Boolean(adminToken && token && token === adminToken);
+      const isOwnerAuthed = isOwnerPass(pass) || isOwnerPass(token);
+
+      if (!isAdminAuthed && !isOwnerAuthed) {
+        throw new HttpError(404, '없는 경로입니다: GET /admin/funnel');
+      }
+
+      const startParam = url.searchParams.get('start');
+      const endParam = url.searchParams.get('end');
+
+      let allOrders: Order[] = [];
+      let allFreeReadings: FreeReadingLog[] = [];
+      let dbUnavailable = false;
+      let dbNotice: string | undefined;
+
+      if (typeof deps.orders.listAll !== 'function') {
+        dbUnavailable = true;
+        dbNotice = '데이터베이스 없음 (주문 목록 조회 기능이 연결되지 않았습니다)';
+      } else {
+        try {
+          allOrders = await deps.orders.listAll();
+        } catch (err) {
+          dbUnavailable = true;
+          dbNotice = `데이터베이스 없음 (${err instanceof Error ? err.message : '연결 실패'})`;
+        }
+      }
+
+      if (!dbUnavailable) {
+        try {
+          allFreeReadings = await freeReadings.listAll();
+        } catch (err) {
+          dbUnavailable = true;
+          dbNotice = `데이터베이스 없음 (${err instanceof Error ? err.message : '연결 실패'})`;
+        }
+      }
+
+      if (!dbUnavailable && !process.env.DATABASE_URL && deps.orders instanceof MemoryOrderStore) {
+        dbNotice = '데이터베이스 없음 (DATABASE_URL 미설정 — 현재 메모리 저장소 기준으로 계산합니다)';
+      }
+
+      const report = computeFunnelMetrics(allOrders, allFreeReadings, startParam, endParam, {
+        dbUnavailable,
+        dbNotice,
+      });
+
+      const authParam = isAdminAuthed
+        ? { key: 'token' as const, value: token }
+        : { key: 'pass' as const, value: pass || token };
+
+      if (url.searchParams.get('format') === 'json') {
+        send(res, 200, report);
+        return;
+      }
+
+      sendHtml(res, renderAdminFunnelPage(business, renderFooter(business), authParam, report));
     },
   };
 
