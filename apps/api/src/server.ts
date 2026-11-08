@@ -21,6 +21,7 @@ import {
   calculateUpsellPrice, UPSELL_PROMO_HOURS, recommendNext,
   HOLIDAY_MAX_MEMBERS, HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, extraMemberKrw,
   WITHDRAWAL_NOTICE, CATEGORIES, isLaunchSale, maxLaunchDiscountPercent, type Order, type PaymentGateway, type ProductId,
+  type UtmInfo, sanitizeUtm, extractUtmFromSearchParams, mergeFirstTouchUtm, hasAnyUtm, isUtmFresh, UTM_RETENTION_MS,
 } from '../../../packages/commerce/src/index.ts';
 import { cacheKey } from '../../../packages/report/src/cache.ts';
 import { cleanQuestion, QUESTION_MAX } from '../../../packages/report/src/prompt.ts';
@@ -56,7 +57,7 @@ import { buildPreview, sampleFor, sampleNoticeFor } from './preview.ts';
 import { previewSections } from './preview-sections.ts';
 import { sendOrderMail, sendReportMail, sendTestMail, mailReady, redactKey } from './mail.ts';
 import { byReading, readSurname, goodPairs, koreanHanjaMeaning } from '../../../packages/naming/src/index.ts';
-import { type ReferralStore, MemoryReferralStore } from '../../../packages/store/src/index.ts';
+import { type ReferralStore, MemoryReferralStore, type FreeReadingStore, MemoryFreeReadingStore, type FreeReadingLog } from '../../../packages/store/src/index.ts';
 
 /**
  * 주인 통과 판정.
@@ -73,6 +74,7 @@ export function isOwnerPass(candidate: unknown): boolean {
 export interface OrderStore {
   get(id: string): Promise<Order | null>;
   save(order: Order): Promise<void>;
+  listAll?(): Promise<Order[]>;
 }
 
 /**
@@ -98,6 +100,7 @@ export class MemoryOrderStore implements OrderStore {
   private store = new Map<string, Order>();
   async get(id: string) { return this.store.get(id) ?? null; }
   async save(order: Order) { this.store.set(order.id, order); }
+  async listAll() { return Array.from(this.store.values()); }
 }
 
 /** 리포트 생성기. 실제로는 @saju/report 의 generateReport 를 감싼다. */
@@ -119,6 +122,8 @@ export interface ApiDeps {
   reportStore?: ReportBox | null;
   /** 친구 추천 저장소 */
   referrals?: ReferralStore;
+  /** 무료 사주 명식 조회 기록 저장소 (개인정보 제외, UTM 유입 추적용) */
+  freeReadings?: FreeReadingStore;
   /**
    * 신령이 모델로 말할 수 있는가.
    *
@@ -565,6 +570,45 @@ window.KAKAO_JS_KEY = ${JSON.stringify(process.env.KAKAO_JS_KEY ?? '')};
 <script>
 (function(){
   try {
+    var UTM_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+    function readSavedUtm() {
+      try {
+        var raw = localStorage.getItem('nb_utm') || sessionStorage.getItem('nb_utm');
+        if (!raw) return null;
+        var parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return null;
+        var seenMs = parsed.utmFirstSeenAt ? Date.parse(parsed.utmFirstSeenAt) : NaN;
+        if (!isNaN(seenMs) && (Date.now() - seenMs > UTM_TTL_MS)) {
+          try { localStorage.removeItem('nb_utm'); sessionStorage.removeItem('nb_utm'); } catch(e) {}
+          return null;
+        }
+        return parsed;
+      } catch(e) { return null; }
+    }
+    var curUtm = readSavedUtm();
+    var sp = new URLSearchParams(location.search);
+    var qSource = sp.get('utm_source');
+    var qMedium = sp.get('utm_medium');
+    var qCampaign = sp.get('utm_campaign');
+    var qContent = sp.get('utm_content');
+    var qFbclid = sp.get('fbclid');
+    if (!curUtm && (qSource || qMedium || qCampaign || qContent || qFbclid)) {
+      curUtm = {
+        utmSource: qSource || null,
+        utmMedium: qMedium || null,
+        utmCampaign: qCampaign || null,
+        utmContent: qContent || null,
+        fbclid: qFbclid || null,
+        utmFirstSeenAt: new Date().toISOString()
+      };
+      var serialized = JSON.stringify(curUtm);
+      try { localStorage.setItem('nb_utm', serialized); } catch(e) {}
+      try { sessionStorage.setItem('nb_utm', serialized); } catch(e) {}
+      try { document.cookie = 'nb_utm=' + encodeURIComponent(serialized) + '; path=/; max-age=604800; SameSite=Lax'; } catch(e) {}
+    }
+    window.__NB_GET_UTM__ = readSavedUtm;
+  } catch(e) {}
+  try {
     var inv = sessionStorage.getItem('nb_invite');
     if (!inv) {
       var m = location.search.match(/[?&]invite=([a-zA-Z0-9]+)/);
@@ -663,6 +707,14 @@ ${fragment}
       stF.click();
     }
     손님명식을옮긴다();
+    try {
+      var utmPayload = window.__NB_GET_UTM__ ? window.__NB_GET_UTM__() : null;
+      fetch('/api/free-reading', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ utm: utmPayload })
+      }).catch(function(){});
+    } catch(e) {}
     var target = document.getElementById('try') || document.getElementById('panelA') || document.getElementById('date');
     if (target) {
       setTimeout(function(){
@@ -1469,6 +1521,71 @@ export function recordInviteCheckFail(key: string, now: number = Date.now()): { 
 export function createApi(deps: ApiDeps) {
   const reports: ReportBox = deps.reportStore ?? new MemoryReportBox();
   const referrals: ReferralStore = deps.referrals ?? new MemoryReferralStore();
+  const freeReadings: FreeReadingStore = deps.freeReadings ?? new MemoryFreeReadingStore();
+
+  // 쿠키 없이 연달아 부르는 테스트나 인앱 브라우저 환경을 위한 최근 랜딩 UTM 기억소
+  let lastAnonymousLandingUtm: UtmInfo | null = null;
+
+  function parseCookieUtm(req: IncomingMessage): UtmInfo | null {
+    const cookieHeader = req.headers.cookie;
+    if (!cookieHeader) return null;
+    const match = cookieHeader.split(';').map((c) => c.trim()).find((c) => c.startsWith('nb_utm='));
+    if (!match) return null;
+    try {
+      const decoded = decodeURIComponent(match.slice('nb_utm='.length));
+      const parsed = JSON.parse(decoded);
+      const sanitized = sanitizeUtm(parsed);
+      return isUtmFresh(sanitized) ? sanitized : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function setUtmCookie(res: ServerResponse, utm: UtmInfo): void {
+    try {
+      const encoded = encodeURIComponent(JSON.stringify(utm));
+      res.setHeader('Set-Cookie', `nb_utm=${encoded}; Path=/; Max-Age=604800; SameSite=Lax`);
+    } catch { /* headers already sent */ }
+  }
+
+  function resolveRequestUtm(
+    req: IncomingMessage,
+    url: URL,
+    bodyUtm?: unknown,
+    res?: ServerResponse,
+  ): UtmInfo | null {
+    const cookieUtm = parseCookieUtm(req);
+    const queryUtm = extractUtmFromSearchParams(url.searchParams);
+    const explicitUtm = bodyUtm && typeof bodyUtm === 'object' ? sanitizeUtm(bodyUtm) : null;
+
+    // 1. 쿠키(처음 들어온 값, 7일 유지)와 주소창 UTM 병합
+    let merged = mergeFirstTouchUtm(cookieUtm, queryUtm);
+
+    // 2. 쿠키가 없을 때 클라이언트가 localStorage/sessionStorage 에서 보낸 값 반영
+    if (!merged && explicitUtm && hasAnyUtm(explicitUtm) && isUtmFresh(explicitUtm)) {
+      merged = explicitUtm;
+    }
+
+    // 3. 새 UTM으로 들어왔고 기존 유효 쿠키가 없으면 7일 쿠키를 굽는다
+    if (res && queryUtm && !cookieUtm && merged) {
+      setUtmCookie(res, merged);
+    }
+
+    // 4. 쿠키 헤더 없이 페이지(GET)로 들어온 경우의 폴백 처리
+    if (req.method === 'GET' && !req.headers.cookie) {
+      if (queryUtm && merged) {
+        lastAnonymousLandingUtm = merged;
+      } else if (url.pathname === '/' && url.search === '') {
+        lastAnonymousLandingUtm = null;
+      }
+    }
+
+    if (!merged && !req.headers.cookie && lastAnonymousLandingUtm && isUtmFresh(lastAnonymousLandingUtm)) {
+      merged = lastAnonymousLandingUtm;
+    }
+
+    return merged;
+  }
 
   const inFlightReports = new Map<string, Promise<string>>();
   const reportErrors = new Map<string, Error>();
@@ -2202,6 +2319,33 @@ export function createApi(deps: ApiDeps) {
     },
 
     /**
+     * 무료 사주 명식 조회 기록 (광고 → 무료 명식 → 결제 퍼널 추적용).
+     * 생년월일·이름·성별·이메일 같은 개인정보는 절대 받지 않고 섞어 저장하지 않는다.
+     */
+    'POST /api/free-reading': async (req, res) => {
+      const body = await readJson(req);
+      const reqUrl = new URL(req.url ?? '/', 'http://localhost');
+      const utm = resolveRequestUtm(req, reqUrl, body?.utm ?? body, res);
+      const log: FreeReadingLog = {
+        id: `fr_${randomUUID()}`,
+        utmSource: utm?.utmSource ?? null,
+        utmMedium: utm?.utmMedium ?? null,
+        utmCampaign: utm?.utmCampaign ?? null,
+        utmContent: utm?.utmContent ?? null,
+        fbclid: utm?.fbclid ?? null,
+        utmFirstSeenAt: utm?.utmFirstSeenAt ?? null,
+        createdAt: new Date().toISOString(),
+      };
+      await freeReadings.record(log);
+      send(res, 201, { ok: true, log });
+    },
+
+    'GET /api/free-readings': async (_req, res) => {
+      const logs = await freeReadings.listAll();
+      send(res, 200, { ok: true, logs });
+    },
+
+    /**
      * 주문 생성.
      * 금액은 클라이언트가 보낸 값을 쓰지 않고 카탈로그에서 가져온다.
      * 고지와 미리보기를 실제로 제공했는지 여부를 주문에 남겨, 나중에 환불 판정에 쓴다.
@@ -2331,6 +2475,9 @@ export function createApi(deps: ApiDeps) {
         }
       }
 
+      const reqUrl = new URL(req.url ?? '/', 'http://localhost');
+      const resolvedUtm = resolveRequestUtm(req, reqUrl, body.utm ?? body, res);
+
       const order = createOrder({
         id: `ord_${randomUUID()}`,
         productId: reading.productId,
@@ -2344,6 +2491,7 @@ export function createApi(deps: ApiDeps) {
         inviteCode: appliedInviteCode,
         discountKrw,
         rewardUsed,
+        utm: resolvedUtm,
       });
 
       if (appliedRewardId) {
@@ -2866,6 +3014,12 @@ export function createApi(deps: ApiDeps) {
       inviteCode: (previous as any).inviteCode ?? next.inviteCode,
       discountKrw: (previous as any).discountKrw ?? next.discountKrw,
       rewardUsed: (previous as any).rewardUsed ?? next.rewardUsed,
+      utmSource: previous.utmSource ?? next.utmSource ?? null,
+      utmMedium: previous.utmMedium ?? next.utmMedium ?? null,
+      utmCampaign: previous.utmCampaign ?? next.utmCampaign ?? null,
+      utmContent: previous.utmContent ?? next.utmContent ?? null,
+      fbclid: previous.fbclid ?? next.fbclid ?? null,
+      utmFirstSeenAt: previous.utmFirstSeenAt ?? next.utmFirstSeenAt ?? null,
     } as any);
   }
   /** 응답에서 내부 필드를 뺀다 */
@@ -2879,6 +3033,9 @@ export function createApi(deps: ApiDeps) {
   return async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
       const url = new URL(req.url ?? '/', 'http://localhost');
+      if (req.method === 'GET' && !url.pathname.startsWith('/img/') && !url.pathname.startsWith('/video/') && !url.pathname.startsWith('/audio/') && !url.pathname.startsWith('/assets/') && url.pathname !== '/style.css' && url.pathname !== '/app.js' && url.pathname !== '/jaegi.js' && url.pathname !== '/nalja.js' && url.pathname !== '/engine.js' && url.pathname !== '/favicon.ico') {
+        resolveRequestUtm(req, url, undefined, res);
+      }
       const parts = url.pathname.split('/').filter(Boolean); // api, orders, :id, action
       let key = `${req.method} ${url.pathname}`;
       let id = '';

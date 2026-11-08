@@ -36,6 +36,111 @@ export function cleanRef(ref?: unknown): string | null {
   return trimmed;
 }
 
+/** 광고 유입(UTM) 보관 기간 — 처음 들어온 값을 기준으로 7일간 유지한다 */
+export const UTM_RETENTION_DAYS = 7;
+export const UTM_RETENTION_MS = UTM_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
+export interface UtmInfo {
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  utmContent: string | null;
+  fbclid: string | null;
+  utmFirstSeenAt: string | null;
+}
+
+export function cleanUtmValue(v?: unknown, maxLen = 120): string | null {
+  if (typeof v !== 'string') return null;
+  const cleaned = v.replace(/[\r\n\t<>'"`\\]/g, '').trim().slice(0, maxLen);
+  return cleaned.length > 0 ? cleaned : null;
+}
+
+export function cleanIsoTimestamp(v?: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  const ms = Date.parse(v.trim());
+  if (Number.isNaN(ms)) return null;
+  return new Date(ms).toISOString();
+}
+
+/**
+ * 입력 객체에서 오직 UTM 4종 + fbclid + 처음 들어온 시각만 정제하여 꺼낸다.
+ * 이름·생년월일·이메일 같은 개인정보는 절대 섞이지 않게 버린다.
+ */
+export function sanitizeUtm(raw?: unknown, fallbackNowIso?: string): UtmInfo {
+  if (!raw || typeof raw !== 'object') {
+    return {
+      utmSource: null,
+      utmMedium: null,
+      utmCampaign: null,
+      utmContent: null,
+      fbclid: null,
+      utmFirstSeenAt: null,
+    };
+  }
+  const obj = raw as Record<string, unknown>;
+  const utmSource = cleanUtmValue(obj.utmSource ?? obj.utm_source);
+  const utmMedium = cleanUtmValue(obj.utmMedium ?? obj.utm_medium);
+  const utmCampaign = cleanUtmValue(obj.utmCampaign ?? obj.utm_campaign);
+  const utmContent = cleanUtmValue(obj.utmContent ?? obj.utm_content);
+  const fbclid = cleanUtmValue(obj.fbclid, 200);
+  const hasAny = Boolean(utmSource || utmMedium || utmCampaign || utmContent || fbclid);
+  const utmFirstSeenAt = hasAny
+    ? (cleanIsoTimestamp(obj.utmFirstSeenAt ?? obj.utm_first_seen_at) ?? fallbackNowIso ?? new Date().toISOString())
+    : null;
+  return {
+    utmSource,
+    utmMedium,
+    utmCampaign,
+    utmContent,
+    fbclid,
+    utmFirstSeenAt,
+  };
+}
+
+export function hasAnyUtm(utm?: Partial<UtmInfo> | null): boolean {
+  if (!utm) return false;
+  return Boolean(utm.utmSource || utm.utmMedium || utm.utmCampaign || utm.utmContent || utm.fbclid);
+}
+
+export function isUtmFresh(utm?: Partial<UtmInfo> | null, nowMs = Date.now()): boolean {
+  if (!hasAnyUtm(utm)) return false;
+  if (!utm?.utmFirstSeenAt) return true;
+  const seenMs = Date.parse(utm.utmFirstSeenAt);
+  if (Number.isNaN(seenMs)) return false;
+  return nowMs - seenMs <= UTM_RETENTION_MS;
+}
+
+export function extractUtmFromSearchParams(params: URLSearchParams, nowIso = new Date().toISOString()): UtmInfo | null {
+  const candidate = sanitizeUtm({
+    utm_source: params.get('utm_source'),
+    utm_medium: params.get('utm_medium'),
+    utm_campaign: params.get('utm_campaign'),
+    utm_content: params.get('utm_content'),
+    fbclid: params.get('fbclid'),
+  }, nowIso);
+  return hasAnyUtm(candidate) ? candidate : null;
+}
+
+/**
+ * 처음 들어온 값을 기준으로 7일간 유지한다.
+ * 기존 값이 있고 7일이 안 지났으면 기존 값을 지키고, 없거나 만료됐으면 새 값을 쓴다.
+ */
+export function mergeFirstTouchUtm(
+  existing: Partial<UtmInfo> | null | undefined,
+  incoming: Partial<UtmInfo> | null | undefined,
+  nowMs = Date.now(),
+): UtmInfo | null {
+  const nowIso = new Date(nowMs).toISOString();
+  if (existing && isUtmFresh(existing, nowMs)) {
+    return sanitizeUtm(existing, existing.utmFirstSeenAt ?? nowIso);
+  }
+  if (incoming && hasAnyUtm(incoming)) {
+    const sanitized = sanitizeUtm(incoming, incoming.utmFirstSeenAt ?? nowIso);
+    if (isUtmFresh(sanitized, nowMs)) return sanitized;
+  }
+  return null;
+}
+
 
 export type OrderStatus =
   /** 주문서 생성. 아직 결제창도 안 띄웠다 */
@@ -80,6 +185,12 @@ export interface Order {
   discountKrw?: number;
   inviteCode?: string | null;
   rewardUsed?: string | null;
+  utmSource?: string | null;
+  utmMedium?: string | null;
+  utmCampaign?: string | null;
+  utmContent?: string | null;
+  fbclid?: string | null;
+  utmFirstSeenAt?: string | null;
 }
 
 export interface CreateOrderInput {
@@ -93,6 +204,7 @@ export interface CreateOrderInput {
   inviteCode?: string | null;
   discountKrw?: number;
   rewardUsed?: string | null;
+  utm?: Partial<UtmInfo> | null;
   /**
    * 본인을 포함한 인원. 인원에 따라 값이 달라지는 상품에만 쓴다.
    *
@@ -110,6 +222,8 @@ export function createOrder(input: CreateOrderInput): Order {
 
   if (!input.inputHash) throw new Error('inputHash가 없습니다. 이용권을 묶을 대상이 없습니다.');
 
+  const utm = sanitizeUtm(input.utm, now);
+
   return {
     id: input.id,
     productId: product.id,
@@ -117,6 +231,12 @@ export function createOrder(input: CreateOrderInput): Order {
     inviteCode: input.inviteCode ?? null,
     discountKrw: Math.max(0, input.discountKrw ?? 0),
     rewardUsed: input.rewardUsed ?? null,
+    utmSource: utm.utmSource,
+    utmMedium: utm.utmMedium,
+    utmCampaign: utm.utmCampaign,
+    utmContent: utm.utmContent,
+    fbclid: utm.fbclid,
+    utmFirstSeenAt: utm.utmFirstSeenAt,
     status: 'created',
     inputHash: input.inputHash,
     paymentId: null,

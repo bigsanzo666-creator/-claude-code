@@ -2282,9 +2282,28 @@ export function renderCheckoutPage(
           return m ? m[1] : undefined;
         } catch(e){ return undefined; }
       })();
+      var userUtm = (function(){
+        try {
+          var ttl = 7 * 24 * 60 * 60 * 1000;
+          var raw = localStorage.getItem('nb_utm') || sessionStorage.getItem('nb_utm');
+          var saved = raw ? JSON.parse(raw) : null;
+          if (saved && saved.utmFirstSeenAt && (Date.now() - Date.parse(saved.utmFirstSeenAt) > ttl)) {
+            saved = null;
+          }
+          if (!saved) {
+            var sp = new URLSearchParams(location.search);
+            var qs = sp.get('utm_source'), qm = sp.get('utm_medium'), qc = sp.get('utm_campaign'), qcnt = sp.get('utm_content'), qfb = sp.get('fbclid');
+            if (qs || qm || qc || qcnt || qfb) {
+              saved = { utmSource: qs || null, utmMedium: qm || null, utmCampaign: qc || null, utmContent: qcnt || null, fbclid: qfb || null, utmFirstSeenAt: new Date().toISOString() };
+              try { localStorage.setItem('nb_utm', JSON.stringify(saved)); sessionStorage.setItem('nb_utm', JSON.stringify(saved)); } catch(e){}
+            }
+          }
+          return saved || undefined;
+        } catch(e){ return undefined; }
+      })();
 
       var created = await post('/api/orders',
-        Object.assign({}, reading, { acknowledgedNotice:true, previewShown:true, ref: adRef, email: email, invite: userInvite, pass: ownerPass, marketingConsent: marketingConsent, fromOrderId: fromOrderId }));
+        Object.assign({}, reading, { acknowledgedNotice:true, previewShown:true, ref: adRef, email: email, invite: userInvite, pass: ownerPass, marketingConsent: marketingConsent, fromOrderId: fromOrderId, utm: userUtm }));
       orderId = created.order.id;
 
       if(created.order.amountKrw !== currentDisplayedAmount){
