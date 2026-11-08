@@ -23,3 +23,4 @@ export * from './report-render.ts';
 export * from './upsell-section.ts';
 export * from './naming-certificate-page.ts';
 export * from './meta-pixel.ts';
+export * from './admin-funnel-page.ts';

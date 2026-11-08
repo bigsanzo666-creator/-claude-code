@@ -4583,6 +4583,146 @@ section('메타 픽셀 · 전환 이벤트 3종 검증 (BIG-16)');
   }
 }
 
+// ── 12단계: 관리자용 퍼널 숫자 화면 검증 (BIG-17) ──────────────────────
+section('관리자용 퍼널 숫자 화면(/admin/funnel) 검증 (BIG-17)');
+
+{
+  const origAdminToken = process.env.ADMIN_TOKEN;
+  const origOwnerPass = process.env.OWNER_PASS;
+  process.env.ADMIN_TOKEN = 'funnel_admin_secret_999';
+  process.env.OWNER_PASS = 'funnel_owner_pass_1234567890';
+
+  const fnOrders = new MemoryOrderStore();
+  const { MemoryFreeReadingStore } = await import('../../packages/store/src/index.ts');
+  const fnFree = new MemoryFreeReadingStore();
+
+  const fnSrv = createServer(createApi({
+    gateway: new FakeGateway(),
+    orders: fnOrders,
+    freeReadings: fnFree,
+    generate: async () => ({ text: '퍼널 리포트 본문' }),
+    business,
+  }));
+  await new Promise<void>((r) => fnSrv.listen(0, r));
+  const fnBase = `http://127.0.0.1:${(fnSrv.address() as { port: number }).port}`;
+
+  try {
+    // 1. 관리자 아닌 사람은 못 들어감 (404)
+    const noAuth = await fetch(`${fnBase}/admin/funnel`);
+    const badAuth = await fetch(`${fnBase}/admin/funnel?token=wrong_token`);
+    check('관리자 토큰이나 암호가 없으면 /admin/funnel 에 들어갈 수 없다 (404)',
+      noAuth.status === 404 && badAuth.status === 404);
+
+    // 2. 테스트 데이터 주입 (2026-11-05 KST 기준)
+    // 무료 사주 명식 3건 (nabi01 2건, nabi02 1건)
+    await fnFree.record({
+      id: 'fr_1', utmSource: 'meta', utmMedium: 'paid', utmCampaign: 'campA', utmContent: 'nabi01',
+      fbclid: null, utmFirstSeenAt: '2026-11-05T01:00:00Z', createdAt: '2026-11-05T01:05:00Z',
+    });
+    await fnFree.record({
+      id: 'fr_2', utmSource: 'meta', utmMedium: 'paid', utmCampaign: 'campA', utmContent: 'nabi01',
+      fbclid: null, utmFirstSeenAt: '2026-11-05T02:00:00Z', createdAt: '2026-11-05T02:05:00Z',
+    });
+    await fnFree.record({
+      id: 'fr_3', utmSource: 'meta', utmMedium: 'paid', utmCampaign: 'campB', utmContent: 'nabi02',
+      fbclid: null, utmFirstSeenAt: '2026-11-05T03:00:00Z', createdAt: '2026-11-05T03:05:00Z',
+    });
+
+    // 첫 결제 1건 (nabi01, 사주 종합 46,900원, 소개 코드 사용)
+    await fnOrders.save({
+      id: 'ord_fn_1', productId: 'saju-report', amountKrw: 43900, discountKrw: 3000,
+      inviteCode: 'nb_friend1', rewardUsed: null,
+      utmSource: 'meta', utmMedium: 'paid', utmCampaign: 'campA', utmContent: 'nabi01', fbclid: null, utmFirstSeenAt: '2026-11-05T01:00:00Z',
+      status: 'viewed', inputHash: 'h1', paymentId: 'p1', noticeGiven: true, previewProvided: true,
+      email: 'secret_buyer@example.com',
+      createdAt: '2026-11-05T01:10:00Z', paidAt: '2026-11-05T01:11:00Z', viewedAt: '2026-11-05T01:15:00Z',
+      refundedAt: null, failureReason: null,
+      reading: { birth: { name: '김비밀', date: '1990-01-01' } },
+    } as any);
+
+    // 이어사기 12시간 안 결제 1건 (nabi01, 18,800원)
+    await fnOrders.save({
+      id: 'ord_fn_2', productId: 'wealth-report', amountKrw: 18800, discountKrw: 8100,
+      inviteCode: null, rewardUsed: '12시간 한정 이어사기',
+      utmSource: 'meta', utmMedium: 'paid', utmCampaign: 'campA', utmContent: 'nabi01', fbclid: null, utmFirstSeenAt: '2026-11-05T01:00:00Z',
+      status: 'paid', inputHash: 'h2', paymentId: 'p2', noticeGiven: true, previewProvided: true,
+      createdAt: '2026-11-05T02:10:00Z', paidAt: '2026-11-05T02:11:00Z', viewedAt: null,
+      refundedAt: null, failureReason: null,
+    });
+
+    // 이어사기 12시간 지난 뒤 결제 1건 + 월운세 이용권 (nabi02, 11,100원)
+    await fnOrders.save({
+      id: 'ord_fn_3', productId: 'month-report', amountKrw: 11100, discountKrw: 2800,
+      inviteCode: null, rewardUsed: '이어사기 특별 할인',
+      utmSource: 'meta', utmMedium: 'paid', utmCampaign: 'campB', utmContent: 'nabi02', fbclid: null, utmFirstSeenAt: '2026-11-05T03:00:00Z',
+      status: 'fulfilled', inputHash: 'h3', paymentId: 'p3', noticeGiven: true, previewProvided: true,
+      createdAt: '2026-11-05T04:10:00Z', paidAt: '2026-11-05T04:11:00Z', viewedAt: null,
+      refundedAt: null, failureReason: null,
+    });
+
+    const fnRes = await fetch(`${fnBase}/admin/funnel?token=funnel_admin_secret_999&start=2026-11-05&end=2026-11-05`);
+    const fnHtml = await fnRes.text();
+    check('관리자 토큰으로 /admin/funnel 접속 시 200 응답', fnRes.status === 200);
+
+    const fnJsonRes = await fetch(`${fnBase}/admin/funnel?token=funnel_admin_secret_999&start=2026-11-05&end=2026-11-05&format=json`);
+    const fnData = await fnJsonRes.json() as any;
+
+    check('전체 합계 숫자가 테스트 데이터와 정확히 일치한다 (무료 3, 첫결제 1/43,900원, 이어사기 12h안 1 / 지난뒤 1, 월운세 1, 소개코드 1, 총매출 73,800원)',
+      fnData.total.freeReadings === 3 &&
+      fnData.total.firstOrders === 1 &&
+      fnData.total.firstRevenueKrw === 43900 &&
+      fnData.total.upsellWithin12h === 1 &&
+      fnData.total.upsellAfter12h === 1 &&
+      fnData.total.monthPassOrders === 1 &&
+      fnData.total.inviteUsedOrders === 1 &&
+      fnData.total.totalRevenueKrw === 43900 + 18800 + 11100);
+
+    const nabi01Row = fnData.byContent.find((r: any) => r.key === 'nabi01');
+    const nabi02Row = fnData.byContent.find((r: any) => r.key === 'nabi02');
+    check('소재별(utm_content) 숫자가 nabi01 과 nabi02 로 정확히 갈린다',
+      nabi01Row?.freeReadings === 2 && nabi01Row?.firstOrders === 1 && nabi01Row?.upsellWithin12h === 1 && nabi01Row?.totalRevenueKrw === 62700 &&
+      nabi02Row?.freeReadings === 1 && nabi02Row?.upsellAfter12h === 1 && nabi02Row?.monthPassOrders === 1 && nabi02Row?.totalRevenueKrw === 11100);
+
+    const campARow = fnData.byCampaign.find((r: any) => r.key === 'campA');
+    check('캠페인별(utm_campaign) 숫자도 정확히 계산된다',
+      campARow?.freeReadings === 2 && campARow?.totalRevenueKrw === 62700);
+
+    check('화면 아래에 복사하기 쉬운 마크다운 표와 CSV 내려받기 상자가 들어 있다',
+      fnHtml.includes('id="fnMarkdownBox"') && fnHtml.includes('id="fnDownloadCsvBtn"') && fnHtml.includes('| nabi01 |'));
+
+    check('개인정보(이름·생년월일·이메일)는 화면 어디에도 나오지 않는다',
+      !fnHtml.includes('김비밀') && !fnHtml.includes('1990-01-01') && !fnHtml.includes('secret_buyer@example.com'));
+
+    check('자동 갱신(meta refresh 나 setInterval)이 없다',
+      !fnHtml.includes('http-equiv="refresh"') && !fnHtml.includes('setInterval'));
+
+    // 3. DB 없이 띄우거나 DB 장애 시 화면이 죽지 않고 「데이터베이스 없음」 안내가 나온다
+    const brokenSrv = createServer(createApi({
+      gateway: new StandbyGateway(),
+      orders: {
+        async get() { throw new Error('DB 연결 안 됨'); },
+        async save() { throw new Error('DB 연결 안 됨'); },
+        async listAll() { throw new Error('DB 연결 안 됨'); },
+      },
+      generate: standbyGenerate,
+      business,
+    }));
+    await new Promise<void>((r) => brokenSrv.listen(0, r));
+    const brokenBase = `http://127.0.0.1:${(brokenSrv.address() as { port: number }).port}`;
+    const brokenRes = await fetch(`${brokenBase}/admin/funnel?token=funnel_admin_secret_999`);
+    const brokenHtml = await brokenRes.text();
+    check('DB 없이 띄우거나 저장소 장애일 때도 /admin/funnel 이 죽지 않고(200) 「데이터베이스 없음」을 안내한다',
+      brokenRes.status === 200 && brokenHtml.includes('데이터베이스 없음'));
+    brokenSrv.close();
+  } finally {
+    if (origAdminToken === undefined) delete process.env.ADMIN_TOKEN;
+    else process.env.ADMIN_TOKEN = origAdminToken;
+    if (origOwnerPass === undefined) delete process.env.OWNER_PASS;
+    else process.env.OWNER_PASS = origOwnerPass;
+    fnSrv.close();
+  }
+}
+
 
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
