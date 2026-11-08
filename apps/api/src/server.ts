@@ -20,7 +20,7 @@ import {
   orderable, isOrderable, upsellFor, packagesContaining, makePreview,
   calculateUpsellPrice, UPSELL_PROMO_HOURS, recommendNext,
   HOLIDAY_MAX_MEMBERS, HOLIDAY_INCLUDED_MEMBERS, HOLIDAY_EXTRA_MEMBER_KRW, extraMemberKrw,
-  WITHDRAWAL_NOTICE, CATEGORIES, isLaunchSale, maxLaunchDiscountPercent, type Order, type PaymentGateway, type ProductId,
+  WITHDRAWAL_NOTICE, CATEGORIES, isLaunchSale, getPromoName, maxLaunchDiscountPercent, type Order, type PaymentGateway, type ProductId,
   type UtmInfo, sanitizeUtm, extractUtmFromSearchParams, mergeFirstTouchUtm, hasAnyUtm, isUtmFresh, UTM_RETENTION_MS,
 } from '../../../packages/commerce/src/index.ts';
 import { cacheKey } from '../../../packages/report/src/cache.ts';
@@ -556,6 +556,7 @@ window.__CATALOG_PRODUCTS__ = ${JSON.stringify(Object.values(CATALOG).map(p => (
 })))};
 window.__CATEGORIES__ = ${JSON.stringify(CATEGORY_MENU)};
 window.__IS_LAUNCH_SALE__ = ${isLaunchSale()};
+window.__PROMO_NAME__ = ${JSON.stringify(getPromoName())};
 window.KAKAO_JS_KEY = ${JSON.stringify(process.env.KAKAO_JS_KEY ?? '')};
 </script>
 ${renderMetaPixelHead()}
@@ -628,7 +629,7 @@ ${renderMetaPixelHead()}
 ${isLaunchSale() ? `
 <div class="nb-launch-banner" id="nbLaunchBanner" style="display:none">
   <div class="nb-launch-banner-content">
-    <span class="nb-launch-banner-text">서버 오픈 기념 — <b class="nb-launch-banner-hit">최대 ${maxLaunchDiscountPercent()}% 할인 중</b><span class="nb-launch-banner-until"> · 11월 1일까지</span></span>
+    <span class="nb-launch-banner-text">${getPromoName().replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c))} — <b class="nb-launch-banner-hit">최대 ${maxLaunchDiscountPercent()}% 할인 중</b></span>
     <button type="button" class="nb-launch-banner-close" id="nbCloseLaunchBanner" aria-label="닫기">✕</button>
   </div>
 </div>

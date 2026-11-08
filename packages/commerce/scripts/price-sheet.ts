@@ -13,6 +13,7 @@ import {
   UPSELL_PROMO_PERCENT,
   UPSELL_AFTER_PERCENT,
   isLaunchSale,
+  getPromoName,
 } from '../src/catalog.ts';
 import { PACKAGES, bundleMath } from '../src/packages.ts';
 import { cutPrice } from '../src/orderable.ts';
@@ -31,6 +32,7 @@ function krw(n: number): string {
 
 export function buildPriceSheetMarkdown(): string {
   const launchActive = isLaunchSale();
+  const promoName = getPromoName();
   const lines: string[] = [];
 
   lines.push('# 늘봄사주 현재 가격표');
@@ -38,13 +40,14 @@ export function buildPriceSheetMarkdown(): string {
   lines.push('> 이 문서는 `packages/commerce/scripts/price-sheet.ts`가 `packages/commerce/src/catalog.ts`를 읽어 자동 생성한 가격표입니다. 숫자를 손으로 고치지 마십시오.');
   lines.push('');
 
-  // 1. 기념가 여부와 기간
-  lines.push('## 1. 기념가 상태 및 기간');
+  // 1. 기념가 여부와 설정
+  lines.push('## 1. 할인 행사 상태 및 설정');
   lines.push('');
   lines.push('| 항목 | 현재 값 |');
   lines.push('| :--- | :--- |');
-  lines.push(`| 기념가 적용 여부 | **${launchActive ? '켜짐 (기념가 적용 중)' : '꺼짐 (정가 적용 중)'}** |`);
-  lines.push('| 오픈 기념가 기간 | ~ 2026-11-01 00:00 (한국 시각) 종료 |');
+  lines.push(`| 할인 행사 이름 (\`PROMO_NAME\`) | **${promoName}** |`);
+  lines.push(`| 기념가 적용 여부 (\`PROMO_ENABLED\`) | **${launchActive ? `켜짐 (${promoName} 할인가 적용 중)` : '꺼짐 (일반 가격 적용 중)'}** |`);
+  lines.push('| 종료 일정 | **끝나는 날 없음** (`PROMO_ENABLED=false`로 직접 종료) |');
   lines.push('');
 
   // 2. 이용권 및 소개 코드 할인 규칙

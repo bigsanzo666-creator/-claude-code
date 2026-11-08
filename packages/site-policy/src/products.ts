@@ -222,7 +222,7 @@ export function launchBarHtmlFor(product: Product): string {
   if (!isLaunchSale() || !product.regularKrw || product.regularKrw === product.priceKrw) return '';
   const pct = Math.floor((1 - product.priceKrw / product.regularKrw) * 100);
   const reg = product.regularKrw.toLocaleString('ko-KR');
-  return `<div class="pd-launch-bar">서버 오픈 기념 — 지금 ${pct}% 싸게 드립니다 · 11월 1일부터 ${reg}원</div>`;
+  return `<div class="pd-launch-bar">${esc(getPromoName())} — 지금 ${pct}% 싸게 드립니다 · 할인이 끝나면 ${reg}원</div>`;
 }
 import { renderDailyReportProductPage } from './daily-product-page.ts';
 import { renderMonthReportProductPage } from './month-product-page.ts';
@@ -241,7 +241,7 @@ import { renderMonthReportProductPage } from './month-product-page.ts';
  *    다르면 그 자체가 사고다.
  */
 
-import { CATALOG, CATEGORIES, productsIn, isLaunchSale, type Product } from '../../commerce/src/catalog.ts';
+import { CATALOG, CATEGORIES, productsIn, isLaunchSale, getPromoName, type Product } from '../../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath, type BundlePackage } from '../../commerce/src/packages.ts';
 import { WITHDRAWAL_WINDOW_DAYS, DELIVERY_DUE_DAYS } from '../../commerce/src/refund.ts';
 import { type BusinessInfo, show } from './business.ts';
@@ -737,8 +737,9 @@ function productCard(
   // 후킹 질문·이름·값만 싣고, 설명과 담기는 내용은 상세 페이지가 맡는다.
   // alt 를 비우는 것은 장식이기 때문이다. 바로 아래에 상품 이름이 글자로 있다.
   const isSale = isLaunchSale() && product.regularKrw && product.regularKrw !== product.priceKrw;
-  const launchBadge = isSale ? ' <span class="pr-badge-launch">서버 오픈 기념가</span>' : '';
-  const regularNote = isSale ? `<div class="pr-regular-note">11월 1일부터 ${won(product.regularKrw!)}</div>` : '';
+  const promoLabel = esc(getPromoName());
+  const launchBadge = isSale ? ` <span class="pr-badge-launch">${promoLabel} 할인가</span>` : '';
+  const regularNote = isSale ? `<div class="pr-regular-note">할인이 끝나면 ${won(product.regularKrw!)}</div>` : '';
 
   return `<article class="pr-card">
   <a class="pr-link" href="/products/${esc(product.id)}">
@@ -761,8 +762,9 @@ function productCard(
 function featureCard(product: Product, ready: boolean, images: ProductImages, prices = true): string {
   const items = (CONTENTS[product.id] ?? []).map((t) => `<li>${bold(t)}</li>`).join('');
   const isSale = isLaunchSale() && product.regularKrw && product.regularKrw !== product.priceKrw;
-  const launchBadge = isSale ? ' <span class="pr-badge-launch">서버 오픈 기념가</span>' : '';
-  const regularNote = isSale ? `<div class="pr-regular-note">11월 1일부터 ${won(product.regularKrw!)}</div>` : '';
+  const promoLabel = esc(getPromoName());
+  const launchBadge = isSale ? ` <span class="pr-badge-launch">${promoLabel} 할인가</span>` : '';
+  const regularNote = isSale ? `<div class="pr-regular-note">할인이 끝나면 ${won(product.regularKrw!)}</div>` : '';
 
   return `<article class="pr-card pr-wide">
   <a class="pr-link" href="/products/${esc(product.id)}">

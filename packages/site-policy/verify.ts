@@ -22,7 +22,7 @@ import {
   renderRobots, renderSitemap, packageCard,
   renderMetaPixelHead, renderMetaInitiateCheckoutScript, renderMetaPurchaseScript, renderOrderReportPage,
 } from './src/index.ts';
-import { CATALOG, CATEGORIES, 시각을바꾼다 } from '../commerce/src/catalog.ts';
+import { CATALOG, CATEGORIES, 시각을바꾼다, getPromoName } from '../commerce/src/catalog.ts';
 import { PACKAGES, bundleMath } from '../commerce/src/packages.ts';
 import { orderable } from '../commerce/src/orderable.ts';
 import { WITHDRAWAL_WINDOW_DAYS, REFUND_DUE_BUSINESS_DAYS } from '../commerce/src/refund.ts';
@@ -1190,7 +1190,7 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
   const samplePage = renderProductPage(CATALOG['wealth-report'], full, true, '');
   const samplePay = renderCheckoutPage({} as any, '', CATALOG['wealth-report'], { storeId: 's', channelKey: 'c' });
   check('상품 상세 화면에 오픈 기념가 띠가 나온다',
-    samplePage.includes('서버 오픈 기념 — 지금 44% 싸게 드립니다 · 11월 1일부터 26,900원'));
+    samplePage.includes(`${getPromoName()} — 지금 44% 싸게 드립니다 · 할인이 끝나면 26,900원`));
 
   /*
    * 상세 띠의 할인율이 **그 상품의 진짜 비율**이어야 한다.
@@ -1224,13 +1224,13 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
     check('화면에 적힌 할인율이 실제보다 크지 않다', 손으로적힌.length === 0, 손으로적힌.join(', '));
   }
   check('상품 결제 화면에 오픈 기념가 문구가 나온다',
-    samplePay.includes('서버 오픈 기념가입니다. 11월 1일부터 <b>26,900원</b>으로 올라갑니다.'));
+    samplePay.includes(`${getPromoName()} 할인가입니다. 할인이 끝나면 <b>26,900원</b>으로 올라갑니다.`));
 
   const holidayPage = renderProductPage(CATALOG['family-holiday-report'], full, true, '');
   const holidayPay = renderCheckoutPage({} as any, '', CATALOG['family-holiday-report'], { storeId: 's', channelKey: 'c' });
   check('명절 가족운세에는 오픈 기념가 띠와 결제 문구가 나오지 않는다',
-    !holidayPage.includes('서버 오픈 기념 — 지금') &&
-    !holidayPay.includes('서버 오픈 기념가입니다.'));
+    !holidayPage.includes(`${getPromoName()} — 지금`) &&
+    !holidayPay.includes(`${getPromoName()} 할인가입니다.`));
   시각을바꾼다(null);
 
   // 기념가가 끝난 뒤 — 끝난 할인을 계속 띄우면 거짓 표시다
@@ -1240,7 +1240,7 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
     for (const p of Object.values(CATALOG)) {
       const page = renderProductPage(p, full, true, '');
       const pay = renderCheckoutPage({} as any, '', p, { storeId: 's', channelKey: 'c' });
-      if (/서버 오픈 기념|싸게 드립니다|올라갑니다/.test(page + pay)) 남은띠.push(p.name);
+      if (new RegExp(`${getPromoName()}|서버 오픈 기념|싸게 드립니다|올라갑니다`).test(page + pay)) 남은띠.push(p.name);
     }
     check('기념가가 끝난 뒤에는 어느 상품 화면에도 오픈 기념가 띠·문구가 없다', 남은띠.length === 0, 남은띠.join(', '));
     const afterPay = renderCheckoutPage({} as any, '', CATALOG['wealth-report'], { storeId: 's', channelKey: 'c' });
@@ -2095,6 +2095,59 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
     sampleReport.bySource.find((r) => r.key === 'tiktok')?.totalRevenueKrw === 26900 &&
     sampleReport.bySource.find((r) => r.key === 'naver_clip')?.freeReadings === 1 &&
     sampleReport.bySource.find((r) => r.key === 'youtube')?.freeReadings === 1);
+}
+
+// ─── 수능달 기념 할인 문구·이름 변경·마감일 제거 검증 (BIG-33) ───────────
+{
+  section('수능달 기념 할인 문구·이름 변경·마감일 제거 검증 (BIG-33)');
+  const origEnabled = process.env.PROMO_ENABLED;
+  const origName = process.env.PROMO_NAME;
+  try {
+    시각을바꾼다(null);
+    delete process.env.PROMO_ENABLED;
+    delete process.env.PROMO_NAME;
+
+    const listHtml = renderProductsPage(full, true, '');
+    const allDetails = Object.values(CATALOG).map((p) => renderProductPage(p, full, true, '')).join('\n');
+    const allCheckouts = Object.values(CATALOG).map((p) => renderCheckoutPage(full, '', p, { storeId: 's', channelKey: 'c' })).join('\n');
+    const combinedDefault = `${listHtml}\n${allDetails}\n${allCheckouts}`;
+
+    check('기본 할인(수능달 기념) 상태에서 상품 목록·상세·결제 화면에 「수능달 기념」이 표시된다',
+      listHtml.includes('수능달 기념 할인가') &&
+      allDetails.includes('수능달 기념 — 지금') &&
+      allCheckouts.includes('수능달 기념 할인가입니다.'));
+
+    check('어느 상품 목록·상세·결제 화면에도 「오픈」 글자나 「11월 1일」 마감 날짜가 남아 있지 않다',
+      !combinedDefault.includes('오픈') &&
+      !combinedDefault.includes('11월 1일'));
+
+    process.env.PROMO_NAME = '겨울맞이 특가';
+    const customList = renderProductsPage(full, true, '');
+    const customDetail = renderProductPage(CATALOG['saju-report'], full, true, '');
+    const customCheckout = renderCheckoutPage(full, '', CATALOG['saju-report'], { storeId: 's', channelKey: 'c' });
+    const combinedCustom = `${customList}\n${customDetail}\n${customCheckout}`;
+
+    check('PROMO_NAME 을 다른 이름(겨울맞이 특가)으로 바꾸면 화면 문구가 모두 바뀌고 「오픈」·「수능달 기념」은 남지 않는다',
+      customList.includes('겨울맞이 특가 할인가') &&
+      customDetail.includes('겨울맞이 특가 — 지금 25% 싸게 드립니다') &&
+      customCheckout.includes('겨울맞이 특가 할인가입니다.') &&
+      !combinedCustom.includes('오픈') &&
+      !combinedCustom.includes('수능달 기념'));
+
+    process.env.PROMO_ENABLED = 'false';
+    const offList = renderProductsPage(full, true, '');
+    const offDetail = renderProductPage(CATALOG['saju-report'], full, true, '');
+    const offCheckout = renderCheckoutPage(full, '', CATALOG['saju-report'], { storeId: 's', channelKey: 'c' });
+    check('PROMO_ENABLED=false 로 끄면 할인 배지·띠·안내 문구가 모두 사라지고 정가(46,900원)가 표시된다',
+      !offList.includes('<span class="pr-badge-launch">') &&
+      !offDetail.includes('<div class="pd-launch-bar">') &&
+      !offCheckout.includes('할인가입니다') &&
+      offCheckout.includes('<b>46,900원</b>'));
+  } finally {
+    if (origEnabled === undefined) delete process.env.PROMO_ENABLED; else process.env.PROMO_ENABLED = origEnabled;
+    if (origName === undefined) delete process.env.PROMO_NAME; else process.env.PROMO_NAME = origName;
+    시각을바꾼다(null);
+  }
 }
 
 console.log(`\n${'═'.repeat(60)}`);

@@ -4881,6 +4881,126 @@ section('플랫폼 도메인 인증 자리 4종 및 4개 플랫폼 UTM 분리 �
   }
 }
 
+// ─── 수능달 기념 할인 통합 검증 (BIG-33: 첫 화면 · 결제 · 픽셀 · 퍼널) ───────────
+{
+  section('수능달 기념 할인 통합 검증 (BIG-33)');
+  const origEnabled = process.env.PROMO_ENABLED;
+  const origName = process.env.PROMO_NAME;
+  const origPixel = process.env.META_PIXEL_ID;
+  const origAdmin = process.env.ADMIN_TOKEN;
+
+  const s33Orders = new MemoryOrderStore();
+  const s33Gw = new FakeGateway();
+  const s33 = createServer(createApi({
+    gateway: s33Gw,
+    orders: s33Orders,
+    business,
+    referrals,
+    checkoutKeys: { storeId: 'store_big33', channelKey: 'channel_big33' },
+    generate: async () => ({ text: '수능달 기념 테스트 리포트 본문입니다.' }),
+  }));
+  await new Promise<void>((r) => s33.listen(0, r));
+  const p33 = (s33.address() as { port: number }).port;
+  const b33 = `http://127.0.0.1:${p33}`;
+
+  try {
+    시각을바꾼다(null);
+    delete process.env.PROMO_ENABLED;
+    delete process.env.PROMO_NAME;
+    process.env.META_PIXEL_ID = '999888777';
+    process.env.ADMIN_TOKEN = 'big33_admin_token';
+
+    // 1. 기본 상태(수능달 기념 켜짐): 첫 화면 배너·결제 화면 할인가(34,900원)·픽셀 InitiateCheckout 금액 일치, 오픈/11월 1일 문구 없음
+    const homeOnHtml = await (await fetch(`${b33}/`)).text();
+    const coOnHtml = await (await fetch(`${b33}/checkout?product=saju-report`)).text();
+    check('첫 화면 배너에 「수능달 기념 — 최대 44% 할인 중」이 나오고 「오픈」·「11월 1일」 문구가 없다',
+      homeOnHtml.includes('수능달 기념 — <b class="nb-launch-banner-hit">최대 44% 할인 중</b>') &&
+      !homeOnHtml.includes('오픈') &&
+      !homeOnHtml.includes('11월 1일'));
+
+    check('결제 화면(saju-report)에 할인가 34,900원과 「수능달 기념 할인가입니다」가 나오고 메타 픽셀 InitiateCheckout 에 34900 이 전달된다',
+      coOnHtml.includes('<b>34,900원</b>') &&
+      coOnHtml.includes('수능달 기념 할인가입니다.') &&
+      coOnHtml.includes('__NB_META_CHECKOUT__("사주 종합 리포트", 34900)') &&
+      !coOnHtml.includes('오픈') &&
+      !coOnHtml.includes('11월 1일'));
+
+    // 2. 할인가 위에서 소개 코드(3,000원 할인) 주문 결제 시 Purchase 픽셀 금액(31,900원)과 퍼널 매출(31,900원)이 일치한다
+    const { generateInviteCode } = await import('../../packages/commerce/src/index.ts');
+    const inviter33 = 'inviter_big33@example.com';
+    const code33 = generateInviteCode(inviter33);
+    await fetch(`${b33}/api/invite/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: inviter33 }),
+    });
+
+    const createRes = await fetch(`${b33}/api/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        productId: 'saju-report',
+        email: 'buyer_big33@example.com',
+        invite: code33,
+        acknowledgedNotice: true,
+        previewShown: true,
+        birth: { date: '1995-05-05', time: '12:00', place: '서울', gender: '여' },
+      }),
+    });
+    const created = await createRes.json() as any;
+    await fetch(`${b33}/api/orders/${created.order.id}/pending`, { method: 'POST' });
+    s33Gw.put({
+      paymentId: created.order.id,
+      status: 'paid',
+      amountKrw: created.order.amountKrw,
+      merchantOrderId: created.order.id,
+      method: 'card',
+      paidAt: new Date().toISOString(),
+      raw: {},
+    });
+    await fetch(`${b33}/api/orders/${created.order.id}/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentId: created.order.id }),
+    });
+
+    const orderPageHtml = await (await fetch(`${b33}/order/${created.order.id}`)).text();
+    const todayKst = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+    const funnelJson = await (await fetch(`${b33}/admin/funnel?token=big33_admin_token&start=${todayKst}&end=${todayKst}&format=json`)).json() as any;
+
+    check('할인가(34,900원)에서 소개 코드 할인(3,000원)이 적용된 실제 결제 금액(31,900원)이 Purchase 픽셀과 관리자 퍼널 매출에 똑같이 찍힌다',
+      created.order.amountKrw === 31900 &&
+      orderPageHtml.includes(`__NB_META_PURCHASE__(${JSON.stringify(created.order.id)}, 31900)`) &&
+      funnelJson.total.totalRevenueKrw === 31900);
+
+    // 3. PROMO_NAME 변경 시 첫 화면·결제 화면 문구 반영
+    process.env.PROMO_NAME = '겨울맞이 특가';
+    const homeCustomHtml = await (await fetch(`${b33}/`)).text();
+    const coCustomHtml = await (await fetch(`${b33}/checkout?product=saju-report`)).text();
+    check('PROMO_NAME 변경 시 첫 화면 배너와 결제 화면 안내 문구가 새 이름으로 바뀌고 「오픈」은 어디에도 없다',
+      homeCustomHtml.includes('겨울맞이 특가 — <b class="nb-launch-banner-hit">최대 44% 할인 중</b>') &&
+      coCustomHtml.includes('겨울맞이 특가 할인가입니다.') &&
+      !homeCustomHtml.includes('오픈') &&
+      !coCustomHtml.includes('오픈'));
+
+    // 4. PROMO_ENABLED=false 시 첫 화면 배너 숨김 및 정가(46,900원) 전환
+    process.env.PROMO_ENABLED = 'false';
+    const homeOffHtml = await (await fetch(`${b33}/`)).text();
+    const coOffHtml = await (await fetch(`${b33}/checkout?product=saju-report`)).text();
+    check('PROMO_ENABLED=false 로 끄면 첫 화면 할인 배너가 사라지고 결제 화면이 정가(46,900원)로 바뀐다',
+      !homeOffHtml.includes('id="nbLaunchBanner"') &&
+      coOffHtml.includes('<b>46,900원</b>') &&
+      coOffHtml.includes('__NB_META_CHECKOUT__("사주 종합 리포트", 46900)'));
+  } finally {
+    if (origEnabled === undefined) delete process.env.PROMO_ENABLED; else process.env.PROMO_ENABLED = origEnabled;
+    if (origName === undefined) delete process.env.PROMO_NAME; else process.env.PROMO_NAME = origName;
+    if (origPixel === undefined) delete process.env.META_PIXEL_ID; else process.env.META_PIXEL_ID = origPixel;
+    if (origAdmin === undefined) delete process.env.ADMIN_TOKEN; else process.env.ADMIN_TOKEN = origAdmin;
+    시각을바꾼다(null);
+    s33.close();
+  }
+}
+
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
 console.log('전부 통과.');

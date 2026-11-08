@@ -31,19 +31,44 @@
 /**
  * 서버 오픈 기념가가 끝나는 때 — 한국 시간 2026년 11월 1일 0시.
  *
- * 이 날 0시에 값이 저절로 정가로 돌아간다. 사람이 손대는 곳이 없어야 한다.
+ * 2026-11-08 사장님 결정(BIG-33): 오픈 특가와 동일한 할인율을 「수능달 기념」
+ * 이름으로 다시 켠다. 끝나는 날은 두지 않고 `PROMO_ENABLED` 설정으로 켜고 끈다.
  */
 const LAUNCH_END_MS = Date.UTC(2026, 9, 31, 15, 0, 0);
 
-/** 검사에서만 시각을 바꿔 끼운다. 서비스 코드에서 부르지 마라 */
-let 지금 = (): number => Date.now();
-export function 시각을바꾼다(f: (() => number) | null): void {
-  지금 = f ?? (() => Date.now());
+export const DEFAULT_PROMO_NAME = '수능달 기념';
+
+/**
+ * 할인 행사 켜짐 여부 (`PROMO_ENABLED` 환경 변수).
+ * 기본값은 켜짐(`true`)이며, `'false'`·`'0'`·`'off'`·`'no'` 일 때만 꺼진다.
+ */
+export function isPromoEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  const raw = (env.PROMO_ENABLED ?? '').trim().toLowerCase();
+  if (!raw) return true;
+  return !['false', '0', 'off', 'no'].includes(raw);
 }
 
-/** 오픈 기념가 기간인가 */
+/**
+ * 화면에 표시할 할인 행사 이름 (`PROMO_NAME` 환경 변수).
+ * 기본값은 `'수능달 기념'`.
+ */
+export function getPromoName(env: Record<string, string | undefined> = process.env): string {
+  const raw = (env.PROMO_NAME ?? '').trim();
+  return raw || DEFAULT_PROMO_NAME;
+}
+
+/** 검사에서만 시각을 바꿔 끼운다. 서비스 코드에서 부르지 마라 */
+let 지금: (() => number) | null = null;
+export function 시각을바꾼다(f: (() => number) | null): void {
+  지금 = f;
+}
+
+/** 할인 행사(기념가) 적용 중인가 */
 export function isLaunchSale(): boolean {
-  return 지금() < LAUNCH_END_MS;
+  const raw = (process.env.PROMO_ENABLED ?? '').trim().toLowerCase();
+  if (['false', '0', 'off', 'no'].includes(raw)) return false;
+  if (지금 !== null) return 지금() < LAUNCH_END_MS;
+  return isPromoEnabled();
 }
 
 /** 지금 파는 값 → 11월 1일부터 받을 값. 25% 올려 끝자리를 900으로 맞춘 것이다 */

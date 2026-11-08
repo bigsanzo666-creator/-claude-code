@@ -18,7 +18,7 @@ import {
   orderable, isOrderable, upsellFor, upgradeCostKrw, calculateUpsellPrice,
   priceOf, HOLIDAY_EXTRA_MEMBER_KRW, HOLIDAY_MAX_MEMBERS,
   UPSELL_PROMO_HOURS, UPSELL_PROMO_RATE, UPSELL_AFTER_RATE, recommendNext, cutPrice,
-  시각을바꾼다, isLaunchSale, REGULAR_BY_LAUNCH,
+  시각을바꾼다, isLaunchSale, isPromoEnabled, getPromoName, DEFAULT_PROMO_NAME, REGULAR_BY_LAUNCH,
   INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW,
 } from './src/index.ts';
 import { TOPIC_LABELS } from '../saju-rules/src/topics.ts';
@@ -815,6 +815,103 @@ section('K. 광고 유입 추적(UTM) — 처음 들어온 광고 기준 7일 �
     cleanUtmValue('  nabi<\r\n>_01  ') === 'nabi_01' &&
     cleanUtmValue('   ') === null &&
     (cleanUtmValue('a'.repeat(300))?.length ?? 0) === 120);
+}
+
+// ── L. 할인 행사 다시 켜기 (BIG-33: PROMO_ENABLED · PROMO_NAME · 끝나는 날 없음) ──
+section('L. 할인 행사 다시 켜기 — 오픈 특가와 같은 할인율, 이름만 「수능달 기념」, 끝나는 날 없음');
+{
+  const PINNED_LAUNCH_PRODUCTS: Record<string, number> = {
+    'charm-report': 24900,
+    'single-report': 24900,
+    'marriage-timing-report': 24900,
+    'reunion-report': 37900,
+    'letgo-report': 24900,
+    'compat-report': 37900,
+    'crush-compat-report': 29900,
+    'marriage-pick-report': 59000,
+    'child-report': 37900,
+    'child-aptitude-report': 37900,
+    'family-holiday-report': 39900,
+    'parent-child-report': 37900,
+    'pick-report': 59000,
+    'naming-report': 89900,
+    'naming-plus-report': 149000,
+    'latelife-report': 24900,
+    'saju-report': 34900,
+    'cross-report': 69000,
+    'face-palm-report': 39900,
+    'saju-palm-report': 44900,
+    'saju-face-report': 44900,
+    'expression-report': 14900,
+    'peers-report': 14900,
+    'helper-report': 14900,
+    'wealth-report': 14900,
+    'career-report': 14900,
+    'learning-report': 14900,
+    'month-report': 9900,
+    'daily-report': 1900,
+    'newyear-report': 24900,
+    'exam-report': 19900,
+    'admission-report': 14900,
+    'job-report': 14900,
+    'travel-report': 14900,
+  };
+
+  const PINNED_LAUNCH_PACKAGES: Record<string, number> = {
+    'love-2': 39800,
+    'love-3': 68900,
+    'reunion-2': 49900,
+    'reunion-3': 78900,
+    'marry-2': 49900,
+    'marry-3': 76900,
+    'child-2': 58900,
+    'child-3': 87900,
+    'self-2': 47800,
+    'self-3': 99900,
+    'money-2': 23800,
+    'money-3': 34900,
+    'face-2': 63900,
+    'face-3': 109900,
+    'birth-2': 118900,
+    'birth-3': 145900,
+  };
+
+  const origEnabled = process.env.PROMO_ENABLED;
+  const origName = process.env.PROMO_NAME;
+  try {
+    시각을바꾼다(null);
+    delete process.env.PROMO_ENABLED;
+    delete process.env.PROMO_NAME;
+
+    check('기본값에서 PROMO_ENABLED 는 켜짐(true)이고 PROMO_NAME 은 「수능달 기념」이다',
+      isPromoEnabled() === true && isLaunchSale() === true && getPromoName() === '수능달 기념' && DEFAULT_PROMO_NAME === '수능달 기념');
+
+    const all34MatchLaunch = Object.keys(CATALOG).length === 34 &&
+      Object.entries(PINNED_LAUNCH_PRODUCTS).every(([id, expected]) => CATALOG[id as keyof typeof CATALOG]?.priceKrw === expected);
+    check('PROMO_ENABLED 켜짐 시 단품 34종 할인가가 오픈 기념가 때 값과 1원도 틀리지 않고 똑같다', all34MatchLaunch);
+
+    const all16MatchLaunch = Object.keys(PACKAGES).length === 16 &&
+      Object.entries(PINNED_LAUNCH_PACKAGES).every(([id, expected]) => PACKAGES[id as PackageId]?.priceKrw === expected);
+    check('PROMO_ENABLED 켜짐 시 묶음 16종 할인가가 오픈 기념가 때 값과 1원도 틀리지 않고 똑같다', all16MatchLaunch);
+
+    process.env.PROMO_ENABLED = 'false';
+    check('PROMO_ENABLED=false 로 끄면 isLaunchSale() 이 false 가 된다',
+      isPromoEnabled() === false && isLaunchSale() === false);
+
+    const all34RegularWhenOff = Object.values(CATALOG).every((p) => p.priceKrw === p.regularKrw);
+    const all16RegularWhenOff = Object.values(PACKAGES).every((pack) => pack.priceKrw === pack.regularKrw);
+    check('PROMO_ENABLED=false 로 끄면 단품 34종과 묶음 16종 모두 정가(regularKrw)로 돌아간다',
+      all34RegularWhenOff && all16RegularWhenOff);
+
+    process.env.PROMO_ENABLED = 'true';
+    process.env.PROMO_NAME = '겨울맞이 특가';
+    check('PROMO_NAME 환경 변수를 바꾸면 getPromoName() 반환값도 즉시 바뀐다',
+      getPromoName() === '겨울맞이 특가' && isLaunchSale() === true);
+  } finally {
+    if (origEnabled === undefined) delete process.env.PROMO_ENABLED; else process.env.PROMO_ENABLED = origEnabled;
+    if (origName === undefined) delete process.env.PROMO_NAME; else process.env.PROMO_NAME = origName;
+    시각을바꾼다(null);
+  }
 }
 
 console.log(`\n${'═'.repeat(60)}`);
