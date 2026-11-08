@@ -4491,6 +4491,98 @@ section('광고 유입 추적(UTM) 및 무료 사주 명식 기록 검증 (BIG-1
   }
 }
 
+// ── 12단계: 메타 픽셀 · 전환 이벤트 3종 검증 (BIG-16) ──────────────────
+section('메타 픽셀 · 전환 이벤트 3종 검증 (BIG-16)');
+
+{
+  const origPixel = process.env.META_PIXEL_ID;
+  const pxSrv = createServer(createApi({
+    gateway: new FakeGateway(),
+    orders: new MemoryOrderStore(),
+    checkout: { storeId: 'store_px', channelKey: 'chan_px' },
+    generate: async () => ({ text: '픽셀 리포트 본문' }),
+    business,
+  }));
+  await new Promise<void>((r) => pxSrv.listen(0, r));
+  const pxBase = `http://127.0.0.1:${(pxSrv.address() as { port: number }).port}`;
+
+  try {
+    // 1. META_PIXEL_ID 없을 때 첫 화면·결제 화면 어디에도 픽셀 코드가 없다
+    delete process.env.META_PIXEL_ID;
+    const homeNoPx = await fetch(`${pxBase}/`).then((r) => r.text());
+    const coNoPx = await fetch(`${pxBase}/checkout?product=saju-report`).then((r) => r.text());
+    check('META_PIXEL_ID 가 없을 때 첫 화면과 결제 화면에 메타 픽셀 코드가 없다',
+      !homeNoPx.includes('connect.facebook.net') && !coNoPx.includes('connect.facebook.net'));
+
+    // 2. META_PIXEL_ID 있을 때 세 이벤트(Lead, InitiateCheckout, Purchase)가 각각 한 번씩 나가며 새로고침해도 Purchase 는 중복 발송되지 않는다
+    process.env.META_PIXEL_ID = '987654321098765';
+    const homeWithPx = await fetch(`${pxBase}/`).then((r) => r.text());
+    check('META_PIXEL_ID 가 있을 때 첫 화면에 픽셀 코드와 무료 사주 명식 열람 시 Lead 호출이 들어간다',
+      homeWithPx.includes('fbq(\'init\', "987654321098765")') &&
+      homeWithPx.includes('window.__NB_META_LEAD__()'));
+
+    // 시뮬레이션: 브라우저에서 세 이벤트 도우미를 실행해 호출 내역과 중복 방지를 확인한다
+    const { renderMetaPixelHead } = await import('../../packages/site-policy/src/index.ts');
+    const headHtml = renderMetaPixelHead();
+    const scriptBody = headHtml.replace(/^<script>|<\/script>$/g, '');
+    const fbqCalls: any[][] = [];
+    const fakeStorage = new Map<string, string>();
+    const mockWin: any = {
+      fbq: (...args: any[]) => { fbqCalls.push(args); },
+    };
+    mockWin.fbq.loaded = true;
+    const mockDoc: any = {
+      createElement: () => ({}),
+      getElementsByTagName: () => [{ parentNode: { insertBefore: () => {} } }],
+    };
+    const mockStorage = {
+      getItem: (k: string) => fakeStorage.get(k) ?? null,
+      setItem: (k: string, v: string) => { fakeStorage.set(k, v); },
+    };
+    new Function('window', 'document', 'localStorage', 'sessionStorage', 'fbq', scriptBody)(
+      mockWin, mockDoc, mockStorage, mockStorage, mockWin.fbq,
+    );
+
+    // ① 무료 사주 명식 열람 → Lead
+    mockWin.__NB_META_LEAD__();
+    // ② 결제 화면 진입 → InitiateCheckout (서버 계산 가격)
+    const sajuPrice = CATALOG['saju-report'].priceKrw;
+    mockWin.__NB_META_CHECKOUT__(CATALOG['saju-report'].name, sajuPrice);
+    // ③ 결제 완료 → Purchase (첫 호출 + 새로고침 재호출)
+    const firstPurchaseSent = mockWin.__NB_META_PURCHASE__('ord_px_999', sajuPrice);
+    const secondPurchaseSent = mockWin.__NB_META_PURCHASE__('ord_px_999', sajuPrice); // 새로고침 시뮬레이션
+
+    const leadEvents = fbqCalls.filter((c) => c[0] === 'track' && c[1] === 'Lead');
+    const checkoutEvents = fbqCalls.filter((c) => c[0] === 'track' && c[1] === 'InitiateCheckout');
+    const purchaseEvents = fbqCalls.filter((c) => c[0] === 'track' && c[1] === 'Purchase');
+
+    check('무료 사주 명식을 보면 Lead 이벤트가 정확히 1번 나간다', leadEvents.length === 1);
+    check('결제 화면에 들어가면 InitiateCheckout 이벤트가 상품 이름·서버 금액·KRW 로 1번 나간다',
+      checkoutEvents.length === 1 &&
+      checkoutEvents[0][2]?.content_name === CATALOG['saju-report'].name &&
+      checkoutEvents[0][2]?.value === sajuPrice &&
+      checkoutEvents[0][2]?.currency === 'KRW');
+    check('결제가 끝나면 Purchase 이벤트가 실제 결제 금액·KRW·주문번호(eventID)로 나가고, 새로고침해도 한 번만 집계된다',
+      firstPurchaseSent === true &&
+      secondPurchaseSent === false &&
+      purchaseEvents.length === 1 &&
+      purchaseEvents[0][2]?.value === sajuPrice &&
+      purchaseEvents[0][2]?.currency === 'KRW' &&
+      purchaseEvents[0][3]?.eventID === 'ord_px_999');
+
+    const allPayloadStr = JSON.stringify(fbqCalls);
+    check('메타로 보내는 이벤트 어디에도 이름·생년월일·성별·이메일·전화번호 필드가 없다',
+      !allPayloadStr.includes('birth') &&
+      !allPayloadStr.includes('email') &&
+      !allPayloadStr.includes('phone') &&
+      !allPayloadStr.includes('gender'));
+  } finally {
+    if (origPixel === undefined) delete process.env.META_PIXEL_ID;
+    else process.env.META_PIXEL_ID = origPixel;
+    pxSrv.close();
+  }
+}
+
 
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
