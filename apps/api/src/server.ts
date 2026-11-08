@@ -29,7 +29,7 @@ import {
   loadBusinessInfo, renderFooter, renderTerms, renderPrivacy, renderRefund,
   renderProducts, renderProductsPage, PRODUCTS_CSS,
   renderHero, renderTryHeading, LANDING_CSS, FONT_LINK, renderProductPage,
-  renderSpiritRow, renderSocialHead, HOME_TITLE, HOME_DESCRIPTION, OG_NABI_IMAGE_PATH,
+  renderSpiritRow, renderSocialHead, getTikTokVerificationFileBody, HOME_TITLE, HOME_DESCRIPTION, OG_NABI_IMAGE_PATH,
   renderStage, STAGE_CSS, STAGE_SCRIPT,
   renderPickPage, PLACES, TIMES, DATE_SLOTS, type PickForm,
   renderCheckoutPage,
@@ -2215,6 +2215,16 @@ export function createApi(deps: ApiDeps) {
 
     'GET /robots.txt': async (_req, res) => {
       const body = renderRobots(business);
+      res.writeHead(200, {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Length': Buffer.byteLength(body),
+      });
+      res.end(body);
+    },
+
+    'GET /tiktok-developers-site-verification.txt': async (_req, res) => {
+      const body = getTikTokVerificationFileBody();
+      if (!body) throw new HttpError(404, '틱톡 도메인 인증 값이 설정되지 않았습니다.');
       res.writeHead(200, {
         'Content-Type': 'text/plain; charset=utf-8',
         'Content-Length': Buffer.byteLength(body),

@@ -56,10 +56,40 @@ export interface SocialOptions {
  * `<title>` 까지 여기서 만든다. 화면마다 따로 적으면 언젠가 한 곳이 빠지고,
  * 빠진 그 화면이 하필 손님이 링크로 받는 화면이다.
  */
-/** 네이버가 내주는 소유확인 값. 없으면 태그를 넣지 않는다 */
-const NAVER_VERIFY = (process.env.NAVER_SITE_VERIFICATION ?? '').trim();
+/**
+ * 플랫폼 도메인 소유확인(메타·틱톡·네이버·구글).
+ *
+ * 값은 사장님이 각 플랫폼 계정을 만든 뒤 발급받아 환경변수로 넣는다.
+ * 값이 비어 있으면 아무 태그도 내보내지 않는다.
+ */
+export function renderDomainVerificationTags(env: NodeJS.ProcessEnv = process.env): string {
+  const meta = (env.META_DOMAIN_VERIFICATION ?? '').trim();
+  const tiktok = (env.TIKTOK_SITE_VERIFICATION ?? '').trim();
+  const naver = (env.NAVER_SITE_VERIFICATION ?? '').trim();
+  const google = (env.GOOGLE_SITE_VERIFICATION ?? '').trim();
 
-export function renderSocialHead(info: BusinessInfo, o: SocialOptions): string {
+  return [
+    meta ? `<meta name="facebook-domain-verification" content="${esc(meta)}">` : '',
+    tiktok ? `<meta name="tiktok-developers-site-verification" content="${esc(tiktok)}">` : '',
+    tiktok ? `<meta name="tiktok-domain-verification" content="${esc(tiktok)}">` : '',
+    naver ? `<meta name="naver-site-verification" content="${esc(naver)}">` : '',
+    google ? `<meta name="google-site-verification" content="${esc(google)}">` : '',
+  ].filter(Boolean).join('\n');
+}
+
+/**
+ * 틱톡이 URL 접두사/도메인 소유확인 시 루트 텍스트 파일(`/tiktok-developers-site-verification.txt`)을
+ * 요청할 때 돌려줄 본문. 값이 비어 있으면 빈 문자열을 돌려준다.
+ */
+export function getTikTokVerificationFileBody(env: NodeJS.ProcessEnv = process.env): string {
+  const raw = (env.TIKTOK_SITE_VERIFICATION ?? '').trim();
+  if (!raw) return '';
+  return raw.startsWith('tiktok-developers-site-verification=')
+    ? raw
+    : `tiktok-developers-site-verification=${raw}`;
+}
+
+export function renderSocialHead(info: BusinessInfo, o: SocialOptions, env: NodeJS.ProcessEnv = process.env): string {
   const name = siteName(info);
   // 가운뎃점은 제목 안에서 이미 쓰고 있다. 이름과 한 줄은 줄표로 가른다
   const full = `${name} — ${o.title}`;
@@ -98,12 +128,11 @@ export function renderSocialHead(info: BusinessInfo, o: SocialOptions): string {
     image ? `<meta name="twitter:image" content="${esc(image)}">` : '',
     url ? `<link rel="canonical" href="${esc(url)}">` : '',
     /*
-     * 네이버 웹마스터도구 소유확인.
+     * 플랫폼 도메인 소유확인 (메타 · 틱톡 · 네이버 · 구글).
      *
-     * 이 한 줄이 없으면 사이트를 등록할 수 없고, 등록이 안 되면 수집 요청도
-     * 검색 노출 확인도 못 한다. 값은 네이버가 내주는 것이라 환경변수로 받는다 —
-     * 확인이 끝난 뒤에도 지우면 안 된다. 지우면 소유가 풀린다.
+     * 환경변수에 값이 있을 때만 태그를 내보내고, 비어 있으면 아무것도 넣지 않는다.
+     * 확인이 끝난 뒤에도 유지해야 소유가 풀리지 않는다.
      */
-    NAVER_VERIFY ? `<meta name="naver-site-verification" content="${esc(NAVER_VERIFY)}">` : '',
+    renderDomainVerificationTags(env),
   ].filter(Boolean).join('\n');
 }

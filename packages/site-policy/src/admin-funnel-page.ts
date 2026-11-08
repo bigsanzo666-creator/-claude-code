@@ -41,6 +41,7 @@ export interface FunnelReportData {
   dbUnavailable?: boolean;
   dbNotice?: string;
   total: FunnelRowMetrics;
+  bySource: FunnelRowMetrics[];
   byContent: FunnelRowMetrics[];
   byCampaign: FunnelRowMetrics[];
 }
@@ -97,8 +98,19 @@ export function computeFunnelMetrics(
 ): FunnelReportData {
   const { startStr, endStr, startMs, endMs } = parseKstDateRange(startKst, endKst);
   const total = emptyRow('전체');
+  const sourceMap = new Map<string, FunnelRowMetrics>();
   const contentMap = new Map<string, FunnelRowMetrics>();
   const campaignMap = new Map<string, FunnelRowMetrics>();
+
+  const getSourceRow = (raw?: string | null) => {
+    const k = (raw && raw.trim()) ? raw.trim() : '(미지정)';
+    let row = sourceMap.get(k);
+    if (!row) {
+      row = emptyRow(k);
+      sourceMap.set(k, row);
+    }
+    return row;
+  };
 
   const getContentRow = (raw?: string | null) => {
     const k = (raw && raw.trim()) ? raw.trim() : '(미지정)';
@@ -124,6 +136,7 @@ export function computeFunnelMetrics(
     const ts = Date.parse(fr.createdAt);
     if (Number.isNaN(ts) || ts < startMs || ts > endMs) continue;
     total.freeReadings++;
+    getSourceRow(fr.utmSource).freeReadings++;
     getContentRow(fr.utmContent).freeReadings++;
     getCampaignRow(fr.utmCampaign).freeReadings++;
   }
@@ -164,6 +177,7 @@ export function computeFunnelMetrics(
     };
 
     applyToRow(total);
+    applyToRow(getSourceRow(ord.utmSource));
     applyToRow(getContentRow(ord.utmContent));
     applyToRow(getCampaignRow(ord.utmCampaign));
   }
@@ -181,6 +195,7 @@ export function computeFunnelMetrics(
     dbUnavailable: options?.dbUnavailable,
     dbNotice: options?.dbNotice,
     total,
+    bySource: sortRows(Array.from(sourceMap.values())),
     byContent: sortRows(Array.from(contentMap.values())),
     byCampaign: sortRows(Array.from(campaignMap.values())),
   };
@@ -230,6 +245,7 @@ function buildCsvText(report: FunnelReportData): string {
     ].join(',');
   };
   const lines = [header, toCsvLine('전체', report.total)];
+  for (const r of report.bySource) lines.push(toCsvLine('utm_source(플랫폼)', r));
   for (const r of report.byContent) lines.push(toCsvLine('utm_content(소재)', r));
   for (const r of report.byCampaign) lines.push(toCsvLine('utm_campaign(캠페인)', r));
   return lines.join('\n');
@@ -292,9 +308,11 @@ export function renderAdminFunnelPage(
     '',
     buildMarkdownSection('1. 전체 합계', '구분', [report.total]),
     '',
-    buildMarkdownSection('2. 소재별 (utm_content)', 'utm_content', report.byContent),
+    buildMarkdownSection('2. 플랫폼별 (utm_source)', 'utm_source', report.bySource),
     '',
-    buildMarkdownSection('3. 캠페인별 (utm_campaign)', 'utm_campaign', report.byCampaign),
+    buildMarkdownSection('3. 소재별 (utm_content)', 'utm_content', report.byContent),
+    '',
+    buildMarkdownSection('4. 캠페인별 (utm_campaign)', 'utm_campaign', report.byCampaign),
   ].join('\n');
 
   const csvFull = buildCsvText(report);
@@ -361,7 +379,29 @@ ${FUNNEL_CSS}
     </table>
   </div>
 
-  <h2 class="fn-sec">2. 소재별 숫자 (utm_content)</h2>
+  <h2 class="fn-sec">2. 플랫폼별 숫자 (utm_source)</h2>
+  <div class="fn-card">
+    <table class="fn-tbl" id="fnTableSource">
+      <thead>
+        <tr>
+          <th>플랫폼 (utm_source)</th>
+          <th>무료 사주 명식 본 수</th>
+          <th>첫 결제 수</th>
+          <th>첫 결제 금액 합</th>
+          <th>이어사기 (12시간 안)</th>
+          <th>이어사기 (지난 뒤)</th>
+          <th>월운세 이용권 결제 수</th>
+          <th>소개 코드 사용 수</th>
+          <th>총 매출</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${renderTableRows(report.bySource)}
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="fn-sec">3. 소재별 숫자 (utm_content)</h2>
   <div class="fn-card">
     <table class="fn-tbl" id="fnTableContent">
       <thead>
@@ -383,7 +423,7 @@ ${FUNNEL_CSS}
     </table>
   </div>
 
-  <h2 class="fn-sec">3. 캠페인별 숫자 (utm_campaign)</h2>
+  <h2 class="fn-sec">4. 캠페인별 숫자 (utm_campaign)</h2>
   <div class="fn-card">
     <table class="fn-tbl" id="fnTableCampaign">
       <thead>
@@ -405,7 +445,7 @@ ${FUNNEL_CSS}
     </table>
   </div>
 
-  <h2 class="fn-sec">4. 복사하기 쉬운 표 (마크다운 · CSV 내려받기)</h2>
+  <h2 class="fn-sec">5. 복사하기 쉬운 표 (마크다운 · CSV 내려받기)</h2>
   <div class="fn-actions">
     <button type="button" class="fn-btn" id="fnCopyMdBtn">마크다운 표 복사하기</button>
     <button type="button" class="fn-btn secondary" id="fnDownloadCsvBtn">CSV 파일 내려받기</button>

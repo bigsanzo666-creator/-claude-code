@@ -4769,6 +4769,118 @@ section('광고 랜딩 모바일 점검 및 공유 미리보기(og-nabi.jpg) 검
   }
 }
 
+// ── BIG-32: 플랫폼 도메인 인증 자리 4종 + 4개 플랫폼 UTM 분리 추적 검증 ──
+section('플랫폼 도메인 인증 자리 4종 및 4개 플랫폼 UTM 분리 검증 (BIG-32)');
+
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const utmDocPath = join(here, '..', '..', 'docs', 'utm-rules.md');
+  const utmDoc = readFileSync(utmDocPath, 'utf8');
+  check('docs/utm-rules.md 문서가 존재하고 4개 플랫폼(meta, tiktok, naver_clip, youtube) × 4개 우선 소재(nabi-love-01 등) 16개 링크가 정리되어 있다',
+    utmDoc.includes('utm_source=meta') &&
+    utmDoc.includes('utm_source=tiktok') &&
+    utmDoc.includes('utm_source=naver_clip') &&
+    utmDoc.includes('utm_source=youtube') &&
+    utmDoc.includes('nabi-love-01') &&
+    utmDoc.includes('nabi-money-01') &&
+    utmDoc.includes('nabi-career-01') &&
+    utmDoc.includes('nabi-match-01'));
+
+  const origMeta = process.env.META_DOMAIN_VERIFICATION;
+  const origTiktok = process.env.TIKTOK_SITE_VERIFICATION;
+  const origNaver = process.env.NAVER_SITE_VERIFICATION;
+  const origGoogle = process.env.GOOGLE_SITE_VERIFICATION;
+  const origAdmin = process.env.ADMIN_TOKEN;
+
+  const s32Orders = new MemoryOrderStore();
+  const s32 = createServer(createApi({
+    gateway,
+    orders: s32Orders,
+    business,
+    referrals,
+    generate: async () => ({ text: 'ok' }),
+  }));
+  await new Promise<void>((r) => s32.listen(0, r));
+
+  try {
+    const p32 = (s32.address() as { port: number }).port;
+    const b32 = `http://127.0.0.1:${p32}`;
+
+    // 1. 환경변수 없을 때: 태그 없음, 틱톡 파일 404
+    delete process.env.META_DOMAIN_VERIFICATION;
+    delete process.env.TIKTOK_SITE_VERIFICATION;
+    delete process.env.NAVER_SITE_VERIFICATION;
+    delete process.env.GOOGLE_SITE_VERIFICATION;
+
+    const resEmpty = await fetch(`${b32}/`);
+    const htmlEmpty = await resEmpty.text();
+    const ttFileEmpty = await fetch(`${b32}/tiktok-developers-site-verification.txt`);
+    await ttFileEmpty.text();
+    check('도메인 인증 환경변수 4종이 비어 있을 때 첫 화면에 인증 태그가 없고 틱톡 인증 파일은 404를 준다',
+      !htmlEmpty.includes('facebook-domain-verification') &&
+      !htmlEmpty.includes('tiktok-developers-site-verification') &&
+      !htmlEmpty.includes('naver-site-verification') &&
+      !htmlEmpty.includes('google-site-verification') &&
+      ttFileEmpty.status === 404);
+
+    // 2. 환경변수 있을 때: 4종 태그 모두 출력, 틱톡 파일 200
+    process.env.META_DOMAIN_VERIFICATION = 'meta_live_123';
+    process.env.TIKTOK_SITE_VERIFICATION = 'tiktok_live_456';
+    process.env.NAVER_SITE_VERIFICATION = 'naver_live_789';
+    process.env.GOOGLE_SITE_VERIFICATION = 'google_live_012';
+
+    const resFilled = await fetch(`${b32}/`);
+    const htmlFilled = await resFilled.text();
+    const ttFileFilled = await fetch(`${b32}/tiktok-developers-site-verification.txt`);
+    const ttBody = await ttFileFilled.text();
+    check('도메인 인증 환경변수 4종 설정 시 첫 화면 <head> 에 4종 메타 태그가 모두 출력되고 틱톡 인증 파일이 200으로 응답한다',
+      htmlFilled.includes('<meta name="facebook-domain-verification" content="meta_live_123">') &&
+      htmlFilled.includes('<meta name="tiktok-developers-site-verification" content="tiktok_live_456">') &&
+      htmlFilled.includes('<meta name="naver-site-verification" content="naver_live_789">') &&
+      htmlFilled.includes('<meta name="google-site-verification" content="google_live_012">') &&
+      ttFileFilled.status === 200 &&
+      ttBody.trim() === 'tiktok-developers-site-verification=tiktok_live_456');
+
+    // 3. 4개 플랫폼(meta, tiktok, naver_clip, youtube) 링크로 들어와 무료 명식·주문을 남기면 /admin/funnel 에서 플랫폼별로 정확히 갈려 보인다
+    process.env.ADMIN_TOKEN = 'big32_admin_token_777';
+    const platforms = [
+      { source: 'meta', content: 'nabi-love-01' },
+      { source: 'tiktok', content: 'nabi-money-01' },
+      { source: 'naver_clip', content: 'nabi-career-01' },
+      { source: 'youtube', content: 'nabi-match-01' },
+    ];
+
+    for (const pf of platforms) {
+      const landRes = await fetch(`${b32}/?utm_source=${pf.source}&utm_medium=paid&utm_campaign=2026-11-launch&utm_content=${pf.content}`);
+      const cookie = (landRes.headers.get('set-cookie') ?? '').split(';')[0];
+      await landRes.text();
+
+      const frRes = await fetch(`${b32}/api/free-reading`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
+        body: JSON.stringify({}),
+      });
+      await frRes.json();
+    }
+
+    const todayKst = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+    const fnRes = await fetch(`${b32}/admin/funnel?token=big32_admin_token_777&start=${todayKst}&end=${todayKst}&format=json`);
+    const fnJson = await fnRes.json() as any;
+    const srcKeys = (fnJson.bySource || []).map((r: any) => r.key).sort();
+    check('/admin/funnel 에서 4개 플랫폼(meta, naver_clip, tiktok, youtube) 유입이 플랫폼별(bySource)과 소재별(byContent)로 정확히 갈려 집계된다',
+      srcKeys.join(',') === 'meta,naver_clip,tiktok,youtube' &&
+      fnJson.total.freeReadings === 4 &&
+      fnJson.byContent.length === 4);
+  } finally {
+    if (origMeta === undefined) delete process.env.META_DOMAIN_VERIFICATION; else process.env.META_DOMAIN_VERIFICATION = origMeta;
+    if (origTiktok === undefined) delete process.env.TIKTOK_SITE_VERIFICATION; else process.env.TIKTOK_SITE_VERIFICATION = origTiktok;
+    if (origNaver === undefined) delete process.env.NAVER_SITE_VERIFICATION; else process.env.NAVER_SITE_VERIFICATION = origNaver;
+    if (origGoogle === undefined) delete process.env.GOOGLE_SITE_VERIFICATION; else process.env.GOOGLE_SITE_VERIFICATION = origGoogle;
+    if (origAdmin === undefined) delete process.env.ADMIN_TOKEN; else process.env.ADMIN_TOKEN = origAdmin;
+    s32.close();
+  }
+}
+
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
 console.log('전부 통과.');

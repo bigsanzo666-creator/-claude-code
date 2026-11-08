@@ -2039,6 +2039,64 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
     coHtml.includes('__nbReadingFallback') && coHtml.includes('window.parent.__nbReadingFallback'));
 }
 
+// ─── BIG-32: 플랫폼 도메인 인증 4종 메타 태그 및 UTM 플랫폼 구분 검증 ───
+{
+  section('BIG-32: 플랫폼 도메인 인증 4종 (메타·틱톡·네이버·구글) 및 UTM 규칙 검증');
+  const { getTikTokVerificationFileBody, computeFunnelMetrics } = await import('./src/index.ts');
+
+  const emptyEnv = {
+    META_DOMAIN_VERIFICATION: '',
+    TIKTOK_SITE_VERIFICATION: '',
+    NAVER_SITE_VERIFICATION: '',
+    GOOGLE_SITE_VERIFICATION: '',
+  };
+  const headEmpty = renderSocialHead(full, { title: HOME_TITLE, description: HOME_DESCRIPTION, path: '/' }, emptyEnv as any);
+  check('인증 환경변수 4종이 모두 비어 있을 때 메타·틱톡·네이버·구글 인증 태그가 하나도 나오지 않는다',
+    !headEmpty.includes('facebook-domain-verification') &&
+    !headEmpty.includes('tiktok-developers-site-verification') &&
+    !headEmpty.includes('tiktok-domain-verification') &&
+    !headEmpty.includes('naver-site-verification') &&
+    !headEmpty.includes('google-site-verification') &&
+    getTikTokVerificationFileBody(emptyEnv as any) === '');
+
+  const filledEnv = {
+    META_DOMAIN_VERIFICATION: 'meta_verify_token_111',
+    TIKTOK_SITE_VERIFICATION: 'tiktok_verify_token_222',
+    NAVER_SITE_VERIFICATION: 'naver_verify_token_333',
+    GOOGLE_SITE_VERIFICATION: 'google_verify_token_444',
+  };
+  const headFilled = renderSocialHead(full, { title: HOME_TITLE, description: HOME_DESCRIPTION, path: '/' }, filledEnv as any);
+  check('META_DOMAIN_VERIFICATION 이 있을 때 facebook-domain-verification 메타 태그가 나온다',
+    headFilled.includes('<meta name="facebook-domain-verification" content="meta_verify_token_111">'));
+  check('TIKTOK_SITE_VERIFICATION 이 있을 때 틱톡 인증 메타 태그 및 파일 본문이 나온다',
+    headFilled.includes('<meta name="tiktok-developers-site-verification" content="tiktok_verify_token_222">') &&
+    headFilled.includes('<meta name="tiktok-domain-verification" content="tiktok_verify_token_222">') &&
+    getTikTokVerificationFileBody(filledEnv as any) === 'tiktok-developers-site-verification=tiktok_verify_token_222');
+  check('NAVER_SITE_VERIFICATION 이 있을 때 naver-site-verification 메타 태그가 나온다',
+    headFilled.includes('<meta name="naver-site-verification" content="naver_verify_token_333">'));
+  check('GOOGLE_SITE_VERIFICATION 이 있을 때 google-site-verification 메타 태그가 나온다',
+    headFilled.includes('<meta name="google-site-verification" content="google_verify_token_444">'));
+
+  const sampleReport = computeFunnelMetrics(
+    [
+      { id: 'o1', productId: 'saju-report', amountKrw: 46900, status: 'paid', inputHash: 'h', paymentId: 'p', noticeGiven: true, previewProvided: true, createdAt: '2026-11-08T01:00:00Z', paidAt: '2026-11-08T01:01:00Z', viewedAt: null, refundedAt: null, failureReason: null, utmSource: 'meta', utmMedium: 'paid', utmCampaign: '2026-11-launch', utmContent: 'nabi-love-01' },
+      { id: 'o2', productId: 'wealth-report', amountKrw: 26900, status: 'paid', inputHash: 'h', paymentId: 'p', noticeGiven: true, previewProvided: true, createdAt: '2026-11-08T02:00:00Z', paidAt: '2026-11-08T02:01:00Z', viewedAt: null, refundedAt: null, failureReason: null, utmSource: 'tiktok', utmMedium: 'organic', utmCampaign: '2026-11-launch', utmContent: 'nabi-money-01' },
+    ] as any,
+    [
+      { id: 'f1', utmSource: 'naver_clip', utmMedium: 'organic', utmCampaign: '2026-11-launch', utmContent: 'nabi-career-01', fbclid: null, utmFirstSeenAt: '2026-11-08T03:00:00Z', createdAt: '2026-11-08T03:00:00Z' },
+      { id: 'f2', utmSource: 'youtube', utmMedium: 'organic', utmCampaign: '2026-11-launch', utmContent: 'nabi-match-01', fbclid: null, utmFirstSeenAt: '2026-11-08T04:00:00Z', createdAt: '2026-11-08T04:00:00Z' },
+    ],
+    '2026-11-08',
+    '2026-11-08',
+  );
+  check('computeFunnelMetrics 가 4개 플랫폼(meta, tiktok, naver_clip, youtube)별로 bySource 를 정확히 가른다',
+    sampleReport.bySource.length === 4 &&
+    sampleReport.bySource.find((r) => r.key === 'meta')?.totalRevenueKrw === 46900 &&
+    sampleReport.bySource.find((r) => r.key === 'tiktok')?.totalRevenueKrw === 26900 &&
+    sampleReport.bySource.find((r) => r.key === 'naver_clip')?.freeReadings === 1 &&
+    sampleReport.bySource.find((r) => r.key === 'youtube')?.freeReadings === 1);
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }
