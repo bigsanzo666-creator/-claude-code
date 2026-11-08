@@ -603,14 +603,17 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   function loadReading() {
     try {
-      return JSON.parse(sessionStorage.getItem('nb_reading') || 'null');
-    } catch (e) { return null; }
+      const raw = sessionStorage.getItem('nb_reading');
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return window.__nbReadingFallback || null;
   }
 
   function saveReading(data) {
+    const cur = loadReading() || {};
+    const merged = Object.assign({}, cur, data);
+    window.__nbReadingFallback = merged;
     try {
-      const cur = loadReading() || {};
-      const merged = Object.assign({}, cur, data);
       sessionStorage.setItem('nb_reading', JSON.stringify(merged));
     } catch (err) { /* 저장이 막혀 있어도 결제 자리에서 다시 받으면 된다 */ }
   }

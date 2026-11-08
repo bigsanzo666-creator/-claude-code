@@ -666,14 +666,25 @@ export function renderCheckoutPage(
     return j;
   }
 
-  /* sessionStorage nb_reading 입출력 단일화 */
+  /* sessionStorage nb_reading 입출력 단일화 (쿠키·세션 저장이 막힌 인앱 브라우저 대비 메모리·부모창 예비 경로 포함) */
   function loadReading(){
-    try { return JSON.parse(sessionStorage.getItem('nb_reading') || 'null'); } catch(e){ return null; }
+    try {
+      var raw = sessionStorage.getItem('nb_reading');
+      if (raw) return JSON.parse(raw);
+    } catch(e){}
+    try {
+      if (window.__nbReadingFallback) return window.__nbReadingFallback;
+      if (window.parent && window.parent !== window && window.parent.__nbReadingFallback) {
+        return window.parent.__nbReadingFallback;
+      }
+    } catch(e){}
+    return null;
   }
   function saveReading(data){
+    var cur = loadReading() || {};
+    var merged = Object.assign({}, cur, data);
+    window.__nbReadingFallback = merged;
     try {
-      var cur = loadReading() || {};
-      var merged = Object.assign({}, cur, data);
       sessionStorage.setItem('nb_reading', JSON.stringify(merged));
     } catch(e){}
   }

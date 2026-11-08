@@ -29,7 +29,7 @@ import {
   loadBusinessInfo, renderFooter, renderTerms, renderPrivacy, renderRefund,
   renderProducts, renderProductsPage, PRODUCTS_CSS,
   renderHero, renderTryHeading, LANDING_CSS, FONT_LINK, renderProductPage,
-  renderSpiritRow, renderSocialHead, HOME_TITLE, HOME_DESCRIPTION,
+  renderSpiritRow, renderSocialHead, HOME_TITLE, HOME_DESCRIPTION, OG_NABI_IMAGE_PATH,
   renderStage, STAGE_CSS, STAGE_SCRIPT,
   renderPickPage, PLACES, TIMES, DATE_SLOTS, type PickForm,
   renderCheckoutPage,
@@ -472,9 +472,9 @@ function renderPage(
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 ${renderSocialHead(business, {
-    title: HOME_TITLE, description: HOME_DESCRIPTION, path: '/', image: hero,
+    title: HOME_TITLE, description: HOME_DESCRIPTION, path: '/', image: OG_NABI_IMAGE_PATH,
   })}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -525,13 +525,13 @@ body {
 .nb-launch-banner-until{white-space:nowrap}
 .nb-launch-banner-close{background:transparent;border:none;color:#f3e5ab;font-size:16px;cursor:pointer;padding:4px 8px;line-height:1}
 .spirits-free-duo{display:flex;gap:8px;margin:20px auto 14px;max-width:440px;width:100%;box-sizing:border-box;align-items:stretch}
-.spirits-free-btn{flex:1 1 0;min-width:0;display:flex;align-items:center;position:relative;padding:14px 6px 11px 7px;border:1.5px solid #d4af37;border-radius:12px;background:rgba(212,175,55,0.15);color:#f5f5f7;text-decoration:none;transition:background 0.2s,transform 0.15s,box-shadow 0.15s;box-sizing:border-box;cursor:pointer;font:inherit;text-align:left}
+.spirits-free-btn{flex:1 1 0;min-width:0;min-height:52px;display:flex;align-items:center;position:relative;padding:14px 8px 11px 8px;border:1.5px solid #d4af37;border-radius:12px;background:rgba(212,175,55,0.15);color:#f5f5f7;text-decoration:none;transition:background 0.2s,transform 0.15s,box-shadow 0.15s;box-sizing:border-box;cursor:pointer;font:inherit;text-align:left}
 .spirits-free-btn:hover{background:rgba(212,175,55,0.24);transform:translateY(-2px);box-shadow:0 4px 12px rgba(212,175,55,0.25)}
 .spirits-free-badge{position:absolute;top:-8px;left:8px;background:#d4af37;color:#12121c;font-size:10px;font-weight:800;padding:1px 6px;border-radius:9999px;line-height:1.2;letter-spacing:0.02em;white-space:nowrap;box-shadow:0 2px 4px rgba(0,0,0,0.35)}
 .spirits-free-icon{font-size:18px;line-height:1;flex-shrink:0;margin-right:5px}
 .spirits-free-content{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;justify-content:center;text-align:left}
 .spirits-free-text{font-size:13.5px;font-weight:700;color:#f5f5f7;white-space:nowrap;line-height:1.25;letter-spacing:-0.4px}
-.spirits-free-sub{font-size:9.5px;color:#a09eb0;white-space:nowrap;line-height:1.2;letter-spacing:-0.6px;margin-top:2px}
+.spirits-free-sub{font-size:11.5px;color:#b8b6c8;white-space:nowrap;line-height:1.25;letter-spacing:-0.3px;margin-top:2px}
 .spirits-free-arrow{font-size:13px;font-weight:700;color:#d4af37;flex-shrink:0;margin-left:3px}
 .spirits-invite-bar{display:block;margin:0 auto 16px;max-width:440px;width:100%;box-sizing:border-box;padding:10px 14px;background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.25);border-radius:10px;color:#d4af37;font-size:13px;text-align:center;text-decoration:none;transition:background .2s,border-color .2s;font-weight:500;line-height:1.4}
 .spirits-invite-bar:hover{background:rgba(212,175,55,0.15);border-color:rgba(212,175,55,0.5);color:#f5f5f7}
@@ -3157,7 +3157,7 @@ export function createApi(deps: ApiDeps) {
         res.end(code || '// 엔진을 찾지 못했습니다');
         return;
       }
-            if (req.method === 'GET' && (url.pathname === '/style.css' || url.pathname === '/app.js' || url.pathname === '/jaegi.js' || url.pathname === '/nalja.js')) {
+            if (req.method === 'GET' && (url.pathname === '/style.css' || url.pathname === '/app.js' || url.pathname === '/jaegi.js' || url.pathname === '/nalja.js' || url.pathname === '/og-nabi.jpg')) {
         const p = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', url.pathname.slice(1));
         serveStaticFile(req, res, p);
         return;

@@ -36,6 +36,9 @@ export const HOME_DESCRIPTION =
   '생년월일만 넣으면 사주 여덟 글자와 풀이가 바로 나옵니다. '
   + '얼굴 사진으로 관상까지 재 드립니다. 결제 없이 보실 수 있습니다.';
 
+/** 첫 화면 공유 미리보기(나비신령) 기본 그림 경로 */
+export const OG_NABI_IMAGE_PATH = '/og-nabi.jpg';
+
 export interface SocialOptions {
   /** 「늘봄사주」 뒤에 붙는 한 줄 */
   title: string;
@@ -43,8 +46,8 @@ export interface SocialOptions {
   description: string;
   /** `/products` 처럼 슬래시로 시작하는 주소. 첫 화면은 `/` */
   path?: string;
-  /** 카드에 그림을 걸지 — 첫 화면 그림이 있을 때만 참 */
-  image?: boolean;
+  /** 카드에 그림을 걸지 — 참이면 `/img/hero`, 문자열이면 해당 경로(`/og-nabi.jpg` 등) */
+  image?: boolean | string;
 }
 
 /**
@@ -62,7 +65,18 @@ export function renderSocialHead(info: BusinessInfo, o: SocialOptions): string {
   const full = `${name} — ${o.title}`;
   const base = (info.serviceUrl || '').trim().replace(/\/+$/, '');
   const url = base ? `${base}${o.path ?? '/'}` : '';
-  const image = o.image && base ? `${base}/img/hero` : '';
+  let image = '';
+  if (typeof o.image === 'string' && o.image.trim()) {
+    const raw = o.image.trim();
+    if (/^https?:\/\//i.test(raw)) {
+      image = raw;
+    } else {
+      const rel = raw.startsWith('/') ? raw : `/${raw}`;
+      image = base ? `${base}${rel}` : rel;
+    }
+  } else if (o.image === true && base) {
+    image = `${base}/img/hero`;
+  }
 
   const tag = (property: string, content: string) =>
     content ? `<meta property="${property}" content="${esc(content)}">` : '';
