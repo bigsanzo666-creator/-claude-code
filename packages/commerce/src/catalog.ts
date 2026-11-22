@@ -76,7 +76,9 @@ export function isLaunchSale(): boolean {
  * 1월~11월은 그해, 12월 1일 0시 KST부터는 다음 해를 돌려준다.
  */
 export function newyearTargetYear(nowMs?: number): number {
-  const kst = new Date((nowMs ?? 지금()) + 9 * 3600_000);
+  // 터진 뒤에 적은 것 (2026-11-22): BIG-33 이 「지금」을 기본 null 로 바꿨는데 이 줄은 함수라고 믿고 불러
+  // 합치자마자 상품 목록·상세가 「지금 is not a function」으로 죽었다. 비어 있으면 실제 시각을 쓴다.
+  const kst = new Date((nowMs ?? (지금 ? 지금() : Date.now())) + 9 * 3600_000);
   const year = kst.getUTCFullYear();
   const month = kst.getUTCMonth() + 1;
   return month === 12 ? year + 1 : year;
