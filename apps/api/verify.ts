@@ -4305,6 +4305,71 @@ section('작명서 라우트 및 메일 연동 검증 (6·7·8단계)');
     mailSrc.includes('작명서 보기') && mailSrc.includes('작명서 주소:'));
 }
 
+// ── 11단계: 신년운세 12월 기준 해 전환 (BIG-36) ─────────────────────
+section('신년운세 12월 기준 해 전환 검증 (BIG-36)');
+
+{
+  const { 시각을바꾼다, newyearTargetYear, CATALOG } = await import('../../packages/commerce/src/catalog.ts');
+  const { buildPayload } = await import('./src/payload.ts');
+  const { renderProductPage } = await import('../../packages/site-policy/src/products.ts');
+  const { renderCheckoutPage } = await import('../../packages/site-policy/src/checkout-page.ts');
+  const { previewSections } = await import('./src/preview-sections.ts');
+  const { buildSystemPrompt } = await import('../../packages/report/src/prompt.ts');
+
+  const kst = (iso: string) => () => Date.parse(iso);
+  try {
+    시각을바꾼다(kst('2026-11-15T12:00:00+09:00'));
+    check('2026-11-15 → 기준 해 2026', newyearTargetYear() === 2026);
+
+    시각을바꾼다(kst('2026-12-01T00:00:00+09:00'));
+    check('2026-12-01 00:00 KST → 기준 해 2027', newyearTargetYear() === 2027);
+
+    시각을바꾼다(kst('2026-12-15T12:00:00+09:00'));
+    check('2026-12-15 → 기준 해 2027', newyearTargetYear() === 2027);
+    const payloadDec = buildPayload({
+      productId: 'newyear-report',
+      birth: { date: '1990-01-01', time: '12:00', place: '서울', gender: '남' },
+    });
+    const dDec = payloadDec.data as Record<string, any>;
+    check('2026-12-15 자료에 2027·정미가 있고 「올 한 해」가 없다',
+      dDec.기준해?.해 === 2027 &&
+      String(dDec.기준해?.간지).includes('정미') &&
+      String(dDec.손님이_묻는_것).includes('2027') &&
+      String(dDec.손님이_묻는_것).includes('정미') &&
+      !String(dDec.손님이_묻는_것).includes('올 한 해') &&
+      dDec.기준해_달마다?.[0]?.from?.startsWith('2027'));
+
+    const pdHtml = renderProductPage(CATALOG['newyear-report'], { SERVICE_NAME: '늘봄사주' } as any, true, '');
+    const coHtml = renderCheckoutPage({ SERVICE_NAME: '늘봄사주' } as any, '', CATALOG['newyear-report'], null);
+    const pvSecs = previewSections('newyear-report', ['2027년 정미년의 기운을 살핍니다.', '달마다의 흐름을 봅니다.', '조심할 달을 짚습니다.']);
+    const sysPrompt = buildSystemPrompt('사주', { productId: 'newyear-report' });
+    check('2026-12-15 상세·결제·미리보기·프롬프트에 2027·정미가 반영된다',
+      pdHtml.includes('2027년 정미년') &&
+      coHtml.includes('2027년 정미년') &&
+      pvSecs[0].title.includes('2027년(정미년)') &&
+      sysPrompt.includes('기준해'));
+
+    시각을바꾼다(kst('2027-01-15T12:00:00+09:00'));
+    check('2027-01-15 → 기준 해 2027', newyearTargetYear() === 2027);
+
+    시각을바꾼다(kst('2027-02-05T12:00:00+09:00'));
+    check('2027-02-05 → 기준 해 2027', newyearTargetYear() === 2027);
+
+    시각을바꾼다(kst('2027-12-01T00:00:00+09:00'));
+    const payload28 = buildPayload({
+      productId: 'newyear-report',
+      birth: { date: '1990-01-01', time: '12:00', place: '서울', gender: '남' },
+    });
+    const d28 = payload28.data as Record<string, any>;
+    check('2027-12-01 → 기준 해 2028 (무신년)',
+      newyearTargetYear() === 2028 &&
+      d28.기준해?.해 === 2028 &&
+      String(d28.기준해?.간지).includes('무신'));
+  } finally {
+    시각을바꾼다(null);
+  }
+}
+
 
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }

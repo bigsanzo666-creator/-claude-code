@@ -8,6 +8,7 @@ import { orderable } from '../../../packages/commerce/src/orderable.ts';
  */
 
 import { calculate, type Myeongsik } from '../../../packages/manseryeok/src/index.ts';
+import { yearPillar } from '../../../packages/manseryeok/src/ganzhi.ts';
 import {
   analyze, calculateDaeun, currentDaeun, annualLuck,
   compatibility, sajuToTraits, crossValidate, groupElement, dailyLuck, dailyLuckRange,
@@ -24,7 +25,7 @@ import {
   nameField, popularList, popularitySource, popularYears, type NameWish,
   NAMING_STANDARD_PAIR_LIMIT, NAMING_PLUS_PAIR_LIMIT,
 } from '../../../packages/naming/src/index.ts';
-import { CATALOG, type ProductId, HOLIDAY_MAX_MEMBERS } from '../../../packages/commerce/src/index.ts';
+import { CATALOG, newyearTargetYear, type ProductId, HOLIDAY_MAX_MEMBERS } from '../../../packages/commerce/src/index.ts';
 
 
 import { cleanQuestion, type ReportKind } from '../../../packages/report/src/prompt.ts';
@@ -1312,24 +1313,36 @@ export function buildPayload(req: ReadingRequest): { kind: ReportKind; data: unk
    * 그 해의 기운이 여덟 주제 각각에 어떻게 닿는지까지만 싣는다.
    */
   if (req.productId === 'newyear-report') {
+    const targetYear = newyearTargetYear();
+    const tp = yearPillar(targetYear);
+    const targetGanji = `${tp.stem}${tp.branch}`;
+    const nextYear = targetYear + 1;
+    const np = yearPillar(nextYear);
+    const nextGanji = `${np.stem}${np.branch}`;
     return {
       kind: '사주',
       subject,
       data: {
-        손님이_묻는_것: '올 한 해는 나에게 어떤 해인가',
+        손님이_묻는_것: `${targetYear}년(${targetGanji}년)은 나에게 어떤 해인가`,
+        기준해: {
+          해: targetYear,
+          간지: `${targetGanji}년`,
+          다음해: nextYear,
+          다음해_간지: `${nextGanji}년`,
+        },
         명식: base.명식,
         계산근거: base.계산근거,
         일간: base.일간,
         강약: base.강약,
         용신: base.용신,
         지금_대운: { 방향: daeun.direction, 현재: currentDaeun(daeun, age) },
-        올해와_내년: annualLuck(ms, an.yongsin, year, 2),
+        기준해와_다음해: annualLuck(ms, an.yongsin, targetYear, 2),
         /*
          * 「달별로 나뉜 흐름」을 상세페이지에 적어 놓고 자료에는 달이
          * 한 줄도 없었다. 한 해를 파는 상품에 달이 없으면 살 이유가 없다.
          */
-        올해_달마다: monthlyLuck(ms, an.yongsin, year),
-        내년_달마다: monthlyLuck(ms, an.yongsin, year + 1),
+        기준해_달마다: monthlyLuck(ms, an.yongsin, targetYear),
+        다음해_달마다: monthlyLuck(ms, an.yongsin, nextYear),
         여덟_주제: allTopics(an),
       },
     };

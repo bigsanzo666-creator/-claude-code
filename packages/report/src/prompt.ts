@@ -911,8 +911,11 @@ export function buildSystemPrompt(
 
   const lengthInstruction = lengthInstructionFor(kind, prodId);
   const outline = kind === '교차검증' ? buildCrossOutline(context) : OUTLINES[kind];
+  const newyearRule = prodId === 'newyear-report'
+    ? '\n\n## 신년운세 기준 해 원칙\n- 자료의 `기준해`(예: 2027년 정미년)가 이 리포트의 주인공 해입니다.\n- `기준해`와 `기준해_달마다`를 중심으로 쓰고, 지나가는 해(기준해 직전 해)를 「올해」로 쓰지 마십시오.'
+    : '';
 
-  return `${SYSTEM_CORE}\n\n${lengthInstruction}\n\n${outline}`;
+  return `${SYSTEM_CORE}\n\n${lengthInstruction}\n\n${outline}${newyearRule}`;
 }
 
 /**

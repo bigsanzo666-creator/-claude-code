@@ -1,4 +1,5 @@
 import { CATALOG, type Order } from '../../../packages/commerce/src/index.ts';
+import { resolveProductCopy } from './products.ts';
 import { type BusinessInfo } from './business.ts';
 import { renderInviteBadge, REFERRAL_BADGE_CSS, REFERRAL_BADGE_SCRIPT } from './referral-badge.ts';
 import { esc, renderReportMarkdown, REPORT_CSS } from './report-render.ts';
@@ -56,7 +57,8 @@ ${footer}
 
 export function renderOrderUnpaidPage(business: BusinessInfo, footer: string, order: Order): string {
   const site = business.SITE_NAME || '늘봄사주';
-  const product = CATALOG[order.productId as keyof typeof CATALOG];
+  const rawProduct = CATALOG[order.productId as keyof typeof CATALOG];
+  const product = rawProduct ? resolveProductCopy(rawProduct) : undefined;
   const name = product ? product.name : order.productId;
   return `<!doctype html>
 <html lang="ko">
@@ -135,7 +137,8 @@ export function renderOrderReportPage(
   const site = business.SITE_NAME || '늘봄사주';
   const siteUrl = (business.SITE_URL || 'https://neulbomsaju.co.kr').replace(/\/+$/, '');
   const permalink = `${siteUrl}/order/${order.id}`;
-  const product = CATALOG[order.productId as keyof typeof CATALOG];
+  const rawProduct = CATALOG[order.productId as keyof typeof CATALOG];
+  const product = rawProduct ? resolveProductCopy(rawProduct) : undefined;
   const title = product ? product.name : '사주 리포트';
 
   const upsellHtml = renderUpsellSection(upsellData as any);

@@ -1,3 +1,6 @@
+import { newyearTargetYear } from '../../../packages/commerce/src/catalog.ts';
+import { yearPillar } from '../../../packages/manseryeok/src/ganzhi.ts';
+
 /**
  * 손님 자료에서 나온 세 대목을 결제 전에 보여 준다.
  * 글 전체를 흐리면 읽을 수 없어서, 결론을 가르는 짧은 말만 가린다.
@@ -181,13 +184,23 @@ function 문장으로(raw: string): string {
   return `${line}.`;
 }
 
+function titlesFor(productId: string): [string, string, string] {
+  if (productId === 'newyear-report') {
+    const y = newyearTargetYear();
+    const p = yearPillar(y);
+    const g = `${p.stem}${p.branch}`;
+    return [`${y}년(${g}년)의 바탕`, `${y}년의 흐름`, `${y}년 살필 점`];
+  }
+  return CHAPTERS[productId] || 기본대목;
+}
+
 /** 세 대목 모두 실제 계산 결과에 있는 문장을 사용한다. */
 export function previewSections(
   productId: string,
   contents: string[],
   points: Array<{ text: string; basis: string; title?: string; term?: string }> = [],
 ): PreviewSection[] {
-  const titles = CHAPTERS[productId] || 기본대목;
+  const titles = titlesFor(productId);
 
   /* 룰 엔진이 내놓은 점사가 있으면 그것이 가장 좋은 글이다 */
   if (points.length >= 3) {

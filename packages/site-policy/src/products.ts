@@ -1,4 +1,27 @@
 import { INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW } from '../../commerce/src/referral.ts';
+import { newyearTargetYear } from '../../commerce/src/catalog.ts';
+import { yearPillar } from '../../manseryeok/src/ganzhi.ts';
+
+function newyearMeta() {
+  const y = newyearTargetYear();
+  const p = yearPillar(y);
+  const g = `${p.stem}${p.branch}`;
+  const ny = y + 1;
+  const np = yearPillar(ny);
+  const ng = `${np.stem}${np.branch}`;
+  return { y, g, ny, ng };
+}
+
+/** 기준 해(12월 1일 KST부터 다음 해)에 맞춘 상품 이름·설명·훅 */
+export function resolveProductCopy(product: Product): Product {
+  if (product.id !== 'newyear-report') return product;
+  const { y, g } = newyearMeta();
+  return {
+    ...product,
+    name: `${y}년 ${g}년 신년운세`,
+    description: `${y}년(${g}년)의 기운이 내 여덟 글자와 어떻게 만나는지, 달마다의 흐름까지 짚어 드립니다.`,
+  };
+}
 
 /** 얼굴이 필요한 상품 */
 function 얼굴이필요한가(id: string): boolean {
@@ -503,11 +526,30 @@ const FIT: Record<string, Fit> = {
 
 /** 검증이 상품마다 다 적혔는지 볼 수 있게 밖으로 낸다 */
 export function FIT_FOR(productId: string): Fit | undefined {
+  if (productId === 'newyear-report') {
+    const { y, g, ny } = newyearMeta();
+    return {
+      yes: ['새해 계획을 세울 때', `${y}년(${g}년)이 버틸 해인지 밀 해인지 궁금할 때`, '달마다의 흐름을 알고 싶을 때'],
+      no: `평생 사주를 푸는 글이 아닙니다. **${y}년(${g}년)과 ${ny}년**만 봅니다.`,
+    };
+  }
   return FIT[productId];
 }
 
 /** 상세페이지가 적는 「담기는 것」. 검증이 자료와 대조할 수 있게 밖으로 낸다 */
 export function CONTENTS_FOR(productId: string): string[] | undefined {
+  if (productId === 'newyear-report') {
+    const { y, g, ny, ng } = newyearMeta();
+    return [
+      `${y}년(${g}년)과 ${ny}년(${ng}년)의 **두 글자**가 내 여덟 글자와 만나는 지점`,
+      `**${y}년 열두 달, ${ny}년 열두 달 — 스물네 달을 하나씩**`,
+      '달마다 **그 달이 시작되는 날**과 이름, 그 달의 두 글자, 유리한지 조심할지',
+      '달은 달력이 아니라 **해의 위치로 끊습니다**',
+      `여덟 주제(돈·자리·재능·공부·사람·매력·이동·귀인)가 ${y}년(${g}년)에 어떤지`,
+      '**지금 지나는 십 년**이 어느 쪽인지',
+      `**평생 사주를 푸는 글이 아닙니다** — ${y}년(${g}년)과 ${ny}년만 봅니다`,
+    ];
+  }
   return CONTENTS[productId];
 }
 
@@ -731,8 +773,9 @@ function bold(text: string): string {
 }
 
 function productCard(
-  product: Product, ready: boolean, images: ProductImages, groupQuestion = '', prices = true,
+  rawProduct: Product, ready: boolean, images: ProductImages, groupQuestion = '', prices = true,
 ): string {
+  const product = resolveProductCopy(rawProduct);
   // 21개를 낱장으로 늘어놓으면 아무도 끝까지 못 본다. 그래서 목록은 **그림 격자**다 —
   // 후킹 질문·이름·값만 싣고, 설명과 담기는 내용은 상세 페이지가 맡는다.
   // alt 를 비우는 것은 장식이기 때문이다. 바로 아래에 상품 이름이 글자로 있다.
@@ -758,8 +801,9 @@ function productCard(
  * 아무도 그것부터 보지 않는다. 갈래 맨 앞에 한 칸을 다 쓰고, 설명과 담기는 내용까지
  * 여기서 보여 준다.
  */
-function featureCard(product: Product, ready: boolean, images: ProductImages, prices = true): string {
-  const items = (CONTENTS[product.id] ?? []).map((t) => `<li>${bold(t)}</li>`).join('');
+function featureCard(rawProduct: Product, ready: boolean, images: ProductImages, prices = true): string {
+  const product = resolveProductCopy(rawProduct);
+  const items = (CONTENTS_FOR(product.id) ?? []).map((t) => `<li>${bold(t)}</li>`).join('');
   const isSale = isLaunchSale() && product.regularKrw && product.regularKrw !== product.priceKrw;
   const launchBadge = isSale ? ' <span class="pr-badge-launch">서버 오픈 기념가</span>' : '';
   const regularNote = isSale ? `<div class="pr-regular-note">11월 1일부터 ${won(product.regularKrw!)}</div>` : '';
@@ -1916,11 +1960,12 @@ function buyLink(product: Product): string {
  * 다크패턴으로 이름 붙여 둔 것들이고, 없는 숫자를 지어내는 것은 그냥 거짓말이다.
  */
 export function renderProductPage(
-  product: Product, info: BusinessInfo, ready: boolean, footer: string,
+  rawProduct: Product, info: BusinessInfo, ready: boolean, footer: string,
   images: ProductImages = NO_IMAGES, faces: SpiritImages = NO_FACES,
   sample: { text: string; notice: string } | null = null,
   initialQuery?: { date?: string; time?: string; place?: string; gender?: string },
 ): string {
+  const product = resolveProductCopy(rawProduct);
   if (product.id === 'daily-report') {
     return renderDailyReportProductPage(product, info, ready, footer, images, faces, sample, initialQuery);
   }
@@ -1931,7 +1976,7 @@ export function renderProductPage(
   const spirit = spiritOf(product.category);
 
   // 이 리포트에 담기는 것 (번호 목록 + 금색 세로선)
-  const rawContents = CONTENTS[product.id] ?? [];
+  const rawContents = CONTENTS_FOR(product.id) ?? [];
   const contentsItems = rawContents.map((t, idx) => {
     return `<div class="pd-content-item">
       <span class="pd-content-num">${idx + 1}.</span>
@@ -2174,7 +2219,7 @@ ${rows}
 
 /** 이런 분이 보시면 좋습니다 / 이런 분께는 권하지 않습니다 */
 export function renderFit(productId: string): string {
-  const fit = FIT[productId];
+  const fit = FIT_FOR(productId);
   if (!fit) return '';
   /*
    * 줄마다 그림을 하나씩 둔다.
