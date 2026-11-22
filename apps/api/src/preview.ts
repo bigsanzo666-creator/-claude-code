@@ -877,17 +877,24 @@ export function buildPreview(productId: ProductId, data: unknown, ratio: number)
       contents.push(`현재 대운 ${cur.pillar.stem}${cur.pillar.branch} (${cur.startAge}~${cur.endAge}세)`);
     }
     // 신년운세는 한 해를 보는 상품이라 그 해의 유불리가 곧 상품이다
-    const nextYears = (saju.올해와_내년 ?? []) as any[];
+    const nextYears = (saju.기준해와_다음해 ?? saju.올해와_내년 ?? []) as any[];
     for (const y of nextYears) {
       contents.push(`${y.year}년 ${y.pillar.stem}${y.pillar.branch} — ${y.favor}`
         + (y.interactions?.length ? ` (${y.interactions.join(', ')})` : ''));
     }
     // 한 해를 파는 상품에 달이 없으면 살 이유가 없다
-    const 달수 = (saju.올해_달마다 ?? []).length + (saju.내년_달마다 ?? []).length;
+    const baseMonthly = saju.기준해_달마다 ?? saju.올해_달마다 ?? [];
+    const nextMonthly = saju.다음해_달마다 ?? saju.내년_달마다 ?? [];
+    const 달수 = baseMonthly.length + nextMonthly.length;
     if (달수) {
-      contents.push(`올해와 내년을 **달마다** — 모두 ${달수}달, 절기로 끊어서`);
-      const m = saju.올해_달마다[0];
-      contents.push(`예: ${m.from} ${m.termName}부터 ${m.pillar} — ${m.stemGod}/${m.branchGod}, ${m.favor}`);
+      const spanLabel = saju.기준해?.해
+        ? `${saju.기준해.해}년(${saju.기준해.간지})과 ${saju.기준해.다음해}년`
+        : '기준 해와 다음 해';
+      contents.push(`${spanLabel}을 **달마다** — 모두 ${달수}달, 절기로 끊어서`);
+      const m = baseMonthly[0];
+      if (m) {
+        contents.push(`예: ${m.from} ${m.termName}부터 ${m.pillar} — ${m.stemGod}/${m.branchGod}, ${m.favor}`);
+      }
     }
     /*
      * 여덟 주제를 다 받는 상품은 그것이 값의 근거다.

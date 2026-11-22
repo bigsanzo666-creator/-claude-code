@@ -24,7 +24,7 @@ import { INVITE_DISCOUNT_KRW, INVITE_MIN_ORDER_KRW, INVITE_REWARD_DAYS, INVITE_R
 import { type BusinessInfo, show } from './business.ts';
 import { PLACES } from '../../saju-rules/src/index.ts';
 import { renderSocialHead } from './social.ts';
-import { FONT_LINK, PRODUCTS_CSS } from './products.ts';
+import { FONT_LINK, PRODUCTS_CSS, resolveProductCopy } from './products.ts';
 import { renderInviteBadge, REFERRAL_BADGE_CSS } from './referral-badge.ts';
 import { isLaunchSale, getPromoName, type Product } from '../../commerce/src/catalog.ts';
 import { WITHDRAWAL_WINDOW_DAYS, DELIVERY_DUE_DAYS } from '../../commerce/src/refund.ts';
@@ -2410,11 +2410,11 @@ export function renderCheckoutPage(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-${renderSocialHead(info, {
-    title: `${product.name} 결제 — ${site}`,
-    description: product.description,
-    path: `/checkout?product=${encodeURIComponent(product.id)}`,
-  })}
+${(() => { const p = resolveProductCopy(product); return renderSocialHead(info, {
+    title: `${p.name} 결제 — ${site}`,
+    description: p.description,
+    path: `/checkout?product=${encodeURIComponent(p.id)}`,
+  }); })()}
 ${FONT_LINK}
 <style>
 :root{color-scheme:dark}
@@ -2459,8 +2459,8 @@ ${isPhotoProduct ? `<script>
     <div class="co-what-head">
       <img class="co-img" src="/img/products/${encodeURIComponent(product.id)}" alt="" onerror="this.style.display='none'">
       <div class="co-what-info">
-        <h1 class="co-name">${esc(product.name)}</h1>
-        <p class="co-hook">${esc(product.description)}</p>
+        <h1 class="co-name">${esc(resolveProductCopy(product).name)}</h1>
+        <p class="co-hook">${esc(resolveProductCopy(product).description)}</p>
       </div>
     </div>
     <div class="co-price"><b>${price}원</b><span>부가세 포함</span></div>

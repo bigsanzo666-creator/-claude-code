@@ -71,6 +71,17 @@ export function isLaunchSale(): boolean {
   return isPromoEnabled();
 }
 
+/**
+ * 신년운세 기준 해 (한국 시간 12월 1일 0시부터 다음 해 기준).
+ * 1월~11월은 그해, 12월 1일 0시 KST부터는 다음 해를 돌려준다.
+ */
+export function newyearTargetYear(nowMs?: number): number {
+  const kst = new Date((nowMs ?? 지금()) + 9 * 3600_000);
+  const year = kst.getUTCFullYear();
+  const month = kst.getUTCMonth() + 1;
+  return month === 12 ? year + 1 : year;
+}
+
 /** 지금 파는 값 → 11월 1일부터 받을 값. 25% 올려 끝자리를 900으로 맞춘 것이다 */
 export const REGULAR_BY_LAUNCH: Record<number, number> = {
   1900: 2900,
