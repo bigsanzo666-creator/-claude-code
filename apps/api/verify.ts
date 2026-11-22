@@ -4881,9 +4881,9 @@ section('플랫폼 도메인 인증 자리 4종 및 4개 플랫폼 UTM 분리 �
   }
 }
 
-// ─── 수능달 기념 할인 통합 검증 (BIG-33: 첫 화면 · 결제 · 픽셀 · 퍼널) ───────────
+// ─── 새해 맞이 할인 통합 검증 (BIG-33: 첫 화면 · 결제 · 픽셀 · 퍼널) ───────────
 {
-  section('수능달 기념 할인 통합 검증 (BIG-33)');
+  section('새해 맞이 할인 통합 검증 (BIG-33)');
   const origEnabled = process.env.PROMO_ENABLED;
   const origName = process.env.PROMO_NAME;
   const origPixel = process.env.META_PIXEL_ID;
@@ -4897,7 +4897,7 @@ section('플랫폼 도메인 인증 자리 4종 및 4개 플랫폼 UTM 분리 �
     business,
     referrals,
     checkoutKeys: { storeId: 'store_big33', channelKey: 'channel_big33' },
-    generate: async () => ({ text: '수능달 기념 테스트 리포트 본문입니다.' }),
+    generate: async () => ({ text: '새해 맞이 테스트 리포트 본문입니다.' }),
   }));
   await new Promise<void>((r) => s33.listen(0, r));
   const p33 = (s33.address() as { port: number }).port;
@@ -4910,17 +4910,17 @@ section('플랫폼 도메인 인증 자리 4종 및 4개 플랫폼 UTM 분리 �
     process.env.META_PIXEL_ID = '999888777';
     process.env.ADMIN_TOKEN = 'big33_admin_token';
 
-    // 1. 기본 상태(수능달 기념 켜짐): 첫 화면 배너·결제 화면 할인가(34,900원)·픽셀 InitiateCheckout 금액 일치, 오픈/11월 1일 문구 없음
+    // 1. 기본 상태(새해 맞이 켜짐): 첫 화면 배너·결제 화면 할인가(34,900원)·픽셀 InitiateCheckout 금액 일치, 오픈/11월 1일 문구 없음
     const homeOnHtml = await (await fetch(`${b33}/`)).text();
     const coOnHtml = await (await fetch(`${b33}/checkout?product=saju-report`)).text();
-    check('첫 화면 배너에 「수능달 기념 — 최대 44% 할인 중」이 나오고 「오픈」·「11월 1일」 문구가 없다',
-      homeOnHtml.includes('수능달 기념 — <b class="nb-launch-banner-hit">최대 44% 할인 중</b>') &&
+    check('첫 화면 배너에 「새해 맞이 — 최대 44% 할인 중」이 나오고 「오픈」·「11월 1일」 문구가 없다',
+      homeOnHtml.includes('새해 맞이 — <b class="nb-launch-banner-hit">최대 44% 할인 중</b>') &&
       !homeOnHtml.includes('오픈') &&
       !homeOnHtml.includes('11월 1일'));
 
-    check('결제 화면(saju-report)에 할인가 34,900원과 「수능달 기념 할인가입니다」가 나오고 메타 픽셀 InitiateCheckout 에 34900 이 전달된다',
+    check('결제 화면(saju-report)에 할인가 34,900원과 「새해 맞이 할인가입니다」가 나오고 메타 픽셀 InitiateCheckout 에 34900 이 전달된다',
       coOnHtml.includes('<b>34,900원</b>') &&
-      coOnHtml.includes('수능달 기념 할인가입니다.') &&
+      coOnHtml.includes('새해 맞이 할인가입니다.') &&
       coOnHtml.includes('__NB_META_CHECKOUT__("사주 종합 리포트", 34900)') &&
       !coOnHtml.includes('오픈') &&
       !coOnHtml.includes('11월 1일'));

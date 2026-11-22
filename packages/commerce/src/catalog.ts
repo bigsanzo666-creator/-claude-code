@@ -36,7 +36,7 @@
  */
 const LAUNCH_END_MS = Date.UTC(2026, 9, 31, 15, 0, 0);
 
-export const DEFAULT_PROMO_NAME = '수능달 기념';
+export const DEFAULT_PROMO_NAME = '새해 맞이';
 
 /**
  * 할인 행사 켜짐 여부 (`PROMO_ENABLED` 환경 변수).
@@ -50,7 +50,7 @@ export function isPromoEnabled(env: Record<string, string | undefined> = process
 
 /**
  * 화면에 표시할 할인 행사 이름 (`PROMO_NAME` 환경 변수).
- * 기본값은 `'수능달 기념'`.
+ * 기본값은 `'새해 맞이'` (2026-11-22 사장님 결정, 수능이 끝나 이름만 바꿈).
  */
 export function getPromoName(env: Record<string, string | undefined> = process.env): string {
   const raw = (env.PROMO_NAME ?? '').trim();

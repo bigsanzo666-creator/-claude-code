@@ -2097,9 +2097,9 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
     sampleReport.bySource.find((r) => r.key === 'youtube')?.freeReadings === 1);
 }
 
-// ─── 수능달 기념 할인 문구·이름 변경·마감일 제거 검증 (BIG-33) ───────────
+// ─── 새해 맞이 할인 문구·이름 변경·마감일 제거 검증 (BIG-33) ───────────
 {
-  section('수능달 기념 할인 문구·이름 변경·마감일 제거 검증 (BIG-33)');
+  section('새해 맞이 할인 문구·이름 변경·마감일 제거 검증 (BIG-33)');
   const origEnabled = process.env.PROMO_ENABLED;
   const origName = process.env.PROMO_NAME;
   try {
@@ -2112,10 +2112,10 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
     const allCheckouts = Object.values(CATALOG).map((p) => renderCheckoutPage(full, '', p, { storeId: 's', channelKey: 'c' })).join('\n');
     const combinedDefault = `${listHtml}\n${allDetails}\n${allCheckouts}`;
 
-    check('기본 할인(수능달 기념) 상태에서 상품 목록·상세·결제 화면에 「수능달 기념」이 표시된다',
-      listHtml.includes('수능달 기념 할인가') &&
-      allDetails.includes('수능달 기념 — 지금') &&
-      allCheckouts.includes('수능달 기념 할인가입니다.'));
+    check('기본 할인(새해 맞이) 상태에서 상품 목록·상세·결제 화면에 「새해 맞이」이 표시된다',
+      listHtml.includes('새해 맞이 할인가') &&
+      allDetails.includes('새해 맞이 — 지금') &&
+      allCheckouts.includes('새해 맞이 할인가입니다.'));
 
     check('어느 상품 목록·상세·결제 화면에도 「오픈」 글자나 「11월 1일」 마감 날짜가 남아 있지 않다',
       !combinedDefault.includes('오픈') &&
@@ -2127,12 +2127,12 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
     const customCheckout = renderCheckoutPage(full, '', CATALOG['saju-report'], { storeId: 's', channelKey: 'c' });
     const combinedCustom = `${customList}\n${customDetail}\n${customCheckout}`;
 
-    check('PROMO_NAME 을 다른 이름(겨울맞이 특가)으로 바꾸면 화면 문구가 모두 바뀌고 「오픈」·「수능달 기념」은 남지 않는다',
+    check('PROMO_NAME 을 다른 이름(겨울맞이 특가)으로 바꾸면 화면 문구가 모두 바뀌고 「오픈」·「새해 맞이」은 남지 않는다',
       customList.includes('겨울맞이 특가 할인가') &&
       customDetail.includes('겨울맞이 특가 — 지금 25% 싸게 드립니다') &&
       customCheckout.includes('겨울맞이 특가 할인가입니다.') &&
       !combinedCustom.includes('오픈') &&
-      !combinedCustom.includes('수능달 기념'));
+      !combinedCustom.includes('새해 맞이'));
 
     process.env.PROMO_ENABLED = 'false';
     const offList = renderProductsPage(full, true, '');

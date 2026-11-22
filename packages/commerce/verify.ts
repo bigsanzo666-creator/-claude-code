@@ -818,7 +818,7 @@ section('K. 광고 유입 추적(UTM) — 처음 들어온 광고 기준 7일 �
 }
 
 // ── L. 할인 행사 다시 켜기 (BIG-33: PROMO_ENABLED · PROMO_NAME · 끝나는 날 없음) ──
-section('L. 할인 행사 다시 켜기 — 오픈 특가와 같은 할인율, 이름만 「수능달 기념」, 끝나는 날 없음');
+section('L. 할인 행사 다시 켜기 — 오픈 특가와 같은 할인율, 이름만 「새해 맞이」, 끝나는 날 없음');
 {
   const PINNED_LAUNCH_PRODUCTS: Record<string, number> = {
     'charm-report': 24900,
@@ -883,8 +883,8 @@ section('L. 할인 행사 다시 켜기 — 오픈 특가와 같은 할인율, �
     delete process.env.PROMO_ENABLED;
     delete process.env.PROMO_NAME;
 
-    check('기본값에서 PROMO_ENABLED 는 켜짐(true)이고 PROMO_NAME 은 「수능달 기념」이다',
-      isPromoEnabled() === true && isLaunchSale() === true && getPromoName() === '수능달 기념' && DEFAULT_PROMO_NAME === '수능달 기념');
+    check('기본값에서 PROMO_ENABLED 는 켜짐(true)이고 PROMO_NAME 은 「새해 맞이」이다',
+      isPromoEnabled() === true && isLaunchSale() === true && getPromoName() === '새해 맞이' && DEFAULT_PROMO_NAME === '새해 맞이');
 
     const all34MatchLaunch = Object.keys(CATALOG).length === 34 &&
       Object.entries(PINNED_LAUNCH_PRODUCTS).every(([id, expected]) => CATALOG[id as keyof typeof CATALOG]?.priceKrw === expected);
