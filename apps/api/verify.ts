@@ -5066,6 +5066,46 @@ section('신년운세 12월 기준 해 전환 검증 (BIG-36)');
 }
 
 
+/*
+ * 첫 화면 뷰어 묶음이 **브라우저에서** 값(priceKrw)을 읽어도 죽지 않는가.
+ *
+ * 터진 뒤에 적은 것 (2026-11-23): catalog.ts 가 `process.env` 를 그대로 읽어, 브라우저에서
+ * 「process is not defined」로 첫 화면의 사는 칸(값·결제 단추·묶음)이 죽었다.
+ * 이 파일의 다른 검사는 전부 Node 에서 돌아 `process` 가 늘 있었다 — 그래서 못 봤다.
+ * 여기서는 `process` 가 **없는** 상자에서 실제 묶음을 돌려 본다.
+ */
+section('첫 화면 뷰어 묶음 — process 없는 브라우저 상자에서 값 읽기');
+{
+  const { execFileSync } = await import('node:child_process');
+  const vm = await import('node:vm');
+  const viewerDir = new URL('../manse-viewer/', import.meta.url);
+  execFileSync(process.execPath, [fileURLToPath(new URL('build.mjs', viewerDir))], { stdio: 'ignore' });
+  const html = readFileSync(new URL('index.html', viewerDir), 'utf8');
+  const start = html.indexOf('var MS=');
+  const code = start >= 0 ? html.slice(start, html.indexOf('</script>', start)) : '';
+  check('뷰어 묶음(var MS=)을 찾았다', code.length > 1000);
+  const 값을읽는다 = (sale: boolean): { price: number; regular: number } | string => {
+    const box: Record<string, unknown> = { __IS_LAUNCH_SALE__: sale, __PROMO_NAME__: '새해 맞이' };
+    box.globalThis = box; box.window = box; box.self = box;
+    vm.createContext(box);
+    try {
+      vm.runInContext(`${code};globalThis.MS=MS;`, box);
+      const w = (box.MS as any).CATALOG['wealth-report'];
+      return { price: w.priceKrw, regular: w.regularKrw };
+    } catch (e) {
+      return (e as Error).message;
+    }
+  };
+  const 켜짐 = 값을읽는다(true);
+  const 꺼짐 = 값을읽는다(false);
+  check('process 가 없는 상자에서도 값을 읽을 때 죽지 않는다',
+    typeof 켜짐 === 'object' && typeof 꺼짐 === 'object', `켜짐: ${JSON.stringify(켜짐)} · 꺼짐: ${JSON.stringify(꺼짐)}`);
+  check('브라우저 값은 서버가 심은 __IS_LAUNCH_SALE__ 을 따른다 (켜짐이면 할인가, 꺼짐이면 정가)',
+    typeof 켜짐 === 'object' && typeof 꺼짐 === 'object' &&
+    켜짐.price === CATALOG['wealth-report'].priceKrw && 꺼짐.price === 꺼짐.regular && 켜짐.price < 꺼짐.price,
+    `켜짐 ${JSON.stringify(켜짐)} · 꺼짐 ${JSON.stringify(꺼짐)}`);
+}
+
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
 console.log('전부 통과.');

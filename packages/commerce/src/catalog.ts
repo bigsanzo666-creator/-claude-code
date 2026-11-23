@@ -38,11 +38,27 @@ const LAUNCH_END_MS = Date.UTC(2026, 9, 31, 15, 0, 0);
 
 export const DEFAULT_PROMO_NAME = '새해 맞이';
 
+/*
+ * 터진 뒤에 적은 것 (2026-11-23): 이 파일은 첫 화면 만세력 뷰어(브라우저)에도 묶여 들어간다.
+ * BIG-33 이 `process.env` 를 그대로 읽어, 브라우저에서 값(priceKrw)을 읽는 순간
+ * 「process is not defined」로 첫 화면의 사는 칸(값·결제 단추·묶음)이 죽었다.
+ * 서버 검사는 Node 에서 돌아 이 사고를 못 봤다.
+ * 브라우저에서는 서버가 심어 둔 `window.__IS_LAUNCH_SALE__`·`window.__PROMO_NAME__` 을 따른다.
+ */
+function promoEnv(): Record<string, string | undefined> {
+  if (typeof process !== 'undefined' && process && process.env) return process.env;
+  const g = globalThis as { __IS_LAUNCH_SALE__?: boolean; __PROMO_NAME__?: string };
+  return {
+    PROMO_ENABLED: g.__IS_LAUNCH_SALE__ === false ? 'false' : undefined,
+    PROMO_NAME: typeof g.__PROMO_NAME__ === 'string' ? g.__PROMO_NAME__ : undefined,
+  };
+}
+
 /**
  * 할인 행사 켜짐 여부 (`PROMO_ENABLED` 환경 변수).
  * 기본값은 켜짐(`true`)이며, `'false'`·`'0'`·`'off'`·`'no'` 일 때만 꺼진다.
  */
-export function isPromoEnabled(env: Record<string, string | undefined> = process.env): boolean {
+export function isPromoEnabled(env: Record<string, string | undefined> = promoEnv()): boolean {
   const raw = (env.PROMO_ENABLED ?? '').trim().toLowerCase();
   if (!raw) return true;
   return !['false', '0', 'off', 'no'].includes(raw);
@@ -52,7 +68,7 @@ export function isPromoEnabled(env: Record<string, string | undefined> = process
  * 화면에 표시할 할인 행사 이름 (`PROMO_NAME` 환경 변수).
  * 기본값은 `'새해 맞이'` (2026-11-22 사장님 결정, 수능이 끝나 이름만 바꿈).
  */
-export function getPromoName(env: Record<string, string | undefined> = process.env): string {
+export function getPromoName(env: Record<string, string | undefined> = promoEnv()): string {
   const raw = (env.PROMO_NAME ?? '').trim();
   return raw || DEFAULT_PROMO_NAME;
 }
@@ -65,7 +81,7 @@ export function 시각을바꾼다(f: (() => number) | null): void {
 
 /** 할인 행사(기념가) 적용 중인가 */
 export function isLaunchSale(): boolean {
-  const raw = (process.env.PROMO_ENABLED ?? '').trim().toLowerCase();
+  const raw = (promoEnv().PROMO_ENABLED ?? '').trim().toLowerCase();
   if (['false', '0', 'off', 'no'].includes(raw)) return false;
   if (지금 !== null) return 지금() < LAUNCH_END_MS;
   return isPromoEnabled();
