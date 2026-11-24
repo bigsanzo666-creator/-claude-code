@@ -1930,6 +1930,46 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
   check('금기어 방어: 지키면 복이 오고 어기면 해롭다는 단정 표현 없음',
     !normalHtml.includes('지키면 복이 오고 어기면 해롭다'));
 
+  /*
+   * 터진 뒤에 적은 것 (2026-11-24): 89,900원 작명서에 「일간은 [object Object]이며」와
+   * 「덜어낼 기운:  []」 가 손님 눈에 찍혔다. 위 검사들은 제목 글자만 보고 지나갔다.
+   * 피할 기운이 있는 명식과 없는 명식을 둘 다 그려, 화면 글자에 깨진 값이 없는지 본다.
+   */
+  const { calculate: calcMs } = await import('../manseryeok/src/index.ts');
+  const { analyze: analyzeMs } = await import('../saju-rules/src/index.ts');
+  let withAvoid: string | null = null;
+  let noAvoid: string | null = null;
+  for (let i = 0; i < 400 && (!withAvoid || !noAvoid); i++) {
+    const d = new Date(Date.UTC(2024, 0, 1) + i * 86400_000).toISOString().slice(0, 10);
+    const a = analyzeMs(calcMs({ date: d, time: '14:30' }), '남');
+    if (a.yongsin.avoid.length && !withAvoid) withAvoid = d;
+    if (!a.yongsin.avoid.length && !noAvoid) noAvoid = d;
+  }
+  check('검사용 명식을 찾았다 — 피할 기운이 있는 날과 없는 날', Boolean(withAvoid && noAvoid), `${withAvoid} / ${noAvoid}`);
+  const visibleText = (html: string) => html
+    .replace(/<script[\s\S]*?<\/script>/g, ' ')
+    .replace(/<style[\s\S]*?<\/style>/g, ' ')
+    .replace(/<[^>]+>/g, ' ');
+  for (const [label, d] of [['피할 기운 있음', withAvoid], ['피할 기운 없음', noAvoid]] as const) {
+    if (!d) continue;
+    const html = renderNamingCertificatePage({
+      business: full, orderId: 'ord_test_cert_' + d, childName: '김도윤', childHanja: '金度沇',
+      gender: '남', birthDate: d, birthTime: '14:30', dateUnknown: false,
+    });
+    const text = visibleText(html);
+    const broken = ['[object', '[]', 'undefined', 'null', 'NaN'].filter((w) => text.includes(w));
+    check(`작명서(${label}) 화면 글자에 깨진 값이 없다`, broken.length === 0, broken.join(', '));
+    check(`작명서(${label}) 일간을 「기토(己土)」처럼 사람이 읽는 말로 적는다`,
+      /일간은 [갑을병정무기경신임계][목화토금수]\([甲乙丙丁戊己庚辛壬癸][木火土金水]\)이며/.test(text));
+    check(`작명서(${label}) 오행 막대 안에 글씨를 넣지 않는다 (짧은 막대에서 겹침)`,
+      (html.match(/class="cert-bar-fill /g) ?? []).length === 5 &&
+      (html.match(/class="cert-bar-fill [^"]*" style="[^"]*"><\/div>/g) ?? []).length === 5);
+    if (d === noAvoid) {
+      check('피할 기운이 없으면 「특별히 덜어낼 기운은 없습니다」로 적는다',
+        text.includes('특별히 덜어낼 기운은 없습니다'));
+    }
+  }
+
   // 7단계 날짜 없는 작명서
   const unknownHtml = renderNamingCertificatePage({
     business: full,

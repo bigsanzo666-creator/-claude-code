@@ -715,9 +715,7 @@ html, body {
               <div class="cert-bar-row">
                 <span class="cert-bar-name">${w.element} (${colName})</span>
                 <div class="cert-bar-track">
-                  <div class="cert-bar-fill ${elClass}" style="width: ${Math.min(100, Math.max(8, w.weight))}%">
-                    ${w.element} ${w.weight}%
-                  </div>
+                  <div class="cert-bar-fill ${elClass}" style="width: ${Math.min(100, Math.max(2, w.weight))}%"></div>
                 </div>
                 <span class="cert-bar-num">${w.weight}%</span>
               </div>`;
@@ -727,8 +725,8 @@ html, body {
 
         <!-- 필요한 기운과 덜어낼 기운 -->
         <div class="cert-energy-box">
-          <div><strong>필요한 기운:</strong> ${wantElements.map((e) => `${e}(${elementNameText(e)})`).join(', ')} [${an?.yongsin.primary.join(', ')}]</div>
-          <div><strong>덜어낼 기운:</strong> ${avoidElements.map((e) => `${e}(${elementNameText(e)})`).join(', ')} [${an?.yongsin.avoid.join(', ')}]</div>
+          <div><strong>필요한 기운:</strong> ${energyLine(wantElements, an?.yongsin.primary ?? [], '한쪽으로 크게 보탤 기운 없이 고른 편입니다')}</div>
+          <div><strong>덜어낼 기운:</strong> ${energyLine(avoidElements, an?.yongsin.avoid ?? [], '특별히 덜어낼 기운은 없습니다')}</div>
           <div><strong>판단 까닭:</strong> ${esc(an?.yongsin.reasoning || '-')}</div>
           <div><strong>유파 관점:</strong> ${esc(an?.yongsin.school || '-')}</div>
         </div>
@@ -979,7 +977,7 @@ function renderFourPillarsTable(ms: Myeongsik | null): string {
 
 function renderTraitsAndBasis(an: Analysis): string {
   const lines: string[] = [];
-  lines.push(`• <strong>일간의 기운</strong>: 일간은 ${an.dayMaster}이며, 기운의 강약은 ${an.strength.verdict}(${an.strength.supportRatio}%)입니다.`);
+  lines.push(`• <strong>일간의 기운</strong>: 일간은 ${esc(dayMasterText(an))}이며, 기운의 강약은 ${esc(an.strength.verdict)}(${an.strength.supportRatio}%)입니다.`);
   for (const r of an.strength.reasoning) {
     lines.push(`• ${esc(r)}`);
   }
@@ -988,6 +986,36 @@ function renderTraitsAndBasis(an: Analysis): string {
     lines.push(`• <strong>성향 축 [${esc(s.axis)}]</strong>: ${esc(s.evidence)}`);
   }
   return lines.join('<br>');
+}
+
+const ELEMENT_HANJA: Record<string, string> = { 목: '木', 화: '火', 토: '土', 금: '金', 수: '水' };
+const STEM_HANJA: Record<string, string> = {
+  갑: '甲', 을: '乙', 병: '丙', 정: '丁', 무: '戊', 기: '己', 경: '庚', 신: '辛', 임: '壬', 계: '癸',
+};
+
+/**
+ * 터진 뒤에 적은 것 (2026-11-24): `dayMaster` 는 `{ stem, element, yinYang }` 객체다.
+ * 그대로 문장에 넣어 손님 작명서에 「일간은 [object Object]이며」가 찍혔다.
+ * 「기토(己土)」처럼 사람이 읽는 말로만 내보낸다.
+ */
+export function dayMasterText(an: Pick<Analysis, 'dayMaster'>): string {
+  const dm = an.dayMaster as { stem?: string; element?: string } | string;
+  if (typeof dm === 'string') return dm;
+  const stem = dm?.stem ?? '';
+  const el = dm?.element ?? '';
+  const hanja = `${STEM_HANJA[stem] ?? ''}${ELEMENT_HANJA[el] ?? ''}`;
+  return `${stem}${el}${hanja ? `(${hanja})` : ''}`;
+}
+
+/**
+ * 터진 뒤에 적은 것 (2026-11-24): 피할 갈래가 없는 명식에서 「덜어낼 기운:  []」 처럼
+ * 빈 칸과 대괄호가 손님에게 찍혔다. 비면 쉬운 말 한 줄로 대신한다.
+ */
+export function energyLine(elements: string[], groups: string[], whenEmpty: string): string {
+  if (!elements.length) return esc(whenEmpty);
+  const els = elements.map((e) => `${e}(${elementNameText(e)})`).join(' · ');
+  const gs = groups.filter(Boolean);
+  return esc(gs.length ? `${els} — ${gs.join('·')} 쪽 기운` : els);
 }
 
 function elementNameText(el: string): string {

@@ -5116,6 +5116,37 @@ section('첫 화면 뷰어 묶음 — process 없는 브라우저 상자에서 �
     `켜짐 ${JSON.stringify(켜짐)} · 꺼짐 ${JSON.stringify(꺼짐)}`);
 }
 
+/*
+ * 터진 뒤에 적은 것 (2026-11-24): 작명 결제 전 미리보기 예시가 「네 자리 획수가 모두 길하게
+ * 서는 짝만 골라」라고 약속하면서, 정작 예시 이름(김도윤 金度玧)은 정격 26획 「중」이었다.
+ * 실제 작명은 네 격이 다 길한 짝만 고르므로(goodPairs), 예시가 실제로는 나올 수 없는 이름을
+ * 보여준 셈이다. 예시 속 이름과 획수 문장을 실제 계산에 대어 본다.
+ */
+{
+  section('작명 미리보기 예시 — 예시 이름이 실제 작명 규칙을 통과하는가');
+  const { sampleFor } = await import('./src/preview.ts');
+  const { hanja: 한자, readFrames: 네격, hanjaLegalReading: 인명용 } = await import('../../packages/naming/src/index.ts');
+  const 예시 = sampleFor('naming-report');
+  const m = 예시.match(/\*\*하나\. (\S+) (\S+)\*\*/);
+  check('예시에서 첫째 이름(한글·한자)을 찾았다', Boolean(m), m ? `${m[1]} ${m[2]}` : '');
+  if (m) {
+    const 소리 = [...m[1]!];
+    const 글자 = [...m[2]!];
+    const 획 = 글자.map((c) => 한자(c)?.strokes ?? 0);
+    const f = 네격([획[0]!], 획.slice(1));
+    check('예시 이름의 네 격(원·형·이·정)이 모두 길이다 — 예시 문장의 약속과 같다',
+      f.allGood && 예시.includes('네 자리 획수가 모두 길하게'),
+      `원${f.won} 형${f.hyeong} 이${f.i} 정${f.jeong}`);
+    check('예시 이름의 획수가 음양으로 고루 섞였다 (실제 작명이 고르는 조건)', f.yinYangMixed);
+    check('예시 이름의 이름 글자가 모두 그 소리로 인명용 한자다',
+      글자.slice(1).every((c, i) => 인명용(c, 소리[i + 1]!)));
+    const 숫자 = 예시.match(/초년운 (\d+)획과 장년운 (\d+)획/);
+    check('예시가 말하는 초년운·장년운 획수가 실제 원격·이격과 같다',
+      Boolean(숫자) && Number(숫자![1]) === f.won && Number(숫자![2]) === f.i,
+      숫자 ? `예시 ${숫자[1]}·${숫자[2]} / 실제 ${f.won}·${f.i}` : '문장 없음');
+  }
+}
+
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
 console.log('전부 통과.');
