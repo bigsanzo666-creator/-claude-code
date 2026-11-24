@@ -88,8 +88,11 @@ export function isLaunchSale(): boolean {
 }
 
 /**
- * 신년운세 기준 해 (한국 시간 12월 1일 0시부터 다음 해 기준).
- * 1월~11월은 그해, 12월 1일 0시 KST부터는 다음 해를 돌려준다.
+ * 신년운세 기준 해 (한국 시간 11월 1일 0시부터 다음 해 기준).
+ * 1월~10월은 그해, 11월 1일 0시 KST부터는 다음 해를 돌려준다.
+ *
+ * 2026-11-24 사장님 결정: 12월까지 기다리지 말고 바로 2027년으로 판다.
+ * 신년운세를 찾는 사람은 11월부터 늘고, 그때 사는 사람이 궁금한 것은 끝나 가는 올해가 아니라 다음 해다.
  */
 export function newyearTargetYear(nowMs?: number): number {
   // 터진 뒤에 적은 것 (2026-11-22): BIG-33 이 「지금」을 기본 null 로 바꿨는데 이 줄은 함수라고 믿고 불러
@@ -97,7 +100,7 @@ export function newyearTargetYear(nowMs?: number): number {
   const kst = new Date((nowMs ?? (지금 ? 지금() : Date.now())) + 9 * 3600_000);
   const year = kst.getUTCFullYear();
   const month = kst.getUTCMonth() + 1;
-  return month === 12 ? year + 1 : year;
+  return month >= 11 ? year + 1 : year;
 }
 
 /** 지금 파는 값 → 11월 1일부터 받을 값. 25% 올려 끝자리를 900으로 맞춘 것이다 */

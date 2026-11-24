@@ -12,7 +12,7 @@ function newyearMeta() {
   return { y, g, ny, ng };
 }
 
-/** 기준 해(12월 1일 KST부터 다음 해)에 맞춘 상품 이름·설명·훅 */
+/** 기준 해(11월 1일 KST부터 다음 해)에 맞춘 상품 이름·설명·훅 */
 export function resolveProductCopy(product: Product): Product {
   if (product.id !== 'newyear-report') return product;
   const { y, g } = newyearMeta();
