@@ -29,7 +29,7 @@ RUN set -eu; \
     done
 
 # 뷰어 번들 생성 → apps/manse-viewer/index.html
-RUN node apps/manse-viewer/build.mjs
+RUN node --experimental-strip-types apps/manse-viewer/build.mjs
 
 FROM node:22-slim
 WORKDIR /app

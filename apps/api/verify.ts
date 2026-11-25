@@ -5089,7 +5089,7 @@ section('첫 화면 뷰어 묶음 — process 없는 브라우저 상자에서 �
   const { execFileSync } = await import('node:child_process');
   const vm = await import('node:vm');
   const viewerDir = new URL('../manse-viewer/', import.meta.url);
-  execFileSync(process.execPath, [fileURLToPath(new URL('build.mjs', viewerDir))], { stdio: 'ignore' });
+  execFileSync(process.execPath, ['--experimental-strip-types', fileURLToPath(new URL('build.mjs', viewerDir))], { stdio: 'ignore' });
   const html = readFileSync(new URL('index.html', viewerDir), 'utf8');
   const start = html.indexOf('var MS=');
   const code = start >= 0 ? html.slice(start, html.indexOf('</script>', start)) : '';

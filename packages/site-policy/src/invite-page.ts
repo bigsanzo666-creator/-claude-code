@@ -40,7 +40,9 @@ const INVITE_PAGE_CSS = `
 .iv-progress-head { display: flex; justify-content: space-between; font-size: 13.5px; color: #e4dfea; margin-bottom: 8px; font-weight: 700; }
 .iv-progress-track { position: relative; height: 10px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden; }
 .iv-progress-fill { height: 100%; background: linear-gradient(90deg, #d4af37, #f6d878); border-radius: 999px; transition: width 0.35s ease; }
-.iv-progress-ticks { display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px; color: #8f889c; }
+.iv-progress-ticks { position: relative; height: 18px; margin-top: 6px; font-size: 11.5px; color: #8f889c; }
+.iv-progress-tick { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.iv-progress-tick.last { transform: translateX(-100%); }
 .iv-progress-tick.reached { color: #f6d878; font-weight: 800; }
 .iv-progress-tick.current { color: #4ade80; font-weight: 800; }
 .iv-stats { display: flex; justify-content: space-around; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 14px; margin-top: 14px; }
@@ -52,14 +54,19 @@ const INVITE_PAGE_CSS = `
 .iv-ladder-item.next-target { border: 1.5px solid #f0d478; background: rgba(212, 175, 55, 0.11); box-shadow: 0 0 16px rgba(212, 175, 55, 0.14); }
 .iv-tier-badge { display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 999px; font-size: 12px; font-weight: 800; vertical-align: middle; }
 .iv-tier-badge.done { background: rgba(74, 222, 128, 0.18); color: #4ade80; }
+.iv-tier-badge.reached { background: rgba(212, 175, 55, 0.22); color: #f3e5ab; }
 .iv-tier-badge.next { background: #d4af37; color: #18151f; }
 .iv-ladder-item.done { opacity: 0.7; }
-.iv-ladder-info { flex: 1; }
+.iv-ladder-info { flex: 1; min-width: 0; }
 .iv-ladder-tier { font-size: 14px; font-weight: 700; color: #d4af37; margin-bottom: 2px; }
 .iv-ladder-name { font-size: 15px; font-weight: 700; color: #efeaf4; margin-bottom: 4px; }
 .iv-ladder-desc { font-size: 14px; color: #a49cb2; line-height: 1.6; }
 .iv-ladder-status { font-size: 14px; color: #9fd8a8; margin-top: 4px; }
-.iv-act-btn { padding: 9px 16px; font-size: 15px; font-weight: 700; border-radius: 6px; border: 1px solid #d4af37; background: #d4af37; color: #18151f; cursor: pointer; white-space: nowrap; }
+.iv-act-btn { padding: 9px 16px; font-size: 15px; font-weight: 700; border-radius: 6px; border: 1px solid #d4af37; background: #d4af37; color: #18151f; cursor: pointer; white-space: normal; text-align: center; line-height: 1.35; }
+@media (max-width: 480px) {
+  .iv-ladder-item { flex-direction: column; align-items: stretch; }
+  .iv-act-btn { width: 100%; }
+}
 .iv-act-btn:disabled { background: rgba(255,255,255,0.1); border-color: transparent; color: #6b6478; cursor: not-allowed; }
 .iv-act-btn.applied { background: transparent; border-color: rgba(255,255,255,0.2); color: #c8c2d4; cursor: default; }
 .iv-law-note { margin-top: 32px; padding: 16px; background: rgba(0,0,0,0.3); border-radius: 8px; font-size: 14px; color: #8f889c; line-height: 1.85; }
@@ -297,11 +304,13 @@ ${footer}
     if(pRight) pRight.textContent = nextTier ? ('다음 보답까지 ' + (nextTier.tier - count) + '명') : '모든 단계 달성';
     if(pFill) pFill.style.width = Math.min(100, Math.round((count / maxTier) * 100)) + '%';
     if(pTicks){
-      pTicks.innerHTML = TIERS.map(function(t){
+      pTicks.innerHTML = TIERS.map(function(t, idx){
         var cls = 'iv-progress-tick';
+        if(idx === TIERS.length - 1) cls += ' last';
         if(count >= t.tier) cls += ' reached';
         else if(nextTier && t.tier === nextTier.tier) cls += ' current';
-        return '<span class="' + cls + '">' + t.tier + '명</span>';
+        var pct = Math.round((t.tier / maxTier) * 100);
+        return '<span class="' + cls + '" style="left:' + pct + '%">' + t.tier + '명</span>';
       }).join('');
     }
 
@@ -309,11 +318,21 @@ ${footer}
       var achieved = count >= item.tier;
       var isNextTarget = Boolean(nextTier && item.tier === nextTier.tier);
       var rew = rewardMap[item.tier];
+      var received = false;
+      if(item.tier === 1){
+        received = Boolean(rew && (rew.grantCount > 0 || rew.status === '내줌'));
+      }else if(item.tier === 3 || item.tier === 5){
+        received = Boolean(rew && (rew.status === '내줌' || (rew.usedCount || 0) > 0));
+      }else{
+        received = Boolean(rew && rew.status === '내줌');
+      }
       var div = document.createElement('div');
       div.className = 'iv-ladder-item' + (achieved ? ' active' : '') + (isNextTarget ? ' next-target' : '');
-      var badgeHtml = achieved
+      var badgeHtml = received
         ? '<span class="iv-tier-badge done">받음</span>'
-        : (isNextTarget ? '<span class="iv-tier-badge next">다음 보답</span>' : '');
+        : (achieved
+            ? '<span class="iv-tier-badge reached">달성</span>'
+            : (isNextTarget ? '<span class="iv-tier-badge next">다음 보답</span>' : ''));
 
       if(item.tier === 1){
         var grantCount = (rew && rew.grantCount != null) ? rew.grantCount : (rew ? 1 : 0);
