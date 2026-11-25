@@ -1536,6 +1536,11 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
 
   check('오늘·한 달 운세 상세페이지에 시:분 직접 넣는 칸이 있다', hasDailyDirectInput && hasMonthDirectInput);
 
+  // 사장님 결정 (2026-11-25): 가려진 시진 앞의 「여기서부터 안개」는 손님이 오류 문구로 읽을 수 있다.
+  // 재촉하지 않는 담백한 말로 바꾼다 — 「결제하시면 열립니다」도 결제 유도처럼 들려 쓰지 않는다.
+  check('오늘의 운세 미리보기 경계 문구가 「미리보기는 여기까지입니다」이다 (「여기서부터 안개」 없음)',
+    dailyHtml.includes('미리보기는 여기까지입니다') && !dailyHtml.includes('여기서부터 안개'));
+
   const dailySavesTimeKnown = dailyHtml.includes('timeKnown') &&
     dailyHtml.includes("productId: 'daily-report'") &&
     dailyHtml.includes('birth: { name, date, time: finalTime, timeKnown, place, gender }');

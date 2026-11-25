@@ -1052,7 +1052,7 @@ ${footer}
         '열두 시진을 하나씩 다 쟀습니다. 그중 <strong>유리하면서 부딪힘까지 없는</strong> 두 시간을 먼저 보여드립니다.' +
       '</p>' +
       '<div class="dp-hours-revealed">' + hoursRevealedHtml + '</div>' +
-      '<div class="dp-mist-divider">── 여기서부터 안개 ──────────────────</div>' +
+      '<div class="dp-mist-divider">── 미리보기는 여기까지입니다 ──</div>' +
       '<div class="dp-hours-mist-container">' +
         '<div class="dp-hours-foggy">' + hoursFoggyHtml + '</div>' +
         '<div class="dp-mist-scrim"></div>' +
@@ -1204,7 +1204,7 @@ export function renderDailyPreviewHtml(p: DailyPreviewData, product: Product): s
     <div class="dp-hours-revealed">
       ${hoursRevealedHtml}
     </div>
-    <div class="dp-mist-divider">── 여기서부터 안개 ──────────────────</div>
+    <div class="dp-mist-divider">── 미리보기는 여기까지입니다 ──</div>
     <div class="dp-hours-mist-container">
       <div class="dp-hours-foggy">
         ${hoursFoggyHtml}
