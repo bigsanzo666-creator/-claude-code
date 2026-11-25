@@ -5147,6 +5147,98 @@ section('첫 화면 뷰어 묶음 — process 없는 브라우저 상자에서 �
   }
 }
 
+/*
+ * 사장님 결정 (2026-11-25): 리포트 전문 메일을 「감정서」 모양으로.
+ * 비싼 다섯 상품은 표와 그림이 든 판, 나머지는 같은 표지에 풀이 전문만 담은 가벼운 판.
+ * 메일의 숫자는 리포트를 지을 때 쓴 계산과 같아야 하고, 무엇이 틀려도 메일은 나가야 한다.
+ */
+{
+  section('리포트 메일 — 감정서 판과 가벼운 판');
+  const { renderReportMail, PREMIUM_MAIL_PRODUCTS, namesFromText } = await import('./src/report-mail.ts');
+  const { buildPayload } = await import('./src/payload.ts');
+  const { NEUTRAL_FEATURES: 얼굴 } = await import('../../packages/physiognomy/src/index.ts');
+  const { NEUTRAL_PALM_FEATURES: 손 } = await import('../../packages/palmistry/src/index.ts');
+  const 글 = '첫 문단입니다. **굵은 말**이 있습니다.\n\n둘째 문단입니다.\n근거 · 시험용 근거';
+  const 사람 = { date: '1990-05-15', time: '14:30', gender: '여', place: '서울', name: '김늘봄', timeKnown: true };
+  const 상대 = { date: '1988-11-20', time: '09:15', gender: '남', place: '서울', name: '이도령', timeKnown: true };
+  const 입력: Record<string, any> = {
+    'pick-report': { birth: 사람, range: { from: '2027-04-21', to: '2027-04-30' }, pick: { dates: [], times: ['08:30', '10:30', '12:30', '14:30', '16:30'], place: '서울', longitude: 126.978 } },
+    'marriage-pick-report': { birth: 상대, partner: 사람, range: { from: '2027-03-01', to: '2027-04-30' } },
+    'naming-report': { birth: 사람, child: { date: '2027-04-30', time: '16:30', gender: '남', place: '서울' }, name: { surname: '김' } },
+    'naming-plus-report': { birth: 사람, child: { date: '2027-04-30', time: '16:30', gender: '여', place: '서울' }, name: { surname: '김' } },
+    'cross-report': { birth: 사람, face: { ...얼굴 }, palm: { ...손 } },
+  };
+  const 그리기 = (productId: string, reading: unknown, text = 글) => renderReportMail({
+    productId, productName: '시험 상품', orderId: 'ord_mail_test', reportText: text, reading,
+    actionsHtml: '<a href="#">리포트 바로보기</a>', footerHtml: '리포트 전문을 열람하신 뒤에는 청약철회가 제한됩니다.',
+  });
+  const 깨짐 = (html: string) => ['[object', 'undefined', 'NaN', '>null<'].filter((w) => html.includes(w));
+  const 메일금지 = (html: string) => ['<svg', 'display:flex', 'display:grid', '<style', '<script'].filter((w) => html.includes(w));
+
+  check('감정서 판은 정확히 다섯 상품이다 (작명·작명 플러스·제왕절개 택일·혼인 택일·삼합)',
+    [...PREMIUM_MAIL_PRODUCTS].sort().join(',') === ['cross-report', 'marriage-pick-report', 'naming-plus-report', 'naming-report', 'pick-report'].join(','));
+  for (const id of PREMIUM_MAIL_PRODUCTS) {
+    const r = 그리기(id, 입력[id]);
+    check(`${id}: 감정서 판으로 나간다`, r.premium, r.fellBack ?? '');
+    check(`${id}: 풀이 전문과 청약철회 안내가 빠지지 않는다`,
+      r.html.includes('첫 문단입니다.') && r.html.includes('둘째 문단입니다.') && r.html.includes('청약철회가 제한됩니다'));
+    check(`${id}: 깨진 값이 없다`, 깨짐(r.html).length === 0, 깨짐(r.html).join(', '));
+    check(`${id}: 메일 프로그램이 버리는 그림·배치를 쓰지 않는다`, 메일금지(r.html).length === 0, 메일금지(r.html).join(', '));
+  }
+
+  // 메일의 숫자 = 리포트 글이 받은 숫자
+  const 택일재료 = buildPayload({ ...입력['pick-report'], productId: 'pick-report' }) as any;
+  const 택일메일 = 그리기('pick-report', 입력['pick-report']).html;
+  const 일순위 = 택일재료.data.순위[0];
+  check('택일 메일의 1순위 점수·시간이 리포트 재료의 1순위와 같다',
+    택일메일.includes(`>${일순위.점수}<`) && 택일메일.includes(일순위.때),
+    `${일순위.날} ${일순위.때} ${일순위.점수}`);
+  const 혼인재료 = buildPayload({ ...입력['marriage-pick-report'], productId: 'marriage-pick-report' }) as any;
+  const 혼인메일 = 그리기('marriage-pick-report', 입력['marriage-pick-report']).html;
+  check('혼인 택일 메일의 가장 좋은 날 점수가 리포트 재료와 같다',
+    혼인메일.includes(`>${혼인재료.data.제일좋은날[0].점수}<`), String(혼인재료.data.제일좋은날[0].점수));
+
+  // 작명 — 이름은 글에서 찾고, 획수는 다시 잰다
+  const 작명글 = '**하나. 김도윤 金度沇**\n\n설명입니다.\n\n**둘. 김없음 金X**';
+  const 이름들 = namesFromText(작명글, '김');
+  check('작명: 글에서 지어 드린 이름을 찾고, 모르는 한자는 싣지 않는다',
+    이름들.length === 1 && 이름들[0]!.hanja === '金度沇', JSON.stringify(이름들));
+  const 작명메일 = 그리기('naming-report', 입력['naming-report'], 작명글).html;
+  check('작명: 이름 표의 네 격이 규칙으로 잰 값(17·17·16·25)이다',
+    ['>17<', '>16<', '>25<'].every((n) => 작명메일.includes(n)) && 작명메일.includes('네 격 모두 길'));
+  check('작명: 소리가 둘인 한자도 지은 소리와 다른 음을 찍지 않는다 (沇 → 「연」 없이)',
+    !작명메일.includes('물이름 연'));
+  check('작명: 적어 주신 것(성·꼭 넣을 글자·피할 글자)을 그대로 보여 준다',
+    작명메일.includes('적어 주신 것') && 작명메일.includes('꼭 넣을 글자') && 작명메일.includes('피할 글자'));
+  const 날짜없는작명 = 그리기('naming-plus-report', { birth: 사람, name: { surname: '김' } }, 작명글);
+  check('작명(날짜 없음): 감정서 판으로 나가되 사주 말(명식·대운·용신)과 여덟 글자 칸이 없다',
+    날짜없는작명.premium && !/명식|대운|용신/.test(날짜없는작명.html) && !날짜없는작명.html.includes('아이의 여덟 글자'),
+    날짜없는작명.fellBack ?? '');
+
+  // 가벼운 판
+  const 가벼운 = 그리기('wealth-report', { birth: 사람 });
+  check('싼 상품은 가벼운 판(표지 + 풀이 전문)으로 나간다',
+    !가벼운.premium && 가벼운.html.includes('풀이 전문') && 가벼운.html.includes('첫 문단입니다.') && !가벼운.html.includes('한눈에 보는 결론'));
+  check('가벼운 판도 깨진 값·메일 금지 배치가 없다', 깨짐(가벼운.html).length === 0 && 메일금지(가벼운.html).length === 0);
+  check('풀이 전문의 「근거 ·」 줄과 굵은 말에 모양이 붙는다',
+    가벼운.html.includes('근거 · 시험용 근거') && /<b style="[^"]*">굵은 말<\/b>/.test(가벼운.html));
+  check('글 속 꺾쇠는 그대로 찍히지 않고 바꿔 찍힌다', 그리기('wealth-report', null, '<script>x</script>').html.includes('&lt;script&gt;'));
+
+  // 무엇이 틀려도 메일은 나간다
+  let 안죽음 = true;
+  let 깨진입력: { premium: boolean; html: string; fellBack?: string } | null = null;
+  try { 깨진입력 = 그리기('pick-report', { birth: 사람, pick: { times: [] } }); } catch { 안죽음 = false; }
+  check('입력이 망가져도 throw 하지 않고 가벼운 판으로 풀이 전문을 보낸다',
+    안죽음 && Boolean(깨진입력) && !깨진입력!.premium && Boolean(깨진입력!.fellBack) && 깨진입력!.html.includes('첫 문단입니다.'));
+  let 입력없음 = true;
+  try { 그리기('cross-report', undefined); } catch { 입력없음 = false; }
+  check('입력값이 아예 없어도 throw 하지 않는다', 입력없음);
+
+  const 서버 = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'src', 'server.ts'), 'utf8');
+  check('리포트를 처음 열 때 메일에 상품 번호와 입력값을 넘긴다',
+    /void sendReportMail\(\{[\s\S]{0,400}?productId: viewed\.productId,[\s\S]{0,80}?reading: \(viewed as any\)\.reading/.test(서버));
+}
+
 console.log(`통과 ${passed} / 실패 ${failed}${skipped ? ` / 건너뜀 ${skipped}` : ''}  ·  모델 호출 ${generateCalls}회(가짜) · 실제 결제 0건`);
 if (failed) { console.log('\n실패 항목:'); for (const f of failures) console.log(`  - ${f}`); process.exit(1); }
 console.log('전부 통과.');

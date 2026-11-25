@@ -2702,6 +2702,8 @@ export function createApi(deps: ApiDeps) {
           orderId: viewed.id,
           productName: CATALOG[viewed.productId as keyof typeof CATALOG]?.name ?? viewed.productId,
           reportText: text,
+          productId: viewed.productId,
+          reading: (viewed as any).reading,
         }).then((r) => {
           if (!r.sent) console.log(`[메일] 리포트 전문 못 보냄 ${viewed.id}${r.reason ? ` (${r.reason})` : ''}`);
         }).catch(() => {});

@@ -5,6 +5,7 @@
  * 광고성 정보는 일절 포함하지 않으며, 주문 거래 정보(주문번호, 상품명, 열람 주소, 환불 규정, 사업자 정보)만 발송한다.
  */
 
+import { renderReportMail } from './report-mail.ts';
 import { WITHDRAWAL_WINDOW_DAYS } from '../../../packages/commerce/src/refund.ts';
 import { loadBusinessInfo } from '../../../packages/site-policy/src/business.ts';
 
@@ -133,6 +134,10 @@ async function sendOnce(
 export interface SendReportMailArgs extends SendOrderMailArgs {
   /** 리포트 전문. **열람한 뒤에만** 넘긴다 */
   reportText: string;
+  /** 상품 번호. 비싼 상품이면 표와 그림이 든 감정서 메일로 나간다 */
+  productId?: string;
+  /** 주문에 저장된 입력값. 감정서 칸을 리포트와 같은 계산으로 다시 그리는 데 쓴다 */
+  reading?: unknown;
 }
 
 /**
@@ -166,41 +171,34 @@ export async function sendReportMail(args: SendReportMailArgs): Promise<SendOrde
     const biz = loadBusinessInfo();
     const contact = biz.landline || biz.phone || biz.email || '';
 
-    // 글을 그대로 옮긴다. 「[[가림:…]]」 같은 표시는 메일에 나가지 않게 벗긴다
-    const 본문 = reportText
-      .replace(/\[\[가림:([\s\S]*?)\]\]/g, '$1')
-      .split(/\n{2,}/)
-      .map((para) => `<p style="margin:0 0 16px;font-size:15px;line-height:1.85;color:#1d1d1f;white-space:pre-wrap;">${esc(para.trim())}</p>`)
-      .join('');
-
     const subject = buildReportMailSubject(productName);
-    const html = `<!doctype html>
-<html lang="ko">
-<head><meta charset="utf-8"><title>[늘봄사주] ${esc(productName)}</title></head>
-<body style="margin:0;padding:24px 16px;background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Pretendard',sans-serif;color:#1d1d1f;line-height:1.7;">
-  <div style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e5e5ea;border-radius:12px;padding:32px 24px;">
-    <h1 style="font-size:20px;font-weight:700;margin:0 0 6px;color:#111111;">${esc(productName)}</h1>
-    <p style="margin:0 0 24px;font-size:13px;color:#86868b;">주문 번호 ${esc(orderId)}</p>
-    ${본문}
-    <div style="margin:24px 0 12px 0;">
-      <a href="${orderUrl}" style="display:inline-block;padding:12px 20px;background:#242426;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:600;">리포트 바로보기</a>
-    </div>
-    ${isNaming ? `
-    <div style="margin:0 0 12px 0;">
-      <a href="${certUrl}" style="display:inline-block;padding:12px 20px;background:#b78103;color:#ffffff;text-decoration:none;border-radius:6px;font-size:15px;font-weight:600;">작명서 보기</a>
-    </div>
-    <p style="margin:0 0 16px;font-size:13px;color:#86868b;word-break:break-all;">작명서 주소: <a href="${certUrl}" style="color:#0066cc;">${certUrl}</a></p>
-    ` : ''}
-    <div style="border-top:1px solid #e5e5ea;padding-top:16px;margin:24px 0 0;font-size:13px;color:#86868b;line-height:1.6;">
-      <p style="margin:0 0 12px;">사이트에서도 언제든 다시 보실 수 있습니다 — <a href="${orderUrl}" style="color:#0066cc;">${orderUrl}</a></p>
-      <p style="margin:0 0 12px;">리포트 전문을 열람하신 뒤에는 청약철회가 제한됩니다.</p>
-      <p style="margin:0;font-size:12px;color:#a1a1a6;">
-        ${esc(biz.companyName)} | 대표: ${esc(biz.representative)} | 사업자등록번호: ${esc(biz.registrationNumber)}${contact ? ` | 연락처: ${esc(contact)}` : ''}
-      </p>
-    </div>
-  </div>
-</body>
-</html>`;
+    /*
+     * 사장님 결정 (2026-11-25): 메일도 「있어 보여야」 한다.
+     * 모양은 report-mail.ts 가 짓고, 단추와 법적 안내는 여기서 정해 넘긴다.
+     * 모양을 짓다 무엇이 틀려도 report-mail.ts 는 풀이 전문만이라도 담아 돌려준다.
+     */
+    const actionsHtml = `
+      <a href="${orderUrl}" style="display:inline-block;padding:14px 26px;background:#1E2A4A;color:#F3EAD7;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;">리포트 바로보기</a>
+      ${isNaming ? `
+      <div style="margin:10px 0 0;">
+        <a href="${certUrl}" style="display:inline-block;padding:14px 26px;background:#B08D57;color:#ffffff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;">작명서 보기</a>
+      </div>
+      <p style="margin:8px 0 0;font-size:12px;color:#8A7F6C;word-break:break-all;">작명서 주소: <a href="${certUrl}" style="color:#3E5687;">${certUrl}</a></p>
+      ` : ''}
+      <p style="margin:10px 0 0;font-size:12px;color:#8A7F6C;word-break:break-all;">사이트에서도 언제든 다시 보실 수 있습니다 — <a href="${orderUrl}" style="color:#3E5687;">${orderUrl}</a></p>`;
+    const footerHtml = `리포트 전문을 열람하신 뒤에는 청약철회가 제한됩니다.<br>
+        ${esc(biz.companyName)} | 대표: ${esc(biz.representative)} | 사업자등록번호: ${esc(biz.registrationNumber)}${contact ? ` | 연락처: ${esc(contact)}` : ''}`;
+    const rendered = renderReportMail({
+      productId: args.productId,
+      productName,
+      orderId,
+      reportText,
+      reading: args.reading,
+      actionsHtml,
+      footerHtml,
+    });
+    if (rendered.fellBack) console.log(`[메일] 감정서 칸을 못 그려 가벼운 판으로 보냄 ${orderId} (${rendered.fellBack})`);
+    const html = rendered.html;
 
     const payload = { from, to: [to], subject, html };
     console.log(`[메일] 보내려 함 ${orderId} → ${to} (from=${from})`);
