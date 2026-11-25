@@ -11,6 +11,7 @@ import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { INVITE_DISCOUNT_KRW, INVITE_REWARD_NAME } from '../../packages/commerce/src/referral.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..', '..');
@@ -34,5 +35,9 @@ if (!template.includes(PLACEHOLDER)) {
 }
 
 const outPath = join(here, 'index.html');
-writeFileSync(outPath, template.replace(PLACEHOLDER, engine));
+const rendered = template
+  .replace(PLACEHOLDER, engine)
+  .replaceAll('__INVITE_DISCOUNT_KRW__', INVITE_DISCOUNT_KRW.toLocaleString('ko-KR'))
+  .replaceAll('__INVITE_REWARD_NAME__', INVITE_REWARD_NAME);
+writeFileSync(outPath, rendered);
 console.log(`${outPath} — ${(readFileSync(outPath).length / 1024).toFixed(1)}KB`);

@@ -1851,6 +1851,12 @@ button.pay:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
         ms.day.stemHanja + ' ' + ms.day.stem + '</strong>이 이 명식의 주체입니다. 나머지 글자에 붙은 이름(십신)은 전부 이 글자와의 관계입니다. ' +
         '대괄호 없는 아래 표기는 일간이 그 지지에서 갖는 기세(십이운성)입니다.</p>') +
 
+      '<div style="height:1.2rem"></div>' +
+      '<div class="iv-home-card" style="padding:16px 18px;border-radius:12px;border:1.5px solid rgba(212,175,55,0.5);background:rgba(212,175,55,0.08);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">' +
+        '<div style="font-size:15px;color:#f3e5ab;line-height:1.6;word-break:keep-all">벗에게 <b>__INVITE_DISCOUNT_KRW__원</b> 할인 증표를 보내면, 그대는 <b>__INVITE_REWARD_NAME__</b></div>' +
+        '<a href="/invite" class="iv-home-btn" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#d4af37;color:#18151f;font-weight:800;font-size:14.5px;text-decoration:none;white-space:nowrap">내 증표 받기</a>' +
+      '</div>' +
+
       '<div style="height:1.6rem"></div>' +
       panel('두드러진 특징',
         '<ul class="hl">' + an.highlights.map((h) => '<li>' + esc(h) + '</li>').join('') + '</ul>' +

@@ -26,18 +26,33 @@ const INVITE_PAGE_CSS = `
 .iv-two > * { flex: 1 1 0; min-width: 0; }
 .iv-btn { display: block; width: 100%; padding: 14px; font-size: 16px; font-weight: 800; border: none; border-radius: 8px; background: linear-gradient(135deg, #d4af37, #f0d478); color: #1a1208; cursor: pointer; font-family: inherit; }
 .iv-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.iv-summary { background: rgba(212, 175, 55, 0.08); border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center; }
+.iv-summary { background: rgba(212, 175, 55, 0.08); border: 1.5px solid rgba(212, 175, 55, 0.42); border-radius: 14px; padding: 22px 20px; margin-bottom: 24px; text-align: center; }
+.iv-summary.highlight { border-color: #f0d478; box-shadow: 0 0 28px rgba(212, 175, 55, 0.25); animation: ivPopIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes ivPopIn { from { opacity: 0; transform: translateY(14px) scale(0.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .iv-summary.highlight { animation: none !important; transition: none !important; } }
+.iv-hero-benefit { font-size: 19px; font-weight: 800; color: #f6d878; margin: 0 0 12px; line-height: 1.45; word-break: keep-all; }
 .iv-badge-head { font-size: 14px; color: #c8c2d4; margin-bottom: 4px; }
-.iv-badge-code { font-size: 20px; font-weight: 800; color: #f6d878; margin-bottom: 12px; letter-spacing: 0.05em; }
-.iv-badge-actions { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
-.iv-badge-btn { padding: 8px 14px; font-size: 14px; font-weight: 700; border-radius: 6px; border: 1px solid rgba(212,175,55,0.4); background: #d4af37; color: #18151f; cursor: pointer; }
-.iv-badge-btn.kakao { background: #fee500; border-color: #e5cc00; color: #191919; }
+.iv-badge-code { font-size: 22px; font-weight: 800; color: #f6d878; margin-bottom: 14px; letter-spacing: 0.06em; }
+.iv-badge-actions { display: flex; flex-direction: column; gap: 10px; align-items: stretch; margin-bottom: 14px; }
+.iv-badge-btn { padding: 10px 14px; font-size: 14px; font-weight: 700; border-radius: 8px; border: 1px solid rgba(255,255,255,0.22); background: transparent; color: #dcdce6; cursor: pointer; font-family: inherit; }
+.iv-badge-btn.kakao { padding: 15px 18px; font-size: 16.5px; font-weight: 800; background: #fee500; border-color: #e5cc00; color: #191919; box-shadow: 0 4px 14px rgba(254, 229, 0, 0.22); }
+.iv-progress-wrap { margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.1); text-align: left; }
+.iv-progress-head { display: flex; justify-content: space-between; font-size: 13.5px; color: #e4dfea; margin-bottom: 8px; font-weight: 700; }
+.iv-progress-track { position: relative; height: 10px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden; }
+.iv-progress-fill { height: 100%; background: linear-gradient(90deg, #d4af37, #f6d878); border-radius: 999px; transition: width 0.35s ease; }
+.iv-progress-ticks { display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px; color: #8f889c; }
+.iv-progress-tick.reached { color: #f6d878; font-weight: 800; }
+.iv-progress-tick.current { color: #4ade80; font-weight: 800; }
 .iv-stats { display: flex; justify-content: space-around; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 14px; margin-top: 14px; }
 .iv-stat-num { font-size: 22px; font-weight: 800; color: #f3e5ab; }
 .iv-stat-label { font-size: 14px; color: #a49cb2; margin-top: 2px; }
 .iv-ladder-title { font-size: 18px; font-weight: 800; color: #f3e5ab; margin: 28px 0 14px; }
 .iv-ladder-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 16px; margin-bottom: 10px; gap: 12px; }
 .iv-ladder-item.active { border-color: rgba(212, 175, 55, 0.4); background: rgba(212, 175, 55, 0.05); }
+.iv-ladder-item.next-target { border: 1.5px solid #f0d478; background: rgba(212, 175, 55, 0.11); box-shadow: 0 0 16px rgba(212, 175, 55, 0.14); }
+.iv-tier-badge { display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 999px; font-size: 12px; font-weight: 800; vertical-align: middle; }
+.iv-tier-badge.done { background: rgba(74, 222, 128, 0.18); color: #4ade80; }
+.iv-tier-badge.next { background: #d4af37; color: #18151f; }
 .iv-ladder-item.done { opacity: 0.7; }
 .iv-ladder-info { flex: 1; }
 .iv-ladder-tier { font-size: 14px; font-weight: 700; color: #d4af37; margin-bottom: 2px; }
@@ -118,19 +133,17 @@ window.KAKAO_JS_KEY = ${JSON.stringify(process.env.KAKAO_JS_KEY ?? '')};
   </section>
 
   <div id="ivContent" style="display:none">
-    <section class="iv-summary">
+    <section class="iv-summary" id="ivSummaryCard">
+      <h2 class="iv-hero-benefit">벗은 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인 · 그대는 ${INVITE_REWARD_NAME}</h2>
       <div class="iv-badge-head">그대의 고유 증표</div>
       <div class="iv-badge-code" id="ivMyCode">—</div>
-      <div class="nb-invite-reward-box" style="margin:10px 0 14px;padding:10px 14px;background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.4);border-radius:8px;text-align:center;">
-        <div style="font-size:15px;font-weight:700;color:#f3e5ab;line-height:1.5;">벗은 <b style="color:#4ade80;font-size:16px;">${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원</b> 할인 · 그대는 <b style="color:#4ade80;font-size:16px;">${INVITE_REWARD_NAME}</b> 무료</div>
-      </div>
-      <p style="font-size:14.5px;color:#c8c2d4;margin:0 0 12px;line-height:1.85;">
+      <p style="font-size:14.5px;color:#c8c2d4;margin:0 0 14px;line-height:1.85;">
         이 증표로 들어온 벗은 <b>${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원을 덜 낸다네.</b><br>
         벗이 첫 점사(${(INVITE_MIN_ORDER_KRW / 10000)}만원 이상)를 받으면 그대에게 <b>${INVITE_REWARD_NAME}</b> 무료 보답이 쌓인다네.
       </p>
       <div class="iv-badge-actions">
-        <button type="button" class="iv-badge-btn" id="ivCopyBtn">증표 복사하기</button>
-        <button type="button" class="iv-badge-btn kakao" id="ivKakaoBtn">카톡으로 보내기</button>
+        <button type="button" class="iv-badge-btn kakao" id="ivKakaoBtn">카톡으로 벗에게 보내기</button>
+        <button type="button" class="iv-badge-btn" id="ivCopyBtn">증표 주소 복사하기</button>
       </div>
       <p class="nb-invite-toast" id="ivCopyToast" style="display:none;color:#4ade80;font-size:14px;margin:8px 0 0">증표 주소가 복사되었습니다.</p>
       <div class="iv-stats">
@@ -142,6 +155,16 @@ window.KAKAO_JS_KEY = ${JSON.stringify(process.env.KAKAO_JS_KEY ?? '')};
           <div class="iv-stat-num" id="ivNextGoalVal">—</div>
           <div class="iv-stat-label" id="ivNextGoalLabel">다음 보답까지</div>
         </div>
+      </div>
+      <div class="iv-progress-wrap" id="ivProgressWrap">
+        <div class="iv-progress-head">
+          <span id="ivProgressLeft">지금 0명</span>
+          <span id="ivProgressRight">다음 보답까지 1명</span>
+        </div>
+        <div class="iv-progress-track">
+          <div class="iv-progress-fill" id="ivProgressFill" style="width:0%"></div>
+        </div>
+        <div class="iv-progress-ticks" id="ivProgressTicks"></div>
       </div>
     </section>
 
@@ -212,11 +235,32 @@ ${footer}
       nextGoalLabelEl.textContent = '최고 단계 도달';
     }
 
+    var pLeft = document.getElementById('ivProgressLeft');
+    var pRight = document.getElementById('ivProgressRight');
+    var pFill = document.getElementById('ivProgressFill');
+    var pTicks = document.getElementById('ivProgressTicks');
+    var maxTier = TIERS[TIERS.length - 1].tier;
+    if(pLeft) pLeft.textContent = '지금 ' + count + '명';
+    if(pRight) pRight.textContent = nextTier ? ('다음 보답까지 ' + (nextTier.tier - count) + '명') : '모든 단계 달성';
+    if(pFill) pFill.style.width = Math.min(100, Math.round((count / maxTier) * 100)) + '%';
+    if(pTicks){
+      pTicks.innerHTML = TIERS.map(function(t){
+        var cls = 'iv-progress-tick';
+        if(count >= t.tier) cls += ' reached';
+        else if(nextTier && t.tier === nextTier.tier) cls += ' current';
+        return '<span class="' + cls + '">' + t.tier + '명</span>';
+      }).join('');
+    }
+
     TIERS.forEach(function(item){
       var achieved = count >= item.tier;
+      var isNextTarget = Boolean(nextTier && item.tier === nextTier.tier);
       var rew = rewardMap[item.tier];
       var div = document.createElement('div');
-      div.className = 'iv-ladder-item' + (achieved ? ' active' : '');
+      div.className = 'iv-ladder-item' + (achieved ? ' active' : '') + (isNextTarget ? ' next-target' : '');
+      var badgeHtml = achieved
+        ? '<span class="iv-tier-badge done">받음</span>'
+        : (isNextTarget ? '<span class="iv-tier-badge next">다음 보답</span>' : '');
 
       if(item.tier === 1){
         var grantCount = (rew && rew.grantCount != null) ? rew.grantCount : (rew ? 1 : 0);
@@ -242,7 +286,7 @@ ${footer}
 
         div.innerHTML =
           '<div class="iv-ladder-info">' +
-            '<div class="iv-ladder-tier">' + item.tier + '명 달성 보답 (' + item.type + ')</div>' +
+            '<div class="iv-ladder-tier">' + item.tier + '명 달성 보답' + badgeHtml + '</div>' +
             '<div class="iv-ladder-name">' + item.kind + '</div>' +
             '<div class="iv-ladder-desc">' + tier1Desc + '</div>' +
             (statusText ? '<div class="iv-ladder-status">' + statusText + '</div>' : '') +
@@ -332,7 +376,7 @@ ${footer}
 
       div.innerHTML =
         '<div class="iv-ladder-info">' +
-          '<div class="iv-ladder-tier">' + item.tier + '명 달성 보답 (' + item.type + ')</div>' +
+          '<div class="iv-ladder-tier">' + item.tier + '명 달성 보답' + badgeHtml + '</div>' +
           '<div class="iv-ladder-name">' + item.kind + '</div>' +
           '<div class="iv-ladder-desc">' + item.description + '</div>' +
           (statusText ? '<div class="iv-ladder-status">' + statusText + '</div>' : '') +
@@ -453,6 +497,14 @@ ${footer}
     renderLadder(res.count, res.rewards);
 
     content.style.display = 'block';
+    var summaryCard = document.getElementById('ivSummaryCard');
+    if(summaryCard){
+      summaryCard.classList.remove('highlight');
+      void summaryCard.offsetWidth;
+      summaryCard.classList.add('highlight');
+      var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      summaryCard.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    }
   }
 
   authForm.onsubmit = async function(e){

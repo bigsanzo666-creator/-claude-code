@@ -2190,6 +2190,36 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
   }
 }
 
+// ── 친구 소개 보답 손님 화면 다듬기 (BIG-40) ─────────────────────────
+{
+  const { renderInvitePage } = await import('./src/invite-page.ts');
+  const { readFileSync } = await import('node:fs');
+  const { join, dirname } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const here = dirname(fileURLToPath(import.meta.url));
+  const viewerHtml = readFileSync(join(here, '..', '..', 'apps', 'manse-viewer', 'index.html'), 'utf8');
+  const inviteHtml = renderInvitePage(full, '');
+  const checkoutSample = renderCheckoutPage(full, '', CATALOG['saju-report'], { storeId: 's', channelKey: 'c' });
+
+  check('손님 화면(/invite·결제·첫 화면)에 「(자동)」·「(사장님)」이 없다',
+    !inviteHtml.includes('(자동)') && !inviteHtml.includes('(사장님)') &&
+    !inviteHtml.includes("+ item.type +") &&
+    !checkoutSample.includes('(자동)') && !checkoutSample.includes('(사장님)') &&
+    !viewerHtml.includes('(자동)') && !viewerHtml.includes('(사장님)'));
+
+  check('/invite 에 카톡 보내기 단추와 진행 막대가 있다',
+    inviteHtml.includes('id="ivKakaoBtn"') &&
+    inviteHtml.includes('카톡으로 벗에게 보내기') &&
+    inviteHtml.includes('id="ivProgressWrap"') &&
+    inviteHtml.includes('id="ivProgressFill"') &&
+    inviteHtml.includes('prefers-reduced-motion'));
+
+  check('첫 화면 결과에 /invite 로 가는 소개 카드가 있다',
+    viewerHtml.includes('iv-home-card') &&
+    viewerHtml.includes('href="/invite"') &&
+    viewerHtml.includes('내 증표 받기'));
+}
+
 console.log(`\n${'═'.repeat(60)}`);
 console.log(`통과 ${passed} · 실패 ${failed}`);
 if (failed) { console.log(failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }
