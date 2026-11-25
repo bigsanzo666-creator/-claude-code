@@ -171,15 +171,33 @@ export function reportBodyHtml(reportText: string): string {
       else rest.push(line);
     }
     if (rest.length) {
-      const first = rest[0]!.trim();
-      if (rest.length === 1 && /^#{1,4}\s+/.test(first)) {
+      /*
+       * 터진 뒤에 적은 것 (2026-11-25): 첫 실제 메일(오늘의 운세)에서 글의 인용 표시 「> 」가
+       * 「&gt; 전문 ·」으로 그대로 찍히고, 시진 표가 「| 자시 | … |」 막대기 글자로 나갔다.
+       * 사이트 화면은 이것들을 표와 상자로 그리는데 메일만 날것으로 보냈다.
+       */
+      const quoted = rest.every((l) => /^\s*>/.test(l));
+      const lines2 = rest.map((l) => l.replace(/^\s*>\s?/, ''));
+      const first = lines2[0]!.trim();
+      const isTable = lines2.length >= 2 && lines2.every((l) => /^\s*\|.*\|\s*$/.test(l)) && /^\s*\|?\s*:?-{2,}/.test(lines2[1]!);
+      const isList = lines2.every((l) => /^\s*(?:[-*•]|\d+[.)])\s+/.test(l));
+      if (isTable) {
+        const cellsOf = (l: string) => l.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+        const head = cellsOf(lines2[0]!);
+        const body = lines2.slice(2).map(cellsOf);
+        const th = head.map((h) => `<td style="font-family:${SANS};font-size:12px;font-weight:700;color:${NAVY};background:#F3F0E8;padding:7px 6px;">${bold(esc(h))}</td>`).join('');
+        const trs = body.map((r, i) => `<tr>${r.map((c) => `<td style="font-family:${SANS};font-size:13px;color:${INK};padding:7px 6px;border-top:1px solid ${LINE};${i % 2 ? 'background:#FBF8F1;' : ''}">${bold(esc(c))}</td>`).join('')}</tr>`).join('');
+        out += `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${LINE};border-radius:8px;margin:0 0 16px;"><tr>${th}</tr>${trs}</table>`;
+      } else if (isList) {
+        out += lines2.map((l) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;"><tr><td width="18" valign="top" style="font-family:${SANS};font-size:15px;line-height:1.8;color:${GOLD};">•</td><td style="font-family:${SANS};font-size:15px;line-height:1.8;color:#2A2A2A;">${bold(esc(l.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '')))}</td></tr></table>`).join('') + '<div style="height:8px;line-height:8px;">&nbsp;</div>';
+      } else if (lines2.length === 1 && /^#{1,4}\s+/.test(first)) {
         out += `<div style="font-family:${SERIF};font-size:18px;font-weight:700;color:${NAVY};margin:8px 0 12px;">${esc(first.replace(/^#{1,4}\s+/, ''))}</div>`;
-      } else if (rest.length === 1 && /^\*\*[^*]+\*\*$/.test(first)) {
+      } else if (lines2.length === 1 && /^\*\*[^*]+\*\*$/.test(first)) {
         out += `<div style="font-family:${SERIF};font-size:17px;font-weight:700;color:${NAVY};margin:6px 0 10px;border-left:3px solid ${GOLD};padding-left:10px;">${esc(first.slice(2, -2))}</div>`;
-      } else if (/^전문\s*·/.test(first)) {
-        out += `<p style="margin:0 0 14px;font-family:${SANS};font-size:12px;line-height:1.7;color:${NAVY};background:#F3F0E8;border-radius:8px;padding:8px 10px;">${bold(esc(rest.join('\n'))).replace(/\n/g, '<br>')}</p>`;
+      } else if (/^전문\s*·/.test(first) || quoted) {
+        out += `<p style="margin:0 0 14px;font-family:${SANS};font-size:12px;line-height:1.7;color:${NAVY};background:#F3F0E8;border-radius:8px;padding:8px 10px;">${bold(esc(lines2.join('\n'))).replace(/\n/g, '<br>')}</p>`;
       } else {
-        out += `<p style="margin:0 0 16px;font-family:${SANS};font-size:15px;line-height:1.9;color:#2A2A2A;">${bold(esc(rest.join('\n'))).replace(/\n/g, '<br>')}</p>`;
+        out += `<p style="margin:0 0 16px;font-family:${SANS};font-size:15px;line-height:1.9;color:#2A2A2A;">${bold(esc(lines2.join('\n'))).replace(/\n/g, '<br>')}</p>`;
       }
     }
     for (const t of tags) out += `<div style="margin:-6px 0 18px;">${chip(t)}</div>`;
