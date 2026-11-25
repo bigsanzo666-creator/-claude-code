@@ -2588,4 +2588,59 @@ document.addEventListener('DOMContentLoaded', () => {
       if (s) openChamber(s);
     }
   });
+
+  // ── 뒤로가기·재방문 시 이미 명식을 넣었으면 영상 건너뛰고 상품 화면으로 ──
+  function enterSpiritsMenuDirectly() {
+    if (gateVideo) { try { gateVideo.pause(); } catch (e) {} }
+    if (enterVideo) { try { enterVideo.pause(); } catch (e) {} }
+    if (stageGate) stageGate.classList.remove('active');
+    if (stageEnter) stageEnter.classList.remove('active');
+    if (stageChamber) stageChamber.classList.remove('active');
+    if (stageSpirits) stageSpirits.classList.add('active');
+  }
+
+  function restoreStageOnReturn(state) {
+    let saved = null;
+    try { saved = loadReading(); } catch (e) {}
+    const b = saved ? (saved.birth || saved) : null;
+    const hasBirth = Boolean(b && (b.date || b.birthDate));
+
+    if (state && state.stage === 'chamber' && state.spirit) {
+      const s = SPIRITS_DATA.find((sp) => sp.name === state.spirit);
+      if (s) { openChamber(s); return; }
+    }
+    if (state && state.stage === 'viewer' && typeof window.openFreeSaju === 'function') {
+      enterSpiritsMenuDirectly();
+      window.openFreeSaju();
+      return;
+    }
+    if (hasBirth) {
+      enterSpiritsMenuDirectly();
+    }
+  }
+
+  restoreStageOnReturn(history.state);
+
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) {
+      restoreStageOnReturn(history.state);
+    }
+  });
+
+  const btnRestartFromGate = document.getElementById('btnRestartFromGate');
+  if (btnRestartFromGate) {
+    btnRestartFromGate.addEventListener('click', () => {
+      if (stageChamber) stageChamber.classList.remove('active');
+      if (stageSpirits) stageSpirits.classList.remove('active');
+      if (stageEnter) stageEnter.classList.remove('active');
+      if (stageGate) stageGate.classList.add('active');
+      if (gateVideo) {
+        try {
+          gateVideo.currentTime = 0;
+          gateVideo.play().catch(() => {});
+        } catch (e) {}
+      }
+      try { history.pushState({ stage: 'gate' }, ''); } catch (e) {}
+    });
+  }
 });

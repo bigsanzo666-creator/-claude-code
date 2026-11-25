@@ -105,27 +105,32 @@ window.KAKAO_JS_KEY = ${JSON.stringify(process.env.KAKAO_JS_KEY ?? '')};
         <label for="authEmail">이메일 (결제 시 사용하신 이메일)</label>
         <input type="email" id="authEmail" name="email" autocomplete="email" required placeholder="your@email.com">
       </div>
-      <div class="iv-two">
-        <div class="iv-f">
-          <label for="authDate">생년월일</label>
-          <input type="date" id="authDate" name="birthDate" required>
-        </div>
-        <div class="iv-f">
-          <label for="authGender">성별</label>
-          <select id="authGender" name="gender">
-            <option value="남">남</option>
-            <option value="여">여</option>
-          </select>
-        </div>
+      <div id="ivSavedBirthNote" style="display:none;font-size:13.5px;color:#c8c2d4;margin:-4px 0 14px;line-height:1.5;">
+        <span id="ivSavedBirthLabel">저장된 명식으로 봅니다</span> · <button type="button" id="ivChangeBirthBtn" style="background:none;border:none;color:#f3e5ab;text-decoration:underline;cursor:pointer;font-size:13.5px;padding:0;font-family:inherit">바꾸기</button>
       </div>
-      <div class="iv-two">
-        <div class="iv-f">
-          <label for="authTime">태어난 시간</label>
-          <input type="time" id="authTime" name="time" value="12:00">
+      <div id="ivBirthFields">
+        <div class="iv-two">
+          <div class="iv-f">
+            <label for="authDate">생년월일</label>
+            <input type="date" id="authDate" name="birthDate" required>
+          </div>
+          <div class="iv-f">
+            <label for="authGender">성별</label>
+            <select id="authGender" name="gender">
+              <option value="남">남</option>
+              <option value="여">여</option>
+            </select>
+          </div>
         </div>
-        <div class="iv-f">
-          <label for="authPlace">태어난 곳</label>
-          <select id="authPlace" name="place">${placesOptions}</select>
+        <div class="iv-two">
+          <div class="iv-f">
+            <label for="authTime">태어난 시간</label>
+            <input type="time" id="authTime" name="time" value="12:00">
+          </div>
+          <div class="iv-f">
+            <label for="authPlace">태어난 곳</label>
+            <select id="authPlace" name="place">${placesOptions}</select>
+          </div>
         </div>
       </div>
       <button type="submit" class="iv-btn" id="ivAuthSubmit">내 증표와 보답 확인하기</button>
@@ -203,6 +208,54 @@ ${footer}
   var currentCode = '';
   var currentEmail = '';
   var currentBirth = {};
+
+  function loadSavedReading(){
+    try{
+      var raw = sessionStorage.getItem('nb_reading');
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return window.__nbReadingFallback || null;
+  }
+
+  (function prefillFromSession(){
+    try{
+      var savedEmail = '';
+      try{
+        savedEmail = sessionStorage.getItem('nb_email') || sessionStorage.getItem('nb_reward_email') || '';
+      }catch(e){}
+      var emailEl = document.getElementById('authEmail');
+      if(savedEmail && emailEl && !emailEl.value) emailEl.value = savedEmail;
+
+      var saved = loadSavedReading();
+      var b = saved ? (saved.birth || saved) : null;
+      var bDate = b && (b.date || b.birthDate);
+      if(bDate){
+        var dateEl = document.getElementById('authDate');
+        var genderEl = document.getElementById('authGender');
+        var timeEl = document.getElementById('authTime');
+        var placeEl = document.getElementById('authPlace');
+        if(dateEl) dateEl.value = bDate;
+        if(genderEl && b.gender) genderEl.value = (b.gender === 'female' || b.gender === '여') ? '여' : '남';
+        if(timeEl && b.time) timeEl.value = b.time;
+        if(placeEl && b.place) placeEl.value = b.place;
+
+        var birthFields = document.getElementById('ivBirthFields');
+        var savedNote = document.getElementById('ivSavedBirthNote');
+        var savedLabel = document.getElementById('ivSavedBirthLabel');
+        var changeBtn = document.getElementById('ivChangeBirthBtn');
+        var who = (b.name || '').trim();
+        if(savedLabel) savedLabel.textContent = who ? (who + ' 님의 명식으로 봅니다') : '저장된 명식으로 봅니다';
+        if(birthFields) birthFields.style.display = 'none';
+        if(savedNote) savedNote.style.display = 'block';
+        if(changeBtn){
+          changeBtn.onclick = function(){
+            if(birthFields) birthFields.style.display = 'block';
+            if(savedNote) savedNote.style.display = 'none';
+          };
+        }
+      }
+    }catch(e){}
+  })();
 
   async function postJson(url, body){
     var r = await fetch(url, {
@@ -521,6 +574,7 @@ ${footer}
     submitBtn.disabled = true;
     submitBtn.textContent = '불러오는 중…';
     try{
+      try{ sessionStorage.setItem('nb_email', email); }catch(err){}
       await loadStatus(email, { date: date, gender: gender, time: time, place: place });
       authCard.style.display = 'none';
     }catch(err){

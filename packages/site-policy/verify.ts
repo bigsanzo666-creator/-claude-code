@@ -2218,6 +2218,19 @@ check('칸 높이를 고정하지 않는다 (글이 잘리지 않게)',
     viewerHtml.includes('iv-home-card') &&
     viewerHtml.includes('href="/invite"') &&
     viewerHtml.includes('내 증표 받기'));
+
+  const appJs = readFileSync(join(here, '..', '..', 'apps', 'api', 'public', 'app.js'), 'utf8');
+  check('/invite 화면 코드가 nb_reading 을 읽고 있으면 명식 칸을 숨긴다',
+    inviteHtml.includes("sessionStorage.getItem('nb_reading')") &&
+    inviteHtml.includes('ivBirthFields') &&
+    inviteHtml.includes("birthFields.style.display = 'none'") &&
+    inviteHtml.includes('ivChangeBirthBtn'));
+
+  check('첫 화면 코드가 돌아왔을 때 nb_reading 이 있으면 영상 단계를 건너뛴다',
+    appJs.includes('enterSpiritsMenuDirectly') &&
+    appJs.includes('restoreStageOnReturn') &&
+    appJs.includes('pageshow') &&
+    appJs.includes('btnRestartFromGate'));
 }
 
 console.log(`\n${'═'.repeat(60)}`);

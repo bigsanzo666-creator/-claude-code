@@ -336,6 +336,7 @@ const STUDIO_CONTAINER_HTML = `<div id="mobileContainer">
           </a>
         </div>
         <a href="/invite" class="spirits-invite-bar"><span class="nb-brk">벗에게 ${INVITE_DISCOUNT_KRW.toLocaleString('ko-KR')}원 할인증표 보내고</span><br><span class="nb-brk">그대도 역대급 보답을 받으시지요 →</span></a>
+        <div><button type="button" id="btnRestartFromGate" style="margin-top:8px;background:none;border:none;color:#a49cb2;font-size:13px;text-decoration:underline;cursor:pointer;font-family:inherit">처음부터 다시 보기</button></div>
       </div>
 
       <!-- 갈래 탭 11개 (가로 스크롤) -->
